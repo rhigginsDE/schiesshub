@@ -8,6 +8,9 @@ Ziel ist ein internes Testturnier mit BDS-Fallscheibe.
 
 - Disziplin-Katalog aus `catalog/` einlesen
 - Turnier anlegen: Wettbewerbe aus dem Katalog, Klassen, Mehrfachstart, Startgeld als Betrag
+- Ablauf je Turnier frei änderbar, auch nach dem Start (gewertete Serien, Trefferaufnahmen)
+- Turnierausschreibung mit Freitexten und automatisch eingefügten Wettbewerben, Terminen und Startgeld, als PDF über die Druckansicht
+- Aushang je Disziplin für den Stand
 - Anmeldung: Teilnehmer erfassen, Starts buchen, zu zahlenden Betrag anzeigen
 - Ablauf am Stand je Wettbewerb einstellbar: Reihenfolge ohne feste Zeiten oder Zeitplan mit Durchgängen
 - Erfassungsterminal: Einzelschuss oder Seriensumme, Zeit und Zuschläge
