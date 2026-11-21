@@ -3,7 +3,7 @@ import { useDebouncedCallback } from "@mantine/hooks";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link, Outlet } from "@tanstack/react-router";
 import { ChevronRight, FolderOpen, Search, SearchX, TriangleAlert } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   disziplinenAbfrage,
@@ -16,7 +16,6 @@ import { useModule } from "../../app/modul";
 import { Chip } from "../../components/Chip";
 import { Fehlerzustand, Leerzustand } from "../../components/Zustand";
 import { formatDatum, formatZahl } from "../../lib/format";
-import { useHaftetWennPasst } from "../../lib/useHaftetWennPasst";
 import s from "./katalog.module.css";
 import { DISZIPLIN_PFAD, type KatalogAuswahl, type KatalogSuche } from "./pfade";
 
@@ -33,32 +32,11 @@ interface KatalogSeiteProps {
 export function KatalogSeite({ suche, auswahl, onSucheAendern }: KatalogSeiteProps) {
   const { t, i18n } = useTranslation("katalog");
   const verbaende = useQuery(verbaendeAbfrage());
-  const haftet = useHaftetWennPasst<HTMLDivElement>();
-  const detail = useRef<HTMLDivElement | null>(null);
-  const detailRef = useCallback(
-    (element: HTMLDivElement | null) => {
-      detail.current = element;
-      haftet(element);
-    },
-    [haftet],
-  );
-
-  // Haftet das Detail nicht (zu hoch für das Fenster), steht es oben auf der Seite. Nach einer
-  // Auswahl weiter unten in der Liste dorthin springen, sonst bliebe es unsichtbar.
-  const kennziffer = auswahl?.kennziffer;
-  useEffect(() => {
-    const element = detail.current;
-    if (!kennziffer || !element || element.dataset.haftet !== "nein") return;
-    const lage = element.getBoundingClientRect();
-    if (lage.top < 0 || lage.top > window.innerHeight * 0.6) {
-      element.scrollIntoView({ block: "start" });
-    }
-  }, [kennziffer]);
   const verband =
     verbaende.data?.find((eintrag) => eintrag.id === suche.verband) ?? verbaende.data?.[0];
 
   return (
-    <div className={s.seite} data-detail={auswahl ? "offen" : "zu"}>
+    <div className={s.seite} data-layout="fenster" data-detail={auswahl ? "offen" : "zu"}>
       <Seitenkopf verband={verband} sprache={i18n.language} />
       <Importfehler />
 
@@ -90,7 +68,7 @@ export function KatalogSeite({ suche, auswahl, onSucheAendern }: KatalogSeitePro
             auswahl={auswahl}
             onSucheAendern={onSucheAendern}
           />
-          <div className={s.detail} ref={detailRef}>
+          <div className={s.detail}>
             <Outlet />
           </div>
         </div>

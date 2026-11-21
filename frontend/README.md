@@ -79,5 +79,7 @@ Als Vorlage eignen sich `modules/anmeldung` (kleinste Form) und `modules/katalog
 ## Layout-Regeln
 
 - **Platz nutzen:** Seiten verwenden die ganze Bildschirmbreite. Wer lieber eine gebündelte Ansicht hat, schaltet in der Kopfzeile auf „Inhalt in der Mitte bündeln“; die Wahl gilt je Gerät (`src/app/seitenbreite.ts`). Weitere Ansichten je Bildschirm kommen als zusätzliche Werte derselben Einstellung dazu.
-- **Ein Scroll je Seite:** Es scrollt nur die Seite selbst, vertikal. Keine Bereiche mit eigenem Scrollbalken (`overflow-y: auto`, `max-height` auf Listen oder Spalten, `ScrollArea`). Soll etwas beim Scrollen sichtbar bleiben, haftet es nur, wenn es ins Fenster passt (`src/lib/useHaftetWennPasst.ts`). Ausnahme sind echte Überlagerungen wie Dialoge.
+- **Kein doppelter Scroll:** Nie scrollen die Seite und ein Bereich darin gleichzeitig. Es gibt zwei Formen:
+  - *Fenster-Layout* für Arbeitsansichten mit mehreren Spalten (Liste neben Detail): Die Seite füllt genau das Fenster und scrollt selbst nicht, jede Spalte scrollt für sich. Die Seite setzt dafür `data-layout="fenster"` an ihrem Wurzelelement; Vorbild ist der Disziplin-Katalog. Greift ab 1101 px Breite und 560 px Höhe.
+  - *Seiten-Layout* für alles andere und für schmale Bildschirme: Nur die Seite scrollt, kein Bereich hat einen eigenen Scrollbalken.
 - **Kein horizontaler Scroll** der Seite. Breite Tabellen brechen um oder wechseln in eine Kartenansicht.

@@ -76,16 +76,32 @@
 
 .detail {
   min-width: 0;
-  /* Bleibt beim Scrollen der Liste sichtbar, solange es ins Fenster passt (data-haftet setzt
-     useHaftetWennPasst). Ist es höher, scrollt es normal mit der Seite. Einen eigenen
-     Scrollbalken bekommt es nie: Jede Seite hat genau einen vertikalen Scroll. */
-  scroll-margin-top: 16px;
   border-radius: var(--sh-radius-l);
 }
 
-.detail[data-haftet="ja"] {
-  position: sticky;
-  top: 16px;
+/* Fenster-Layout (siehe frontend/README.md): Auf großen Bildschirmen füllt die Seite genau das
+   Fenster, die Seite selbst scrollt nicht. Stattdessen scrollt jede Spalte für sich. */
+@media (min-width: 1101px) and (min-height: 560px) {
+  .seite {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .spalten {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+  }
+
+  .spalten > * {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sh-linie) transparent;
+  }
 }
 
 /* ---------- Filter ---------- */
@@ -419,10 +435,6 @@
 @media (max-width: 1100px) {
   .spalten {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .detail[data-haftet] {
-    position: static;
   }
 
   .seite[data-detail="zu"] .detail {
