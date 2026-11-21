@@ -1,0 +1,132 @@
+# KW 25 m Fallscheibe GK – BDS-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: BDS-SHB Teil K, Fassung BVA-Bescheid 30.06.2026, K 5.01–5.10 (S. K-20 bis K-22), Patronenlisten K 8;
+# optionale Disziplinen K 1.19 / Kommentar zu A3.01
+schema: 1
+verband: "bds"
+gruppe:
+  id: "kw-25m-fallscheibe-gk"
+  name: "KW 25 m Fallscheibe GK"
+  waffenart: "kurzwaffe"
+  distanz_m: 25
+  art: "fallscheibe-gk"
+wertung:
+  modell: "zeit_plus_zuschlaege"
+  rangfolge: "aufsteigend"
+  geprueft: true
+ablaeufe:
+  fallscheibe-max16:
+    beschreibung: "4 Serien (BM/LM) bzw. 6 (DM) auf 5 Fallscheiben; max. 16 Schuss und 1 Min. je Serie; 10 s Zuschlag je stehender Scheibe"
+    varianten:
+      - id: "bm-lm"
+        name: "Bezirks-/Landesmeisterschaft"
+        abschnitte:
+          - id: "fallscheibe"
+            name: "Fallscheibe"
+            serien: 4
+            ziele_je_serie: 5
+            max_schuss_je_serie: 16
+            max_zeit_je_serie_s: 60
+            zeit_wird_gemessen: true
+            zuschlag_je_stehender_scheibe_s: 10
+      - id: "dm"
+        name: "Deutsche Meisterschaft"
+        abschnitte:
+          - id: "fallscheibe"
+            name: "Fallscheibe"
+            serien: 6
+            ziele_je_serie: 5
+            max_schuss_je_serie: 16
+            max_zeit_je_serie_s: 60
+            zeit_wird_gemessen: true
+            zuschlag_je_stehender_scheibe_s: 10
+  fallscheibe-max12:
+    beschreibung: "4 Serien (BM/LM) bzw. 6 (DM) auf 5 Fallscheiben; max. 12 Schuss und 1 Min. je Serie; 10 s Zuschlag je stehender Scheibe"
+    varianten:
+      - id: "bm-lm"
+        name: "Bezirks-/Landesmeisterschaft"
+        abschnitte:
+          - id: "fallscheibe"
+            name: "Fallscheibe"
+            serien: 4
+            ziele_je_serie: 5
+            max_schuss_je_serie: 12
+            max_zeit_je_serie_s: 60
+            zeit_wird_gemessen: true
+            zuschlag_je_stehender_scheibe_s: 10
+      - id: "dm"
+        name: "Deutsche Meisterschaft"
+        abschnitte:
+          - id: "fallscheibe"
+            name: "Fallscheibe"
+            serien: 6
+            ziele_je_serie: 5
+            max_schuss_je_serie: 12
+            max_zeit_je_serie_s: 60
+            zeit_wird_gemessen: true
+            zuschlag_je_stehender_scheibe_s: 10
+disziplinen:
+  - kennziffer: "1301"
+    name: "Pistole"
+    waffe: "Pistole"
+    munition: "Patronenliste K 8 (u. a. 9 mm Luger, .40 S&W, .45 Auto); MI 125, max. 200"
+    visierung: "offen"
+    anschlag: "stehend"
+    scheibe: "5 Fallscheiben Ø 20 cm"
+    ablauf: "fallscheibe-max16"
+    hinweis: "max. 1500 g"
+  - kennziffer: "1306"
+    name: "Revolver"
+    waffe: "Revolver"
+    munition: "Patronenliste K 8 (u. a. .38 Special, .357 Mag, .45 Colt); MI 112,5, max. 200"
+    visierung: "offen"
+    anschlag: "stehend"
+    scheibe: "5 Fallscheiben Ø 20 cm"
+    ablauf: "fallscheibe-max12"
+    hinweis: "max. 1500 g"
+  - kennziffer: "1316"
+    name: "Freie Klasse Pistole mind. .30/7,62 mm"
+    waffe: "Pistole"
+    munition: "Patronenliste K 8 (wie 1301); MI 125, max. 200"
+    visierung: "beliebig (K 2.07)"
+    anschlag: "stehend"
+    scheibe: "5 Fallscheiben Ø 20 cm"
+    ablauf: "fallscheibe-max16"
+    hinweis: "Gewicht beliebig (K 2.07)"
+  - kennziffer: "1317"
+    name: "Freie Klasse Revolver mind. .30/7,62 mm"
+    waffe: "Revolver"
+    munition: "Patronenliste K 8 (wie 1306); MI 112,5, max. 200"
+    visierung: "beliebig (K 2.07)"
+    anschlag: "stehend"
+    scheibe: "5 Fallscheiben Ø 20 cm"
+    ablauf: "fallscheibe-max12"
+    hinweis: "Gewicht beliebig (K 2.07)"
+  - kennziffer: "1321"
+    name: "Pistole mit Anschlagschaft, offene Visierung"
+    waffe: "Pistole mit Anschlagschaft"
+    munition: "Patronenliste K 8 (wie 1301); MI 125, max. 200"
+    visierung: "offen"
+    anschlag: "stehend"
+    scheibe: "5 Fallscheiben Ø 20 cm"
+    ablauf: "fallscheibe-max16"
+    hinweis: "max. 1500 g (ohne Schaft); Sonderregel K 2.01.5"
+    optional: true
+  - kennziffer: "1322"
+    name: "Pistole mit Anschlagschaft, optische Visierung"
+    waffe: "Pistole mit Anschlagschaft"
+    munition: "Patronenliste K 8 (wie 1301); MI 125, max. 200"
+    visierung: "beliebig (K 2.07)"
+    anschlag: "stehend"
+    scheibe: "5 Fallscheiben Ø 20 cm"
+    ablauf: "fallscheibe-max16"
+    hinweis: "Gewicht beliebig (K 2.07); Sonderregel K 2.01.5"
+  - kennziffer: "1324"
+    name: "Dienstpistole 2"
+    waffe: "Pistole (Striker Fire, Polymergriffstück)"
+    munition: "9 mm Luger; MI 125, max. 200"
+    visierung: "offen, keine Höhenverstellung"
+    anschlag: "stehend"
+    scheibe: "5 Fallscheiben Ø 20 cm"
+    ablauf: "fallscheibe-max16"
+    hinweis: "max. 900 g; Positivliste im Kommentar (K 2.01.2)"

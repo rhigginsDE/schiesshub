@@ -1,0 +1,114 @@
+# LW 25 m Kombi – BDS-Disziplinen (alle optional)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 7.02, L 7.03, L 7.04, L 7.08; Ringgleichheit A 9.03.
+schema: 1
+verband: "bds"
+gruppe:
+  id: "lw-25m-kombi"
+  name: "LW 25 m Kombi"
+  waffenart: "langwaffe"
+  distanz_m: 25
+  art: "kombi"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  gleichstand: ["zehner", "innenzehner", "neuner_abwaerts"]
+  geprueft: true
+ablaeufe:
+  kombi-40:
+    beschreibung: "40 Schuss: 2×10 Präzision (je 5 Min., Z21), dann Kombi-Teil auf Z9: 2×5 Intervall (je Schuss 3 s zugedreht, 7 s weggedreht), 5 Schuss Zeitserie in 20 s, 5 Schuss in 10 s"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "praezision"
+            name: "Präzision"
+            serien: 2
+            schuss_je_serie: 10
+            zeit_je_serie_s: 300
+          - id: "intervall"
+            name: "Intervall"
+            serien: 2
+            schuss_je_serie: 5
+            zeit_je_schuss_s: 3
+            pause_zwischen_schuessen_s: 7
+          - id: "zeitserie"
+            name: "Zeitserie"
+            serien: 2
+            schuss_je_serie: 5
+            zeiten_s: [20, 10]
+disziplinen:
+  - kennziffer: "2801"
+    name: "Sportgewehr Selbstlader KW-Patronen, offene Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: "KW-Patronen (Anhang 1)"
+    visierung: "offen oder geschlossen"
+    anschlag: "stehend freihändig"
+    scheibe: "Z21 / Z9"
+    ablauf: "kombi-40"
+    optional: true
+  - kennziffer: "2802"
+    name: "Sportgewehr Selbstlader KK, optische Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: ".22 lr"
+    visierung: "beliebige Optik"
+    anschlag: "stehend freihändig"
+    scheibe: "Z21 / Z9"
+    ablauf: "kombi-40"
+    optional: true
+  - kennziffer: "2803"
+    name: "Repetierbüchse KW-Patronen, offene Visierung"
+    waffe: "Büchse, Repetierer"
+    munition: "KW-Patronen (Anhang 1), nicht .30 Carbine"
+    visierung: "offen"
+    anschlag: "stehend freihändig"
+    scheibe: "Z21 / Z9"
+    ablauf: "kombi-40"
+    optional: true
+  - kennziffer: "2804"
+    name: "Repetierbüchse KK, offene Visierung"
+    waffe: "Büchse, Repetierer"
+    munition: ".22 lr"
+    visierung: "offen"
+    anschlag: "stehend freihändig"
+    scheibe: "Z21 / Z9"
+    ablauf: "kombi-40"
+    optional: true
+  - kennziffer: "2810"
+    name: "Sportgewehr Selbstlader KW-Patronen, optische Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: "KW-Patronen (Anhang 1)"
+    visierung: "beliebige Optik"
+    anschlag: "stehend freihändig"
+    scheibe: "Z21 / Z9"
+    ablauf: "kombi-40"
+    optional: true
+  - kennziffer: "2811"
+    name: "Repetierbüchse KW-Patronen, optische Visierung"
+    waffe: "Büchse, Repetierer"
+    munition: "KW-Patronen (Anhang 1), nicht .30 Carbine"
+    visierung: "beliebige Optik"
+    anschlag: "stehend freihändig"
+    scheibe: "Z21 / Z9"
+    ablauf: "kombi-40"
+    hinweis: "Waffen, die in 2803 zulässig sind, sind hier nicht zugelassen"
+    optional: true
+  - kennziffer: "2812"
+    name: "Sportgewehr Selbstlader KK, offene Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: ".22 lr"
+    visierung: "offen oder geschlossen"
+    anschlag: "stehend freihändig"
+    scheibe: "Z21 / Z9"
+    ablauf: "kombi-40"
+    optional: true
+  - kennziffer: "2814"
+    name: "Repetierbüchse KK, beliebige Visierung"
+    waffe: "Büchse, Repetierer"
+    munition: ".22 lr"
+    visierung: "beliebig"
+    anschlag: "stehend freihändig"
+    scheibe: "Z21 / Z9"
+    ablauf: "kombi-40"
+    hinweis: "Waffen, die in 2804 zulässig sind, sind hier nicht zugelassen"
+    optional: true

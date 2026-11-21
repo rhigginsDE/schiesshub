@@ -1,0 +1,38 @@
+# Katalog-Kopf für den Verband BDS. Die Disziplinen selbst liegen in gruppen/*.yaml.
+schema: 1
+id: "bds"
+verband:
+  kuerzel: "BDS"
+  name: "Bund Deutscher Sportschützen 1975 e.V."
+regelwerk:
+  name: "BDS-Sporthandbuch, Teil K (Kurzwaffen) und Teil L (Langwaffen)"
+  # Fassung des BVA-Genehmigungsbescheids, auf der diese Daten beruhen.
+  # Teil K und Teil L haben derzeit dasselbe Genehmigungsdatum. Laufen sie auseinander, je Teil führen.
+  stand: "2026-06-30"
+  teile:
+    K: { stand: "2026-06-30", datei: "2026_07_SHB_K" }
+    L: { stand: "2026-06-30", datei: "2026_07_SHB_L" }
+  # Ergänzend herangezogen (nicht genehmigungspflichtig): Teil A 2026_06, Kommentar 2026_11_09 (SHB 2027)
+  abgeglichen_am: "2026-11-21"
+status: "entwurf" # entwurf | geprueft – "geprueft" erst, wenn alle Gruppen geprueft: true haben
+hinweise:
+  - "Vor einem Wettkampf mit dem aktuellen Sporthandbuch abgleichen."
+  - "Felder unter 'pruefen' einer Disziplin waren in der Quelle nicht eindeutig lesbar."
+  - "22 von 25 Gruppen sind gegen die Fassung vom 30.06.2026 geprüft. Offen: kw-25m-speed, lw-25m-speed, flinte-25m-speed (Gleichstandsregel bei Speed ungeklärt)."
+  - "Bei Speed und Fallscheibe regelt das Sporthandbuch keinen Gleichstand; dort ist kein 'gleichstand' eingetragen."
+nicht_enthalten:
+  - "IPSC"
+  - "Long Range (LR)"
+  - "Percussion / Schwarzpulver (P)"
+  - "3GUN (3F/3P)"
+  - "Jugendwettbewerbe (J)"
+glossar:
+  MI: "Mindestimpuls (Kurzwaffe). 'max. 200' ist die Obergrenze bei Fallscheibe."
+  KW-Patronen: "Bei Langwaffen: Kurzwaffenpatronen laut Anhang 1 des Langwaffenteils."
+  BM: "Bezirksmeisterschaft"
+  LM: "Landesmeisterschaft"
+  DM: "Deutsche Meisterschaft"
+  Z-Scheiben: "Scheibennummern laut Scheibenverzeichnis im Sporthandbuch Teil L."
+offizielle_quellen:
+  - "https://www.bdsnet.de"
+  - "https://www.bva.bund.de (Waffenrecht → Schießsport → BDS)"

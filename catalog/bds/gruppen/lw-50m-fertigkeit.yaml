@@ -1,0 +1,65 @@
+# LW 50 m Fertigkeit – BDS-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 5.01, L 5.04–L 5.08; Ringgleichheit A 9.03.
+schema: 1
+verband: "bds"
+gruppe:
+  id: "lw-50m-fertigkeit"
+  name: "LW 50 m Fertigkeit"
+  waffenart: "langwaffe"
+  distanz_m: 50
+  art: "fertigkeit"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  gleichstand: ["zehner", "innenzehner", "neuner_abwaerts"]
+  geprueft: true
+ablaeufe:
+  fertigkeit-3x10:
+    beschreibung: "30 Schuss: 3×10 in je 40 s inkl. Pflicht-Magazinwechsel (ohne Wechsel Serie = 0)"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "fertigkeit"
+            name: "Fertigkeit"
+            serien: 3
+            schuss_je_serie: 10
+            zeit_je_serie_s: 40
+disziplinen:
+  - kennziffer: "2401"
+    name: "Sportgewehr Selbstlader KW-Patronen, offene Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: "KW-Patronen (Anhang 1)"
+    visierung: "offen oder geschlossen"
+    anschlag: "liegend aufgelegt"
+    scheibe: "Z1"
+    ablauf: "fertigkeit-3x10"
+    hinweis: "Ladekapazität mind. 5; Magazinkoppler/verbundene Magazine nicht erlaubt"
+  - kennziffer: "2402"
+    name: "Sportgewehr Selbstlader KK, optische Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: ".22 lr"
+    visierung: "beliebige Optik"
+    anschlag: "liegend aufgelegt"
+    scheibe: "Z2"
+    ablauf: "fertigkeit-3x10"
+    hinweis: "Ladekapazität mind. 5; Magazinkoppler/verbundene Magazine nicht erlaubt"
+  - kennziffer: "2410"
+    name: "Sportgewehr Selbstlader KW-Patronen, optische Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: "KW-Patronen (Anhang 1)"
+    visierung: "beliebige Optik"
+    anschlag: "liegend aufgelegt"
+    scheibe: "Z2"
+    ablauf: "fertigkeit-3x10"
+    hinweis: "Ladekapazität mind. 5; Magazinkoppler/verbundene Magazine nicht erlaubt"
+  - kennziffer: "2412"
+    name: "Sportgewehr Selbstlader KK, offene Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: ".22 lr"
+    visierung: "offen oder geschlossen"
+    anschlag: "liegend aufgelegt"
+    scheibe: "Z1"
+    ablauf: "fertigkeit-3x10"
+    hinweis: "Ladekapazität mind. 5; Magazinkoppler/verbundene Magazine nicht erlaubt"

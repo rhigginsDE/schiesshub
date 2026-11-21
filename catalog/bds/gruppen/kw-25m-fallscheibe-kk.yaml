@@ -1,0 +1,117 @@
+# KW 25 m Fallscheibe KK – BDS-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: BDS-SHB Teil K, Fassung BVA-Bescheid 30.06.2026, K 5.11–5.20 (S. K-22 bis K-24); Zuschlag über K 5.19 → K 5.09
+schema: 1
+verband: "bds"
+gruppe:
+  id: "kw-25m-fallscheibe-kk"
+  name: "KW 25 m Fallscheibe KK"
+  waffenart: "kurzwaffe"
+  distanz_m: 25
+  art: "fallscheibe-kk"
+wertung:
+  modell: "zeit_plus_zuschlaege"
+  rangfolge: "aufsteigend"
+  geprueft: true
+ablaeufe:
+  fallscheibe-max10:
+    beschreibung: "4 Serien (BM/LM) bzw. 6 (DM) auf 5 Fallscheiben; max. 10 Schuss und 1 Min. je Serie; 10 s Zuschlag je stehender Scheibe"
+    varianten:
+      - id: "bm-lm"
+        name: "Bezirks-/Landesmeisterschaft"
+        abschnitte:
+          - id: "fallscheibe"
+            name: "Fallscheibe"
+            serien: 4
+            ziele_je_serie: 5
+            max_schuss_je_serie: 10
+            max_zeit_je_serie_s: 60
+            zeit_wird_gemessen: true
+            zuschlag_je_stehender_scheibe_s: 10
+      - id: "dm"
+        name: "Deutsche Meisterschaft"
+        abschnitte:
+          - id: "fallscheibe"
+            name: "Fallscheibe"
+            serien: 6
+            ziele_je_serie: 5
+            max_schuss_je_serie: 10
+            max_zeit_je_serie_s: 60
+            zeit_wird_gemessen: true
+            zuschlag_je_stehender_scheibe_s: 10
+  fallscheibe-max6:
+    beschreibung: "4 Serien (BM/LM) bzw. 6 (DM) auf 5 Fallscheiben; max. 6 Schuss und 1 Min. je Serie; 10 s Zuschlag je stehender Scheibe"
+    varianten:
+      - id: "bm-lm"
+        name: "Bezirks-/Landesmeisterschaft"
+        abschnitte:
+          - id: "fallscheibe"
+            name: "Fallscheibe"
+            serien: 4
+            ziele_je_serie: 5
+            max_schuss_je_serie: 6
+            max_zeit_je_serie_s: 60
+            zeit_wird_gemessen: true
+            zuschlag_je_stehender_scheibe_s: 10
+      - id: "dm"
+        name: "Deutsche Meisterschaft"
+        abschnitte:
+          - id: "fallscheibe"
+            name: "Fallscheibe"
+            serien: 6
+            ziele_je_serie: 5
+            max_schuss_je_serie: 6
+            max_zeit_je_serie_s: 60
+            zeit_wird_gemessen: true
+            zuschlag_je_stehender_scheibe_s: 10
+disziplinen:
+  - kennziffer: "1510"
+    fruehere_kennziffer: "1310"
+    name: "Freie Klasse Pistole .22 lr offene Visierung"
+    waffe: "Pistole"
+    munition: ".22 lr (keine Subsonic, .22 short, .22 WMR, .22 Z)"
+    visierung: "offen"
+    anschlag: "stehend"
+    scheibe: "5 Fallscheiben Ø 15 cm"
+    ablauf: "fallscheibe-max10"
+    hinweis: "Gewicht beliebig; Griffe beliebig (K 5.12)"
+  - kennziffer: "1518"
+    fruehere_kennziffer: "1318"
+    name: "Freie Klasse Revolver .22 lr offene Visierung"
+    waffe: "Revolver"
+    munition: ".22 lr (keine Subsonic, .22 short, .22 WMR, .22 Z)"
+    visierung: "offen"
+    anschlag: "stehend"
+    scheibe: "5 Fallscheiben Ø 15 cm"
+    ablauf: "fallscheibe-max6"
+    hinweis: "Gewicht beliebig; Griffe beliebig (K 5.12)"
+  - kennziffer: "1519"
+    fruehere_kennziffer: "1319"
+    name: "Freie Klasse Pistole .22 lr mit Optik"
+    waffe: "Pistole"
+    munition: ".22 lr (keine Subsonic, .22 short, .22 WMR, .22 Z)"
+    visierung: "beliebige Optik (K 2.05)"
+    anschlag: "stehend"
+    scheibe: "5 Fallscheiben Ø 15 cm"
+    ablauf: "fallscheibe-max10"
+    hinweis: "Gewicht beliebig; Griffe beliebig (K 5.12)"
+  - kennziffer: "1520"
+    fruehere_kennziffer: "1320"
+    name: "Freie Klasse Revolver .22 lr mit Optik"
+    waffe: "Revolver"
+    munition: ".22 lr (keine Subsonic, .22 short, .22 WMR, .22 Z)"
+    visierung: "beliebige Optik (K 2.05)"
+    anschlag: "stehend"
+    scheibe: "5 Fallscheiben Ø 15 cm"
+    ablauf: "fallscheibe-max6"
+    hinweis: "Gewicht beliebig; Griffe beliebig (K 5.12)"
+  - kennziffer: "1523"
+    fruehere_kennziffer: "1323"
+    name: "Freie Klasse Pistole .22 lr mit Anschlagschaft, mit Optik"
+    waffe: "Pistole mit Anschlagschaft"
+    munition: ".22 lr (keine Subsonic, .22 short, .22 WMR, .22 Z)"
+    visierung: "beliebige Optik (K 2.05)"
+    anschlag: "stehend"
+    scheibe: "5 Fallscheiben Ø 15 cm"
+    ablauf: "fallscheibe-max10"
+    hinweis: "Gewicht beliebig; Sonderregel K 2.01.5"

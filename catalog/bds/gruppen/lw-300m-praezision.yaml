@@ -1,0 +1,117 @@
+# LW 300 m Präzision – BDS-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 6.01–L 6.08; Ringgleichheit A 9.03.
+schema: 1
+verband: "bds"
+gruppe:
+  id: "lw-300m-praezision"
+  name: "LW 300 m Präzision"
+  waffenart: "langwaffe"
+  distanz_m: 300
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  gleichstand: ["zehner", "innenzehner", "neuner_abwaerts"]
+  geprueft: true
+ablaeufe:
+  praezision-dm-lm-bm-10min:
+    beschreibung: "DM 3×10, LM 2×10 Schuss in je 10 Min.; BM 15 Schuss in 15 Min.; bei Wechselscheibenanlagen abweichender Ablauf möglich (L 6.06.3)"
+    varianten:
+      - id: "dm"
+        name: "Deutsche Meisterschaft"
+        abschnitte:
+          - id: "praezision"
+            name: "Präzision"
+            serien: 3
+            schuss_je_serie: 10
+            zeit_je_serie_s: 600
+      - id: "lm"
+        name: "Landesmeisterschaft"
+        abschnitte:
+          - id: "praezision"
+            name: "Präzision"
+            serien: 2
+            schuss_je_serie: 10
+            zeit_je_serie_s: 600
+      - id: "bm"
+        name: "Bezirksmeisterschaft"
+        abschnitte:
+          - id: "praezision"
+            name: "Präzision"
+            serien: 1
+            schuss_je_serie: 15
+            zeit_je_serie_s: 900
+disziplinen:
+  - kennziffer: "4101"
+    name: "Matchsportgewehr"
+    waffe: "Matchsportgewehr"
+    munition: "5,45–8 mm (.215–.323)"
+    visierung: "offen, geschlossen oder Diopter"
+    anschlag: "liegend freihändig"
+    scheibe: "Z7"
+    ablauf: "praezision-dm-lm-bm-10min"
+  - kennziffer: "4102"
+    name: "Dienstsportgewehr, offene Kimme"
+    waffe: "Dienstsportgewehr"
+    munition: "6,5–8 mm (.257–.323), Originalkaliber"
+    visierung: "Original"
+    anschlag: "liegend freihändig"
+    scheibe: "Z7"
+    ablauf: "praezision-dm-lm-bm-10min"
+  - kennziffer: "4103"
+    name: "Dienstsportgewehr, geschlossene Kimme und Diopter"
+    waffe: "Dienstsportgewehr"
+    munition: "6,5–8 mm (.257–.323), Originalkaliber"
+    visierung: "geschlossen (Original) oder beliebiges Diopter"
+    anschlag: "liegend freihändig"
+    scheibe: "Z7"
+    ablauf: "praezision-dm-lm-bm-10min"
+  - kennziffer: "4105"
+    name: "Hochleistungsgewehr"
+    waffe: "Hochleistungsgewehr"
+    munition: "Magnumpatronen (Definition L 14.01.3)"
+    visierung: "beliebige Optik"
+    anschlag: "liegend aufgelegt"
+    scheibe: "Z8"
+    ablauf: "praezision-dm-lm-bm-10min"
+  - kennziffer: "4106"
+    name: "Zielfernrohrgewehr Selbstlader 300 m"
+    waffe: "Zielfernrohrgewehr, Selbstlader"
+    munition: "5,45–8 mm (.215–.323)"
+    visierung: "beliebige Optik"
+    anschlag: "liegend aufgelegt"
+    scheibe: "Z8"
+    ablauf: "praezision-dm-lm-bm-10min"
+  - kennziffer: "4107"
+    name: "Zielfernrohrgewehr über 7 mm"
+    waffe: "Zielfernrohrgewehr"
+    munition: "über 7 bis 8 mm (.284–.323)"
+    visierung: "Optik bis 12-fach"
+    anschlag: "liegend aufgelegt"
+    scheibe: "Z8"
+    ablauf: "praezision-dm-lm-bm-10min"
+  - kennziffer: "4108"
+    name: "Präzisionsgewehr bis 7 mm"
+    waffe: "Präzisionsgewehr"
+    munition: "5,45–7 mm (.215–.284)"
+    visierung: "beliebig"
+    anschlag: "liegend aufgelegt „spezial“"
+    scheibe: "Z19"
+    ablauf: "praezision-dm-lm-bm-10min"
+  - kennziffer: "4109"
+    name: "Präzisionsgewehr über 7 mm"
+    waffe: "Präzisionsgewehr"
+    munition: "über 7 bis 8 mm (.284–.323)"
+    visierung: "beliebig"
+    anschlag: "liegend aufgelegt „spezial“"
+    scheibe: "Z19"
+    ablauf: "praezision-dm-lm-bm-10min"
+  - kennziffer: "4110"
+    name: "Zielfernrohrgewehr bis 7 mm"
+    waffe: "Zielfernrohrgewehr"
+    munition: "5,45–7 mm (.215–.284)"
+    visierung: "Optik bis 12-fach"
+    anschlag: "liegend aufgelegt"
+    scheibe: "Z8"
+    ablauf: "praezision-dm-lm-bm-10min"

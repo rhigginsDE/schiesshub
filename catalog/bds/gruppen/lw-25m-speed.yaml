@@ -1,0 +1,110 @@
+# LW 25 m Speed – BDS-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 9.01, L 9.03–L 9.09.
+# Gleichstand: in L 9 nicht geregelt (A 9.03 betrifft Ringgleichheit), daher kein Eintrag.
+schema: 1
+verband: "bds"
+gruppe:
+  id: "lw-25m-speed"
+  name: "LW 25 m Speed"
+  waffenart: "langwaffe"
+  distanz_m: 25
+  art: "speed"
+wertung:
+  modell: "ringe_minus_zeit"
+  rangfolge: "absteigend"
+  zeit_rundung: "summe_abrunden"
+  geprueft: false  # Gleichstandsregel für Speed in L 9 nicht geregelt; Anwendbarkeit A 9.03 offen
+ablaeufe:
+  speed-5er-serien:
+    beschreibung: "BM/LM 20, DM 30 Schuss in 5er-Serien auf 5 Speed-Scheiben (je 1 Schuss, Reihenfolge links→rechts oder rechts→links); max. 1 Min. je Serie; Zeit per Timer"
+    varianten:
+      - id: "bm-lm"
+        name: "Bezirks-/Landesmeisterschaft"
+        abschnitte:
+          - id: "speed"
+            name: "Speed"
+            serien: 4
+            schuss_je_serie: 5
+            ziele_je_serie: 5
+            max_zeit_je_serie_s: 60
+            zeit_wird_gemessen: true
+      - id: "dm"
+        name: "Deutsche Meisterschaft"
+        abschnitte:
+          - id: "speed"
+            name: "Speed"
+            serien: 6
+            schuss_je_serie: 5
+            ziele_je_serie: 5
+            max_zeit_je_serie_s: 60
+            zeit_wird_gemessen: true
+disziplinen:
+  - kennziffer: "4601"
+    name: "Sportgewehr Selbstlader KW-Patronen, offene Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: "KW-Patronen (Anhang 1)"
+    visierung: "offen oder geschlossen"
+    anschlag: "stehend freihändig, Voranschlag"
+    scheibe: "Z10"
+    ablauf: "speed-5er-serien"
+  - kennziffer: "4602"
+    name: "Sportgewehr Selbstlader KK, optische Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: ".22 lr"
+    visierung: "beliebige Optik"
+    anschlag: "stehend freihändig, Voranschlag"
+    scheibe: "Z10"
+    ablauf: "speed-5er-serien"
+  - kennziffer: "4603"
+    name: "Repetierbüchse KW-Patronen, offene Visierung"
+    waffe: "Büchse, Repetierer"
+    munition: "KW-Patronen (Anhang 1), nicht .30 Carbine"
+    visierung: "offen"
+    anschlag: "stehend freihändig, Voranschlag"
+    scheibe: "Z10"
+    ablauf: "speed-5er-serien"
+    hinweis: "Waffen mit Drehkammerverschluss nicht zugelassen"
+  - kennziffer: "4604"
+    name: "Repetierbüchse KK, offene Visierung"
+    waffe: "Büchse, Repetierer"
+    munition: ".22 lr"
+    visierung: "offen"
+    anschlag: "stehend freihändig, Voranschlag"
+    scheibe: "Z10"
+    ablauf: "speed-5er-serien"
+    hinweis: "Waffen mit Drehkammerverschluss nicht zugelassen"
+  - kennziffer: "4610"
+    name: "Sportgewehr Selbstlader KW-Patronen, optische Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: "KW-Patronen (Anhang 1)"
+    visierung: "beliebige Optik"
+    anschlag: "stehend freihändig, Voranschlag"
+    scheibe: "Z10"
+    ablauf: "speed-5er-serien"
+  - kennziffer: "4611"
+    name: "Repetierbüchse KW-Patronen, optische Visierung"
+    waffe: "Büchse, Repetierer"
+    munition: "KW-Patronen (Anhang 1), nicht .30 Carbine"
+    visierung: "beliebige Optik"
+    anschlag: "stehend freihändig, Voranschlag"
+    scheibe: "Z10"
+    ablauf: "speed-5er-serien"
+    hinweis: "Waffen mit Drehkammerverschluss nicht zugelassen"
+  - kennziffer: "4612"
+    name: "Sportgewehr Selbstlader KK, offene Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: ".22 lr"
+    visierung: "offen oder geschlossen"
+    anschlag: "stehend freihändig, Voranschlag"
+    scheibe: "Z10"
+    ablauf: "speed-5er-serien"
+  - kennziffer: "4614"
+    name: "Repetierbüchse KK, optische Visierung"
+    waffe: "Büchse, Repetierer"
+    munition: ".22 lr"
+    visierung: "beliebige Optik oder Diopter (auch mit optischer Vergrößerung)"
+    anschlag: "stehend freihändig, Voranschlag"
+    scheibe: "Z10"
+    ablauf: "speed-5er-serien"
+    hinweis: "Waffen mit Drehkammerverschluss nicht zugelassen"

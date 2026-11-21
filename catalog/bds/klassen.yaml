@@ -1,0 +1,105 @@
+# BDS-Wettbewerbsklassen. Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: BDS-SHB Teil A (Datei 2026_06_SHB_A, "Änderungsversion auf Basis des BVA-Genehmigungsbescheids
+# vom 30.06.2026"), A 3.04, A 3.08, A 3.09, A 3.10; ergänzend Kommentar zum SHB (2026_11_09, SHB 2027) zu A 3.08.
+#
+# Wichtig: Schiesshub speichert kein Geburtsdatum und kein Geburtsjahr. Die Klasse wird bei der Anmeldung
+# von Hand gewählt. Die Altersangaben unten sind nur Hilfetext für die Auswahl, keine Rechenregel.
+schema: 1
+verband: "bds"
+quelle:
+  regelwerk: "BDS-Sporthandbuch, Teil A (Allgemeiner Teil)"
+  stand: "2026-06-30"
+  abschnitte: ["A 3.04", "A 3.08", "A 3.09", "A 3.10"]
+geprueft: false # Altersstichtag unsicher, siehe 'unsicher'
+
+stichtag:
+  # Sportjahr = Kalenderjahr 01.01.–31.12. (Kommentar zu A 3.08)
+  sportjahr: "kalenderjahr"
+  # Bezugspunkt der Altersangaben in A 3.08: Alter zu Beginn bzw. im Verlauf des Sportjahres.
+  bezug: "beginn_oder_verlauf_sportjahr"
+  hinweis: "Meisterschaften, die im Vorgriff auf das kommende Sportjahr schon im Vorjahr stattfinden, zählen für das Sportjahr, für das sie ausgetragen werden (Kommentar zu A 3.08)."
+  unsicher: true
+
+geschlecht_hinweis: "Einteilung nach juristischem Geschlecht laut amtlichem Ausweis oder rechtskräftiger Feststellung (Kommentar zu A 3.08)."
+
+klassen:
+  - id: "jugend-1"
+    name: "Jugendklasse 1"
+    kurz: "J1"
+    geschlecht: "alle"
+    alter_hilfe: "mind. 12 zu Beginn des Sportjahres, wird im Sportjahr höchstens 15"
+    mindeststarter_dm: 3
+    zusammenlegen_in: ["jugend-2"]
+  - id: "jugend-2"
+    name: "Jugendklasse 2"
+    kurz: "J2"
+    geschlecht: "alle"
+    alter_hilfe: "mind. 15 zu Beginn des Sportjahres, wird im Sportjahr höchstens 21"
+    mindeststarter_dm: 3
+    # in die Schützen- bzw. Damenklasse (je nach Geschlecht)
+    zusammenlegen_in: ["schuetzen", "damen-1"]
+    hinweis: "Weitere Unterteilung der Jugendklassen per Ausschreibung nur für Disziplinen aus Teil J möglich."
+  - id: "damen-1"
+    name: "Damenklasse 1"
+    kurz: "D1"
+    geschlecht: "weiblich"
+    alter_hilfe: "mind. 21 zu Beginn des Sportjahres, bis zum Sportjahr, in dem sie 50 wird"
+    mindeststarter_dm: 5
+    # dem Alter entsprechend in die Herrenklassen
+    zusammenlegen_in: ["schuetzen", "alters", "senioren", "super-senioren"]
+    zusammenlegen_nach_alter: true
+  - id: "damen-2"
+    name: "Damenklasse 2"
+    kurz: "D2"
+    geschlecht: "weiblich"
+    alter_hilfe: "mind. 50 zu Beginn des Sportjahres"
+    mindeststarter_dm: 5
+    zusammenlegen_in: ["damen-1"]
+    hinweis: "Wird nur gebildet, wenn in Damenklasse 1 noch mind. 5 qualifizierte Teilnehmerinnen bleiben (A 3.09)."
+  - id: "schuetzen"
+    name: "Schützenklasse"
+    kurz: "S"
+    geschlecht: "maennlich"
+    alter_hilfe: "mind. 21 zu Beginn des Sportjahres, bis zum Sportjahr, in dem er 50 wird"
+    mindeststarter_dm: 5
+    zusammenlegen_in: []
+    hinweis: "Kommt auch hier keine Wertung zustande, kann der Veranstalter mit einer benachbarten Klasse zusammenlegen (A 3.10)."
+  - id: "alters"
+    name: "Altersklasse"
+    kurz: "A"
+    geschlecht: "maennlich"
+    alter_hilfe: "mind. 50 zu Beginn des Sportjahres, bis zum Sportjahr, in dem er 60 wird"
+    mindeststarter_dm: 5
+    zusammenlegen_in: ["schuetzen"]
+  - id: "senioren"
+    name: "Seniorenklasse"
+    kurz: "Sen"
+    geschlecht: "maennlich"
+    alter_hilfe: "mind. 60 zu Beginn des Sportjahres, bis zum Sportjahr, in dem er 70 wird"
+    mindeststarter_dm: 5
+    zusammenlegen_in: ["alters", "schuetzen"]
+  - id: "super-senioren"
+    name: "Super-Seniorenklasse"
+    kurz: "SSen"
+    geschlecht: "maennlich"
+    alter_hilfe: "mind. 70 zu Beginn des Sportjahres"
+    mindeststarter_dm: 5
+    zusammenlegen_in: ["senioren", "alters", "schuetzen"]
+  - id: "divers"
+    name: "Diversklasse"
+    kurz: "Div"
+    geschlecht: "divers"
+    alter_hilfe: "mind. 21 zu Beginn des Sportjahres"
+    mindeststarter_dm: 5
+    zusammenlegen_in: ["schuetzen", "alters", "senioren", "super-senioren"]
+    zusammenlegen_nach_alter: true
+
+regeln:
+  - "Mindeststarterzahlen gelten für die Deutsche Meisterschaft (A 3.04). Die Klasse wird ausgetragen, wenn so viele Teilnehmer angetreten sind."
+  - "Bei Vereinsmeisterschaften kann die Ausschreibung von den Mindeststarterzahlen abweichen (A 3.06)."
+  - "Zusammengelegt wird erst zum Ende der Meisterschaft (Neuigkeiten 2026 zu A 3.04)."
+  - "Zusammenlegungen werden vor der Meldung zur nächsthöheren Meisterschaft wieder getrennt (A 3.09)."
+
+unsicher:
+  - "Altersstichtag: A 3.08 beschreibt die Grenzen mit 'zu Beginn des Sportjahres mindestens … oder im Verlauf des Sportjahres … werden'. Das 'oder' lässt die Abgrenzung offen. Der Kommentar legt dafür den 01.01. des Sportjahres fest, für das die Meisterschaft zählt. Nicht entschieden, welche Lesart verbindlich ist."
+  - "Jugendklasse 2 → Schützen- bzw. Damenklasse: Bei divers eingestuften Jugendlichen nennt A 3.09 keine Zielklasse."

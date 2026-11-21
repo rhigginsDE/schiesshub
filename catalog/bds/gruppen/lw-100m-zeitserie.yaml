@@ -1,0 +1,84 @@
+# LW 100 m Zeitserie – BDS-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 3.02, L 3.04–L 3.08; Ringgleichheit A 9.03.
+schema: 1
+verband: "bds"
+gruppe:
+  id: "lw-100m-zeitserie"
+  name: "LW 100 m Zeitserie"
+  waffenart: "langwaffe"
+  distanz_m: 100
+  art: "zeitserie"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  gleichstand: ["zehner", "innenzehner", "neuner_abwaerts"]
+  geprueft: true
+ablaeufe:
+  zeitserie-6x5:
+    beschreibung: "DM/LM 30 Schuss: 6×5 (2×40 s, 2×30 s, 2×20 s); unterhalb LM halbiert 3×5 (40/30/20 s)"
+    varianten:
+      - id: "standard"
+        name: "Landes-/Deutsche Meisterschaft"
+        abschnitte:
+          - id: "zeitserie"
+            name: "Zeitserie"
+            serien: 6
+            schuss_je_serie: 5
+            zeiten_s: [40, 40, 30, 30, 20, 20]
+      - id: "verkuerzt"
+        name: "Unterhalb LM (halbiert)"
+        abschnitte:
+          - id: "zeitserie"
+            name: "Zeitserie"
+            serien: 3
+            schuss_je_serie: 5
+            zeiten_s: [40, 30, 20]
+disziplinen:
+  - kennziffer: "3311"
+    name: "Dienstsportgewehr Selbstlader, offene/geschlossene Visierung"
+    waffe: "Dienstsportgewehr, Selbstlader"
+    munition: "6,5–8 mm (.257–.323), Originalkaliber"
+    visierung: "Original, offen oder geschlossen"
+    anschlag: "liegend freihändig"
+    scheibe: "Z5"
+    ablauf: "zeitserie-6x5"
+    hinweis: "Magazin mind. 5 Schuss"
+    optional: true
+  - kennziffer: "3312"
+    name: "Sportgewehr Selbstlader, offene Visierung, Hülse unter 47 mm"
+    waffe: "Büchse, Selbstlader"
+    munition: "Hülsenlänge unter 47 mm"
+    visierung: "offen oder geschlossen"
+    anschlag: "liegend freihändig"
+    scheibe: "Z5"
+    ablauf: "zeitserie-6x5"
+    hinweis: "Magazin mind. 5 Schuss"
+  - kennziffer: "3313"
+    name: "Sportgewehr Selbstlader, offene Visierung, Hülse ab 47 mm"
+    waffe: "Büchse, Selbstlader"
+    munition: "Hülsenlänge mind. 47 mm"
+    visierung: "offen oder geschlossen"
+    anschlag: "liegend freihändig"
+    scheibe: "Z5"
+    ablauf: "zeitserie-6x5"
+    hinweis: "Magazin mind. 5 Schuss"
+    optional: true
+  - kennziffer: "3314"
+    name: "Sportgewehr Selbstlader, optische Visierung, Hülse unter 47 mm"
+    waffe: "Büchse, Selbstlader"
+    munition: "Hülsenlänge unter 47 mm"
+    visierung: "Optik bis 4-fach"
+    anschlag: "liegend freihändig"
+    scheibe: "Z1"
+    ablauf: "zeitserie-6x5"
+    hinweis: "Magazin mind. 5 Schuss"
+  - kennziffer: "3315"
+    name: "Sportgewehr Selbstlader, optische Visierung, Hülse ab 47 mm"
+    waffe: "Büchse, Selbstlader"
+    munition: "Hülsenlänge mind. 47 mm"
+    visierung: "Optik bis 4-fach"
+    anschlag: "liegend freihändig"
+    scheibe: "Z1"
+    ablauf: "zeitserie-6x5"
+    hinweis: "Magazin mind. 5 Schuss"

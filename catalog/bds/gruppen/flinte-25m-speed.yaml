@@ -1,0 +1,65 @@
+# Flinte 25 m Speed – BDS-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 9 (Flinte: 4301–4304).
+# Die Büchsen-Disziplinen aus L 9 (46xx) gehören nicht in diese Gruppe.
+schema: 1
+verband: "bds"
+gruppe:
+  id: "flinte-25m-speed"
+  name: "Flinte 25 m Speed"
+  waffenart: "flinte"
+  distanz_m: 25
+  art: "speed"
+wertung:
+  modell: "ringe_minus_zeit"
+  rangfolge: "absteigend"
+  # Gleichstand: L 9.09 nennt keine Regel; ob A 9.03 (Ringgleichheit) auf "Ringe minus Zeit" anzuwenden ist, ist offen.
+  geprueft: false
+ablaeufe:
+  speed-4x5:
+    beschreibung: "20 Schuss: 4×5 auf 5 Scheiben (je 1 Schuss); max. 1 Min. je Serie; Ringe minus Zeitsumme (volle Sekunden, abgerundet)"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "speed"
+            name: "Speed"
+            serien: 4
+            schuss_je_serie: 5
+            ziele_je_serie: 5
+            max_zeit_je_serie_s: 60
+            zeit_wird_gemessen: true
+disziplinen:
+  - kennziffer: "4301"
+    name: "Selbstladeflinte, offene Visierung"
+    waffe: "Flinte, Selbstlader"
+    munition: "Flintenlaufgeschosse (Slugs) bis 12/70, überwiegend Blei"
+    visierung: "offen, auch Ringkimme/Ringkorn"
+    anschlag: "stehend freihändig, Voranschlag"
+    scheibe: "Z10"
+    ablauf: "speed-4x5"
+  - kennziffer: "4302"
+    name: "Selbstladeflinte, optische Visierung"
+    waffe: "Flinte, Selbstlader"
+    munition: "Flintenlaufgeschosse (Slugs) bis 12/70, überwiegend Blei"
+    visierung: "beliebige Optik"
+    anschlag: "stehend freihändig, Voranschlag"
+    scheibe: "Z10"
+    ablauf: "speed-4x5"
+    hinweis: "Wechselmagazine erlaubt"
+  - kennziffer: "4303"
+    name: "Repetierflinte, offene Visierung"
+    waffe: "Flinte, Repetierer"
+    munition: "Flintenlaufgeschosse (Slugs) bis 12/70, überwiegend Blei"
+    visierung: "offen, auch Ringkimme/Ringkorn"
+    anschlag: "stehend freihändig, Voranschlag"
+    scheibe: "Z10"
+    ablauf: "speed-4x5"
+  - kennziffer: "4304"
+    name: "Repetierflinte, optische Visierung"
+    waffe: "Flinte, Repetierer"
+    munition: "Flintenlaufgeschosse (Slugs) bis 12/70, überwiegend Blei"
+    visierung: "beliebige Optik"
+    anschlag: "stehend freihändig, Voranschlag"
+    scheibe: "Z10"
+    ablauf: "speed-4x5"

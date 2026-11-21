@@ -1,0 +1,203 @@
+# LW Mehrdistanz – BDS-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 12.01–L 12.11; optional 4821 laut Kommentar zu A 3.01.
+# Varianten = Parcours-Varianten nach L 12.08/L 12.09 (Variante 1: Repetierer ohne Wechselmagazin, Variante 2: Büchsen mit Wechselmagazin).
+schema: 1
+verband: "bds"
+gruppe:
+  id: "lw-mehrdistanz"
+  name: "LW Mehrdistanz"
+  waffenart: "langwaffe"
+  art: "mehrdistanz"
+wertung:
+  modell: "ringe_mit_zeitabzug"
+  rangfolge: "absteigend"
+  abzug_je_voller_sekunde_ueber_sollzeit: 1
+  min_teilergebnis: 0
+  gleichstand: ["parcours_zeit"]
+  geprueft: true
+ablaeufe:
+  mehrdistanz-30-bis-25m:
+    beschreibung: "30 Schuss: Fertigkeit 15 m kniend / 20 m stehend / 25 m kniend, je 5 Schuss in 15 s; Parcours 25 m stehend / 20 m kniend / 15 m stehend, je 5 Schuss auf je eine eigene Scheibe, auf Zeit; Sollzeit 70 s (Variante 1) bzw. 50 s (Variante 2)"
+    varianten:
+      - id: "variante-1"
+        name: "Parcours-Variante 1 (Repetierer ohne Wechselmagazin)"
+        abschnitte:
+          - id: "fertigkeit"
+            name: "Fertigkeit"
+            serien: 3
+            schuss_je_serie: 5
+            zeit_je_serie_s: 15
+            distanzen_m: [15, 20, 25]
+          - id: "parcours"
+            name: "Parcours"
+            serien: 3
+            schuss_je_serie: 5
+            distanzen_m: [25, 20, 15]
+            zeit_wird_gemessen: true
+            sollzeit_s: 70
+            max_gesamtzeit_s: 140
+      - id: "variante-2"
+        name: "Parcours-Variante 2 (Büchse mit Wechselmagazin)"
+        abschnitte:
+          - id: "fertigkeit"
+            name: "Fertigkeit"
+            serien: 3
+            schuss_je_serie: 5
+            zeit_je_serie_s: 15
+            distanzen_m: [15, 20, 25]
+          - id: "parcours"
+            name: "Parcours"
+            serien: 3
+            schuss_je_serie: 5
+            distanzen_m: [25, 20, 15]
+            zeit_wird_gemessen: true
+            sollzeit_s: 50
+            max_gesamtzeit_s: 100
+  mehrdistanz-30-bis-50m:
+    beschreibung: "30 Schuss (38xx): Fertigkeit 30 m kniend / 40 m stehend / 50 m kniend, je 5 Schuss in 15 s; Parcours 50 m stehend / 40 m kniend / 30 m stehend, je 5 Schuss auf eine gemeinsame Scheibe, auf Zeit; Sollzeit 70 s (Variante 1) bzw. 50 s (Variante 2); Probe auf 50 m"
+    varianten:
+      - id: "variante-1"
+        name: "Parcours-Variante 1 (Repetierer ohne Wechselmagazin)"
+        abschnitte:
+          - id: "fertigkeit"
+            name: "Fertigkeit"
+            serien: 3
+            schuss_je_serie: 5
+            zeit_je_serie_s: 15
+            distanzen_m: [30, 40, 50]
+          - id: "parcours"
+            name: "Parcours"
+            serien: 3
+            schuss_je_serie: 5
+            distanzen_m: [50, 40, 30]
+            zeit_wird_gemessen: true
+            sollzeit_s: 70
+            max_gesamtzeit_s: 140
+      - id: "variante-2"
+        name: "Parcours-Variante 2 (Büchse mit Wechselmagazin)"
+        abschnitte:
+          - id: "fertigkeit"
+            name: "Fertigkeit"
+            serien: 3
+            schuss_je_serie: 5
+            zeit_je_serie_s: 15
+            distanzen_m: [30, 40, 50]
+          - id: "parcours"
+            name: "Parcours"
+            serien: 3
+            schuss_je_serie: 5
+            distanzen_m: [50, 40, 30]
+            zeit_wird_gemessen: true
+            sollzeit_s: 50
+            max_gesamtzeit_s: 100
+disziplinen:
+  - kennziffer: "3812"
+    name: "Sportgewehr Selbstlader, offene Visierung, Hülse unter 47 mm"
+    waffe: "Büchse, Selbstlader"
+    munition: "Hülsenlänge unter 47 mm"
+    visierung: "offen oder geschlossen"
+    anschlag: "stehend / kniend freihändig, Voranschlag"
+    scheibe: "Z21"
+    ablauf: "mehrdistanz-30-bis-50m"
+    hinweis: "Ladekapazität mind. 5; Magazinkoppler/verbundene Magazine im Parcours nicht erlaubt"
+  - kennziffer: "3813"
+    name: "Sportgewehr Selbstlader, offene Visierung, Hülse ab 47 mm"
+    waffe: "Büchse, Selbstlader"
+    munition: "Hülsenlänge mind. 47 mm"
+    visierung: "offen oder geschlossen"
+    anschlag: "stehend / kniend freihändig, Voranschlag"
+    scheibe: "Z21"
+    ablauf: "mehrdistanz-30-bis-50m"
+    hinweis: "Ladekapazität mind. 5; Magazinkoppler/verbundene Magazine im Parcours nicht erlaubt"
+  - kennziffer: "3814"
+    name: "Sportgewehr Selbstlader, optische Visierung, Hülse unter 47 mm"
+    waffe: "Büchse, Selbstlader"
+    munition: "Hülsenlänge unter 47 mm"
+    visierung: "beliebige Optik"
+    anschlag: "stehend / kniend freihändig, Voranschlag"
+    scheibe: "Z21"
+    ablauf: "mehrdistanz-30-bis-50m"
+    hinweis: "Ladekapazität mind. 5; Magazinkoppler/verbundene Magazine im Parcours nicht erlaubt"
+  - kennziffer: "3815"
+    name: "Sportgewehr Selbstlader, optische Visierung, Hülse ab 47 mm"
+    waffe: "Büchse, Selbstlader"
+    munition: "Hülsenlänge mind. 47 mm"
+    visierung: "beliebige Optik"
+    anschlag: "stehend / kniend freihändig, Voranschlag"
+    scheibe: "Z21"
+    ablauf: "mehrdistanz-30-bis-50m"
+    hinweis: "Ladekapazität mind. 5; Magazinkoppler/verbundene Magazine im Parcours nicht erlaubt"
+  - kennziffer: "4801"
+    name: "Sportgewehr Selbstlader KW-Patronen, offene Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: "KW-Patronen (Anhang 1), nicht .30 Carbine"
+    visierung: "offen oder geschlossen"
+    anschlag: "stehend / kniend freihändig, Voranschlag"
+    scheibe: "Z21"
+    ablauf: "mehrdistanz-30-bis-25m"
+    hinweis: "Ladekapazität mind. 5; Magazinkoppler/verbundene Magazine im Parcours nicht erlaubt"
+  - kennziffer: "4802"
+    name: "Sportgewehr Selbstlader KK, optische Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: ".22 lr"
+    visierung: "beliebige Optik"
+    anschlag: "stehend / kniend freihändig, Voranschlag"
+    scheibe: "Z21"
+    ablauf: "mehrdistanz-30-bis-25m"
+    hinweis: "Ladekapazität mind. 5; Magazinkoppler/verbundene Magazine im Parcours nicht erlaubt"
+  - kennziffer: "4803"
+    name: "Repetierbüchse KW-Patronen, offene Visierung"
+    waffe: "Büchse, Repetierer"
+    munition: "KW-Patronen (Anhang 1), nicht .30 Carbine"
+    visierung: "offen"
+    anschlag: "stehend / kniend freihändig, Voranschlag"
+    scheibe: "Z21"
+    ablauf: "mehrdistanz-30-bis-25m"
+    hinweis: "Ladekapazität mind. 5; Parcours-Variante je nach Waffe (ohne/mit Wechselmagazin)"
+  - kennziffer: "4810"
+    name: "Sportgewehr Selbstlader KW-Patronen, optische Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: "KW-Patronen (Anhang 1), nicht .30 Carbine"
+    visierung: "beliebige Optik"
+    anschlag: "stehend / kniend freihändig, Voranschlag"
+    scheibe: "Z21"
+    ablauf: "mehrdistanz-30-bis-25m"
+    hinweis: "Ladekapazität mind. 5; Magazinkoppler/verbundene Magazine im Parcours nicht erlaubt"
+  - kennziffer: "4812"
+    name: "Sportgewehr Selbstlader KK, offene Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: ".22 lr"
+    visierung: "offen oder geschlossen"
+    anschlag: "stehend / kniend freihändig, Voranschlag"
+    scheibe: "Z21"
+    ablauf: "mehrdistanz-30-bis-25m"
+    hinweis: "Ladekapazität mind. 5; Magazinkoppler/verbundene Magazine im Parcours nicht erlaubt"
+  - kennziffer: "4814"
+    name: "Repetierbüchse KK, beliebige Optik"
+    waffe: "Büchse, Repetierer"
+    munition: ".22 lr"
+    visierung: "beliebige Optik"
+    anschlag: "stehend / kniend freihändig, Voranschlag"
+    scheibe: "Z21"
+    ablauf: "mehrdistanz-30-bis-25m"
+    hinweis: "Ladekapazität mind. 5; herausnehmbares Magazin erforderlich"
+  - kennziffer: "4821"
+    name: "Pistole mit Anschlagschaft, offene Visierung"
+    waffe: "Pistole mit Anschlagschaft (Selbstlader)"
+    munition: "KW-Patronen (Anhang 1)"
+    visierung: "offen"
+    anschlag: "stehend / kniend freihändig, Voranschlag"
+    scheibe: "Z21"
+    ablauf: "mehrdistanz-30-bis-25m"
+    hinweis: "Pistole max. 1,5 kg; K 2.01 und K 2.02 gelten analog; Magazinkoppler im Parcours nicht erlaubt"
+    optional: true
+  - kennziffer: "4822"
+    name: "Pistole mit Anschlagschaft, optische Visierung"
+    waffe: "Pistole mit Anschlagschaft (Selbstlader)"
+    munition: "KW-Patronen (Anhang 1)"
+    visierung: "beliebige Optik"
+    anschlag: "stehend / kniend freihändig, Voranschlag"
+    scheibe: "Z21"
+    ablauf: "mehrdistanz-30-bis-25m"
+    hinweis: "K 2.01 und K 2.02 gelten analog; Magazinkoppler im Parcours nicht erlaubt"

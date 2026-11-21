@@ -1,0 +1,79 @@
+# LW 100 m Intervall – BDS-Disziplinen (alle optional)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 13.02, L 13.04–L 13.08; Ringgleichheit A 9.03.
+# Anschlag: SHB-Tabelle nennt "liegend aufgelegt"; laut Kommentar zu L 13.02 redaktioneller Fehler, richtig "liegend freihändig".
+schema: 1
+verband: "bds"
+gruppe:
+  id: "lw-100m-intervall"
+  name: "LW 100 m Intervall"
+  waffenart: "langwaffe"
+  distanz_m: 100
+  art: "intervall"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  gleichstand: ["zehner", "innenzehner", "neuner_abwaerts"]
+  geprueft: true
+ablaeufe:
+  intervall-5er-serien:
+    beschreibung: "DM 6×5, LM 4×5, unterhalb LM 3×5 Schuss; je Schuss 8 s Schießzeit, 12 s Pause dazwischen"
+    varianten:
+      - id: "dm"
+        name: "Deutsche Meisterschaft"
+        abschnitte:
+          - id: "intervall"
+            name: "Intervall"
+            serien: 6
+            schuss_je_serie: 5
+            zeit_je_schuss_s: 8
+            pause_zwischen_schuessen_s: 12
+      - id: "lm"
+        name: "Landesmeisterschaft"
+        abschnitte:
+          - id: "intervall"
+            name: "Intervall"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_schuss_s: 8
+            pause_zwischen_schuessen_s: 12
+      - id: "bm"
+        name: "Unterhalb LM"
+        abschnitte:
+          - id: "intervall"
+            name: "Intervall"
+            serien: 3
+            schuss_je_serie: 5
+            zeit_je_schuss_s: 8
+            pause_zwischen_schuessen_s: 12
+disziplinen:
+  - kennziffer: "3212"
+    name: "Sportgewehr Selbstlader, offene Visierung, Hülse unter 47 mm"
+    waffe: "Büchse, Selbstlader"
+    munition: "Hülsenlänge unter 47 mm"
+    visierung: "offen oder geschlossen"
+    anschlag: "liegend freihändig"
+    scheibe: "Z5"
+    ablauf: "intervall-5er-serien"
+    hinweis: "Ladekapazität mind. 5; Riemen erlaubt"
+    optional: true
+  - kennziffer: "3213"
+    name: "Sportgewehr Selbstlader, offene Visierung, Hülse ab 47 mm"
+    waffe: "Büchse, Selbstlader"
+    munition: "Hülsenlänge mind. 47 mm"
+    visierung: "offen oder geschlossen"
+    anschlag: "liegend freihändig"
+    scheibe: "Z5"
+    ablauf: "intervall-5er-serien"
+    hinweis: "Ladekapazität mind. 5; Riemen erlaubt"
+    optional: true
+  - kennziffer: "3226"
+    name: "Sportgewehr Selbstlader, optische Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: "alle Zentralfeuerpatronen außer KW-Patronen (Anhang 1)"
+    visierung: "Optik bis 4-fach"
+    anschlag: "liegend freihändig"
+    scheibe: "Z1"
+    ablauf: "intervall-5er-serien"
+    hinweis: "Ladekapazität mind. 5; Riemen erlaubt"
+    optional: true

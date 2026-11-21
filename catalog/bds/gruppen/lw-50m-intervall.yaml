@@ -1,0 +1,68 @@
+# LW 50 m Intervall – BDS-Disziplinen (alle optional)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 13.01, L 13.04–L 13.08; Ringgleichheit A 9.03.
+schema: 1
+verband: "bds"
+gruppe:
+  id: "lw-50m-intervall"
+  name: "LW 50 m Intervall"
+  waffenart: "langwaffe"
+  distanz_m: 50
+  art: "intervall"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  gleichstand: ["zehner", "innenzehner", "neuner_abwaerts"]
+  geprueft: true
+ablaeufe:
+  intervall-5er-serien:
+    beschreibung: "DM 6×5, LM 4×5, unterhalb LM 3×5 Schuss; je Schuss 8 s Schießzeit, 12 s Pause dazwischen"
+    varianten:
+      - id: "dm"
+        name: "Deutsche Meisterschaft"
+        abschnitte:
+          - id: "intervall"
+            name: "Intervall"
+            serien: 6
+            schuss_je_serie: 5
+            zeit_je_schuss_s: 8
+            pause_zwischen_schuessen_s: 12
+      - id: "lm"
+        name: "Landesmeisterschaft"
+        abschnitte:
+          - id: "intervall"
+            name: "Intervall"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_schuss_s: 8
+            pause_zwischen_schuessen_s: 12
+      - id: "bm"
+        name: "Unterhalb LM"
+        abschnitte:
+          - id: "intervall"
+            name: "Intervall"
+            serien: 3
+            schuss_je_serie: 5
+            zeit_je_schuss_s: 8
+            pause_zwischen_schuessen_s: 12
+disziplinen:
+  - kennziffer: "2201"
+    name: "Sportgewehr Selbstlader KW-Patronen, offene Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: "KW-Patronen (Anhang 1)"
+    visierung: "offen oder geschlossen"
+    anschlag: "liegend freihändig"
+    scheibe: "Z1"
+    ablauf: "intervall-5er-serien"
+    hinweis: "Ladekapazität mind. 5"
+    optional: true
+  - kennziffer: "2210"
+    name: "Sportgewehr Selbstlader KW-Patronen, optische Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: "KW-Patronen (Anhang 1)"
+    visierung: "beliebige Optik"
+    anschlag: "liegend freihändig"
+    scheibe: "Z1"
+    ablauf: "intervall-5er-serien"
+    hinweis: "Ladekapazität mind. 5"
+    optional: true

@@ -1,0 +1,183 @@
+# KW Mehrdistanz – BDS-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: BDS-SHB Teil K, Fassung BVA-Bescheid 30.06.2026, K 4.01–4.09 (S. K-16 bis K-19), Patronenliste 1205 K 8;
+# Gleichstand A 9.03; optionale Disziplinen Kommentar zu A3.01
+schema: 1
+verband: "bds"
+gruppe:
+  id: "kw-mehrdistanz"
+  name: "KW Mehrdistanz"
+  waffenart: "kurzwaffe"
+  art: "mehrdistanz"
+wertung:
+  modell: "ringe_mit_zeitabzug"
+  rangfolge: "absteigend"
+  abzug_je_voller_sekunde_ueber_sollzeit: 1
+  min_teilergebnis: 0
+  gleichstand: ["zehner", "innenzehner", "neuner_abwaerts"]
+  geprueft: true
+ablaeufe:
+  mehrdistanz-40:
+    beschreibung: "40 Schuss: Fertigkeit 5/10/15/20 m je 5 Schuss in 10 s (schwache Hand, starke Hand, beidhändig, beidhändig); Parcours 20/15/10/5 m je 5 Schuss auf Zeit, 1 Ziel je Position; Sollzeit je Parcours-Variante"
+    varianten:
+      - id: "variante-1"
+        name: "Parcours-Variante 1 (1 Magazin / ohne Ladehilfen)"
+        abschnitte:
+          - id: "fertigkeit"
+            name: "Fertigkeit"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_serie_s: 10
+            distanzen_m: [5, 10, 15, 20]
+          - id: "parcours"
+            name: "Parcours"
+            serien: 4
+            schuss_je_serie: 5
+            distanzen_m: [20, 15, 10, 5]
+            zeit_wird_gemessen: true
+            sollzeit_s: 80
+            max_gesamtzeit_s: 160
+      - id: "variante-2-pistole"
+        name: "Parcours-Variante 2, Pistole (4 Magazine)"
+        abschnitte:
+          - id: "fertigkeit"
+            name: "Fertigkeit"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_serie_s: 10
+            distanzen_m: [5, 10, 15, 20]
+          - id: "parcours"
+            name: "Parcours"
+            serien: 4
+            schuss_je_serie: 5
+            distanzen_m: [20, 15, 10, 5]
+            zeit_wird_gemessen: true
+            sollzeit_s: 60
+            max_gesamtzeit_s: 120
+      - id: "variante-2-revolver"
+        name: "Parcours-Variante 2, Revolver (4 Speedloader/Ladeclips)"
+        abschnitte:
+          - id: "fertigkeit"
+            name: "Fertigkeit"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_serie_s: 10
+            distanzen_m: [5, 10, 15, 20]
+          - id: "parcours"
+            name: "Parcours"
+            serien: 4
+            schuss_je_serie: 5
+            distanzen_m: [20, 15, 10, 5]
+            zeit_wird_gemessen: true
+            sollzeit_s: 70
+            max_gesamtzeit_s: 140
+disziplinen:
+  - kennziffer: "1201"
+    name: "Pistole bis 9 mm"
+    waffe: "Pistole"
+    munition: "bis 9 mm; MI 125 (9 mm) bzw. 112,5 (.38 WC u. kleiner)"
+    visierung: "offen"
+    anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
+    scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
+    ablauf: "mehrdistanz-40"
+    hinweis: "max. 1300 g"
+  - kennziffer: "1202"
+    name: "Pistole über 9 mm"
+    waffe: "Pistole"
+    munition: "über 9 mm; MI 150"
+    visierung: "offen"
+    anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
+    scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
+    ablauf: "mehrdistanz-40"
+    hinweis: "max. 1400 g"
+  - kennziffer: "1205"
+    name: "Revolver unter 4 Zoll"
+    waffe: "Revolver"
+    munition: "eigene Patronenliste K 8 (u. a. .38 Special, .357 Mag, 9 mm Luger); MI 100"
+    visierung: "offen, höhen- und seitenverstellbare Kimme"
+    anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
+    scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
+    ablauf: "mehrdistanz-40"
+    hinweis: "max. 1200 g; Lauf 3 bis 3,5 Zoll"
+  - kennziffer: "1206"
+    name: "Revolver bis .38"
+    waffe: "Revolver"
+    munition: "bis .38; MI 112,5"
+    visierung: "offen"
+    anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
+    scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
+    ablauf: "mehrdistanz-40"
+    hinweis: "max. 1400 g"
+  - kennziffer: "1207"
+    name: "Revolver über .38"
+    waffe: "Revolver"
+    munition: "über .38; MI 150"
+    visierung: "offen"
+    anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
+    scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
+    ablauf: "mehrdistanz-40"
+    hinweis: "max. 1500 g"
+  - kennziffer: "1208"
+    name: "Revolver Magnum bis .357"
+    waffe: "Revolver"
+    munition: "Magnum bis .357; MI 180"
+    visierung: "offen"
+    anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
+    scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
+    ablauf: "mehrdistanz-40"
+    hinweis: "max. 1600 g"
+  - kennziffer: "1209"
+    name: "Revolver Magnum über .357"
+    waffe: "Revolver"
+    munition: "Magnum über .357; MI 250"
+    visierung: "offen"
+    anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
+    scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
+    ablauf: "mehrdistanz-40"
+    hinweis: "max. 1700 g"
+    optional: true
+  - kennziffer: "1210"
+    name: "Freie Klasse .22/5,6 mm offene Visierung"
+    waffe: "Pistole oder Revolver"
+    munition: ".22 / 5,6 mm; kein MI"
+    visierung: "offen"
+    anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
+    scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
+    ablauf: "mehrdistanz-40"
+    hinweis: "max. 1400 g"
+  - kennziffer: "1211"
+    name: "Freie Klasse mind. .30/7,62 mm"
+    waffe: "Pistole oder Revolver"
+    munition: "mind. .30 / 7,62 mm, alle Patronen aus Anhang K 8; MI 112,5"
+    visierung: "beliebig (K 2.07)"
+    anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
+    scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
+    ablauf: "mehrdistanz-40"
+    hinweis: "Gewicht beliebig (K 2.07)"
+  - kennziffer: "1212"
+    name: "Freie Klasse .22/5,6 mm mit Optik"
+    waffe: "Pistole oder Revolver"
+    munition: ".22 / 5,6 mm; kein MI"
+    visierung: "optisch oder elektronisch"
+    anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
+    scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
+    ablauf: "mehrdistanz-40"
+    hinweis: "Gewicht beliebig"
+  - kennziffer: "1214"
+    name: "Dienst-Sportpistole/-revolver"
+    waffe: "Pistole oder Revolver"
+    munition: "Originalkaliber, mind. 7,5 mm; kein MI"
+    visierung: "offen, keine Mikrometervisierung"
+    anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
+    scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
+    ablauf: "mehrdistanz-40"
+    hinweis: "Gewicht beliebig; Positivliste Anhang 2 im Kommentar"
+  - kennziffer: "1224"
+    name: "Dienstpistole 2"
+    waffe: "Pistole (Striker Fire, Polymergriffstück)"
+    munition: "9 mm Luger; MI 125"
+    visierung: "offen, keine Höhenverstellung"
+    anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
+    scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
+    ablauf: "mehrdistanz-40"
+    hinweis: "max. 900 g; Positivliste im Kommentar (K 2.01.2)"

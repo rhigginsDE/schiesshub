@@ -1,0 +1,65 @@
+# LW 100 m Fertigkeit – BDS-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 5.02, L 5.04–L 5.08; Ringgleichheit A 9.03.
+schema: 1
+verband: "bds"
+gruppe:
+  id: "lw-100m-fertigkeit"
+  name: "LW 100 m Fertigkeit"
+  waffenart: "langwaffe"
+  distanz_m: 100
+  art: "fertigkeit"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  gleichstand: ["zehner", "innenzehner", "neuner_abwaerts"]
+  geprueft: true
+ablaeufe:
+  fertigkeit-3x10:
+    beschreibung: "30 Schuss: 3×10 in je 40 s inkl. Pflicht-Magazinwechsel (ohne Wechsel Serie = 0)"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "fertigkeit"
+            name: "Fertigkeit"
+            serien: 3
+            schuss_je_serie: 10
+            zeit_je_serie_s: 40
+disziplinen:
+  - kennziffer: "3412"
+    name: "Sportgewehr Selbstlader, offene Visierung, Hülse unter 47 mm"
+    waffe: "Büchse, Selbstlader"
+    munition: "Hülsenlänge unter 47 mm"
+    visierung: "offen oder geschlossen"
+    anschlag: "liegend aufgelegt"
+    scheibe: "Z5"
+    ablauf: "fertigkeit-3x10"
+    hinweis: "Ladekapazität mind. 5; Magazinkoppler/verbundene Magazine nicht erlaubt"
+  - kennziffer: "3413"
+    name: "Sportgewehr Selbstlader, offene Visierung, Hülse ab 47 mm"
+    waffe: "Büchse, Selbstlader"
+    munition: "Hülsenlänge mind. 47 mm"
+    visierung: "offen oder geschlossen"
+    anschlag: "liegend aufgelegt"
+    scheibe: "Z5"
+    ablauf: "fertigkeit-3x10"
+    hinweis: "Ladekapazität mind. 5; Magazinkoppler/verbundene Magazine nicht erlaubt"
+  - kennziffer: "3416"
+    name: "Zielfernrohrgewehr Selbstlader 100 m, Hülse unter 47 mm"
+    waffe: "Zielfernrohrgewehr, Selbstlader"
+    munition: "Hülsenlänge unter 47 mm"
+    visierung: "beliebige Optik"
+    anschlag: "liegend aufgelegt"
+    scheibe: "Z4"
+    ablauf: "fertigkeit-3x10"
+    hinweis: "Ladekapazität mind. 5; Magazinkoppler/verbundene Magazine nicht erlaubt"
+  - kennziffer: "3420"
+    name: "Zielfernrohrgewehr Selbstlader 100 m, Hülse ab 47 mm"
+    waffe: "Zielfernrohrgewehr, Selbstlader"
+    munition: "Hülsenlänge mind. 47 mm"
+    visierung: "beliebige Optik"
+    anschlag: "liegend aufgelegt"
+    scheibe: "Z4"
+    ablauf: "fertigkeit-3x10"
+    hinweis: "Ladekapazität mind. 5; Magazinkoppler/verbundene Magazine nicht erlaubt"

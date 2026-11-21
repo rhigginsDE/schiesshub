@@ -1,0 +1,73 @@
+# LW 50 m Zeitserie – BDS-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 3.01, L 3.04–L 3.08; Ringgleichheit A 9.03.
+schema: 1
+verband: "bds"
+gruppe:
+  id: "lw-50m-zeitserie"
+  name: "LW 50 m Zeitserie"
+  waffenart: "langwaffe"
+  distanz_m: 50
+  art: "zeitserie"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  gleichstand: ["zehner", "innenzehner", "neuner_abwaerts"]
+  geprueft: true
+ablaeufe:
+  zeitserie-6x5:
+    beschreibung: "DM/LM 30 Schuss: 6×5 (2×40 s, 2×30 s, 2×20 s); unterhalb LM halbiert 3×5 (40/30/20 s)"
+    varianten:
+      - id: "standard"
+        name: "Landes-/Deutsche Meisterschaft"
+        abschnitte:
+          - id: "zeitserie"
+            name: "Zeitserie"
+            serien: 6
+            schuss_je_serie: 5
+            zeiten_s: [40, 40, 30, 30, 20, 20]
+      - id: "verkuerzt"
+        name: "Unterhalb LM (halbiert)"
+        abschnitte:
+          - id: "zeitserie"
+            name: "Zeitserie"
+            serien: 3
+            schuss_je_serie: 5
+            zeiten_s: [40, 30, 20]
+disziplinen:
+  - kennziffer: "2301"
+    name: "Sportgewehr Selbstlader KW-Patronen, offene Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: "KW-Patronen (Anhang 1)"
+    visierung: "offen oder geschlossen"
+    anschlag: "liegend freihändig"
+    scheibe: "Z1"
+    ablauf: "zeitserie-6x5"
+    hinweis: "Ladekapazität mind. 5"
+  - kennziffer: "2302"
+    name: "Sportgewehr Selbstlader KK, optische Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: ".22 lr"
+    visierung: "beliebige Optik"
+    anschlag: "liegend freihändig"
+    scheibe: "Z2"
+    ablauf: "zeitserie-6x5"
+    hinweis: "Ladekapazität mind. 5"
+  - kennziffer: "2310"
+    name: "Sportgewehr Selbstlader KW-Patronen, optische Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: "KW-Patronen (Anhang 1)"
+    visierung: "beliebige Optik"
+    anschlag: "liegend freihändig"
+    scheibe: "Z1"
+    ablauf: "zeitserie-6x5"
+    hinweis: "Ladekapazität mind. 5"
+  - kennziffer: "2312"
+    name: "Sportgewehr Selbstlader KK, offene Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: ".22 lr"
+    visierung: "offen oder geschlossen"
+    anschlag: "liegend freihändig"
+    scheibe: "Z1"
+    ablauf: "zeitserie-6x5"
+    hinweis: "Ladekapazität mind. 5"

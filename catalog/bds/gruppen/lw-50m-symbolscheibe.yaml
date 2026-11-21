@@ -1,0 +1,52 @@
+# LW 50 m Symbolscheibe – BDS-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 4.01–L 4.07; Ringgleichheit A 9.03.
+schema: 1
+verband: "bds"
+gruppe:
+  id: "lw-50m-symbolscheibe"
+  name: "LW 50 m Symbolscheibe"
+  waffenart: "langwaffe"
+  distanz_m: 50
+  art: "symbolscheibe"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  gleichstand: ["zehner", "innenzehner", "neuner_abwaerts"]
+  geprueft: true
+ablaeufe:
+  symbolscheibe-38:
+    beschreibung: "38 Schuss: 6×5 (2×40 s, 2×30 s, 2×20 s) und 2×4 in je 10 s; Trefferaufnahme nach allen Serien"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "serien-5"
+            name: "5er-Serien"
+            serien: 6
+            schuss_je_serie: 5
+            zeiten_s: [40, 40, 30, 30, 20, 20]
+          - id: "serien-4"
+            name: "4er-Serien"
+            serien: 2
+            schuss_je_serie: 4
+            zeit_je_serie_s: 10
+disziplinen:
+  - kennziffer: "2602"
+    name: "Sportgewehr Selbstlader KK, optische Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: ".22 lr"
+    visierung: "beliebige Optik"
+    anschlag: "liegend freihändig"
+    scheibe: "Z6"
+    ablauf: "symbolscheibe-38"
+    hinweis: "Ladekapazität mind. 5"
+  - kennziffer: "2610"
+    name: "Sportgewehr Selbstlader KW-Patronen, optische Visierung"
+    waffe: "Büchse, Selbstlader"
+    munition: "KW-Patronen (Anhang 1)"
+    visierung: "beliebige Optik"
+    anschlag: "liegend freihändig"
+    scheibe: "Z6"
+    ablauf: "symbolscheibe-38"
+    hinweis: "Ladekapazität mind. 5"

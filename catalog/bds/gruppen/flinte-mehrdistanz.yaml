@@ -1,0 +1,84 @@
+# Flinte Mehrdistanz – BDS-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 11.
+# Varianten = Parcours-Varianten nach L 11.08/L 11.09 (nicht Meisterschaftsebenen).
+schema: 1
+verband: "bds"
+gruppe:
+  id: "flinte-mehrdistanz"
+  name: "Flinte Mehrdistanz"
+  waffenart: "flinte"
+  art: "mehrdistanz"
+wertung:
+  modell: "ringe_mit_zeitabzug"
+  rangfolge: "absteigend"
+  abzug_je_voller_sekunde_ueber_sollzeit: 1
+  min_teilergebnis: 0
+  gleichstand: ["zehner", "parcours_zeit"]
+  geprueft: true
+ablaeufe:
+  mehrdistanz-30-bis-25m:
+    beschreibung: "30 Schuss: Fertigkeit 15 m kniend / 20 m stehend / 25 m kniend, je 5 Schuss in 15 s; Parcours 25 m stehend / 20 m kniend / 15 m stehend, je 5 Schuss auf Zeit; Sollzeit 70 s (Variante 1) bzw. 50 s (Variante 2, Wechselmagazin/Speedloader)"
+    varianten:
+      - id: "variante-1"
+        name: "Parcours-Variante 1 (ohne Wechselmagazin/Speedloader)"
+        abschnitte:
+          - id: "fertigkeit"
+            name: "Fertigkeit"
+            serien: 3
+            schuss_je_serie: 5
+            zeit_je_serie_s: 15
+            distanzen_m: [15, 20, 25]
+          - id: "parcours"
+            name: "Parcours"
+            serien: 3
+            schuss_je_serie: 5
+            distanzen_m: [25, 20, 15]
+            zeit_wird_gemessen: true
+            sollzeit_s: 70
+            max_gesamtzeit_s: 140
+      - id: "variante-2"
+        name: "Parcours-Variante 2 (4505 mit Wechselmagazin/Speedloader)"
+        abschnitte:
+          - id: "fertigkeit"
+            name: "Fertigkeit"
+            serien: 3
+            schuss_je_serie: 5
+            zeit_je_serie_s: 15
+            distanzen_m: [15, 20, 25]
+          - id: "parcours"
+            name: "Parcours"
+            serien: 3
+            schuss_je_serie: 5
+            distanzen_m: [25, 20, 15]
+            zeit_wird_gemessen: true
+            sollzeit_s: 50
+            max_gesamtzeit_s: 100
+disziplinen:
+  - kennziffer: "4501"
+    name: "Selbstladeflinte, offene Visierung"
+    waffe: "Flinte, Selbstlader"
+    munition: "Flintenlaufgeschosse (Slugs) bis 12/70, überwiegend Blei"
+    visierung: "offen, auch Ringkimme/Ringkorn"
+    anschlag: "stehend / kniend freihändig, Voranschlag"
+    scheibe: "Z10"
+    ablauf: "mehrdistanz-30-bis-25m"
+    hinweis: "Speedloader und Wechselmagazine nicht erlaubt; Parcours-Variante 1"
+  - kennziffer: "4503"
+    name: "Repetierflinte, offene Visierung"
+    waffe: "Flinte, Repetierer"
+    munition: "Flintenlaufgeschosse (Slugs) bis 12/70, überwiegend Blei"
+    visierung: "offen, auch Ringkimme/Ringkorn"
+    anschlag: "stehend / kniend freihändig, Voranschlag"
+    scheibe: "Z10"
+    ablauf: "mehrdistanz-30-bis-25m"
+    hinweis: "Speedloader und Wechselmagazine nicht erlaubt; Parcours-Variante 1"
+  - kennziffer: "4505"
+    name: "Freie Klasse"
+    waffe: "Flinte, Repetierer oder Selbstlader"
+    munition: "Flintenlaufgeschosse (Slugs) bis 12/70, überwiegend Blei"
+    visierung: "beliebige Optik"
+    anschlag: "stehend / kniend freihändig, Voranschlag"
+    scheibe: "Z10"
+    ablauf: "mehrdistanz-30-bis-25m"
+    hinweis: "Wechselmagazine erlaubt; Parcours-Variante 2 mit, Variante 1 ohne Wechselmagazin/Speedloader"
