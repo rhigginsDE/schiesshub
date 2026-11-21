@@ -48,3 +48,6 @@ __pycache__/
 
 # Lokale Entwicklungsdaten (simulierter Sicherungs-Stick)
 .dev/
+
+# Browser-Prüfungen (Playwright)
+.playwright-mcp/

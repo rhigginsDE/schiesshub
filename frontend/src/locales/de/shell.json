@@ -22,6 +22,10 @@
     "hinweis_gestoert": "Der Server antwortet, erreicht aber seine Datenbank nicht. Bitte den Server prüfen; es wird alle paar Sekunden erneut versucht.",
     "hinweis_getrennt": "Der Server antwortet nicht. Es wird alle paar Sekunden erneut versucht."
   },
+  "breite": {
+    "zu_zentriert": "Inhalt in der Mitte bündeln",
+    "zu_voll": "Ganze Bildschirmbreite nutzen"
+  },
   "farbschema": {
     "zu_hell": "Zum hellen Design wechseln",
     "zu_dunkel": "Zum dunklen Design wechseln"

@@ -1,6 +1,6 @@
 import { ActionIcon, Tooltip, useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { Moon, Sun } from "lucide-react";
+import { Maximize2, Minimize2, Moon, Sun } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type EreignisZuordnung, useServerEreignisse } from "../api/ereignisse";
@@ -8,6 +8,7 @@ import { Chip } from "../components/Chip";
 import { formatUhrzeit } from "../lib/format";
 import s from "./AppShell.module.css";
 import { useModule, useStationen } from "./modul";
+import { useSeitenbreite } from "./seitenbreite";
 import { useServerStatus } from "./serverStatus";
 
 /** Rahmen jeder Seite: Kopfzeile mit Wortmarke, Stationen, Serverstatus, Farbschema und Uhr. */
@@ -38,6 +39,7 @@ export function AppShell() {
         <Stationsnavigation />
         <div className={s.status}>
           <Statusanzeige />
+          <BreitenUmschalter />
           <FarbschemaUmschalter />
           <Uhr />
         </div>
@@ -98,6 +100,26 @@ function Statusanzeige() {
           {t(`status.${verbindung}_kurz`)}
         </span>
       </Chip>
+    </Tooltip>
+  );
+}
+
+function BreitenUmschalter() {
+  const { t } = useTranslation("shell");
+  const [breite, setBreite] = useSeitenbreite();
+  const beschriftung = breite === "voll" ? t("breite.zu_zentriert") : t("breite.zu_voll");
+
+  return (
+    <Tooltip label={beschriftung}>
+      <ActionIcon
+        variant="default"
+        size={40}
+        className={s.breitenUmschalter}
+        aria-label={beschriftung}
+        onClick={() => setBreite(breite === "voll" ? "zentriert" : "voll")}
+      >
+        {breite === "voll" ? <Minimize2 aria-hidden /> : <Maximize2 aria-hidden />}
+      </ActionIcon>
     </Tooltip>
   );
 }

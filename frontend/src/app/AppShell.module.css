@@ -1,9 +1,9 @@
 .rahmen {
-  max-width: 1480px;
+  /* Standard: die ganze Bildschirmbreite nutzen. "zentriert" ist eine Einstellung je Gerät. */
   margin: 0 auto;
   padding-block: 16px 48px;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-left: max(clamp(16px, 1.5vw, 32px), env(safe-area-inset-left, 0px));
+  padding-right: max(clamp(16px, 1.5vw, 32px), env(safe-area-inset-right, 0px));
   display: grid;
   gap: 16px;
 }
@@ -152,6 +152,17 @@
 
 @media (max-width: 380px) {
   .uhr {
+    display: none;
+  }
+}
+
+:global(:root[data-breite="zentriert"]) .rahmen {
+  max-width: 1480px;
+}
+
+/* Der Umschalter bringt nur etwas, wenn der Bildschirm breiter ist als die zentrierte Ansicht. */
+@media (max-width: 1520px) {
+  .breitenUmschalter {
     display: none;
   }
 }

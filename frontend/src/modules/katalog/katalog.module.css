@@ -76,11 +76,16 @@
 
 .detail {
   min-width: 0;
+  /* Bleibt beim Scrollen der Liste sichtbar, solange es ins Fenster passt (data-haftet setzt
+     useHaftetWennPasst). Ist es höher, scrollt es normal mit der Seite. Einen eigenen
+     Scrollbalken bekommt es nie: Jede Seite hat genau einen vertikalen Scroll. */
+  scroll-margin-top: 16px;
+  border-radius: var(--sh-radius-l);
+}
+
+.detail[data-haftet="ja"] {
   position: sticky;
   top: 16px;
-  max-height: calc(100dvh - 32px);
-  overflow-y: auto;
-  border-radius: var(--sh-radius-l);
 }
 
 /* ---------- Filter ---------- */
@@ -416,10 +421,8 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .detail {
+  .detail[data-haftet] {
     position: static;
-    max-height: none;
-    overflow: visible;
   }
 
   .seite[data-detail="zu"] .detail {
@@ -437,8 +440,8 @@
   }
 
   .gruppen {
-    max-height: 244px;
-    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   }
 }
 

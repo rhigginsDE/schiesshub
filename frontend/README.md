@@ -75,3 +75,9 @@ Ein Modul ist ein Ordner unter `src/modules/<name>/` mit eigenen Routen, Kompone
 `berechtigung` ist vorerst ein Platzhalter: `src/app/berechtigungen.ts` lässt alles zu, bis das Backend Rollen liefert.
 
 Als Vorlage eignen sich `modules/anmeldung` (kleinste Form) und `modules/katalog` (Routen mit Suchparametern, Abfragen, Tests).
+
+## Layout-Regeln
+
+- **Platz nutzen:** Seiten verwenden die ganze Bildschirmbreite. Wer lieber eine gebündelte Ansicht hat, schaltet in der Kopfzeile auf „Inhalt in der Mitte bündeln“; die Wahl gilt je Gerät (`src/app/seitenbreite.ts`). Weitere Ansichten je Bildschirm kommen als zusätzliche Werte derselben Einstellung dazu.
+- **Ein Scroll je Seite:** Es scrollt nur die Seite selbst, vertikal. Keine Bereiche mit eigenem Scrollbalken (`overflow-y: auto`, `max-height` auf Listen oder Spalten, `ScrollArea`). Soll etwas beim Scrollen sichtbar bleiben, haftet es nur, wenn es ins Fenster passt (`src/lib/useHaftetWennPasst.ts`). Ausnahme sind echte Überlagerungen wie Dialoge.
+- **Kein horizontaler Scroll** der Seite. Breite Tabellen brechen um oder wechseln in eine Kartenansicht.
