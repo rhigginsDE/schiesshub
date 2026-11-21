@@ -126,6 +126,856 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tournaments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Alle Turniere */
+        get: operations["turnier_list_tournaments"];
+        put?: never;
+        /** Turnier anlegen */
+        post: operations["turnier_create_tournament"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Turnier */
+        get: operations["turnier_get_tournament"];
+        put?: never;
+        post?: never;
+        /** Turnier löschen (nur im Entwurf) */
+        delete: operations["turnier_delete_tournament"];
+        options?: never;
+        head?: never;
+        /** Turnier ändern */
+        patch: operations["turnier_update_tournament"];
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Status wechseln
+         * @description Schrittweise: `draft` → `active` → `closed`. Zurück verlangt zusätzlich die Berechtigung `tournament.reopen`.
+         */
+        post: operations["turnier_change_status"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Turnier mit Ständen, Klassen und Wettbewerben */
+        get: operations["turnier_get_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/ranges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stände */
+        get: operations["turnier_list_ranges"];
+        put?: never;
+        /** Stand anlegen */
+        post: operations["turnier_create_range"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/ranges/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Stände sortieren */
+        put: operations["turnier_reorder_ranges"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/ranges/{range_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stand */
+        get: operations["turnier_get_range"];
+        put?: never;
+        post?: never;
+        /** Stand löschen */
+        delete: operations["turnier_delete_range"];
+        options?: never;
+        head?: never;
+        /** Stand ändern */
+        patch: operations["turnier_update_range"];
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Klassen */
+        get: operations["turnier_list_classes"];
+        put?: never;
+        /** Klasse anlegen */
+        post: operations["turnier_create_class"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/classes/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Klassen aus dem Katalog übernehmen
+         * @description Kopiert die Klassen des Verbands. Klassen mit einem Kürzel, das es im Turnier schon gibt, bleiben unverändert. Antwort: die neu angelegten Klassen.
+         */
+        post: operations["turnier_import_classes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/classes/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Klassen sortieren */
+        put: operations["turnier_reorder_classes"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/classes/{class_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Klasse */
+        get: operations["turnier_get_class"];
+        put?: never;
+        post?: never;
+        /** Klasse löschen */
+        delete: operations["turnier_delete_class"];
+        options?: never;
+        head?: never;
+        /** Klasse ändern */
+        patch: operations["turnier_update_class"];
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/competitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Wettbewerbe */
+        get: operations["turnier_list_competitions"];
+        put?: never;
+        /**
+         * Wettbewerb anlegen
+         * @description Aus dem Katalog mit `catalog_federation` und `catalog_code` (optional `variant_id`) oder als eigener Wettbewerb mit vollständiger `definition`. Nicht angegebene Felder kommen aus den Turnier-Einstellungen; `planning` und `heat_minutes` leitet der Server aus dem Ablauf ab.
+         */
+        post: operations["turnier_create_competition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/competitions/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Wettbewerbe sortieren */
+        put: operations["turnier_reorder_competitions"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/competitions/{competition_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Wettbewerb */
+        get: operations["turnier_get_competition"];
+        put?: never;
+        post?: never;
+        /** Wettbewerb löschen */
+        delete: operations["turnier_delete_competition"];
+        options?: never;
+        head?: never;
+        /** Wettbewerb ändern */
+        patch: operations["turnier_update_competition"];
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/competitions/{competition_id}/reset-definition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Definition auf den Katalogwert zurücksetzen */
+        post: operations["turnier_reset_definition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clubs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vereine */
+        get: operations["teilnehmer_list_clubs"];
+        put?: never;
+        /** Verein anlegen */
+        post: operations["teilnehmer_create_club"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clubs/{club_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Verein */
+        get: operations["teilnehmer_get_club"];
+        put?: never;
+        post?: never;
+        /** Verein löschen (nur ohne Personen) */
+        delete: operations["teilnehmer_delete_club"];
+        options?: never;
+        head?: never;
+        /** Verein ändern */
+        patch: operations["teilnehmer_update_club"];
+        trace?: never;
+    };
+    "/api/v1/clubs/{club_id}/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verein in einen anderen zusammenführen
+         * @description Hängt alle Personen des Vereins aus dem Pfad an den Verein `into_id` und löscht danach den Verein aus dem Pfad. Liefert den Zielverein.
+         */
+        post: operations["teilnehmer_merge_club"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/persons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Personen auflisten oder suchen
+         * @description Ohne `q` alle Personen nach Name. Mit `q` Suche in Name, Mitgliedsnummer und Vereinsname, ohne Groß-/Kleinschreibung und Umlaut-Schreibweise („koehler“ findet „Köhler“). Treffer am Anfang eines Felds stehen vor Teiltreffern. Die Gesamtzahl steht im Header `X-Total-Count`.
+         */
+        get: operations["teilnehmer_list_persons"];
+        put?: never;
+        /**
+         * Person anlegen
+         * @description Gibt es im selben Verein schon eine Person mit gleicher Schreibweise des Namens (ohne Groß-/Kleinschreibung, Akzente und Umlaut-Schreibweise), kommt 409 mit den Kandidaten. Mit `force=true` wird trotzdem angelegt.
+         */
+        post: operations["teilnehmer_create_person"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/persons/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Alle Personen als CSV
+         * @description UTF-8 mit BOM, Trennzeichen `;`. Lässt sich unverändert wieder importieren.
+         */
+        get: operations["teilnehmer_export_persons"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/persons/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Personen aus CSV importieren
+         * @description Rohinhalt der CSV-Datei als Anfragekörper (`Content-Type: text/csv`). UTF-8 mit oder ohne BOM, Trennzeichen `;` oder `,`. Spalten: `name`/`Name` (Pflicht), `club`/`Verein`, `member_no`/`Mitgliedsnummer`, `display_mode`/`Anzeige`, `show_club`/`Verein anzeigen`. Fehlende Vereine werden angelegt, Dubletten und fehlerhafte Zeilen übersprungen. Mit `dry_run=true` wird nur geprüft.
+         */
+        post: operations["teilnehmer_import_persons"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/persons/{person_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Person */
+        get: operations["teilnehmer_get_person"];
+        put?: never;
+        post?: never;
+        /**
+         * Person endgültig löschen
+         * @description Löscht die Person unwiderruflich (Recht auf Löschung, Art. 17 DSGVO). Andere Module können widersprechen, etwa solange die Person in einem Turnier angemeldet ist; dann kommt 409 mit der Begründung.
+         */
+        delete: operations["teilnehmer_delete_person"];
+        options?: never;
+        head?: never;
+        /** Person ändern */
+        patch: operations["teilnehmer_update_person"];
+        trace?: never;
+    };
+    "/api/v1/auth/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ersteinrichtung, Gerät, angemeldete Person, Rechte */
+        get: operations["auth_get_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ersten Administrator anlegen und dieses Gerät koppeln */
+        post: operations["auth_setup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/pair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Gerät mit einem Kopplungscode koppeln */
+        post: operations["auth_pair"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Aktive Personen zur Auswahl bei der Anmeldung */
+        get: operations["auth_login_options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mit PIN anmelden */
+        post: operations["auth_login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Abmelden */
+        post: operations["auth_logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Alle bekannten Berechtigungen aller Module */
+        get: operations["auth_list_permissions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/devices/pairing-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Einmaligen Kopplungscode für ein neues Gerät erzeugen */
+        post: operations["devices_create_pairing_code"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Gekoppelte Geräte */
+        get: operations["devices_list_devices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/devices/{device_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Gerät entfernen */
+        delete: operations["devices_delete_device"];
+        options?: never;
+        head?: never;
+        /** Gerät umbenennen, Standardrolle setzen, sperren */
+        patch: operations["devices_update_device"];
+        trace?: never;
+    };
+    "/api/v1/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rollen */
+        get: operations["roles_list_roles"];
+        put?: never;
+        /** Rolle anlegen */
+        post: operations["roles_create_role"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/roles/{role_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rolle */
+        get: operations["roles_get_role"];
+        put?: never;
+        post?: never;
+        /** Rolle löschen */
+        delete: operations["roles_delete_role"];
+        options?: never;
+        head?: never;
+        /** Rolle umbenennen oder Rechte ändern */
+        patch: operations["roles_update_role"];
+        trace?: never;
+    };
+    "/api/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Personen mit Zugang */
+        get: operations["users_list_users"];
+        put?: never;
+        /** Person anlegen */
+        post: operations["users_create_user"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Person umbenennen, Rolle ändern, (de)aktivieren */
+        patch: operations["users_update_user"];
+        trace?: never;
+    };
+    "/api/v1/users/{user_id}/pin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** PIN zurücksetzen (hebt auch eine Sperre auf) */
+        post: operations["users_reset_pin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Audit-Protokoll, neueste zuerst */
+        get: operations["audit_list_audit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backup/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Einstellungen der Sicherung */
+        get: operations["backup_get_settings"];
+        /** Einstellungen der Sicherung ändern */
+        put: operations["backup_put_settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backup/passphrase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Sicherungspasswort setzen oder ändern */
+        put: operations["backup_put_passphrase"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backup/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Zustand von Sicherung und Stick */
+        get: operations["backup_get_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backup/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Jetzt sichern */
+        post: operations["backup_run_now"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backup/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sicherungsläufe, neueste zuerst */
+        get: operations["backup_list_runs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backup/usb/recheck": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stick erneut prüfen */
+        post: operations["backup_recheck_usb"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backup/usb/initialize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Neuen Stick als Sicherungs-Stick einrichten (legt die Marker-Datei an) */
+        post: operations["backup_initialize_usb"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backup/runs/{run_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lokalen Abzug verschlüsselt herunterladen */
+        get: operations["backup_download_run"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backup/runs/{run_id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sicherung prüfen (entschlüsseln, Prüfsumme, Inhalt) – ohne Zurückspielen */
+        post: operations["backup_verify_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -173,6 +1023,427 @@ export interface components {
             sollzeit_s?: number | null;
             /** Max Gesamtzeit S */
             max_gesamtzeit_s?: number | null;
+            /** Positionen */
+            positionen?: components["schemas"]["Position"][] | null;
+            /** Ringwerte */
+            ringwerte?: number[] | null;
+            /** Zeit Bei Abbruch S */
+            zeit_bei_abbruch_s?: number | null;
+            /** Zuschlag Stoerung Vor Erstem Schuss S */
+            zuschlag_stoerung_vor_erstem_schuss_s?: number | null;
+            /** Serien Gewertet */
+            serien_gewertet?: number | null;
+            /** Trefferaufnahme Nach */
+            trefferaufnahme_nach?: number[] | null;
+        };
+        /** Anschlag */
+        Anschlag: {
+            /**
+             * Haltung
+             * @enum {string}
+             */
+            haltung: "stehend" | "kniend" | "liegend";
+            /** Hand */
+            hand?: ("beidhaendig" | "einhaendig" | "starke_hand" | "schwache_hand") | null;
+        };
+        /** AuditEntryOut */
+        AuditEntryOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** User Id */
+            user_id: string | null;
+            /** Device Id */
+            device_id: string | null;
+            /** Action */
+            action: string;
+            /** Entity */
+            entity: string;
+            /** Entity Id */
+            entity_id: string | null;
+            /** Details */
+            details: {
+                [key: string]: unknown;
+            };
+        };
+        /** AuditPageOut */
+        AuditPageOut: {
+            /** Items */
+            items: components["schemas"]["AuditEntryOut"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /**
+         * BackupSettings
+         * @description Einstellungen der Sicherung (Tabelle `setting`, Schlüssel `backup`).
+         */
+        BackupSettings: {
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * Usb Enabled
+             * @default true
+             */
+            usb_enabled: boolean;
+            /**
+             * Snapshot Interval Minutes
+             * @default 5
+             */
+            snapshot_interval_minutes: number;
+            /**
+             * Keep Local
+             * @default 20
+             */
+            keep_local: number;
+            /**
+             * Keep Usb
+             * @default 20
+             */
+            keep_usb: number;
+            /**
+             * Warn All Stations
+             * @default true
+             */
+            warn_all_stations: boolean;
+            /**
+             * Warn On Display
+             * @default false
+             */
+            warn_on_display: boolean;
+            /**
+             * Encrypt
+             * @default true
+             */
+            encrypt: boolean;
+        };
+        /** BackupStatusOut */
+        BackupStatusOut: {
+            usb: components["schemas"]["UsbStatusOut"];
+            last_snapshot: components["schemas"]["RunOut"] | null;
+            last_usb_copy: components["schemas"]["RunOut"] | null;
+            journal: components["schemas"]["JournalStatusOut"];
+            warning: components["schemas"]["WarningOut"] | null;
+            /** Passphrase Set */
+            passphrase_set: boolean;
+        };
+        /** ClassCreate */
+        ClassCreate: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Short */
+            short: string;
+            /** Sort */
+            sort?: number | null;
+            /** Merge Into Id */
+            merge_into_id?: string | null;
+        };
+        /** ClassImport */
+        ClassImport: {
+            /** Federation */
+            federation: string;
+        };
+        /** ClassOut */
+        ClassOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Tournament Id
+             * Format: uuid
+             */
+            tournament_id: string;
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Short */
+            short: string;
+            /** Sort */
+            sort: number;
+            /** Merge Into Id */
+            merge_into_id: string | null;
+        };
+        /** ClassUpdate */
+        ClassUpdate: {
+            /** Code */
+            code?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Short */
+            short?: string | null;
+            /** Sort */
+            sort?: number | null;
+            /** Merge Into Id */
+            merge_into_id?: string | null;
+        };
+        /** ClubCreate */
+        ClubCreate: {
+            /** Name */
+            name: string;
+            /** Short */
+            short?: string | null;
+        };
+        /** ClubMerge */
+        ClubMerge: {
+            /**
+             * Into Id
+             * Format: uuid
+             */
+            into_id: string;
+        };
+        /** ClubOut */
+        ClubOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Short */
+            short: string | null;
+            /** Person Count */
+            person_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ClubUpdate */
+        ClubUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Short */
+            short?: string | null;
+        };
+        /**
+         * CompetitionCreate
+         * @description Aus dem Katalog (`catalog_federation` + `catalog_code`) oder eigen (`definition`).
+         */
+        CompetitionCreate: {
+            /** Name */
+            name?: string | null;
+            /** Range Id */
+            range_id?: string | null;
+            /** Sort */
+            sort?: number | null;
+            /** Capture Mode */
+            capture_mode?: ("shot" | "series") | null;
+            /** Multi Start */
+            multi_start?: boolean | null;
+            /** Max Starts */
+            max_starts?: number | null;
+            /** Multi Start Rule */
+            multi_start_rule?: ("best" | "first" | "all") | null;
+            /** Fee First Cents */
+            fee_first_cents?: number | null;
+            /** Fee Repeat Cents */
+            fee_repeat_cents?: number | null;
+            /** Class Ids */
+            class_ids?: string[] | null;
+            /** Combined Ranking */
+            combined_ranking?: boolean | null;
+            /** Planning */
+            planning?: ("queue" | "schedule") | null;
+            /** Heat Minutes */
+            heat_minutes?: number | null;
+            /** Changeover Minutes */
+            changeover_minutes?: number | null;
+            /** Catalog Federation */
+            catalog_federation?: string | null;
+            /** Catalog Code */
+            catalog_code?: string | null;
+            /** Variant Id */
+            variant_id?: string | null;
+            definition?: components["schemas"]["CompetitionDefinition"] | null;
+        };
+        /**
+         * CompetitionDefinition
+         * @description Kopie von Ablauf-Variante und Wertung; geprüft mit denselben Modellen wie der Katalog.
+         */
+        CompetitionDefinition: {
+            source?: components["schemas"]["DefinitionSource"] | null;
+            variant: components["schemas"]["Variante"];
+            scoring: components["schemas"]["Wertung"];
+            /** Ablauf Beschreibung */
+            ablauf_beschreibung?: string | null;
+        };
+        /** CompetitionOut */
+        CompetitionOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Tournament Id
+             * Format: uuid
+             */
+            tournament_id: string;
+            /** Range Id */
+            range_id: string | null;
+            /** Sort */
+            sort: number;
+            /** Catalog Federation */
+            catalog_federation: string | null;
+            /** Catalog Code */
+            catalog_code: string | null;
+            /** Name */
+            name: string;
+            definition: components["schemas"]["CompetitionDefinition"];
+            /**
+             * Capture Mode
+             * @enum {string}
+             */
+            capture_mode: "shot" | "series";
+            /** Multi Start */
+            multi_start: boolean;
+            /** Max Starts */
+            max_starts: number;
+            /**
+             * Multi Start Rule
+             * @enum {string}
+             */
+            multi_start_rule: "best" | "first" | "all";
+            /** Fee First Cents */
+            fee_first_cents: number;
+            /** Fee Repeat Cents */
+            fee_repeat_cents: number;
+            /** Class Ids */
+            class_ids: string[];
+            /** Combined Ranking */
+            combined_ranking: boolean;
+            /**
+             * Planning
+             * @enum {string}
+             */
+            planning: "queue" | "schedule";
+            /** Heat Minutes */
+            heat_minutes: number | null;
+            /** Changeover Minutes */
+            changeover_minutes: number;
+        };
+        /** CompetitionUpdate */
+        CompetitionUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Range Id */
+            range_id?: string | null;
+            /** Sort */
+            sort?: number | null;
+            /** Capture Mode */
+            capture_mode?: ("shot" | "series") | null;
+            /** Multi Start */
+            multi_start?: boolean | null;
+            /** Max Starts */
+            max_starts?: number | null;
+            /** Multi Start Rule */
+            multi_start_rule?: ("best" | "first" | "all") | null;
+            /** Fee First Cents */
+            fee_first_cents?: number | null;
+            /** Fee Repeat Cents */
+            fee_repeat_cents?: number | null;
+            /** Class Ids */
+            class_ids?: string[] | null;
+            /** Combined Ranking */
+            combined_ranking?: boolean | null;
+            /** Planning */
+            planning?: ("queue" | "schedule") | null;
+            /** Heat Minutes */
+            heat_minutes?: number | null;
+            /** Changeover Minutes */
+            changeover_minutes?: number | null;
+            definition?: components["schemas"]["CompetitionDefinition"] | null;
+        };
+        /** DefinitionReset */
+        DefinitionReset: {
+            /** Variant Id */
+            variant_id?: string | null;
+        };
+        /**
+         * DefinitionSource
+         * @description Woher die Definition kopiert wurde.
+         */
+        DefinitionSource: {
+            /** Federation */
+            federation: string;
+            /** Code */
+            code: string;
+            /** Group */
+            group: string;
+            /**
+             * Catalog Stand
+             * Format: date
+             */
+            catalog_stand: string;
+        };
+        /** DeviceBrief */
+        DeviceBrief: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Default Role Id */
+            default_role_id: string | null;
+        };
+        /** DeviceOut */
+        DeviceOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Paired At
+             * Format: date-time
+             */
+            paired_at: string;
+            /** Last Seen At */
+            last_seen_at: string | null;
+            /** Default Role Id */
+            default_role_id: string | null;
+            /** Blocked */
+            blocked: boolean;
+            /** Is Current */
+            is_current: boolean;
+        };
+        /** DeviceUpdateIn */
+        DeviceUpdateIn: {
+            /** Name */
+            name?: string | null;
+            /** Default Role Id */
+            default_role_id?: string | null;
+            /** Blocked */
+            blocked?: boolean | null;
         };
         /** DisziplinDetailOut */
         DisziplinDetailOut: {
@@ -234,6 +1505,16 @@ export interface components {
             /** Hinweis */
             hinweis: string | null;
         };
+        /**
+         * DuplicateOut
+         * @description Antwort 409 beim Anlegen: ähnliche Personen im selben Verein.
+         */
+        DuplicateOut: {
+            /** Detail */
+            detail: string;
+            /** Candidates */
+            candidates: components["schemas"]["PersonOut"][];
+        };
         /** GruppeOut */
         GruppeOut: {
             /** Verband */
@@ -275,6 +1556,48 @@ export interface components {
              */
             db: "ok" | "fehler";
             katalog: components["schemas"]["KatalogStatusOut"] | null;
+        };
+        /** ImportReportOut */
+        ImportReportOut: {
+            /** Dry Run */
+            dry_run: boolean;
+            /** New */
+            new: number;
+            /** Duplicate */
+            duplicate: number;
+            /** Error */
+            error: number;
+            /** New Clubs */
+            new_clubs: string[];
+            /** Rows */
+            rows: components["schemas"]["ImportRowOut"][];
+        };
+        /** ImportRowOut */
+        ImportRowOut: {
+            /** Line */
+            line: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "new" | "duplicate" | "error";
+            /** Message */
+            message?: string | null;
+            /** Person Id */
+            person_id?: string | null;
+        };
+        /** InitializeUsbIn */
+        InitializeUsbIn: {
+            /**
+             * Confirm
+             * @constant
+             */
+            confirm: true;
+        };
+        /** JournalStatusOut */
+        JournalStatusOut: {
+            /** Pending */
+            pending: number;
         };
         /** KatalogFehlerOut */
         KatalogFehlerOut: {
@@ -325,6 +1648,200 @@ export interface components {
             /** Hinweis */
             hinweis: string | null;
         };
+        /** LoginIn */
+        LoginIn: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Pin */
+            pin: string;
+        };
+        /**
+         * Order
+         * @description Neue Reihenfolge: alle IDs der Liste, jede genau einmal.
+         */
+        Order: {
+            /** Ids */
+            ids: string[];
+        };
+        /** PairIn */
+        PairIn: {
+            /** Code */
+            code: string;
+            /** Device Name */
+            device_name?: string | null;
+        };
+        /** PairingCodeIn */
+        PairingCodeIn: {
+            /** Name */
+            name?: string | null;
+            /** Default Role Id */
+            default_role_id?: string | null;
+        };
+        /** PairingCodeOut */
+        PairingCodeOut: {
+            /** Code */
+            code: string;
+            /** Pair Path */
+            pair_path: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Name */
+            name: string | null;
+            /** Default Role Id */
+            default_role_id: string | null;
+        };
+        /** PassphraseIn */
+        PassphraseIn: {
+            /** Passphrase */
+            passphrase: string;
+            /** Current Passphrase */
+            current_passphrase?: string | null;
+        };
+        /** PassphraseOut */
+        PassphraseOut: {
+            /** Passphrase Set */
+            passphrase_set: boolean;
+            /** Key Id */
+            key_id: string;
+        };
+        /** PermissionOut */
+        PermissionOut: {
+            /** Permission */
+            permission: string;
+            /** Module */
+            module: string;
+            /** Module Title */
+            module_title: string;
+        };
+        /** PersonCreate */
+        PersonCreate: {
+            /** Name */
+            name: string;
+            /** Member No */
+            member_no?: string | null;
+            /** Club Id */
+            club_id?: string | null;
+            /**
+             * Display Mode
+             * @default full
+             * @enum {string}
+             */
+            display_mode: "full" | "short" | "hidden";
+            /**
+             * Show Club
+             * @default true
+             */
+            show_club: boolean;
+        };
+        /** PersonOut */
+        PersonOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Member No */
+            member_no: string | null;
+            /** Club Id */
+            club_id: string | null;
+            /** Club Name */
+            club_name: string | null;
+            /**
+             * Display Mode
+             * @enum {string}
+             */
+            display_mode: "full" | "short" | "hidden";
+            /** Show Club */
+            show_club: boolean;
+            /** Display Name */
+            display_name: string | null;
+            /** Display Club */
+            display_club: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** PersonUpdate */
+        PersonUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Member No */
+            member_no?: string | null;
+            /** Club Id */
+            club_id?: string | null;
+            /** Display Mode */
+            display_mode?: ("full" | "short" | "hidden") | null;
+            /** Show Club */
+            show_club?: boolean | null;
+        };
+        /** PinResetIn */
+        PinResetIn: {
+            /** Pin */
+            pin: string;
+        };
+        /** Position */
+        Position: {
+            /** Nr */
+            nr: number;
+            /** Distanz M */
+            distanz_m?: number | null;
+            /** Anschlaege */
+            anschlaege: components["schemas"]["Anschlag"][];
+            /** Scheibe */
+            scheibe?: number | null;
+        };
+        /** RangeCreate */
+        RangeCreate: {
+            /** Name */
+            name: string;
+            /** Lane Count */
+            lane_count: number;
+            /** Sort */
+            sort?: number | null;
+        };
+        /** RangeOut */
+        RangeOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Tournament Id
+             * Format: uuid
+             */
+            tournament_id: string;
+            /** Name */
+            name: string;
+            /** Lane Count */
+            lane_count: number;
+            /** Sort */
+            sort: number;
+        };
+        /** RangeUpdate */
+        RangeUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Lane Count */
+            lane_count?: number | null;
+            /** Sort */
+            sort?: number | null;
+        };
         /** RegelwerkOut */
         RegelwerkOut: {
             /** Name */
@@ -334,6 +1851,394 @@ export interface components {
              * Format: date
              */
             stand: string;
+        };
+        /** RoleBrief */
+        RoleBrief: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** RoleIn */
+        RoleIn: {
+            /** Name */
+            name: string;
+            /**
+             * Permissions
+             * @default []
+             */
+            permissions: string[];
+        };
+        /** RoleOut */
+        RoleOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Is System */
+            is_system: boolean;
+            /** Permissions */
+            permissions: string[];
+            /** Effective Permissions */
+            effective_permissions: string[];
+            /** User Count */
+            user_count: number;
+        };
+        /** RoleUpdateIn */
+        RoleUpdateIn: {
+            /** Name */
+            name?: string | null;
+            /** Permissions */
+            permissions?: string[] | null;
+        };
+        /** RunOut */
+        RunOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /**
+             * Finished At
+             * Format: date-time
+             */
+            finished_at: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "snapshot" | "journal";
+            /**
+             * Target
+             * @enum {string}
+             */
+            target: "local" | "usb";
+            /** File Name */
+            file_name: string | null;
+            /** Size Bytes */
+            size_bytes: number | null;
+            /** Sha256 */
+            sha256: string | null;
+            /** Ok */
+            ok: boolean;
+            /** Error */
+            error: string | null;
+        };
+        /** SetupIn */
+        SetupIn: {
+            /** Name */
+            name: string;
+            /** Pin */
+            pin: string;
+            /** Device Name */
+            device_name: string;
+        };
+        /** StatusChange */
+        StatusChange: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "active" | "closed";
+        };
+        /** StatusOut */
+        StatusOut: {
+            /** Setup Required */
+            setup_required: boolean;
+            /** Auth Enforced */
+            auth_enforced: boolean;
+            device: components["schemas"]["DeviceBrief"] | null;
+            user: components["schemas"]["UserBrief"] | null;
+            role: components["schemas"]["RoleBrief"] | null;
+            /** Permissions */
+            permissions: string[];
+        };
+        /** TournamentCreate */
+        TournamentCreate: {
+            /** Name */
+            name: string;
+            /** Organizer */
+            organizer?: string | null;
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /** Date To */
+            date_to?: string | null;
+            /**
+             * Template
+             * @default custom
+             * @enum {string}
+             */
+            template: "open" | "club_championship" | "custom";
+            settings?: components["schemas"]["TournamentSettingsUpdate"] | null;
+        };
+        /** TournamentOut */
+        TournamentOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Organizer */
+            organizer: string | null;
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "active" | "closed";
+            /**
+             * Template
+             * @enum {string}
+             */
+            template: "open" | "club_championship" | "custom";
+            settings: components["schemas"]["TournamentSettings"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** TournamentOverview */
+        TournamentOverview: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Organizer */
+            organizer: string | null;
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "active" | "closed";
+            /**
+             * Template
+             * @enum {string}
+             */
+            template: "open" | "club_championship" | "custom";
+            settings: components["schemas"]["TournamentSettings"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Ranges */
+            ranges: components["schemas"]["RangeOut"][];
+            /** Classes */
+            classes: components["schemas"]["ClassOut"][];
+            /** Competitions */
+            competitions: components["schemas"]["CompetitionOut"][];
+        };
+        /**
+         * TournamentSettings
+         * @description Einstellungen je Turnier. Die `default_*`-Werte gelten für neu angelegte Wettbewerbe.
+         */
+        TournamentSettings: {
+            /** Protest Minutes */
+            protest_minutes?: number | null;
+            /**
+             * Currency
+             * @default EUR
+             */
+            currency: string;
+            /**
+             * Default Fee First Cents
+             * @default 0
+             */
+            default_fee_first_cents: number;
+            /**
+             * Default Fee Repeat Cents
+             * @default 0
+             */
+            default_fee_repeat_cents: number;
+            /**
+             * Default Multi Start
+             * @default false
+             */
+            default_multi_start: boolean;
+            /**
+             * Default Max Starts
+             * @default 1
+             */
+            default_max_starts: number;
+            /**
+             * Default Multi Start Rule
+             * @default best
+             * @enum {string}
+             */
+            default_multi_start_rule: "best" | "first" | "all";
+            /**
+             * Default Changeover Minutes
+             * @default 5
+             */
+            default_changeover_minutes: number;
+            /**
+             * Default Capture Mode
+             * @default series
+             * @enum {string}
+             */
+            default_capture_mode: "shot" | "series";
+            /**
+             * Display
+             * @default {}
+             */
+            display: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * TournamentSettingsUpdate
+         * @description Teiländerung der Einstellungen: Nur mitgeschickte Schlüssel werden übernommen.
+         */
+        TournamentSettingsUpdate: {
+            /** Protest Minutes */
+            protest_minutes?: number | null;
+            /** Currency */
+            currency?: string | null;
+            /** Default Fee First Cents */
+            default_fee_first_cents?: number | null;
+            /** Default Fee Repeat Cents */
+            default_fee_repeat_cents?: number | null;
+            /** Default Multi Start */
+            default_multi_start?: boolean | null;
+            /** Default Max Starts */
+            default_max_starts?: number | null;
+            /** Default Multi Start Rule */
+            default_multi_start_rule?: ("best" | "first" | "all") | null;
+            /** Default Changeover Minutes */
+            default_changeover_minutes?: number | null;
+            /** Default Capture Mode */
+            default_capture_mode?: ("shot" | "series") | null;
+            /** Display */
+            display?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** TournamentUpdate */
+        TournamentUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Organizer */
+            organizer?: string | null;
+            /** Date From */
+            date_from?: string | null;
+            /** Date To */
+            date_to?: string | null;
+            settings?: components["schemas"]["TournamentSettingsUpdate"] | null;
+        };
+        /** UsbStatusOut */
+        UsbStatusOut: {
+            /** Present */
+            present: boolean;
+            /** Writable */
+            writable: boolean;
+            /** Free Bytes */
+            free_bytes: number | null;
+            /** Last Seen At */
+            last_seen_at: string | null;
+        };
+        /** UserBrief */
+        UserBrief: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** UserIn */
+        UserIn: {
+            /** Name */
+            name: string;
+            /** Pin */
+            pin: string;
+            /**
+             * Role Id
+             * Format: uuid
+             */
+            role_id: string;
+        };
+        /** UserOut */
+        UserOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Role Id
+             * Format: uuid
+             */
+            role_id: string;
+            /** Active */
+            active: boolean;
+            /** Locked Until */
+            locked_until: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** UserUpdateIn */
+        UserUpdateIn: {
+            /** Name */
+            name?: string | null;
+            /** Role Id */
+            role_id?: string | null;
+            /** Active */
+            active?: boolean | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -373,6 +2278,54 @@ export interface components {
             /** Anzahl Disziplinen */
             anzahl_disziplinen: number;
         };
+        /** VerifyIn */
+        VerifyIn: {
+            /** Passphrase */
+            passphrase?: string | null;
+        };
+        /** VerifyOut */
+        VerifyOut: {
+            /** Ok */
+            ok: boolean;
+            /** File Name */
+            file_name: string;
+            /**
+             * Location
+             * @enum {string}
+             */
+            location: "local" | "usb";
+            /** Encrypted */
+            encrypted: boolean;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Checksum Ok */
+            checksum_ok: boolean;
+            /** Entries */
+            entries: string[];
+            /** Database Toc Entries */
+            database_toc_entries: number | null;
+            /** Manifest */
+            manifest: {
+                [key: string]: unknown;
+            } | null;
+            /** Error */
+            error: string | null;
+        };
+        /** WarningOut */
+        WarningOut: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "backup_disabled" | "snapshot_failed" | "usb_missing" | "usb_not_writable" | "usb_full" | "passphrase_missing" | "usb_copy_failed" | "journal_sync_failed";
+            /** Message De */
+            message_de: string;
+            /**
+             * Since
+             * Format: date-time
+             */
+            since: string;
+        };
         /** Wertung */
         Wertung: {
             /**
@@ -395,6 +2348,8 @@ export interface components {
             min_teilergebnis?: number | null;
             /** Zeit Rundung */
             zeit_rundung?: "summe_abrunden" | null;
+            /** Unbeendete Serie */
+            unbeendete_serie?: "ringe_bis_dahin_zeit_letzter_schuss" | null;
         };
     };
     responses: never;
@@ -618,6 +2573,2670 @@ export interface operations {
             };
             /** @description Eintrag nicht im Katalog */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_list_tournaments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentOut"][];
+                };
+            };
+        };
+    };
+    turnier_create_tournament: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TournamentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_get_tournament: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_delete_tournament: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_update_tournament: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TournamentUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_change_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_get_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentOverview"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_list_ranges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RangeOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_create_range: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RangeCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RangeOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_reorder_ranges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Order"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RangeOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_get_range: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                range_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RangeOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_delete_range: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                range_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_update_range: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                range_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RangeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RangeOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_list_classes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_create_class: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_import_classes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassImport"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_reorder_classes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Order"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_get_class: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_delete_class: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_update_class: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_list_competitions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_create_competition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompetitionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_reorder_competitions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Order"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_get_competition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                competition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_delete_competition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                competition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_update_competition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                competition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompetitionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_reset_definition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                competition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DefinitionReset"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    teilnehmer_list_clubs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubOut"][];
+                };
+            };
+        };
+    };
+    teilnehmer_create_club: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClubCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubOut"];
+                };
+            };
+            /** @description Widerspricht dem Datenbestand */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    teilnehmer_get_club: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                club_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubOut"];
+                };
+            };
+            /** @description Nicht vorhanden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    teilnehmer_delete_club: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                club_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht vorhanden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Widerspricht dem Datenbestand */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    teilnehmer_update_club: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                club_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClubUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubOut"];
+                };
+            };
+            /** @description Nicht vorhanden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Widerspricht dem Datenbestand */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    teilnehmer_merge_club: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                club_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClubMerge"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubOut"];
+                };
+            };
+            /** @description Nicht vorhanden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Widerspricht dem Datenbestand */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ungültige Eingabe */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    teilnehmer_list_persons: {
+        parameters: {
+            query?: {
+                /** @description Suchbegriff */
+                q?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    teilnehmer_create_person: {
+        parameters: {
+            query?: {
+                /** @description Dubletten-Hinweis übergehen */
+                force?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DuplicateOut"];
+                };
+            };
+            /** @description Ungültige Eingabe */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    teilnehmer_export_persons: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+        };
+    };
+    teilnehmer_import_persons: {
+        parameters: {
+            query?: {
+                /** @description Nur prüfen, nichts speichern */
+                dry_run?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/csv": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportReportOut"];
+                };
+            };
+            /** @description Datei unbrauchbar */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Datei zu groß */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    teilnehmer_get_person: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                person_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonOut"];
+                };
+            };
+            /** @description Nicht vorhanden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    teilnehmer_delete_person: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                person_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht vorhanden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Widerspricht dem Datenbestand */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    teilnehmer_update_person: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                person_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonOut"];
+                };
+            };
+            /** @description Nicht vorhanden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ungültige Eingabe */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_get_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusOut"];
+                };
+            };
+        };
+    };
+    auth_setup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetupIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusOut"];
+                };
+            };
+            /** @description Ersteinrichtung bereits erfolgt */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    auth_pair: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PairIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusOut"];
+                };
+            };
+            /** @description Code ungültig, abgelaufen oder benutzt */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_login_options: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserBrief"][];
+                };
+            };
+            /** @description Gerät nicht gekoppelt */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusOut"];
+                };
+            };
+            /** @description Gerät nicht gekoppelt oder PIN falsch */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Zu viele Fehlversuche, vorübergehend gesperrt */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_list_permissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionOut"][];
+                };
+            };
+        };
+    };
+    devices_create_pairing_code: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PairingCodeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PairingCodeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    devices_list_devices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceOut"][];
+                };
+            };
+        };
+    };
+    devices_delete_device: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    devices_update_device: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    roles_list_roles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleOut"][];
+                };
+            };
+        };
+    };
+    roles_create_role: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    roles_get_role: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                role_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    roles_delete_role: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                role_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    roles_update_role: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                role_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    users_list_users: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"][];
+                };
+            };
+        };
+    };
+    users_create_user: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    users_update_user: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    users_reset_pin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PinResetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    audit_list_audit: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    backup_get_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupSettings"];
+                };
+            };
+        };
+    };
+    backup_put_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupSettings"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    backup_put_passphrase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PassphraseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PassphraseOut"];
+                };
+            };
+            /** @description Ungültige Eingabe */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    backup_get_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupStatusOut"];
+                };
+            };
+        };
+    };
+    backup_run_now: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunOut"][];
+                };
+            };
+        };
+    };
+    backup_list_runs: {
+        parameters: {
+            query?: {
+                limit?: number;
+                kind?: ("snapshot" | "journal") | null;
+                target?: ("local" | "usb") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    backup_recheck_usb: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupStatusOut"];
+                };
+            };
+        };
+    };
+    backup_initialize_usb: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InitializeUsbIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupStatusOut"];
+                };
+            };
+            /** @description Ungültige Eingabe */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    backup_download_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ungültige Eingabe */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    backup_verify_run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifyOut"];
+                };
+            };
+            /** @description Ungültige Eingabe */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
