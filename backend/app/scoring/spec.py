@@ -1,0 +1,147 @@
+"""Form der Wettbewerbsdefinition (`competition.definition`).
+
+Die Definition ist eine Kopie aus dem Katalog: `{"variant": <Variante>, "scoring": <wertung>}` mit
+den deutschen Feldnamen der Katalogdateien. Die Modelle sind absichtlich eigenständig und streng:
+Kennt die Wertung ein Feld nicht, ist das ein Fehler – so fällt auf, wenn der Katalog etwas
+Neues beschreibt, das die Wertung (noch) nicht versteht.
+"""
+
+from decimal import Decimal
+from itertools import pairwise
+from typing import Annotated, Literal, Self
+
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
+
+from app.scoring.numbers import to_decimal
+
+Number = Annotated[Decimal, BeforeValidator(to_decimal)]
+NonNegativeNumber = Annotated[Decimal, BeforeValidator(to_decimal), Field(ge=0)]
+PositiveNumber = Annotated[Decimal, BeforeValidator(to_decimal), Field(gt=0)]
+PositiveInt = Annotated[int, Field(gt=0)]
+RingValue = Annotated[int, Field(ge=0, le=10)] | Literal["X"]
+Text = Annotated[str, Field(min_length=1)]
+
+Direction = Literal["absteigend", "aufsteigend"]
+CaptureMode = Literal["shot", "series"]
+CAPTURE_MODES: tuple[CaptureMode, ...] = ("shot", "series")
+
+# Gleichstandskriterien, die die Wertung kennt (Reihenfolge = Reihenfolge in der Doku).
+TIE_BREAKERS = ("zehner", "innenzehner", "neuner_abwaerts", "parcours_zeit")
+
+# Felder unter `scoring`, die nur bestimmte Modelle auswerten.
+MODEL_PARAMETERS = (
+    "abzug_je_voller_sekunde_ueber_sollzeit",
+    "min_teilergebnis",
+    "zeit_rundung",
+    "unbeendete_serie",
+)
+
+
+class _Strict(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+
+
+class StanceSpec(_Strict):
+    """Ein erlaubter Anschlag an einer Position."""
+
+    haltung: Literal["stehend", "kniend", "liegend"]
+    hand: Literal["beidhaendig", "einhaendig", "starke_hand", "schwache_hand"] | None = None
+
+
+class PositionSpec(_Strict):
+    """Position einer Serie (Mehrdistanz); nur Hinweis für das Terminal, ohne Einfluss auf die
+    Wertung."""
+
+    nr: PositiveInt
+    distanz_m: PositiveNumber | None = None
+    anschlaege: Annotated[list[StanceSpec], Field(min_length=1)]
+    scheibe: PositiveInt | None = None
+
+
+class SectionSpec(_Strict):
+    """Ein Abschnitt (Katalog: `abschnitte[]`)."""
+
+    id: Text
+    name: Text
+    serien: PositiveInt
+    schuss_je_serie: PositiveInt | None = None
+    max_schuss_je_serie: PositiveInt | None = None
+    ziele_je_serie: PositiveInt | None = None
+    zeit_je_serie_s: PositiveNumber | None = None
+    zeiten_s: list[PositiveNumber] | None = None
+    max_zeit_je_serie_s: PositiveNumber | None = None
+    zeit_wird_gemessen: bool | None = None
+    zuschlag_je_stehender_scheibe_s: NonNegativeNumber | None = None
+    distanzen_m: list[PositiveNumber] | None = None
+    zeit_je_schuss_s: PositiveNumber | None = None
+    pause_zwischen_schuessen_s: PositiveNumber | None = None
+    sollzeit_s: PositiveNumber | None = None
+    max_gesamtzeit_s: PositiveNumber | None = None
+    positionen: list[PositionSpec] | None = None
+    serien_gewertet: PositiveInt | None = None
+    trefferaufnahme_nach: list[PositiveInt] | None = None
+    ringwerte: Annotated[list[RingValue], Field(min_length=1)] | None = None
+    zeit_bei_abbruch_s: PositiveNumber | None = None
+    zuschlag_stoerung_vor_erstem_schuss_s: NonNegativeNumber | None = None
+
+    @model_validator(mode="after")
+    def _check_per_series_lists(self) -> Self:
+        for name in ("zeiten_s", "distanzen_m", "positionen"):
+            values = getattr(self, name)
+            if values is not None and len(values) != self.serien:
+                raise ValueError(
+                    f"{name} hat {len(values)} Einträge, erwartet werden {self.serien} "
+                    "(einer je Serie)"
+                )
+        if self.ringwerte and len(set(self.ringwerte)) != len(self.ringwerte):
+            raise ValueError("ringwerte enthält einen Wert mehrfach")
+        if self.serien_gewertet is not None and self.serien_gewertet > self.serien:
+            raise ValueError(
+                f"serien_gewertet ist {self.serien_gewertet}, es gibt nur {self.serien} Serien"
+            )
+        breaks = self.trefferaufnahme_nach or []
+        if any(number > self.serien for number in breaks):
+            raise ValueError(f"trefferaufnahme_nach: Seriennummern höchstens {self.serien}")
+        if any(a >= b for a, b in pairwise(breaks)):
+            raise ValueError("trefferaufnahme_nach: Seriennummern aufsteigend und ohne Doppelte")
+        if self.positionen and self.distanzen_m:
+            for index, position in enumerate(self.positionen):
+                distance = self.distanzen_m[index]
+                if position.distanz_m is not None and position.distanz_m != distance:
+                    raise ValueError(
+                        f"positionen[{index}].distanz_m ist {position.distanz_m}, "
+                        f"distanzen_m[{index}] aber {distance}"
+                    )
+        return self
+
+
+class VariantSpec(_Strict):
+    id: Text
+    name: Text
+    abschnitte: Annotated[list[SectionSpec], Field(min_length=1)]
+
+    @model_validator(mode="after")
+    def _check_unique_sections(self) -> Self:
+        ids = [section.id for section in self.abschnitte]
+        if duplicates := sorted({i for i in ids if ids.count(i) > 1}):
+            raise ValueError(f"Abschnitt-ID mehrfach vergeben: {', '.join(duplicates)}")
+        return self
+
+
+class ScoringSpec(_Strict):
+    """Die Wertung (Katalog: `wertung`). `modell` ist Text, damit ein unbekanntes Modell eine
+    eigene, verständliche Meldung bekommt."""
+
+    modell: Text
+    rangfolge: Direction
+    geprueft: bool | None = None
+    gleichstand: list[Text] | None = None
+    abzug_je_voller_sekunde_ueber_sollzeit: NonNegativeNumber | None = None
+    min_teilergebnis: Number | None = None
+    zeit_rundung: Literal["summe_abrunden"] | None = None
+    unbeendete_serie: Literal["ringe_bis_dahin_zeit_letzter_schuss"] | None = None
+
+
+class DefinitionSpec(_Strict):
+    variant: VariantSpec
+    scoring: ScoringSpec
