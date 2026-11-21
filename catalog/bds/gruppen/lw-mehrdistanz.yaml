@@ -2,6 +2,7 @@
 # Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
 # Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 12.01–L 12.11; optional 4821 laut Kommentar zu A 3.01.
 # Varianten = Parcours-Varianten nach L 12.08/L 12.09 (Variante 1: Repetierer ohne Wechselmagazin, Variante 2: Büchsen mit Wechselmagazin).
+# trefferaufnahme_nach: L 12.08 (Parcours nach der letzten Position). Fertigkeit fehlt absichtlich: Laut L 12.07 entscheidet der Veranstalter.
 schema: 1
 verband: "bds"
 gruppe:
@@ -45,6 +46,7 @@ ablaeufe:
           - id: "parcours"
             name: "Parcours"
             serien: 3
+            trefferaufnahme_nach: [3]
             schuss_je_serie: 5
             distanzen_m: [25, 20, 15]
             positionen:
@@ -91,6 +93,7 @@ ablaeufe:
           - id: "parcours"
             name: "Parcours"
             serien: 3
+            trefferaufnahme_nach: [3]
             schuss_je_serie: 5
             distanzen_m: [25, 20, 15]
             positionen:
@@ -140,6 +143,7 @@ ablaeufe:
           - id: "parcours"
             name: "Parcours"
             serien: 3
+            trefferaufnahme_nach: [3]
             schuss_je_serie: 5
             distanzen_m: [50, 40, 30]
             positionen:
@@ -183,6 +187,7 @@ ablaeufe:
           - id: "parcours"
             name: "Parcours"
             serien: 3
+            trefferaufnahme_nach: [3]
             schuss_je_serie: 5
             distanzen_m: [50, 40, 30]
             positionen:

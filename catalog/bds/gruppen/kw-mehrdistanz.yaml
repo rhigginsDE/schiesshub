@@ -2,6 +2,7 @@
 # Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
 # Quelle: BDS-SHB Teil K, Fassung BVA-Bescheid 30.06.2026, K 4.01–4.09 (S. K-16 bis K-19), Patronenliste 1205 K 8;
 # Gleichstand A 9.03; optionale Disziplinen Kommentar zu A3.01
+# trefferaufnahme_nach: K 4.06 (nach Pos. 2 und 4), K 4.07 (nach Pos. 8).
 schema: 1
 verband: "bds"
 gruppe:
@@ -26,6 +27,7 @@ ablaeufe:
           - id: "fertigkeit"
             name: "Fertigkeit"
             serien: 4
+            trefferaufnahme_nach: [2, 4]
             schuss_je_serie: 5
             zeit_je_serie_s: 10
             distanzen_m: [5, 10, 15, 20]
@@ -49,6 +51,7 @@ ablaeufe:
           - id: "parcours"
             name: "Parcours"
             serien: 4
+            trefferaufnahme_nach: [4]
             schuss_je_serie: 5
             distanzen_m: [20, 15, 10, 5]
             positionen:
@@ -82,6 +85,7 @@ ablaeufe:
           - id: "fertigkeit"
             name: "Fertigkeit"
             serien: 4
+            trefferaufnahme_nach: [2, 4]
             schuss_je_serie: 5
             zeit_je_serie_s: 10
             distanzen_m: [5, 10, 15, 20]
@@ -105,6 +109,7 @@ ablaeufe:
           - id: "parcours"
             name: "Parcours"
             serien: 4
+            trefferaufnahme_nach: [4]
             schuss_je_serie: 5
             distanzen_m: [20, 15, 10, 5]
             positionen:
@@ -138,6 +143,7 @@ ablaeufe:
           - id: "fertigkeit"
             name: "Fertigkeit"
             serien: 4
+            trefferaufnahme_nach: [2, 4]
             schuss_je_serie: 5
             zeit_je_serie_s: 10
             distanzen_m: [5, 10, 15, 20]
@@ -161,6 +167,7 @@ ablaeufe:
           - id: "parcours"
             name: "Parcours"
             serien: 4
+            trefferaufnahme_nach: [4]
             schuss_je_serie: 5
             distanzen_m: [20, 15, 10, 5]
             positionen:

@@ -2,6 +2,7 @@
 # Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
 # Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 11.
 # Varianten = Parcours-Varianten nach L 11.08/L 11.09 (nicht Meisterschaftsebenen).
+# trefferaufnahme_nach: L 11.07 und L 11.08 (jeweils nach der letzten Position).
 schema: 1
 verband: "bds"
 gruppe:
@@ -26,6 +27,7 @@ ablaeufe:
           - id: "fertigkeit"
             name: "Fertigkeit"
             serien: 3
+            trefferaufnahme_nach: [3]
             schuss_je_serie: 5
             zeit_je_serie_s: 15
             distanzen_m: [15, 20, 25]
@@ -45,6 +47,7 @@ ablaeufe:
           - id: "parcours"
             name: "Parcours"
             serien: 3
+            trefferaufnahme_nach: [3]
             schuss_je_serie: 5
             distanzen_m: [25, 20, 15]
             positionen:
@@ -72,6 +75,7 @@ ablaeufe:
           - id: "fertigkeit"
             name: "Fertigkeit"
             serien: 3
+            trefferaufnahme_nach: [3]
             schuss_je_serie: 5
             zeit_je_serie_s: 15
             distanzen_m: [15, 20, 25]
@@ -91,6 +95,7 @@ ablaeufe:
           - id: "parcours"
             name: "Parcours"
             serien: 3
+            trefferaufnahme_nach: [3]
             schuss_je_serie: 5
             distanzen_m: [25, 20, 15]
             positionen:
