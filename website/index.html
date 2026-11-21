@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schiesshub – Turniere im Schützenhaus abwickeln</title>
+<meta name="description" content="Open-Source-Software für Schießvereine: Anmeldung, Ergebniserfassung und Ranglisten am Wettkampftag. Läuft auf einem kleinen Rechner im Schützenhaus, ohne Internet.">
+<link rel="canonical" href="https://schiesshub.app/">
+<meta name="theme-color" content="#0B131B">
+<link rel="icon" href="icons/favicon.ico" sizes="any">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon_180.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="schiesshub.app">
+<meta property="og:locale" content="de_DE">
+<meta property="og:url" content="https://schiesshub.app/">
+<meta property="og:title" content="Schiesshub – Turniere im Schützenhaus abwickeln">
+<meta property="og:description" content="Open-Source-Software für Schießvereine: anmelden, Ergebnisse erfassen, Ranglisten zeigen. Ohne Internet.">
+<meta property="og:image" content="https://schiesshub.app/assets/og-image_1200x630.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="assets/fonts/exo-2-latin-700-italic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<!-- Icons: Lucide (ISC-Lizenz), als Sprite eingebettet -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol>
+  <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></symbol>
+  <symbol id="i-keyboard" viewBox="0 0 24 24"><path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></symbol>
+  <symbol id="i-drive" viewBox="0 0 24 24"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></symbol>
+  <symbol id="i-server" viewBox="0 0 24 24"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24"><path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"/></symbol>
+  <symbol id="i-tablet" viewBox="0 0 24 24"><rect width="10" height="14" x="3" y="8" rx="2"/><path d="M5 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-2.4"/><path d="M8 18h.01"/></symbol>
+  <symbol id="i-usb" viewBox="0 0 24 24"><circle cx="10" cy="7" r="1"/><circle cx="4" cy="20" r="1"/><path d="M4.7 19.3 19 5"/><path d="m21 3-3 1 2 2Z"/><path d="M9.26 7.68 5 12l2 5"/><path d="m10 14 5 2 3.5-3.5"/><path d="m18 12 1-1 1 1-1 1Z"/></symbol>
+  <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M11 14h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16"/><path d="m7 20 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/><path d="m2 15 6 6"/><path d="M19.5 8.5c.7-.7 1.5-1.6 1.5-2.7A2.73 2.73 0 0 0 16 4a2.78 2.78 0 0 0-5 1.8c0 1.2.8 2 1.5 2.8L16 12Z"/></symbol>
+</svg>
+
+<a class="skip" href="#inhalt">Zum Inhalt springen</a>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="schiesshub.app, Startseite">
+      <img src="icons/favicon.svg" alt="" width="36" height="36">
+      <span>schiesshub<b>.app</b></span>
+    </a>
+    <nav class="nav" aria-label="Hauptnavigation">
+      <a href="#aufbau">Aufbau</a>
+      <a href="#stationen">Stationen</a>
+      <a href="#katalog">Katalog</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="#mitmachen">Mitmachen</a>
+    </nav>
+    <a class="btn btn-secondary btn-sm" href="https://github.com/rhigginsDE/schiesshub">
+      <svg class="icon" aria-hidden="true"><use href="#i-github"/></svg>GitHub
+    </a>
+  </div>
+</header>
+
+<main id="inhalt">
+
+<section class="hero">
+  <svg class="hero-rings" viewBox="0 0 900 900" fill="none" aria-hidden="true">
+    <circle cx="450" cy="450" r="120" stroke="#273647"/>
+    <circle cx="450" cy="450" r="220" stroke="#273647"/>
+    <circle cx="450" cy="450" r="320" stroke="#273647"/>
+    <circle cx="450" cy="450" r="420" stroke="#1B2836"/>
+  </svg>
+  <div class="wrap">
+    <div>
+      <p class="status"><i></i>Frühe Entwicklung – noch nicht für echte Wettkämpfe geeignet</p>
+      <h1>Der Wettkampftag im Schützenhaus. <em>Alles an einem Ort.</em></h1>
+      <p class="lead">Schiesshub ist Open-Source-Software, mit der Schießvereine Turniere und Vereinsmeisterschaften abwickeln: anmelden, Ergebnisse erfassen, Ranglisten zeigen. Ein kleiner Rechner im Schützenhaus genügt. Internet ist nicht nötig.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://github.com/rhigginsDE/schiesshub">
+          <svg class="icon" aria-hidden="true"><use href="#i-github"/></svg>Projekt auf GitHub ansehen
+        </a>
+        <a class="btn btn-secondary" href="#roadmap">Was geplant ist<svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      </div>
+    </div>
+
+    <figure class="board" aria-label="Beispielansicht der Live-Wertung">
+      <div class="board-head">
+        <div>
+          <p>Anzeige · Live-Wertung</p>
+          <p class="board-title">Flinte 15 m Fallscheibe</p>
+          <p class="board-sub"><span class="num">4401</span> · Selbstladeflinte, offene Visierung</p>
+        </div>
+        <span class="chip green"><i></i>läuft</span>
+      </div>
+      <table>
+        <thead>
+          <tr><th scope="col">Platz</th><th scope="col" class="startno">Start</th><th scope="col">Name</th><th scope="col">Zeit</th></tr>
+        </thead>
+        <tbody>
+          <tr class="first"><td class="place">1</td><td class="num startno">017</td><td class="who">M. Brandt<small>SV Musterhausen</small></td><td class="time">31,84 s</td></tr>
+          <tr><td class="place">2</td><td class="num startno">042</td><td class="who">J. Petersen<small>SSG Beispieltal</small></td><td class="time">34,10 s</td></tr>
+          <tr><td class="place">3</td><td class="num startno">008</td><td class="who">A. Novak<small>SV Musterhausen</small></td><td class="time">36,57 s</td></tr>
+          <tr><td class="place">4</td><td class="num startno">023</td><td class="who">L. Schuster<small>SC Probedorf</small></td><td class="time">47,92 s<small>inkl. +10 s Zuschlag</small></td></tr>
+          <tr class="running"><td class="place">–</td><td class="num startno">031</td><td class="who">T. Wagner<small>SSG Beispieltal</small></td><td><span class="chip">Serie 3 von 4</span></td></tr>
+        </tbody>
+      </table>
+      <figcaption class="board-foot">Beispielansicht aus dem Entwurf. Namen und Vereine sind frei erfunden.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="section alt" id="aufbau">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Aufbau</p>
+      <h2>Ein Rechner im Schützenhaus, alle anderen im Browser</h2>
+      <p>Ein kleiner Linux-Rechner ist der Server. Laptops, Tablets und Handys verbinden sich per WLAN und öffnen Schiesshub im Browser. Installiert wird auf den Geräten nichts.</p>
+    </div>
+
+    <div class="flow">
+      <div class="flow-box">
+        <h3><svg class="icon" aria-hidden="true"><use href="#i-tablet"/></svg>Geräte im Verein</h3>
+        <ul>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-laptop"/></svg>Laptop an der Anmeldung</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tablet"/></svg>Tablet am Stand</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg>Rechner der Turnierleitung</li>
+        </ul>
+      </div>
+      <div class="flow-link"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>WLAN</div>
+      <div class="flow-box server">
+        <h3><svg class="icon" aria-hidden="true"><use href="#i-server"/></svg>Server</h3>
+        <p>Datenbank, Wertung und Webseiten laufen auf einem Gerät. Die Wertung rechnet nur der Server, damit es jede Formel genau einmal gibt.</p>
+        <p class="flow-usb"><svg class="icon" aria-hidden="true"><use href="#i-usb"/></svg>Verschlüsselte Sicherung auf USB-Stick</p>
+      </div>
+      <div class="flow-link"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>HDMI</div>
+      <div class="flow-box">
+        <h3><svg class="icon" aria-hidden="true"><use href="#i-monitor"/></svg>Anzeige</h3>
+        <p>Ein Bildschirm am Server zeigt Startliste, Live-Wertung und Siegerliste für alle im Raum.</p>
+      </div>
+    </div>
+
+    <ul class="facts">
+      <li><strong>Ohne Internet</strong><span>Keine Cloud, kein CDN, keine Telemetrie. Alles bleibt im Haus.</span></li>
+      <li><strong>Ohne Schulung</strong><span>Jede Station hat eine Aufgabe. Gebaut für Ehrenamtliche am Wettkampftag.</span></li>
+      <li><strong>Ohne feste Regeln im Code</strong><span>Disziplinen, Klassen, Startgeld und Rollen sind Einstellungen.</span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="section" id="stationen">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Stationen</p>
+      <h2>Fünf Stationen, ein roter Faden</h2>
+      <p>Ein Teilnehmer bucht Starts in Wettbewerben. Ergebnis, Startgeld und Bahn hängen am Start. Die Startnummer begleitet ihn durch alle Stationen.</p>
+    </div>
+    <div class="cards five">
+      <article class="card">
+        <div class="badge"><svg class="icon" aria-hidden="true"><use href="#i-user-plus"/></svg></div>
+        <h3>Anmeldung</h3>
+        <p>Teilnehmer erfassen, Starts buchen und den zu zahlenden Betrag sehen.</p>
+      </article>
+      <article class="card">
+        <div class="badge"><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg></div>
+        <h3>Turnier</h3>
+        <p>Wettbewerbe aus dem Disziplin-Katalog zusammenstellen und Klassen, Mehrfachstart und Startgeld einstellen.</p>
+      </article>
+      <article class="card">
+        <div class="badge"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg></div>
+        <h3>Erfassung</h3>
+        <p>Ergebnisse je Start eingeben: Einzelschuss oder Seriensumme, Zeit und Zuschläge.</p>
+      </article>
+      <article class="card">
+        <div class="badge"><svg class="icon" aria-hidden="true"><use href="#i-monitor"/></svg></div>
+        <h3>Anzeige</h3>
+        <p>Startliste, Live-Wertung und Siegerliste am Bildschirm des Servers.</p>
+      </article>
+      <article class="card">
+        <div class="badge"><svg class="icon" aria-hidden="true"><use href="#i-drive"/></svg></div>
+        <h3>System</h3>
+        <p>Sicherung auf USB-Stick, Geräte koppeln, Rollen vergeben.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="section alt" id="grundsaetze">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Grundsätze</p>
+      <h2>Worauf sich Vereine verlassen können</h2>
+    </div>
+    <div class="cards">
+      <article class="card">
+        <div class="badge"><svg class="icon" aria-hidden="true"><use href="#i-wifi-off"/></svg></div>
+        <h3>Offline zuerst</h3>
+        <p>Der Wettkampf läuft auch, wenn im Schützenhaus kein Netz ankommt. Zur Laufzeit hängt nichts am Internet.</p>
+      </article>
+      <article class="card">
+        <div class="badge"><svg class="icon" aria-hidden="true"><use href="#i-history"/></svg></div>
+        <h3>Nachvollziehbare Ergebnisse</h3>
+        <p>Korrekturen überschreiben nichts. Jede Eingabe wird mit Benutzer, Zeit und Begründung protokolliert.</p>
+      </article>
+      <article class="card">
+        <div class="badge"><svg class="icon" aria-hidden="true"><use href="#i-eye-off"/></svg></div>
+        <h3>Datensparsam</h3>
+        <p>Kein Geburtsdatum, kein Geburtsjahr. Die Klasse wird bei der Anmeldung gewählt.</p>
+      </article>
+      <article class="card">
+        <div class="badge"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg></div>
+        <h3>Verschlüsselt</h3>
+        <p>Namen liegen verschlüsselt in der Datenbank. Auch die Sicherung auf dem USB-Stick ist verschlüsselt.</p>
+      </article>
+      <article class="card">
+        <div class="badge"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg></div>
+        <h3>Alles einstellbar</h3>
+        <p>Im Turnier darf jeder Katalogwert überschrieben werden. Neue Regeln brauchen keinen Umbau am Code.</p>
+      </article>
+      <article class="card">
+        <div class="badge"><svg class="icon" aria-hidden="true"><use href="#i-heart"/></svg></div>
+        <h3>Einfach vor vollständig</h3>
+        <p>Die erste Version enthält nur, was ein Verein für ein einfaches Turnier braucht. Alles Weitere kommt als Modul.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="katalog">
+  <div class="wrap split">
+    <div>
+      <p class="eyebrow">Disziplin-Katalog</p>
+      <h2>Disziplinen sind Dateien, kein Code</h2>
+      <p class="lead">Der Server liest den Katalog bei jedem Start ein. Den Anfang machen die Disziplinen des BDS.</p>
+      <dl class="stats">
+        <div><dt>Disziplinen</dt><dd>191</dd></div>
+        <div><dt>Gruppen</dt><dd>25</dd></div>
+        <div><dt>frei nutzbar</dt><dd>CC0</dd></div>
+      </dl>
+      <p class="muted">Wer eine Disziplin korrigieren oder ergänzen will, ändert eine YAML-Datei und öffnet einen Pull Request. Programmierkenntnisse sind dafür nicht nötig.</p>
+      <div class="cta">
+        <a class="btn btn-secondary" href="https://github.com/rhigginsDE/schiesshub/blob/main/catalog/README.md">Katalog pflegen<svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      </div>
+    </div>
+    <div class="code">
+      <div class="code-head"><span>catalog/bds/gruppen/flinte-15m-fallscheibe.yaml</span><span>Auszug</span></div>
+<pre><code><span class="k">gruppe</span>:
+  <span class="k">name</span>: "Flinte 15 m Fallscheibe"
+  <span class="k">waffenart</span>: "flinte"
+  <span class="k">distanz_m</span>: 15
+<span class="k">wertung</span>:
+  <span class="k">modell</span>: "zeit_plus_zuschlaege"
+  <span class="k">rangfolge</span>: "aufsteigend"   <span class="c"># niedriger ist besser</span>
+<span class="k">disziplinen</span>:
+  - <span class="k">kennziffer</span>: "4401"
+    <span class="k">name</span>: "Selbstladeflinte, offene Visierung"
+    <span class="k">scheibe</span>: "Z12"
+    <span class="k">ablauf</span>: "fallscheibe-max6"</code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="section alt" id="roadmap">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Roadmap</p>
+      <h2>Erst die Grundfunktionen, dann Module</h2>
+      <p>Erstes Ziel ist ein internes Testturnier mit BDS-Fallscheibe. Die Reihenfolge der Module ist offen.</p>
+    </div>
+    <div class="roadmap">
+      <div>
+        <h3>Version 1</h3>
+        <p>In Arbeit</p>
+        <ul class="ticks">
+          <li>Turnier anlegen: Wettbewerbe, Klassen, Mehrfachstart, Startgeld</li>
+          <li>Anmeldung: Teilnehmer erfassen, Starts buchen</li>
+          <li>Reihenfolge am Stand ohne feste Zeiten</li>
+          <li>Erfassungsterminal mit Zeit und Zuschlägen</li>
+          <li>Wertung und Ranglisten je Wettbewerb und Klasse</li>
+          <li>Anzeige: Startliste, Live-Wertung, Siegerliste</li>
+          <li>Startliste und Siegerliste als PDF und CSV</li>
+          <li>Rollen und Geräte-Kopplung</li>
+          <li>Verschlüsselte Sicherung auf USB-Stick</li>
+          <li>Helles und dunkles Design, Oberfläche auf Deutsch</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Geplante Module</h3>
+        <p>Später, jeweils als eigener Baustein</p>
+        <dl class="modules">
+          <div><dt>Kasse</dt><dd>Zahlungen, Zahlarten, Tagesabschluss</dd></div>
+          <div><dt>Startzettel</dt><dd>Ausdruck mit QR-Code</dd></div>
+          <div><dt>Voranmeldung</dt><dd>Anmeldung vor dem Wettkampftag</dd></div>
+          <div><dt>Mannschaftswertung</dt><dd>Mannschaften bilden und werten</dd></div>
+          <div><dt>Urkunden</dt><dd>Vorlagen und Ausdruck</dd></div>
+          <div><dt>Ergebnisse im Internet</dt><dd>Ergebnislisten veröffentlichen</dd></div>
+          <div><dt>Verbandsportal</dt><dd>Austausch mit dem Meisterschaftsportal des BDS</dd></div>
+          <div><dt>Elektronische Scheiben</dt><dd>Ergebnisse aus Messanlagen</dd></div>
+          <div><dt>Kamera-Auswertung</dt><dd>Treffer per Kamera erkennen</dd></div>
+          <div><dt>Weitere Verbände</dt><dd>Kataloge für DSB, BDMP und andere</dd></div>
+        </dl>
+        <div class="cta">
+          <a class="btn btn-secondary" href="https://github.com/rhigginsDE/schiesshub/blob/main/docs/ROADMAP.md">Ganze Roadmap lesen<svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="mitmachen">
+  <div class="wrap join">
+    <div>
+      <p class="eyebrow">Mitmachen</p>
+      <h2>Offener Quellcode, offene Daten</h2>
+      <p class="lead">Schiesshub ist ein Freiwilligenprojekt. Der einfachste Beitrag ist eine Korrektur am Disziplin-Katalog. Fehlerberichte und Ideen sind als Issue willkommen.</p>
+      <div class="cta">
+        <a class="btn btn-secondary" href="https://github.com/rhigginsDE/schiesshub/blob/main/CONTRIBUTING.md">So kannst du mitwirken<svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+        <a class="btn btn-secondary" href="https://github.com/rhigginsDE/schiesshub/issues">Issue eröffnen</a>
+      </div>
+    </div>
+    <dl class="licenses">
+      <div><dt>Quellcode</dt><dd><a href="https://github.com/rhigginsDE/schiesshub/blob/main/LICENSE">GNU AGPL-3.0</a></dd></div>
+      <div><dt>Disziplin-Katalog</dt><dd><a href="https://github.com/rhigginsDE/schiesshub/blob/main/catalog/LICENSE">CC0 1.0</a></dd></div>
+      <div><dt>Name und Logo</dt><dd><a href="https://github.com/rhigginsDE/schiesshub/blob/main/TRADEMARKS.md">nicht Teil der Lizenzen</a></dd></div>
+    </dl>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <p>Schiesshub ist ein Freiwilligenprojekt ohne Gewähr. Maßgeblich sind immer die Regelwerke der Verbände.</p>
+    <nav aria-label="Rechtliches">
+      <a href="https://github.com/rhigginsDE/schiesshub">GitHub</a>
+      <a href="impressum.html">Impressum</a>
+      <a href="datenschutz.html">Datenschutz</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>
