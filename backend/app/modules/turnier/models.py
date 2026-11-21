@@ -1,4 +1,7 @@
-"""Tabellen des Turniers: Turnier, Stand, Klasse, Wettbewerb (siehe docs/DATENMODELL.md)."""
+"""Tabellen des Turniers: Turnier, Stand, Klasse, Wettbewerb und dessen Revisionen.
+
+Siehe docs/DATENMODELL.md.
+"""
 
 import uuid
 from datetime import date
@@ -11,6 +14,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Text,
     UniqueConstraint,
     Uuid,
 )
@@ -37,6 +41,9 @@ class Tournament(UUIDPrimaryKey, Timestamps, Base):
     template: Mapped[str] = mapped_column(String(30))
     # Vollständig nach schemas.TournamentSettings, inklusive der Standardwerte.
     settings: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    # Ausschreibung nach schemas.Announcement. Leer bei Turnieren von vor dieser Spalte; dann
+    # gilt die Standardgliederung der Vorlage.
+    announcement: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
 
 
 class Range(UUIDPrimaryKey, Timestamps, Base):
@@ -108,3 +115,35 @@ class Competition(UUIDPrimaryKey, Timestamps, Base):
     # Dauer eines Durchgangs einschließlich Wechselzeit.
     heat_minutes: Mapped[int | None] = mapped_column(Integer)
     changeover_minutes: Mapped[int] = mapped_column(Integer)
+    # Aktuelle Revision (competition_revision.revision) der wertungsrelevanten Felder.
+    definition_revision: Mapped[int] = mapped_column(Integer, server_default="1")
+
+
+class CompetitionRevision(UUIDPrimaryKey, Timestamps, Base):
+    """Stand der wertungsrelevanten Felder eines Wettbewerbs; nur Einfügen, nie ändern.
+
+    Jede Änderung an Definition, Erfassungsart oder Mehrfachstart-Regeln legt eine neue Revision
+    an. Ergebnisse lassen sich damit nachvollziehen und nach einer Änderung neu berechnen.
+    """
+
+    __tablename__ = "competition_revision"
+    __table_args__ = (
+        UniqueConstraint("competition_id", "revision"),
+        CheckConstraint("revision >= 1", name="revision"),
+    )
+
+    competition_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("competition.id", ondelete="CASCADE"), index=True
+    )
+    revision: Mapped[int] = mapped_column(Integer)
+    definition: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    capture_mode: Mapped[str] = mapped_column(String(20))
+    multi_start: Mapped[bool] = mapped_column(Boolean)
+    max_starts: Mapped[int] = mapped_column(Integer)
+    multi_start_rule: Mapped[str] = mapped_column(String(20))
+    combined_ranking: Mapped[bool] = mapped_column(Boolean)
+    # Wer geändert hat (ohne Fremdschlüssel, damit die Revision bleibt). Leer ohne Anmeldung.
+    changed_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    device_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # Pflicht, sobald das Turnier läuft (`active`).
+    reason: Mapped[str | None] = mapped_column(Text)

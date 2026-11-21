@@ -15,6 +15,7 @@ erDiagram
   entry }o--|| tournament_class : "startet in"
   entry ||--o{ start : bucht
   competition ||--o{ start : hat
+  competition ||--o{ competition_revision : Revisionen
   start }o--o| heat : "eingeplant in"
   start ||--o{ result_event : Protokoll
   start ||--o| result_current : "aktueller Stand"
@@ -43,7 +44,9 @@ Alle Tabellen haben `id` (UUID), `created_at`, `updated_at`. Geld steht in Cent 
 
 **`tournament`**: `name`, `organizer`, `date_from`, `date_to`, `status` (`draft`, `active`, `closed`), `template` (`open`, `club_championship`, `custom`), `settings` (JSONB).
 
-`settings` enthält alles, was kein eigenes Feld braucht, zum Beispiel `protest_minutes` (Einspruchsfrist, `null` = aus), `currency`, Voreinstellungen für die Anzeige.
+`settings` enthält alles, was kein eigenes Feld braucht, zum Beispiel `protest_minutes` (Einspruchsfrist, `null` = aus), `currency`, `first_start_number` (erste vergebene Startnummer, Standard 1), Voreinstellungen für die Anzeige.
+
+`announcement` (JSONB): Ausschreibung. `title`, `facts` (`venue`, `address`, `registration_deadline`, `registration_info`, `contact_name`, `contact_info`) und `blocks`, eine geordnete Liste aus `id`, `kind`, `heading`, `body`, `visible`. `kind` ist `text` (Freitext, kein HTML) oder ein automatischer Baustein `competitions`, `classes`, `fees`, `dates`, `ranges` (je höchstens einmal; Inhalt aus den Turnierdaten). Ein neues Turnier bekommt eine Standardgliederung mit leeren Texten; `null` bei älteren Turnieren heißt ebenfalls Standardgliederung.
 
 **`range`**: `tournament_id`, `name`, `lane_count`, `sort`.
 
@@ -64,8 +67,11 @@ Alle Tabellen haben `id` (UUID), `created_at`, `updated_at`. Geld steht in Cent 
 | `class_ids`, `combined_ranking` | zugelassene Klassen, gemeinsame Wertung |
 | `planning` | `queue` (Reihenfolge) oder `schedule` (Zeitplan) |
 | `heat_minutes`, `changeover_minutes` | Dauer und Wechselzeit bei Zeitplan |
+| `definition_revision` | aktuelle Revision der wertungsrelevanten Felder |
 
-`definition` ist eine Kopie, kein Verweis. Ein späteres Katalog-Update ändert laufende Turniere nicht.
+`definition` ist eine Kopie, kein Verweis. Ein späteres Katalog-Update ändert laufende Turniere nicht. Jeder Wert ist im Turnier änderbar, auch nach dem Start. `source.variant_id` nennt die kopierte Katalog-Variante; damit lassen sich Abweichungen vom Katalog anzeigen („abweichend vom Sporthandbuch“). `serien_gewertet` in einem Abschnitt heißt: nur die ersten N Serien zählen, die übrigen gelten als gestrichen.
+
+**`competition_revision`** (nur Einfügen): `competition_id`, `revision` (fortlaufend ab 1, eindeutig je Wettbewerb), `definition` (JSONB), `capture_mode`, `multi_start`, `max_starts`, `multi_start_rule`, `combined_ranking`, `changed_by`, `device_id`, `reason`, `created_at`. Jede Änderung an diesen Feldern legt eine Revision an, schreibt einen Audit-Eintrag und meldet `competition.definition_changed`. Ist das Turnier `active`, ist `reason` Pflicht.
 
 ## Teilnehmer
 
@@ -73,7 +79,7 @@ Alle Tabellen haben `id` (UUID), `created_at`, `updated_at`. Geld steht in Cent 
 
 **`person`**: `name_enc`, `member_no_enc`, `club_id`, `display_mode` (`full`, `short`, `hidden`), `show_club`.
 
-Felder mit `_enc` sind verschlüsselt. Es gibt kein Geburtsdatum und kein Geburtsjahr. Gesucht wird im Arbeitsspeicher des Servers über die entschlüsselten Namen; bei einigen hundert Personen ist das unkritisch.
+Felder mit `_enc` sind verschlüsselt (BYTEA, AES-GCM, siehe `app/core/crypto.py`). Es gibt kein Geburtsdatum und kein Geburtsjahr. Gesucht wird im Arbeitsspeicher des Servers über die entschlüsselten Namen; bei einigen hundert Personen ist das unkritisch.
 
 **`entry`**: `tournament_id`, `person_id`, `start_number` (eindeutig je Turnier), `class_id`.
 
@@ -137,6 +143,9 @@ Ergebnisse werden nie überschrieben.
 - `shots`: Ringwerte 0 bis 10, `"X"` ist ein Innenzehner.
 - `sum`: Seriensumme, wenn nicht einzeln erfasst wird; `tens` und `inner_tens` optional für den Gleichstand.
 - `time_cs`: gemessene Zeit. `standing`: stehende Scheiben.
+- `status` je Serie, optional: `normal` (Standard), `unfinished` (nicht beendet), `time_limit` (Zeitlimit erreicht), `aborted_by_shooter` (vom Schützen abgebrochen), `malfunction_before_first_shot` (Waffenstörung vor dem ersten Wertungsschuss). Die Wertung setzt dafür die Katalogwerte ein, etwa `zeit_bei_abbruch_s` oder `zuschlag_stoerung_vor_erstem_schuss_s`.
+- `time_cs` auf Abschnittsebene (neben `series`): Gesamtzeit eines Parcours mit Sollzeit (`sollzeit_s`).
+- Gestrichene Serien: Ist `serien_gewertet` gesetzt, werden alle Serien erfasst, gewertet aber nur die ersten N.
 
 `computed` enthält Zwischensummen je Serie und Abschnitt, Zuschläge, Abzüge und das Endergebnis. `rank_keys` ist die Liste der Vergleichswerte für die Rangfolge einschließlich Gleichstand.
 
@@ -156,7 +165,7 @@ Berechtigungen sind Texte wie `tournament.edit`, `entry.create`, `result.capture
 
 **`setting`**: `key`, `value` (JSONB). Globale Einstellungen, zum Beispiel Sicherung und Anzeige.
 
-**`backup_run`**: `started_at`, `kind` (`snapshot`, `journal`), `target` (`local`, `usb`), `size_bytes`, `ok`, `error`.
+**`backup_run`**: `started_at`, `finished_at`, `kind` (`snapshot`, `journal`), `target` (`local`, `usb`), `file_name`, `size_bytes`, `sha256`, `ok`, `error`.
 
 **`audit_log`**: `at`, `user_id`, `device_id`, `action`, `entity`, `entity_id`, `details` (JSONB). Für alles außerhalb der Ergebnisse, zum Beispiel Änderungen an Turnier-Einstellungen oder Rollen.
 

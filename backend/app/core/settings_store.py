@@ -1,8 +1,8 @@
 """Globale Einstellungen: Tabelle `setting`, ein JSONB-Wert je Schlüssel, geprüft per Schema.
 
-Bewusst ohne Abhängigkeit zum Sicherungsmodul, damit es sich unverändert nach `app.core`
-verschieben lässt. Fehlt ein Schlüssel, gelten die Standardwerte des Schemas; fehlen einzelne
-Felder (neue Version), ergänzt das Schema sie ebenso.
+Jedes Modul kann hier eigene Schlüssel ablegen (üblich: der Modulname, z. B. `backup`). Die
+Tabelle legt die Migration des Moduls `backup` an. Fehlt ein Schlüssel, gelten die Standardwerte
+des Schemas; fehlen einzelne Felder (neue Version), ergänzt das Schema sie ebenso.
 """
 
 from typing import Any

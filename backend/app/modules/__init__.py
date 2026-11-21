@@ -6,13 +6,15 @@ Ein Modul ist ein Paket mit `router`, `schemas`, `service`, bei Bedarf `models`,
 """
 
 from app.core.module import ModuleManifest
-from app.modules import auth, backup, katalog, system, teilnehmer, turnier
+from app.modules import auth, backup, ergebnisse, katalog, starts, system, teilnehmer, turnier
 
 MODULES: list[ModuleManifest] = [
     system.manifest,
     katalog.manifest,
     turnier.manifest,
     teilnehmer.manifest,
+    starts.manifest,
+    ergebnisse.manifest,
     auth.manifest,
     backup.manifest,
 ]

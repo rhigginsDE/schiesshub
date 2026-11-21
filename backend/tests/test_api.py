@@ -1,6 +1,7 @@
 """API-Tests gegen die echte PostgreSQL-Testdatenbank und den echten Katalog."""
 
 import tomllib
+from collections.abc import Callable
 from pathlib import Path
 
 import httpx
@@ -8,7 +9,9 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app import __version__
-from tests.conftest import BACKEND_DIR, REAL_CATALOG_DIR, ClientFactory, edit_yaml
+from app.core.config import Settings
+from app.main import create_app
+from tests.conftest import BACKEND_DIR, REAL_CATALOG_DIR, ClientFactory, edit_yaml, running
 
 API = "/api/v1"
 
@@ -78,6 +81,51 @@ async def test_openapi_and_docs_live_under_api_prefix(client: httpx.AsyncClient)
     assert all(path.startswith(f"{API}/") for path in paths)
     assert (await client.get("/openapi.json")).status_code == 404
     assert (await client.get("/docs")).status_code == 404
+
+
+async def test_docs_are_marked_as_development_only(client: httpx.AsyncClient) -> None:
+    page = (await client.get(f"{API}/docs")).text
+
+    assert "nur Entwicklung" in page
+    assert "Nur Entwicklung" in page
+    assert f"{API}/openapi.json" in page
+
+
+async def test_docs_are_off_outside_development(
+    clean_db: None, settings_for: Callable[[Path], Settings]
+) -> None:
+    settings = settings_for(REAL_CATALOG_DIR).model_copy(update={"environment": "production"})
+    async with running(create_app(settings)) as client:
+        docs = await client.get(f"{API}/docs")
+        openapi = await client.get(f"{API}/openapi.json")
+
+    assert docs.status_code == 404
+    # Die Beschreibung braucht kein Internet und bleibt für den Client-Generator erreichbar.
+    assert openapi.status_code == 200
+
+
+async def test_validation_errors_are_german(client: httpx.AsyncClient) -> None:
+    response = await client.get(f"{API}/tournaments/kein-schluessel")
+    schema = (await client.get(f"{API}/openapi.json")).json()["components"]["schemas"]
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": "Feld ‚tournament_id‘: muss eine gültige ID (UUID) sein.",
+        "errors": [{"field": "tournament_id", "message": "muss eine gültige ID (UUID) sein"}],
+    }
+    assert set(schema["HTTPValidationError"]["required"]) == {"detail", "errors"}
+
+
+async def test_modules_stop_their_background_work_on_shutdown(
+    clean_db: None, settings_for: Callable[[Path], Settings]
+) -> None:
+    app = create_app(settings_for(REAL_CATALOG_DIR))
+    async with running(app):
+        task = app.state.backup._task
+        assert task is not None
+        assert not task.done()
+
+    assert task.done()
 
 
 async def test_cors_allows_the_vite_dev_server_only(client: httpx.AsyncClient) -> None:
@@ -239,11 +287,8 @@ async def test_discipline_detail(client: httpx.AsyncClient) -> None:
 async def test_discipline_detail_multi_distance(client: httpx.AsyncClient) -> None:
     body = (await client.get(f"{API}/katalog/disziplinen/bds/1201")).json()
 
-    assert [v["id"] for v in body["ablauf"]["varianten"]] == [
-        "variante-1",
-        "variante-2-pistole",
-        "variante-2-revolver",
-    ]
+    # 1201 ist eine Pistole: keine Revolver-Variante
+    assert [v["id"] for v in body["ablauf"]["varianten"]] == ["variante-1", "variante-2-pistole"]
     parcours = body["ablauf"]["varianten"][0]["abschnitte"][1]
     assert parcours["distanzen_m"] == [20, 15, 10, 5]
     assert parcours["sollzeit_s"] == 80

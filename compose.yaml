@@ -38,6 +38,12 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5180}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       AUTH_ENFORCED: ${AUTH_ENFORCED:-false}
+      AUTH_PAIRING_CODE_MINUTES: ${AUTH_PAIRING_CODE_MINUTES:-10}
+      AUTH_PIN_MIN_LENGTH: ${AUTH_PIN_MIN_LENGTH:-4}
+      AUTH_MAX_FAILED_LOGINS: ${AUTH_MAX_FAILED_LOGINS:-5}
+      AUTH_LOCKOUT_MINUTES: ${AUTH_LOCKOUT_MINUTES:-5}
+      AUTH_SESSION_IDLE_HOURS: ${AUTH_SESSION_IDLE_HOURS:-12}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-auto}
       # Dateiänderungen auf Windows-/macOS-Mounts erreichen den Container nicht als inotify-Ereignis.
       WATCHFILES_FORCE_POLLING: "true"
     ports:
