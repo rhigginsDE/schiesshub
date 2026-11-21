@@ -25,14 +25,14 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Platzhalter in Impressum und Datenschutz melden
         run: |
           if grep -rl "TODO-RECHTLICHES" website/ ; then
             echo "::warning::Impressum oder Datenschutz enthalten noch Platzhalter (TODO-RECHTLICHES)."
           fi
       - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: website
       - id: deployment
