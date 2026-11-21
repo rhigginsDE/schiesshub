@@ -4,8 +4,8 @@
 set -eu
 
 if [ "${RUN_MIGRATIONS:-1}" = "1" ]; then
-    echo "backend-entrypoint: alembic upgrade head"
-    alembic upgrade head
+    echo "backend-entrypoint: alembic upgrade heads"
+    alembic upgrade heads
 fi
 
 exec "$@"

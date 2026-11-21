@@ -36,7 +36,9 @@ ClientFactory = Callable[[Path], AbstractAsyncContextManager[httpx.AsyncClient]]
 @pytest.fixture(scope="session")
 def test_database_url() -> str:
     url = make_url(get_settings().database_url)
-    return url.set(database=f"{url.database}_test").render_as_string(hide_password=False)
+    # TEST_DB_SUFFIX erlaubt mehrere Testläufe gleichzeitig (jeder mit eigener Datenbank).
+    suffix = os.environ.get("TEST_DB_SUFFIX", "")
+    return url.set(database=f"{url.database}_test{suffix}").render_as_string(hide_password=False)
 
 
 @pytest.fixture(scope="session")
@@ -56,11 +58,11 @@ async def _test_database(test_database_url: str) -> None:
         "-m",
         "alembic",
         "upgrade",
-        "head",
+        "heads",
         cwd=BACKEND_DIR,
         env={**os.environ, "DATABASE_URL": test_database_url},
     )
-    assert await migration.wait() == 0, "alembic upgrade head ist fehlgeschlagen"
+    assert await migration.wait() == 0, "alembic upgrade heads ist fehlgeschlagen"
 
 
 @pytest.fixture(scope="session")

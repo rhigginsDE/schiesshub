@@ -26,7 +26,9 @@ ENV PYTHONUNBUFFERED=1 \
     CATALOG_DIR=/catalog
 
 RUN groupadd --gid 1000 app \
-    && useradd --uid 1000 --gid app --home-dir /home/app --create-home --shell /usr/sbin/nologin app
+    && useradd --uid 1000 --gid app --home-dir /home/app --create-home --shell /usr/sbin/nologin app \
+    && mkdir -p /data /backup-usb \
+    && chown app:app /data /backup-usb
 
 WORKDIR /app
 

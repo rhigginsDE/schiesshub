@@ -44,6 +44,9 @@ services:
     volumes:
       - ./backend:/app
       - ./catalog:/catalog:ro
+      - app-data:/data
+      # Simulierter Sicherungs-Stick: "steckt", wenn .dev/usb/.schiesshub-backup existiert.
+      - ./.dev/usb:/backup-usb
     healthcheck:
       test: ["CMD", "python", "-m", "app.healthcheck"]
       interval: 10s
@@ -53,3 +56,4 @@ services:
 
 volumes:
   db-data:
+  app-data:
