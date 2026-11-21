@@ -29,11 +29,40 @@ ablaeufe:
             schuss_je_serie: 5
             zeit_je_serie_s: 15
             distanzen_m: [15, 20, 25]
+            positionen:
+              - nr: 1
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "kniend" }
+              - nr: 2
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "stehend" }
+              - nr: 3
+                distanz_m: 25
+                anschlaege:
+                  - { haltung: "kniend" }
           - id: "parcours"
             name: "Parcours"
             serien: 3
             schuss_je_serie: 5
             distanzen_m: [25, 20, 15]
+            positionen:
+              - nr: 4
+                distanz_m: 25
+                anschlaege:
+                  - { haltung: "stehend" }
+                scheibe: 1
+              - nr: 5
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "kniend" }
+                scheibe: 2
+              - nr: 6
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "stehend" }
+                scheibe: 3
             zeit_wird_gemessen: true
             sollzeit_s: 70
             max_gesamtzeit_s: 140
@@ -46,11 +75,40 @@ ablaeufe:
             schuss_je_serie: 5
             zeit_je_serie_s: 15
             distanzen_m: [15, 20, 25]
+            positionen:
+              - nr: 1
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "kniend" }
+              - nr: 2
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "stehend" }
+              - nr: 3
+                distanz_m: 25
+                anschlaege:
+                  - { haltung: "kniend" }
           - id: "parcours"
             name: "Parcours"
             serien: 3
             schuss_je_serie: 5
             distanzen_m: [25, 20, 15]
+            positionen:
+              - nr: 4
+                distanz_m: 25
+                anschlaege:
+                  - { haltung: "stehend" }
+                scheibe: 1
+              - nr: 5
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "kniend" }
+                scheibe: 2
+              - nr: 6
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "stehend" }
+                scheibe: 3
             zeit_wird_gemessen: true
             sollzeit_s: 50
             max_gesamtzeit_s: 100
@@ -66,11 +124,37 @@ ablaeufe:
             schuss_je_serie: 5
             zeit_je_serie_s: 15
             distanzen_m: [30, 40, 50]
+            positionen:
+              - nr: 1
+                distanz_m: 30
+                anschlaege:
+                  - { haltung: "kniend" }
+              - nr: 2
+                distanz_m: 40
+                anschlaege:
+                  - { haltung: "stehend" }
+              - nr: 3
+                distanz_m: 50
+                anschlaege:
+                  - { haltung: "kniend" }
           - id: "parcours"
             name: "Parcours"
             serien: 3
             schuss_je_serie: 5
             distanzen_m: [50, 40, 30]
+            positionen:
+              - nr: 4
+                distanz_m: 50
+                anschlaege:
+                  - { haltung: "stehend" }
+              - nr: 5
+                distanz_m: 40
+                anschlaege:
+                  - { haltung: "kniend" }
+              - nr: 6
+                distanz_m: 30
+                anschlaege:
+                  - { haltung: "stehend" }
             zeit_wird_gemessen: true
             sollzeit_s: 70
             max_gesamtzeit_s: 140
@@ -83,11 +167,37 @@ ablaeufe:
             schuss_je_serie: 5
             zeit_je_serie_s: 15
             distanzen_m: [30, 40, 50]
+            positionen:
+              - nr: 1
+                distanz_m: 30
+                anschlaege:
+                  - { haltung: "kniend" }
+              - nr: 2
+                distanz_m: 40
+                anschlaege:
+                  - { haltung: "stehend" }
+              - nr: 3
+                distanz_m: 50
+                anschlaege:
+                  - { haltung: "kniend" }
           - id: "parcours"
             name: "Parcours"
             serien: 3
             schuss_je_serie: 5
             distanzen_m: [50, 40, 30]
+            positionen:
+              - nr: 4
+                distanz_m: 50
+                anschlaege:
+                  - { haltung: "stehend" }
+              - nr: 5
+                distanz_m: 40
+                anschlaege:
+                  - { haltung: "kniend" }
+              - nr: 6
+                distanz_m: 30
+                anschlaege:
+                  - { haltung: "stehend" }
             zeit_wird_gemessen: true
             sollzeit_s: 50
             max_gesamtzeit_s: 100

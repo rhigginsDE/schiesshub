@@ -2,6 +2,7 @@
 # Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
 # Quelle: BDS-SHB Teil K, Fassung BVA-Bescheid 30.06.2026, K 6.01–6.10 (S. K-25 bis K-27), Patronenlisten K 8;
 # optionale Disziplinen K 1.19 / Kommentar zu A3.01
+# ringwerte K 6.04; unbeendete_serie K 6.10.
 schema: 1
 verband: "bds"
 gruppe:
@@ -14,6 +15,7 @@ wertung:
   modell: "ringe_minus_zeit"
   rangfolge: "absteigend"
   zeit_rundung: "summe_abrunden"
+  unbeendete_serie: "ringe_bis_dahin_zeit_letzter_schuss"
   geprueft: false
 ablaeufe:
   speed-5-scheiben:
@@ -28,6 +30,7 @@ ablaeufe:
             schuss_je_serie: 5
             ziele_je_serie: 5
             max_zeit_je_serie_s: 60
+            ringwerte: [10, 7, 0]
             zeit_wird_gemessen: true
       - id: "dm"
         name: "Deutsche Meisterschaft"
@@ -38,6 +41,7 @@ ablaeufe:
             schuss_je_serie: 5
             ziele_je_serie: 5
             max_zeit_je_serie_s: 60
+            ringwerte: [10, 7, 0]
             zeit_wird_gemessen: true
 disziplinen:
   - kennziffer: "1401"

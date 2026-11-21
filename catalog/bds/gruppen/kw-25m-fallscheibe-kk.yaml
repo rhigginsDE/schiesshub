@@ -1,6 +1,7 @@
 # KW 25 m Fallscheibe KK – BDS-Disziplinen
 # Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
 # Quelle: BDS-SHB Teil K, Fassung BVA-Bescheid 30.06.2026, K 5.11–5.20 (S. K-22 bis K-24); Zuschlag über K 5.19 → K 5.09
+# zeit_bei_abbruch_s und zuschlag_stoerung_vor_erstem_schuss_s: K 5.09 (über K 5.19).
 schema: 1
 verband: "bds"
 gruppe:
@@ -28,6 +29,8 @@ ablaeufe:
             max_zeit_je_serie_s: 60
             zeit_wird_gemessen: true
             zuschlag_je_stehender_scheibe_s: 10
+            zeit_bei_abbruch_s: 60
+            zuschlag_stoerung_vor_erstem_schuss_s: 50
       - id: "dm"
         name: "Deutsche Meisterschaft"
         abschnitte:
@@ -39,6 +42,8 @@ ablaeufe:
             max_zeit_je_serie_s: 60
             zeit_wird_gemessen: true
             zuschlag_je_stehender_scheibe_s: 10
+            zeit_bei_abbruch_s: 60
+            zuschlag_stoerung_vor_erstem_schuss_s: 50
   fallscheibe-max6:
     beschreibung: "4 Serien (BM/LM) bzw. 6 (DM) auf 5 Fallscheiben; max. 6 Schuss und 1 Min. je Serie; 10 s Zuschlag je stehender Scheibe"
     varianten:
@@ -53,6 +58,8 @@ ablaeufe:
             max_zeit_je_serie_s: 60
             zeit_wird_gemessen: true
             zuschlag_je_stehender_scheibe_s: 10
+            zeit_bei_abbruch_s: 60
+            zuschlag_stoerung_vor_erstem_schuss_s: 50
       - id: "dm"
         name: "Deutsche Meisterschaft"
         abschnitte:
@@ -64,6 +71,8 @@ ablaeufe:
             max_zeit_je_serie_s: 60
             zeit_wird_gemessen: true
             zuschlag_je_stehender_scheibe_s: 10
+            zeit_bei_abbruch_s: 60
+            zuschlag_stoerung_vor_erstem_schuss_s: 50
 disziplinen:
   - kennziffer: "1510"
     fruehere_kennziffer: "1310"

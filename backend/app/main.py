@@ -12,6 +12,7 @@ from app import __version__
 from app.core.config import API_PREFIX, Settings, get_settings
 from app.core.db import create_engine, create_session_factory
 from app.core.events import EventHub
+from app.core.logging import configure_access_log
 from app.modules import MODULES
 
 logger = logging.getLogger("schiesshub")
@@ -29,6 +30,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 await module.on_startup(app)
         yield
     finally:
+        for module in reversed(MODULES):
+            if module.on_shutdown is not None:
+                await module.on_shutdown(app)
         await engine.dispose()
 
 
@@ -43,6 +47,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         level=settings.log_level.upper(),
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
+
+    configure_access_log()
 
     app = FastAPI(
         title="Schiesshub",

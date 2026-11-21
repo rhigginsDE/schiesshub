@@ -2,6 +2,7 @@
 # Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
 # Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 9 (Flinte: 4301–4304).
 # Die Büchsen-Disziplinen aus L 9 (46xx) gehören nicht in diese Gruppe.
+# ringwerte L 9.04; zeit_rundung und unbeendete_serie L 9.09.
 schema: 1
 verband: "bds"
 gruppe:
@@ -13,6 +14,9 @@ gruppe:
 wertung:
   modell: "ringe_minus_zeit"
   rangfolge: "absteigend"
+  # L 9.09: Endsumme der Zeiten auf volle Sekunden abrunden, dann abziehen.
+  zeit_rundung: "summe_abrunden"
+  unbeendete_serie: "ringe_bis_dahin_zeit_letzter_schuss"
   # Gleichstand: L 9.09 nennt keine Regel; ob A 9.03 (Ringgleichheit) auf "Ringe minus Zeit" anzuwenden ist, ist offen.
   geprueft: false
 ablaeufe:
@@ -28,6 +32,7 @@ ablaeufe:
             schuss_je_serie: 5
             ziele_je_serie: 5
             max_zeit_je_serie_s: 60
+            ringwerte: [10, 7, 0]
             zeit_wird_gemessen: true
 disziplinen:
   - kennziffer: "4301"

@@ -18,7 +18,7 @@ wertung:
   geprueft: true
 ablaeufe:
   mehrdistanz-40:
-    beschreibung: "40 Schuss: Fertigkeit 5/10/15/20 m je 5 Schuss in 10 s (schwache Hand, starke Hand, beidhändig, beidhändig); Parcours 20/15/10/5 m je 5 Schuss auf Zeit, 1 Ziel je Position; Sollzeit je Parcours-Variante"
+    beschreibung: "40 Schuss: Fertigkeit stehend, je 5 Schuss in 10 s – Pos. 1 5 m schwache Hand, Pos. 2 10 m starke Hand, Pos. 3 15 m beidhändig, Pos. 4 20 m beidhändig; Parcours auf Zeit, je 5 Schuss auf eine eigene Scheibe (1.–4. von links) – Pos. 5 20 m stehend beidhändig, Pos. 6 15 m kniend beidhändig oder stehend einhändig schwache Hand, Pos. 7 10 m stehend beidhändig, Pos. 8 5 m stehend einhändig; Sollzeit je Parcours-Variante"
     varianten:
       - id: "variante-1"
         name: "Parcours-Variante 1 (1 Magazin / ohne Ladehilfen)"
@@ -29,11 +29,50 @@ ablaeufe:
             schuss_je_serie: 5
             zeit_je_serie_s: 10
             distanzen_m: [5, 10, 15, 20]
+            positionen:
+              - nr: 1
+                distanz_m: 5
+                anschlaege:
+                  - { haltung: "stehend", hand: "schwache_hand" }
+              - nr: 2
+                distanz_m: 10
+                anschlaege:
+                  - { haltung: "stehend", hand: "starke_hand" }
+              - nr: 3
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+              - nr: 4
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
           - id: "parcours"
             name: "Parcours"
             serien: 4
             schuss_je_serie: 5
             distanzen_m: [20, 15, 10, 5]
+            positionen:
+              - nr: 5
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+                scheibe: 1
+              - nr: 6
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "kniend", hand: "beidhaendig" }
+                  - { haltung: "stehend", hand: "schwache_hand" }
+                scheibe: 2
+              - nr: 7
+                distanz_m: 10
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+                scheibe: 3
+              - nr: 8
+                distanz_m: 5
+                anschlaege:
+                  - { haltung: "stehend", hand: "einhaendig" }
+                scheibe: 4
             zeit_wird_gemessen: true
             sollzeit_s: 80
             max_gesamtzeit_s: 160
@@ -46,11 +85,50 @@ ablaeufe:
             schuss_je_serie: 5
             zeit_je_serie_s: 10
             distanzen_m: [5, 10, 15, 20]
+            positionen:
+              - nr: 1
+                distanz_m: 5
+                anschlaege:
+                  - { haltung: "stehend", hand: "schwache_hand" }
+              - nr: 2
+                distanz_m: 10
+                anschlaege:
+                  - { haltung: "stehend", hand: "starke_hand" }
+              - nr: 3
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+              - nr: 4
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
           - id: "parcours"
             name: "Parcours"
             serien: 4
             schuss_je_serie: 5
             distanzen_m: [20, 15, 10, 5]
+            positionen:
+              - nr: 5
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+                scheibe: 1
+              - nr: 6
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "kniend", hand: "beidhaendig" }
+                  - { haltung: "stehend", hand: "schwache_hand" }
+                scheibe: 2
+              - nr: 7
+                distanz_m: 10
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+                scheibe: 3
+              - nr: 8
+                distanz_m: 5
+                anschlaege:
+                  - { haltung: "stehend", hand: "einhaendig" }
+                scheibe: 4
             zeit_wird_gemessen: true
             sollzeit_s: 60
             max_gesamtzeit_s: 120
@@ -63,11 +141,50 @@ ablaeufe:
             schuss_je_serie: 5
             zeit_je_serie_s: 10
             distanzen_m: [5, 10, 15, 20]
+            positionen:
+              - nr: 1
+                distanz_m: 5
+                anschlaege:
+                  - { haltung: "stehend", hand: "schwache_hand" }
+              - nr: 2
+                distanz_m: 10
+                anschlaege:
+                  - { haltung: "stehend", hand: "starke_hand" }
+              - nr: 3
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+              - nr: 4
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
           - id: "parcours"
             name: "Parcours"
             serien: 4
             schuss_je_serie: 5
             distanzen_m: [20, 15, 10, 5]
+            positionen:
+              - nr: 5
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+                scheibe: 1
+              - nr: 6
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "kniend", hand: "beidhaendig" }
+                  - { haltung: "stehend", hand: "schwache_hand" }
+                scheibe: 2
+              - nr: 7
+                distanz_m: 10
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+                scheibe: 3
+              - nr: 8
+                distanz_m: 5
+                anschlaege:
+                  - { haltung: "stehend", hand: "einhaendig" }
+                scheibe: 4
             zeit_wird_gemessen: true
             sollzeit_s: 70
             max_gesamtzeit_s: 140

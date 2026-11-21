@@ -65,7 +65,8 @@ async def test_openapi_and_docs_live_under_api_prefix(client: httpx.AsyncClient)
     assert openapi.status_code == 200
     assert docs.status_code == 200
     paths = set(openapi.json()["paths"])
-    assert paths == {
+    # Teilmenge statt Gleichheit: Jedes weitere Modul bringt eigene Pfade mit.
+    assert paths >= {
         f"{API}/health",
         f"{API}/events",
         f"{API}/katalog/verbaende",
@@ -74,6 +75,7 @@ async def test_openapi_and_docs_live_under_api_prefix(client: httpx.AsyncClient)
         f"{API}/katalog/disziplinen/{{verband}}/{{kennziffer}}",
         f"{API}/katalog/klassen",
     }
+    assert all(path.startswith(f"{API}/") for path in paths)
     assert (await client.get("/openapi.json")).status_code == 404
     assert (await client.get("/docs")).status_code == 404
 
@@ -220,6 +222,8 @@ async def test_discipline_detail(client: httpx.AsyncClient) -> None:
                         "max_zeit_je_serie_s": 60,
                         "zeit_wird_gemessen": True,
                         "zuschlag_je_stehender_scheibe_s": 10,
+                        "zeit_bei_abbruch_s": 60,
+                        "zuschlag_stoerung_vor_erstem_schuss_s": 50,
                     }
                 ],
             }
@@ -243,6 +247,12 @@ async def test_discipline_detail_multi_distance(client: httpx.AsyncClient) -> No
     parcours = body["ablauf"]["varianten"][0]["abschnitte"][1]
     assert parcours["distanzen_m"] == [20, 15, 10, 5]
     assert parcours["sollzeit_s"] == 80
+    assert [p["nr"] for p in parcours["positionen"]] == [5, 6, 7, 8]
+    assert parcours["positionen"][1]["anschlaege"] == [
+        {"haltung": "kniend", "hand": "beidhaendig"},
+        {"haltung": "stehend", "hand": "schwache_hand"},
+    ]
+    assert parcours["positionen"][3]["scheibe"] == 4
     assert body["wertung"]["modell"] == "ringe_mit_zeitabzug"
     assert body["wertung"]["gleichstand"] == ["zehner", "innenzehner", "neuner_abwaerts"]
 

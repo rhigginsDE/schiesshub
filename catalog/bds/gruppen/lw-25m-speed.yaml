@@ -2,6 +2,7 @@
 # Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
 # Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 9.01, L 9.03–L 9.09.
 # Gleichstand: in L 9 nicht geregelt (A 9.03 betrifft Ringgleichheit), daher kein Eintrag.
+# ringwerte L 9.04; unbeendete_serie L 9.09.
 schema: 1
 verband: "bds"
 gruppe:
@@ -14,6 +15,7 @@ wertung:
   modell: "ringe_minus_zeit"
   rangfolge: "absteigend"
   zeit_rundung: "summe_abrunden"
+  unbeendete_serie: "ringe_bis_dahin_zeit_letzter_schuss"
   geprueft: false  # Gleichstandsregel für Speed in L 9 nicht geregelt; Anwendbarkeit A 9.03 offen
 ablaeufe:
   speed-5er-serien:
@@ -28,6 +30,7 @@ ablaeufe:
             schuss_je_serie: 5
             ziele_je_serie: 5
             max_zeit_je_serie_s: 60
+            ringwerte: [10, 7, 0]
             zeit_wird_gemessen: true
       - id: "dm"
         name: "Deutsche Meisterschaft"
@@ -38,6 +41,7 @@ ablaeufe:
             schuss_je_serie: 5
             ziele_je_serie: 5
             max_zeit_je_serie_s: 60
+            ringwerte: [10, 7, 0]
             zeit_wird_gemessen: true
 disziplinen:
   - kennziffer: "4601"

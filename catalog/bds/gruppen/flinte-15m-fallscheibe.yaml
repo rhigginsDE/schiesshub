@@ -2,6 +2,7 @@
 # Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
 # Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 10 (Zuschläge über Verweis auf L 8.09).
 # Gleichstand: L 10.10 kennt nur die niedrigste Gesamtzeit; eine weitere Gleichstandsregel nennt die Quelle nicht.
+# zeit_bei_abbruch_s und zuschlag_stoerung_vor_erstem_schuss_s: L 8.09 (über L 10.09).
 schema: 1
 verband: "bds"
 gruppe:
@@ -29,6 +30,8 @@ ablaeufe:
             max_zeit_je_serie_s: 60
             zeit_wird_gemessen: true
             zuschlag_je_stehender_scheibe_s: 10
+            zeit_bei_abbruch_s: 60
+            zuschlag_stoerung_vor_erstem_schuss_s: 50
 disziplinen:
   - kennziffer: "4401"
     name: "Selbstladeflinte, offene Visierung"

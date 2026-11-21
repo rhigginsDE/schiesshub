@@ -2,6 +2,7 @@
 # Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
 # Quelle: BDS-SHB Teil L, Fassung BVA-Genehmigungsbescheid vom 30.06.2026, L 8.11–L 8.20 (Zuschläge über L 8.19 → L 8.09).
 # Gleichstand: in L 8 nicht geregelt, daher kein Eintrag.
+# zeit_bei_abbruch_s und zuschlag_stoerung_vor_erstem_schuss_s: L 8.09 (über L 8.19).
 schema: 1
 verband: "bds"
 gruppe:
@@ -29,6 +30,8 @@ ablaeufe:
             max_zeit_je_serie_s: 60
             zeit_wird_gemessen: true
             zuschlag_je_stehender_scheibe_s: 10
+            zeit_bei_abbruch_s: 60
+            zuschlag_stoerung_vor_erstem_schuss_s: 50
       - id: "dm"
         name: "Deutsche Meisterschaft"
         abschnitte:
@@ -40,6 +43,8 @@ ablaeufe:
             max_zeit_je_serie_s: 60
             zeit_wird_gemessen: true
             zuschlag_je_stehender_scheibe_s: 10
+            zeit_bei_abbruch_s: 60
+            zuschlag_stoerung_vor_erstem_schuss_s: 50
 disziplinen:
   - kennziffer: "2702"
     fruehere_kennziffer: "2502"

@@ -79,7 +79,33 @@ Ein Ablauf besteht aus Varianten (zum Beispiel Bezirks-, Landes-, Deutsche Meist
 | `sollzeit_s` | Sollzeit für den ganzen Abschnitt; darüber gilt `abzug_je_voller_sekunde_ueber_sollzeit` (Mehrdistanz-Parcours) |
 | `max_gesamtzeit_s` | Abbruchzeit für den ganzen Abschnitt (Mehrdistanz-Parcours) |
 
+| `positionen` | Anschlag je Serie, ein Eintrag je Serie (siehe unten) |
+| `ringwerte` | mögliche Ringwerte je Treffer, absteigend ohne Wiederholung (Speed: `[10, 7, 0]`) |
+| `zeit_bei_abbruch_s` | Serienzeit bei Zeitlimit oder Abbruch durch den Schützen (Fallscheibe: 60) |
+| `zuschlag_stoerung_vor_erstem_schuss_s` | Zuschlag bei Waffenstörung vor dem ersten Wertungsschuss (Fallscheibe: 50) |
+| `trefferaufnahme_nach` | Trefferaufnahme nach diesen Serien, 1-basiert und aufsteigend, z. B. `[2, 4]`; nur zur Information |
+| `serien_gewertet` | nur die ersten N Serien zählen. Im Katalog nicht setzen: Das ist eine Turnier-Einstellung, die das Turnier-Modul mit demselben Format prüft. |
+
 Bei Mehrdistanz stehen die Varianten für die Parcours-Varianten des Sporthandbuchs, nicht für Meisterschaftsebenen.
+
+### Positionen
+
+`positionen` beschreibt je Serie, aus welcher Position, in welchem Anschlag und auf welche Scheibe geschossen wird. Die Liste hat so viele Einträge wie `serien`. Ist auch `distanzen_m` gesetzt, muss `distanz_m` dazu passen.
+
+```yaml
+positionen:
+  - nr: 6                       # Positionsnummer laut Sporthandbuch
+    distanz_m: 15
+    anschlaege:                 # eine oder mehrere erlaubte Alternativen
+      - { haltung: "kniend", hand: "beidhaendig" }
+      - { haltung: "stehend", hand: "schwache_hand" }
+    scheibe: 2                  # optional: n-te Scheibe von links
+```
+
+| Feld | Werte |
+|---|---|
+| `haltung` | `stehend`, `kniend`, `liegend` |
+| `hand` | `beidhaendig`, `einhaendig` (Hand freigestellt), `starke_hand`, `schwache_hand`; bei Langwaffe und Flinte weglassen |
 
 ### Wertungsmodelle
 
@@ -98,6 +124,7 @@ Weitere Felder unter `wertung`:
 | `abzug_je_voller_sekunde_ueber_sollzeit` | Ringabzug je voller Sekunde über `sollzeit_s` |
 | `min_teilergebnis` | Untergrenze je Teilergebnis vor dem Addieren (Mehrdistanz: 0) |
 | `zeit_rundung` | `summe_abrunden`: Summe der Serienzeiten wird vor dem Abzug auf volle Sekunden abgerundet (Speed) |
+| `unbeendete_serie` | `ringe_bis_dahin_zeit_letzter_schuss`: Bei einer nicht beendeten Serie zählen die bis dahin erzielten Ringe und die Zeit des letzten Schusses (Speed) |
 
 Im Turnier lassen sich alle Werte überschreiben. Der Katalog liefert nur die Vorgaben.
 

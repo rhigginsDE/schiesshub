@@ -37,6 +37,7 @@ services:
       CATALOG_DIR: /catalog
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5180}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      AUTH_ENFORCED: ${AUTH_ENFORCED:-false}
       # Dateiänderungen auf Windows-/macOS-Mounts erreichen den Container nicht als inotify-Ereignis.
       WATCHFILES_FORCE_POLLING: "true"
     ports:

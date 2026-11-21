@@ -183,6 +183,168 @@ def test_per_series_list_must_match_series_count(minimal_catalog: Path) -> None:
     assert "zeiten_s" in error.meldung
 
 
+def _set_positions(minimal_catalog: Path, positions: list[dict], **extra: object) -> None:
+    def change(data: dict) -> None:
+        section = data["ablaeufe"]["praezision-2x10"]["varianten"][0]["abschnitte"][0]
+        section["positionen"] = positions
+        section.update(extra)
+
+    edit_yaml(minimal_catalog / GROUP_FILE, change)
+
+
+TWO_POSITIONS = [
+    {"nr": 1, "distanz_m": 20, "anschlaege": [{"haltung": "stehend", "hand": "beidhaendig"}]},
+    {
+        "nr": 2,
+        "distanz_m": 15,
+        "anschlaege": [
+            {"haltung": "kniend", "hand": "beidhaendig"},
+            {"haltung": "stehend", "hand": "schwache_hand"},
+        ],
+        "scheibe": 2,
+    },
+]
+
+
+def test_positions_are_accepted(minimal_catalog: Path) -> None:
+    _set_positions(minimal_catalog, TWO_POSITIONS, distanzen_m=[20, 15])
+
+    result = load_catalog(minimal_catalog)
+
+    assert result.errors == []
+    group = result.federations[0].groups[0]
+    section = group.content.ablaeufe["praezision-2x10"].varianten[0].abschnitte[0]
+    assert section.positionen is not None
+    assert [len(p.anschlaege) for p in section.positionen] == [1, 2]
+    assert section.positionen[1].anschlaege[1].hand == "schwache_hand"
+
+
+def test_position_hand_is_optional(minimal_catalog: Path) -> None:
+    positions = [{"nr": n, "anschlaege": [{"haltung": "kniend"}]} for n in (1, 2)]
+    _set_positions(minimal_catalog, positions)
+
+    assert errors_of(minimal_catalog) == []
+
+
+def test_positions_must_match_series_count(minimal_catalog: Path) -> None:
+    _set_positions(minimal_catalog, TWO_POSITIONS[:1])
+
+    [error] = errors_of(minimal_catalog)
+
+    assert error.pfad == "ablaeufe.praezision-2x10.varianten[0].abschnitte[0]"
+    assert "positionen" in error.meldung
+
+
+def test_position_distance_must_match_distances(minimal_catalog: Path) -> None:
+    _set_positions(minimal_catalog, TWO_POSITIONS, distanzen_m=[20, 10])
+
+    [error] = errors_of(minimal_catalog)
+
+    assert "positionen[1].distanz_m" in error.meldung
+
+
+def test_unknown_stance_is_rejected(minimal_catalog: Path) -> None:
+    positions = [
+        {"nr": n, "anschlaege": [{"haltung": "sitzend", "hand": "beidhaendig"}]} for n in (1, 2)
+    ]
+    _set_positions(minimal_catalog, positions)
+
+    errors = errors_of(minimal_catalog)
+
+    assert errors
+    assert all("haltung" in error.pfad for error in errors)
+
+
+def _edit_section(minimal_catalog: Path, **fields: object) -> None:
+    def change(data: dict) -> None:
+        data["ablaeufe"]["praezision-2x10"]["varianten"][0]["abschnitte"][0].update(fields)
+
+    edit_yaml(minimal_catalog / GROUP_FILE, change)
+
+
+def test_speed_and_falling_plate_fields_are_accepted(minimal_catalog: Path) -> None:
+    _edit_section(
+        minimal_catalog,
+        ringwerte=[10, 7, 0],
+        zeit_bei_abbruch_s=60,
+        zuschlag_stoerung_vor_erstem_schuss_s=50,
+    )
+    edit_yaml(
+        minimal_catalog / GROUP_FILE,
+        lambda data: data["wertung"].update(
+            {"unbeendete_serie": "ringe_bis_dahin_zeit_letzter_schuss"}
+        ),
+    )
+
+    assert errors_of(minimal_catalog) == []
+
+
+def test_ring_values_must_descend_without_duplicates(minimal_catalog: Path) -> None:
+    for values in ([7, 10, 0], [10, 10, 0], []):
+        root = minimal_catalog
+        _edit_section(root, ringwerte=values)
+
+        [error] = errors_of(root)
+
+        assert "ringwerte" in error.meldung
+
+
+def test_ring_values_must_not_be_negative(minimal_catalog: Path) -> None:
+    _edit_section(minimal_catalog, ringwerte=[10, -1])
+
+    assert errors_of(minimal_catalog)
+
+
+def test_unknown_unfinished_series_rule_is_rejected(minimal_catalog: Path) -> None:
+    edit_yaml(
+        minimal_catalog / GROUP_FILE,
+        lambda data: data["wertung"].update({"unbeendete_serie": "null_ringe"}),
+    )
+
+    [error] = errors_of(minimal_catalog)
+
+    assert error.pfad == "wertung.unbeendete_serie"
+
+
+def test_abort_seconds_must_be_positive(minimal_catalog: Path) -> None:
+    _edit_section(minimal_catalog, zeit_bei_abbruch_s=0)
+
+    errors = errors_of(minimal_catalog)
+
+    # Zahl ist int | float, deshalb meldet Pydantic je Variante einen Fehler.
+    assert errors
+    assert all("zeit_bei_abbruch_s" in error.pfad for error in errors)
+
+
+def test_counted_series_and_scoring_breaks_are_accepted(minimal_catalog: Path) -> None:
+    _edit_section(minimal_catalog, serien_gewertet=1, trefferaufnahme_nach=[1, 2])
+
+    assert errors_of(minimal_catalog) == []
+
+
+def test_counted_series_must_not_exceed_series(minimal_catalog: Path) -> None:
+    _edit_section(minimal_catalog, serien_gewertet=3)
+
+    [error] = errors_of(minimal_catalog)
+
+    assert "serien_gewertet" in error.meldung
+
+
+def test_counted_series_must_be_positive(minimal_catalog: Path) -> None:
+    _edit_section(minimal_catalog, serien_gewertet=0)
+
+    assert errors_of(minimal_catalog)
+
+
+def test_scoring_breaks_must_ascend_and_stay_within_series(minimal_catalog: Path) -> None:
+    for values in ([2, 1], [1, 1], [1, 3]):
+        _edit_section(minimal_catalog, trefferaufnahme_nach=values)
+
+        [error] = errors_of(minimal_catalog)
+
+        assert "trefferaufnahme_nach" in error.meldung
+
+
 def test_missing_head_file(minimal_catalog: Path) -> None:
     (minimal_catalog / "tst" / "katalog.yaml").unlink()
 

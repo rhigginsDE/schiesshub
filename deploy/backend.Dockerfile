@@ -8,11 +8,26 @@
 
 ARG PYTHON_IMAGE=python:3.15.2-slim-trixie
 ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.13.9
+# Hauptversion des PostgreSQL-Clients (pg_dump, pg_restore). Muss zum Server in compose.yaml passen.
+ARG PG_MAJOR=19
 
 FROM ${UV_IMAGE} AS uv
 
 # ---------------------------------------------------------------------------
 FROM ${PYTHON_IMAGE} AS base
+
+ARG PG_MAJOR
+
+# pg_dump/pg_restore für die Sicherung, aus dem offiziellen PGDG-Repository: Debian trixie selbst
+# liefert nur PostgreSQL 17, und ein älterer pg_dump verweigert den Abzug eines neueren Servers.
+# Der Schlüssel ist per Prüfsumme festgenagelt.
+ADD --chmod=644 --checksum=sha256:0144068502a1eddd2a0280ede10ef607d1ec592ce819940991203941564e8e76 \
+    https://www.postgresql.org/media/keys/ACCC4CF8.asc /usr/share/keyrings/pgdg.asc
+RUN echo "deb [signed-by=/usr/share/keyrings/pgdg.asc] https://apt.postgresql.org/pub/repos/apt trixie-pgdg main" \
+        > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends "postgresql-client-${PG_MAJOR}" \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -22,7 +37,7 @@ ENV PYTHONUNBUFFERED=1 \
     UV_COMPILE_BYTECODE=1 \
     UV_PYTHON_DOWNLOADS=never \
     UV_CACHE_DIR=/tmp/uv-cache \
-    PATH=/opt/venv/bin:$PATH \
+    PATH=/opt/venv/bin:/usr/lib/postgresql/${PG_MAJOR}/bin:$PATH \
     CATALOG_DIR=/catalog
 
 RUN groupadd --gid 1000 app \

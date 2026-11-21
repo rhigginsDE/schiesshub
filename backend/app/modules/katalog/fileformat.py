@@ -17,6 +17,7 @@ IsoDate = Annotated[date, Field(strict=False)]
 Number = int | float
 PositiveNumber = Annotated[int, Field(gt=0)] | Annotated[float, Field(gt=0)]
 PositiveInt = Annotated[int, Field(gt=0)]
+NonNegativeInt = Annotated[int, Field(ge=0)]
 
 WeaponType = Literal["kurzwaffe", "langwaffe", "flinte"]
 GroupKind = Literal[
@@ -33,6 +34,9 @@ GroupKind = Literal[
     "intervall",
 ]
 ScoringModel = Literal["ringe", "ringe_minus_zeit", "ringe_mit_zeitabzug", "zeit_plus_zuschlaege"]
+Stance = Literal["stehend", "kniend", "liegend"]
+# "einhaendig": eine Hand, welche ist freigestellt.
+Hand = Literal["beidhaendig", "einhaendig", "starke_hand", "schwache_hand"]
 Gender = Literal["alle", "weiblich", "maennlich", "divers"]
 
 
@@ -136,6 +140,25 @@ class Wertung(StrictModel):
     abzug_je_voller_sekunde_ueber_sollzeit: Number | None = None
     min_teilergebnis: Number | None = None
     zeit_rundung: Literal["summe_abrunden"] | None = None
+    # Speed: Wird eine Serie nicht beendet, zählen die bis dahin erzielten Ringe und die
+    # Zeit des letzten Schusses (K 6.10, L 9.09).
+    unbeendete_serie: Literal["ringe_bis_dahin_zeit_letzter_schuss"] | None = None
+
+
+class Anschlag(StrictModel):
+    haltung: Stance
+    # Bei Langwaffe und Flinte nicht angegeben.
+    hand: Hand | None = None
+
+
+class Position(StrictModel):
+    # Positionsnummer laut Sporthandbuch.
+    nr: PositiveInt
+    distanz_m: PositiveNumber | None = None
+    # Eine oder mehrere erlaubte Alternativen.
+    anschlaege: Annotated[list[Anschlag], Field(min_length=1)]
+    # n-te Scheibe von links.
+    scheibe: PositiveInt | None = None
 
 
 class Abschnitt(StrictModel):
@@ -155,15 +178,55 @@ class Abschnitt(StrictModel):
     pause_zwischen_schuessen_s: PositiveNumber | None = None
     sollzeit_s: PositiveNumber | None = None
     max_gesamtzeit_s: PositiveNumber | None = None
+    # Anschlag je Serie, z. B. bei Mehrdistanz.
+    positionen: list[Position] | None = None
+    # Mögliche Ringwerte je Treffer, absteigend (Speed: 10, 7, 0).
+    ringwerte: list[NonNegativeInt] | None = None
+    # Fallscheibe: Serienzeit bei Zeitlimit oder Abbruch durch den Schützen.
+    zeit_bei_abbruch_s: PositiveNumber | None = None
+    # Fallscheibe: Zuschlag bei Waffenstörung vor dem ersten Wertungsschuss.
+    zuschlag_stoerung_vor_erstem_schuss_s: PositiveNumber | None = None
+    # Nur die ersten N Serien zählen (Turnier-Einstellung; im Katalog normalerweise nicht gesetzt).
+    serien_gewertet: PositiveInt | None = None
+    # Trefferaufnahme nach diesen Serien (1-basiert, aufsteigend), rein informativ.
+    trefferaufnahme_nach: list[PositiveInt] | None = None
 
     @model_validator(mode="after")
     def _check_per_series_lists(self) -> Self:
-        for name in ("zeiten_s", "distanzen_m"):
+        for name in ("zeiten_s", "distanzen_m", "positionen"):
             values = getattr(self, name)
             if values is not None and len(values) != self.serien:
                 raise ValueError(
                     f"{name} hat {len(values)} Einträge, erwartet werden {self.serien} "
                     "(einer je Serie)"
+                )
+        if self.positionen is not None and self.distanzen_m is not None:
+            for index, (position, distanz) in enumerate(
+                zip(self.positionen, self.distanzen_m, strict=True)
+            ):
+                if position.distanz_m is not None and position.distanz_m != distanz:
+                    raise ValueError(
+                        f"positionen[{index}].distanz_m ist {position.distanz_m}, "
+                        f"distanzen_m[{index}] ist {distanz}"
+                    )
+        if self.ringwerte is not None:
+            if not self.ringwerte:
+                raise ValueError("ringwerte darf nicht leer sein")
+            if any(a <= b for a, b in zip(self.ringwerte, self.ringwerte[1:], strict=False)):
+                raise ValueError(
+                    "ringwerte müssen absteigend sortiert sein und dürfen sich nicht wiederholen"
+                )
+        if self.serien_gewertet is not None and self.serien_gewertet > self.serien:
+            raise ValueError(
+                f"serien_gewertet ist {self.serien_gewertet}, es gibt nur {self.serien} Serien"
+            )
+        if self.trefferaufnahme_nach is not None:
+            werte = self.trefferaufnahme_nach
+            if any(a >= b for a, b in zip(werte, werte[1:], strict=False)):
+                raise ValueError("trefferaufnahme_nach muss aufsteigend sein, ohne Wiederholung")
+            if werte and werte[-1] > self.serien:
+                raise ValueError(
+                    f"trefferaufnahme_nach nennt Serie {werte[-1]}, es gibt nur {self.serien} Serien"
                 )
         return self
 
