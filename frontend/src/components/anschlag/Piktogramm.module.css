@@ -1,0 +1,61 @@
+/* Anschlag-Piktogramm. Größe gibt der Elternbaustein vor; Farbe über `color`, Fläche über --pikto-grund. */
+.pikto {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1;
+  color: inherit;
+}
+
+.figur {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.abzeichen {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 44%;
+  height: 44%;
+  box-sizing: border-box;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Trennring zur Figur in der Hintergrundfarbe, kein Schatten */
+  outline: 2px solid var(--pikto-grund, var(--sh-flaeche));
+}
+
+.hand {
+  width: 70%;
+  height: 70%;
+}
+
+.handBeide {
+  width: 80%;
+  height: 80%;
+}
+
+/* Gefüllt: beidhändig und starke Hand */
+.voll {
+  background: currentColor;
+}
+
+.voll svg {
+  color: var(--pikto-grund, var(--sh-flaeche));
+}
+
+/* Ring: schwache Hand */
+.ring {
+  background: var(--pikto-grund, var(--sh-flaeche));
+  border: 2px solid currentColor;
+}
+
+/* Gestrichelt: eine Hand, frei wählbar */
+.gestrichelt {
+  background: var(--pikto-grund, var(--sh-flaeche));
+  border: 2px dashed currentColor;
+}

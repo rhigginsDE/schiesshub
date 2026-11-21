@@ -196,3 +196,108 @@ describe("Katalogseite", () => {
     expect(await screen.findByText("Keine Verbindung")).toBeInTheDocument();
   });
 });
+
+const detail1201: DisziplinDetail = {
+  ...disziplin("1201", "Pistole bis 9 mm", praezision),
+  gruppe_name: "KW Mehrdistanz",
+  pruefen: [],
+  fruehere_kennziffer: null,
+  ablauf: {
+    schluessel: "mehrdistanz-40",
+    beschreibung: "Fertigkeit und Parcours",
+    varianten: ["80:160", "60:120"].map((zeiten, index) => {
+      const [soll, abbruch] = zeiten.split(":").map(Number) as [number, number];
+      return {
+        id: `variante-${index + 1}`,
+        name: `Parcours-Variante ${index + 1}`,
+        abschnitte: [
+          {
+            id: "fertigkeit",
+            name: "Fertigkeit",
+            serien: 2,
+            schuss_je_serie: 5,
+            zeit_je_serie_s: 10,
+            trefferaufnahme_nach: [2],
+            positionen: [
+              { nr: 1, distanz_m: 5, anschlaege: [{ haltung: "stehend", hand: "schwache_hand" }] },
+              { nr: 2, distanz_m: 10, anschlaege: [{ haltung: "stehend", hand: "starke_hand" }] },
+            ],
+          },
+          {
+            id: "parcours",
+            name: "Parcours",
+            serien: 1,
+            schuss_je_serie: 5,
+            sollzeit_s: soll,
+            max_gesamtzeit_s: abbruch,
+            positionen: [
+              {
+                nr: 5,
+                distanz_m: 20,
+                anschlaege: [{ haltung: "stehend", hand: "beidhaendig" }],
+                scheibe: 1,
+              },
+            ],
+          },
+        ],
+      };
+    }),
+  },
+  wertung: {
+    modell: "ringe_mit_zeitabzug",
+    rangfolge: "absteigend",
+    geprueft: true,
+    abzug_je_voller_sekunde_ueber_sollzeit: 1,
+  },
+};
+
+describe("Positionen und Aushang", () => {
+  const mitMehrdistanz: ApiAttrappe = {
+    ...basis,
+    "/katalog/disziplinen/bds/1201": detail1201,
+  };
+
+  it("zeigt die Anschläge je Position in der Detailansicht und bietet den Aushang an", async () => {
+    apiAttrappe(mitMehrdistanz);
+    renderApp("/turnier/katalog/bds/1201");
+
+    const fertigkeit = await screen.findByRole("list", { name: "Fertigkeit" });
+    expect(within(fertigkeit).getByText("stehend, nur schwache Hand")).toBeInTheDocument();
+    expect(within(fertigkeit).getByText("stehend, nur starke Hand")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Parcours" })).toBeInTheDocument();
+    // die Positionen erscheinen nicht zusätzlich als Rohdaten im Text
+    expect(screen.queryByText(/positionen:/)).not.toBeInTheDocument();
+    // je Variante eine Zeile (zwei Varianten im Beispiel)
+    expect(screen.getAllByText("Trefferaufnahme nach Serie 2")).toHaveLength(2);
+
+    expect(screen.getByRole("link", { name: "Aushang drucken" })).toHaveAttribute(
+      "href",
+      "/turnier/katalog/bds/1201/aushang",
+    );
+  });
+
+  it("baut den Aushang aus dem Katalog: Ablauf, Sollzeit je Variante, Quelle", async () => {
+    apiAttrappe(mitMehrdistanz);
+    renderApp("/turnier/katalog/bds/1201/aushang");
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: /1201\s+Pistole bis 9 mm/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Drucken" })).toBeEnabled();
+    expect(screen.getByRole("heading", { name: "1 · Fertigkeit" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "2 · Parcours" })).toBeInTheDocument();
+    expect(
+      screen.getByText((_, el) => el?.tagName === "P" && el.textContent === "15 Schuss"),
+    ).toBeInTheDocument();
+
+    // Varianten unterscheiden sich nur in der Zeit: Tabelle statt Auswahl
+    expect(screen.queryByLabelText("Ablauf-Variante")).not.toBeInTheDocument();
+    const tabelle = screen.getByRole("table");
+    expect(within(tabelle).getByText("Parcours-Variante 1")).toBeInTheDocument();
+    expect(within(tabelle).getByText("80 s")).toBeInTheDocument();
+    expect(within(tabelle).getByText("160 s")).toBeInTheDocument();
+
+    expect(await screen.findByText(/BDS-Sporthandbuch, Stand 30\.06\.2026/)).toBeInTheDocument();
+    expect(screen.getByText(/Maßgeblich ist das Regelwerk des Verbands/)).toBeInTheDocument();
+  });
+});

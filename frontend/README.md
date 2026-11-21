@@ -72,7 +72,9 @@ Ein Modul ist ein Ordner unter `src/modules/<name>/` mit eigenen Routen, Kompone
 
 4. Das Manifest in `src/modules/index.ts` in die Liste eintragen.
 
-`berechtigung` ist vorerst ein Platzhalter: `src/app/berechtigungen.ts` lässt alles zu, bis das Backend Rollen liefert.
+`berechtigung` nennt eine Berechtigung des Backends (`tournament.read`) oder eine Liste, von der eine reicht. Navigation und Kacheln zeigen nur, was die Rechte aus `GET /auth/status` erlauben (`*` und `bereich.*` werden ausgewertet).
+In Komponenten: `const darfBearbeiten = useDarf("tournament.edit");` aus `src/app/berechtigungen.ts` (Knöpfe ausblenden oder sperren; der Server prüft trotzdem).
+Ohne Anmeldung und solange der Server nichts durchsetzt, ist alles erlaubt; 401 und 403 behandelt die App-Shell (Anmeldung bzw. Meldung).
 
 Als Vorlage eignen sich `modules/anmeldung` (kleinste Form) und `modules/katalog` (Routen mit Suchparametern, Abfragen, Tests).
 

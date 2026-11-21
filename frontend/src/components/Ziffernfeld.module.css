@@ -1,0 +1,80 @@
+.feld {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 340px);
+}
+
+.anzeige {
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px;
+  border: 1px solid var(--sh-linie-stark);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-bg);
+  color: var(--sh-text);
+  font-size: 26px;
+  letter-spacing: 0.3em;
+  text-align: center;
+}
+
+.anzeige:focus-visible {
+  outline: 2px solid var(--sh-akzent-text);
+  outline-offset: 1px;
+}
+
+.tasten {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.taste {
+  min-height: 64px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text);
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.taste:hover:not(:disabled) {
+  border-color: var(--sh-akzent);
+}
+
+.taste:active:not(:disabled) {
+  background: var(--sh-flaeche);
+}
+
+.taste:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.neben {
+  background: transparent;
+  font-size: 22px;
+}
+
+.fertig {
+  background: var(--sh-akzent);
+  border-color: var(--sh-akzent);
+  color: var(--sh-auf-akzent);
+  font: 700 16px / 1.1 var(--sh-font-text);
+  padding: 4px;
+}
+
+.fertig:hover:not(:disabled) {
+  background: var(--sh-akzent-hover);
+}
+
+@media (max-height: 640px) {
+  .taste {
+    min-height: 52px;
+  }
+}

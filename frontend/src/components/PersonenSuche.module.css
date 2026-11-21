@@ -1,0 +1,115 @@
+/* Wurzel als Flex-Spalte: Hat der Elternteil eine feste Höhe (Fenster-Layout), scrollt nur
+   .inhalt. Ohne feste Höhe wächst .inhalt mit, und es scrollt allein die Seite. */
+.suche {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.kopf {
+  display: grid;
+  gap: 10px;
+}
+
+.feld {
+  font-size: 17px;
+}
+
+.taste {
+  font: 700 12px / 1 var(--sh-font-mono);
+  color: var(--sh-text-gedaempft);
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-s);
+  padding: 5px 8px;
+  background: var(--sh-flaeche);
+}
+
+.fuss {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.inhalt {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sh-linie) transparent;
+  /* Platz für den Fokusrahmen der Treffer */
+  padding: 2px;
+  margin: -2px;
+}
+
+.skelett {
+  display: grid;
+  gap: 8px;
+}
+
+.liste {
+  display: grid;
+}
+
+.liste[data-laedt] {
+  opacity: 0.55;
+}
+
+.liste li + li {
+  border-top: 1px solid var(--sh-linie);
+}
+
+.treffer {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--sh-radius-s);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.treffer:hover {
+  background: var(--sh-flaeche-2);
+}
+
+.treffer[aria-current="true"] {
+  background: var(--sh-flaeche-2);
+  box-shadow: inset 3px 0 0 var(--sh-akzent);
+}
+
+.trefferText {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.trefferText strong {
+  font-weight: 600;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.trefferText > span {
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+  overflow-wrap: anywhere;
+}
+
+.begrenzt {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}

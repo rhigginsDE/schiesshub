@@ -1,0 +1,5 @@
+.knoepfe {
+  display: inline-flex;
+  gap: 2px;
+  flex: none;
+}

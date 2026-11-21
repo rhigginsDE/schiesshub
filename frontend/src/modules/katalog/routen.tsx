@@ -1,8 +1,15 @@
 import { createRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { rootRoute } from "../../app/rootRoute";
+import { Aushang } from "./Aushang";
 import { DisziplinDetail, KeineAuswahl } from "./DisziplinDetail";
 import { KatalogSeite } from "./KatalogSeite";
-import { DISZIPLIN_PFAD, KATALOG_PFAD, type KatalogAuswahl, type KatalogSuche } from "./pfade";
+import {
+  AUSHANG_PFAD,
+  DISZIPLIN_PFAD,
+  KATALOG_PFAD,
+  type KatalogAuswahl,
+  type KatalogSuche,
+} from "./pfade";
 
 // Der Router liest `?q=1001` als Zahl; Kennziffern und Suchtexte sind aber immer Text.
 function alsText(wert: unknown): string | undefined {
@@ -33,6 +40,37 @@ const disziplinRoute = createRoute({
   component: DisziplinRouteSeite,
 });
 
+/** Druckansicht ohne Katalogliste; eigene Route, damit nur das Blatt erscheint. */
+const aushangRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: AUSHANG_PFAD,
+  validateSearch: (suche: Record<string, unknown>): { variante?: string } => ({
+    variante: alsText(suche.variante),
+  }),
+  component: AushangRouteSeite,
+});
+
+function AushangRouteSeite() {
+  const { verband, kennziffer } = aushangRoute.useParams();
+  const { variante } = aushangRoute.useSearch();
+  const navigate = useNavigate();
+  return (
+    <Aushang
+      verband={verband}
+      kennziffer={kennziffer}
+      variante={variante}
+      onVarianteAendern={(neu) =>
+        void navigate({
+          to: AUSHANG_PFAD,
+          params: { verband, kennziffer },
+          search: { variante: neu },
+          replace: true,
+        })
+      }
+    />
+  );
+}
+
 function KatalogRouteSeite() {
   const suche = katalogRoute.useSearch();
   const navigate = useNavigate();
@@ -56,4 +94,7 @@ function DisziplinRouteSeite() {
   return <DisziplinDetail verband={verband} kennziffer={kennziffer} suche={suche} />;
 }
 
-export const katalogRouten = [katalogRoute.addChildren([keineAuswahlRoute, disziplinRoute])];
+export const katalogRouten = [
+  katalogRoute.addChildren([keineAuswahlRoute, disziplinRoute]),
+  aushangRoute,
+];

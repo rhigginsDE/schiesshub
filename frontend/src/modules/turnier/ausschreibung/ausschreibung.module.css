@@ -1,0 +1,490 @@
+/* Ausschreibung: Editor, Vorschau und Druckansicht. Farben nur über --sh-*. */
+
+/* ---------- Blatt (Vorschau und Druck) ---------- */
+.blatt {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+  padding: 28px 32px;
+  background: var(--sh-flaeche);
+  color: var(--sh-text);
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-m);
+  font: 400 14px / 1.5 var(--sh-font-text);
+  min-width: 0;
+}
+
+.blattKopf {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--sh-text);
+}
+
+.blattKopf h1 {
+  font: 700 24px / 1.2 var(--sh-font-text);
+  overflow-wrap: anywhere;
+}
+
+.absender {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sh-text-weich);
+}
+
+.unterzeile {
+  font-size: 15px;
+  color: var(--sh-text-weich);
+}
+
+.eckdaten {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: 8px 20px;
+  padding: 12px 14px;
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-s);
+  break-inside: avoid;
+}
+
+.eckdaten dt,
+.termine dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sh-text-gedaempft);
+}
+
+.eckdaten dd {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.abschnitt {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.abschnitt h2 {
+  font: 700 16px / 1.3 var(--sh-font-text);
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.absatz {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  orphans: 3;
+  widows: 3;
+}
+
+.tabelle {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tabelle th,
+.tabelle td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--sh-linie);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.tabelle th {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sh-text-gedaempft);
+  border-bottom-color: var(--sh-linie-stark);
+}
+
+.tabelle tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.tabelle thead {
+  display: table-header-group;
+}
+
+.tabelle strong {
+  display: block;
+  font-weight: 600;
+}
+
+.rechts {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tabelle .rechts {
+  text-align: right;
+}
+
+.klein {
+  display: block;
+  font-size: 12px;
+  color: var(--sh-text-gedaempft);
+}
+
+.abweichend {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--sh-text-weich);
+}
+
+.aufzaehlung {
+  padding-left: 18px;
+  list-style: disc;
+  columns: 2 220px;
+  column-gap: 24px;
+}
+
+.termine {
+  display: grid;
+  gap: 4px;
+}
+
+.termine div {
+  display: flex;
+  gap: 12px;
+}
+
+.termine dt {
+  min-width: 120px;
+  padding-top: 2px;
+}
+
+.blattFuss {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px solid var(--sh-linie);
+  font-size: 11px;
+  color: var(--sh-text-gedaempft);
+}
+
+@media (max-width: 640px) {
+  .blatt {
+    padding: 18px 16px;
+  }
+
+  /* Tabellen werden auf dem Handy zu Karten, damit nichts quer scrollt. */
+  .tabelle thead {
+    display: none;
+  }
+
+  .tabelle tr {
+    display: grid;
+    gap: 2px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--sh-linie);
+  }
+
+  .tabelle td {
+    padding: 0;
+    border: 0;
+  }
+
+  .tabelle .rechts {
+    text-align: left;
+  }
+}
+
+/* ---------- Editor ---------- */
+.editorRaster {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  min-width: 0;
+}
+
+.editorKopf {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  flex-wrap: wrap;
+  padding: 0 4px;
+}
+
+.editorKopf p {
+  font-size: 14px;
+}
+
+.editorAktionen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.zustand {
+  font-size: 14px;
+  color: var(--sh-text-gedaempft);
+}
+
+.ohneRahmen {
+  margin: 0;
+}
+
+.ohneRahmen legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+}
+
+.spalte {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+}
+
+.liste {
+  display: grid;
+  gap: 4px;
+}
+
+.eintrag {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--sh-radius-s);
+}
+
+.eintrag[data-aktiv] {
+  background: var(--sh-flaeche-2);
+  box-shadow: inset 3px 0 0 var(--sh-akzent);
+}
+
+.eintragKnopf {
+  display: grid;
+  gap: 2px;
+  min-height: 48px;
+  padding: 6px 8px 6px 12px;
+  border: 0;
+  background: none;
+  color: var(--sh-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.eintragKnopf strong {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.eintragKnopf span {
+  font-size: 12px;
+  color: var(--sh-text-gedaempft);
+}
+
+.eintrag[data-versteckt] .eintragKnopf strong {
+  color: var(--sh-text-gedaempft);
+  text-decoration: line-through;
+}
+
+.leerMarke {
+  color: var(--sh-warn);
+}
+
+.eintragAktionen {
+  display: flex;
+  align-items: center;
+}
+
+.datenVorschau {
+  padding: 12px 14px;
+}
+
+.umschalter {
+  display: none;
+}
+
+.listenSpalte,
+.formSpalte,
+.vorschauSpalte {
+  min-width: 0;
+}
+
+/* Fenster-Layout: jede Spalte scrollt für sich (frontend/README.md). */
+@media (min-width: 1101px) and (min-height: 560px) {
+  .editorRaster {
+    height: 100%;
+    min-height: 0;
+    align-items: stretch;
+  }
+
+  .editorRaster > .spalte {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sh-linie) transparent;
+  }
+}
+
+/* Unter 1500 px: Vorschau als umschaltbare Ansicht statt dritter Spalte. */
+@media (max-width: 1500px) {
+  .editorRaster {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+
+  .umschalter {
+    display: inline-flex;
+  }
+
+  .editorRaster[data-ansicht="bearbeiten"] > .vorschauSpalte {
+    display: none;
+  }
+
+  .editorRaster[data-ansicht="vorschau"] > .listenSpalte,
+  .editorRaster[data-ansicht="vorschau"] > .formSpalte {
+    display: none;
+  }
+
+  .editorRaster[data-ansicht="vorschau"] > .vorschauSpalte {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 1100px) {
+  .editorRaster {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- Druckansicht ---------- */
+/* Die Druckansicht liegt als eigenes Blatt über der App; die App selbst ist so lange ausgeblendet. */
+:global(html[data-druckansicht] #root) {
+  display: none;
+}
+
+.druckSeite {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  overflow-y: auto;
+  background: var(--sh-bg);
+  color: var(--sh-text);
+}
+
+.druckLeiste {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: var(--sh-flaeche);
+  border-bottom: 1px solid var(--sh-linie);
+}
+
+.druckPapier {
+  width: min(210mm, 100% - 32px);
+  margin: 24px auto 48px;
+}
+
+.druckPapier .blatt {
+  min-height: 297mm;
+  padding: 18mm 16mm;
+  border-radius: 0;
+}
+
+.druckHinweis {
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
+@media (max-width: 640px) {
+  .druckPapier {
+    width: 100%;
+    margin: 0;
+  }
+
+  .druckPapier .blatt {
+    min-height: 0;
+    padding: 20px 16px;
+    border: 0;
+  }
+}
+
+/* Benannte Seite: unabhängig von anderen @page-Regeln der App (z. B. Katalog-Aushang ohne Rand). */
+@page ausschreibung {
+  size: A4 portrait;
+  margin: 18mm 16mm;
+}
+
+@media print {
+  .druckLeiste {
+    display: none;
+  }
+
+  .druckSeite {
+    page: ausschreibung;
+    position: static;
+    overflow: visible;
+    background: none;
+  }
+
+  .druckPapier {
+    width: auto;
+    margin: 0;
+  }
+
+  .druckPapier .blatt {
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    font-size: 11pt;
+  }
+
+  .tabelle {
+    font-size: 9.5pt;
+  }
+
+  .tabelle thead {
+    display: table-header-group;
+  }
+
+  .tabelle tr {
+    display: table-row;
+  }
+
+  .tabelle td,
+  .tabelle th {
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--sh-linie);
+  }
+
+  .tabelle .rechts {
+    text-align: right;
+  }
+}

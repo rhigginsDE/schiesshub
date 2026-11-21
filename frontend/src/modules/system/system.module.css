@@ -1,0 +1,560 @@
+.seite {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* ---------- Spalten: Bereiche | Inhalt ---------- */
+.spalten {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.inhalt {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+
+/* Fenster-Layout (siehe frontend/README.md): Seite füllt das Fenster, jede Spalte scrollt für sich. */
+@media (min-width: 1101px) and (min-height: 560px) {
+  .seite {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .spalten {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+  }
+
+  .spalten > * {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sh-linie) transparent;
+  }
+
+  .inhalt {
+    padding-right: 2px;
+  }
+}
+
+/* ---------- Bereichsnavigation ---------- */
+.navigation {
+  gap: 12px;
+}
+
+.titel {
+  padding: 0 6px;
+}
+
+.bereiche {
+  display: grid;
+  gap: 2px;
+}
+
+.bereich {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 10px;
+  border-radius: var(--sh-radius-m);
+  color: var(--sh-text-weich);
+  text-decoration: none;
+}
+
+.bereich > svg {
+  font-size: 18px;
+  color: var(--sh-text-gedaempft);
+}
+
+.bereich:hover {
+  background: var(--sh-flaeche-2);
+}
+
+.bereich[aria-current="page"] {
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text);
+  box-shadow: inset 3px 0 0 var(--sh-akzent);
+}
+
+.bereich[aria-current="page"] > svg {
+  color: var(--sh-akzent-text);
+}
+
+.bereichText {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.bereichText strong {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.bereichText span {
+  font-size: 12px;
+  color: var(--sh-text-gedaempft);
+}
+
+/* Schmal: Bereiche als Knöpfe über dem Inhalt */
+@media (max-width: 1100px) {
+  .spalten {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bereiche {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr));
+    gap: 6px;
+  }
+
+  .bereich {
+    border: 1px solid var(--sh-linie);
+  }
+
+  .bereich[aria-current="page"] {
+    border-color: var(--sh-akzent);
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .bereiche {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bereichText span {
+    display: none;
+  }
+}
+
+/* ---------- Bausteine der Bereiche ---------- */
+.kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.kopfTitel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.einleitung {
+  color: var(--sh-text-gedaempft);
+  font-size: 14px;
+  max-width: 75ch;
+}
+
+.zeilen {
+  display: grid;
+  padding: 4px 14px;
+}
+
+.zeilen > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sh-linie);
+  font-size: 14px;
+}
+
+.zeilen > div:last-child {
+  border-bottom: 0;
+}
+
+.zeilen dt {
+  color: var(--sh-text-gedaempft);
+}
+
+.zeilen dd {
+  color: var(--sh-text-weich);
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.gut,
+.zeilen .gut {
+  color: var(--sh-akzent-text);
+}
+
+.schlecht,
+.zeilen .schlecht {
+  color: var(--sh-krit);
+  font-weight: 600;
+}
+
+.aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.hinweis {
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
+.warnkasten {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px solid var(--sh-warn-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-warn-flaeche);
+  font-size: 14px;
+}
+
+.warnSymbol {
+  margin-top: 2px;
+  color: var(--sh-warn);
+}
+
+.kritkasten {
+  border-color: var(--sh-krit-linie);
+  background: var(--sh-krit-flaeche);
+}
+
+.gutkasten {
+  border-color: var(--sh-akzent);
+  background: var(--sh-akzent-flaeche);
+}
+
+.gutkasten .warnSymbol {
+  color: var(--sh-akzent-text);
+}
+
+.kritkasten .warnSymbol {
+  color: var(--sh-krit);
+}
+
+/* ---------- Einstellungen ---------- */
+.einstellungen {
+  display: grid;
+  gap: 14px;
+}
+
+.einstellung {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  min-width: 0;
+}
+
+.einstellungText {
+  flex: 1 1 220px;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--sh-text-weich);
+}
+
+.einstellungText small {
+  font-size: 12px;
+  color: var(--sh-text-gedaempft);
+}
+
+.zahlfeld {
+  width: 150px;
+}
+
+.formular {
+  display: grid;
+  gap: 14px;
+  max-width: 520px;
+}
+
+/* ---------- Listen ---------- */
+.liste {
+  display: grid;
+}
+
+.liste > li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--sh-linie);
+}
+
+.liste > li:last-child {
+  border-bottom: 0;
+}
+
+.eintrag {
+  flex: 1 1 220px;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.eintrag strong {
+  font-weight: 600;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.eintrag > span {
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
+.marken {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.auswahl {
+  width: 240px;
+  max-width: 100%;
+}
+
+.laufZeile {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) minmax(90px, auto) minmax(0, 2fr) auto;
+  align-items: center;
+  gap: 6px 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sh-linie);
+  font-size: 14px;
+}
+
+.laufZeile:last-child {
+  border-bottom: 0;
+}
+
+.laufFehler {
+  color: var(--sh-krit);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .laufZeile {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .zeilen dd {
+    text-align: left;
+  }
+}
+
+/* ---------- Kopplungscode ---------- */
+.code {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.codeText {
+  font-size: clamp(28px, 7vw, 44px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--sh-text);
+}
+
+.adresse {
+  font-size: 12px;
+  color: var(--sh-text-gedaempft);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Rollen-Matrix ---------- */
+.matrixRahmen {
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-m);
+}
+
+.matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.matrix th,
+.matrix td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--sh-linie);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.matrix th:first-child,
+.matrix td:first-child {
+  text-align: left;
+}
+
+.matrix thead th {
+  position: sticky;
+  top: 0;
+  background: var(--sh-flaeche);
+  font-weight: 600;
+  font-size: 13px;
+  vertical-align: bottom;
+}
+
+.matrix tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.gruppeZelle {
+  background: var(--sh-bg);
+  font: 600 11px / 1.2 var(--sh-font-text);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sh-text-gedaempft);
+  text-align: left;
+}
+
+.rollenKopf {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 96px;
+}
+
+.rollenKopf small {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--sh-text-gedaempft);
+}
+
+.rollenName {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rechtName {
+  display: grid;
+  gap: 1px;
+}
+
+.rechtName small {
+  font-family: var(--sh-font-mono);
+  font-size: 11px;
+  color: var(--sh-text-gedaempft);
+}
+
+.zelle {
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 40px;
+}
+
+.muster {
+  display: block;
+  font-size: 10px;
+  color: var(--sh-text-gedaempft);
+}
+
+.geaendert {
+  background: var(--sh-akzent-flaeche);
+}
+
+.speicherleiste {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--sh-akzent);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-flaeche);
+}
+
+.rechteListe {
+  display: grid;
+  gap: 4px;
+}
+
+.rechteListe li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--sh-linie);
+}
+
+/* ---------- Protokoll ---------- */
+.protokoll {
+  display: grid;
+}
+
+.protokollZeile {
+  display: grid;
+  grid-template-columns: 150px minmax(140px, 1fr) minmax(120px, 1fr) minmax(0, 2fr);
+  gap: 4px 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sh-linie);
+  font-size: 14px;
+  align-items: baseline;
+}
+
+.protokollKopf {
+  font: 600 11px / 1.2 var(--sh-font-text);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sh-text-gedaempft);
+}
+
+.details {
+  font-family: var(--sh-font-mono);
+  font-size: 12px;
+  color: var(--sh-text-gedaempft);
+  overflow-wrap: anywhere;
+}
+
+.seitenwahl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+@media (max-width: 900px) {
+  .protokollZeile {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .protokollKopf {
+    display: none;
+  }
+}

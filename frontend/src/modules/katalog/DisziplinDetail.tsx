@@ -1,15 +1,16 @@
 import { Skeleton } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, MousePointerClick, TriangleAlert } from "lucide-react";
+import { ArrowLeft, MousePointerClick, Printer, TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { disziplinAbfrage } from "../../api/abfragen";
 import type { DisziplinDetail as DisziplinDetailDaten, Variante } from "../../api/typen";
+import { PositionsAblauf } from "../../components/anschlag/PositionsAblauf";
 import { Chip } from "../../components/Chip";
 import { Fehlerzustand, Leerzustand } from "../../components/Zustand";
 import { beschreibeAbschnitt, schussGesamt } from "./ablauf";
 import s from "./katalog.module.css";
-import { KATALOG_PFAD, type KatalogSuche } from "./pfade";
+import { AUSHANG_PFAD, KATALOG_PFAD, type KatalogSuche } from "./pfade";
 import { beschreibeWertung } from "./wertung";
 
 /** Platzhalter in der Detailspalte, solange keine Disziplin gewählt ist (nur auf breiten Bildschirmen sichtbar). */
@@ -40,6 +41,13 @@ export function DisziplinDetail({ verband, kennziffer, suche }: DisziplinDetailP
         <ArrowLeft aria-hidden />
         {t("detail.zurueck")}
       </Link>
+
+      {abfrage.isSuccess && (
+        <Link to={AUSHANG_PFAD} params={{ verband, kennziffer }} className={s.aushangLink}>
+          <Printer aria-hidden />
+          {t("detail.aushang")}
+        </Link>
+      )}
 
       {abfrage.isPending ? (
         <div className={s.skelettListe} aria-busy="true">
@@ -146,6 +154,7 @@ function Inhalt({ disziplin }: { disziplin: DisziplinDetailDaten }) {
           ))}
         </ul>
         <p className={s.hinweis}>{t("detail.ablauf_je_serie")}</p>
+        <Positionen variante={disziplin.ablauf.varianten[0]} />
       </section>
 
       <section className={s.abschnitt} aria-labelledby="detail-wertung">
@@ -172,6 +181,33 @@ function Inhalt({ disziplin }: { disziplin: DisziplinDetailDaten }) {
 
       <p className={s.hinweis}>{t("detail.haftung")}</p>
     </>
+  );
+}
+
+/**
+ * Anschläge je Position als Ablauf-Darstellung. Die Positionen sind in allen Varianten gleich
+ * (Varianten unterscheiden sich in Zeiten), daher genügt die erste Variante.
+ */
+function Positionen({ variante }: { variante: Variante | undefined }) {
+  const mitPositionen = variante?.abschnitte.filter((a) => a.positionen?.length) ?? [];
+  if (mitPositionen.length === 0) return null;
+  return (
+    <div className={s.positionen}>
+      {mitPositionen.map((abschnitt, index) => (
+        <div key={abschnitt.id} className={s.positionenAbschnitt}>
+          <h4 className="h-label">{abschnitt.name}</h4>
+          <PositionsAblauf
+            label={abschnitt.name}
+            positionen={abschnitt.positionen ?? []}
+            trefferaufnahmeNach={abschnitt.trefferaufnahme_nach}
+            serienGewertet={abschnitt.serien_gewertet}
+            schussJeSerie={abschnitt.schuss_je_serie}
+            zeitJeSerieS={abschnitt.zeit_je_serie_s}
+            ton={index === 0 ? "a" : "b"}
+          />
+        </div>
+      ))}
+    </div>
   );
 }
 

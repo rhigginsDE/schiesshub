@@ -33,5 +33,56 @@
   "start": {
     "ueberschrift": "Station wählen",
     "einleitung": "Jedes Gerät im Schützenhaus öffnet die Station, an der es steht."
-  }
+  },
+  "anmeldung": {
+    "einrichtung_ausstehend": "Ersteinrichtung ausstehend",
+    "einrichtung_hinweis": "Noch hat niemand alle Rechte. Bitte die erste Person anlegen, bevor die Anmeldung eingeschaltet wird.",
+    "koppeln": "Gerät koppeln",
+    "anmelden": "Anmelden",
+    "menue": "Angemeldet: {{wer}}. Menü öffnen",
+    "angemeldet_als": "{{name}} · {{rolle}}",
+    "geraet_rolle": "Gerät {{name}} · {{rolle}}, niemand angemeldet",
+    "person_wechseln": "Person wechseln",
+    "abmelden": "Abmelden",
+    "abgemeldet": "Abgemeldet",
+    "abmelden_fehler": "Abmelden hat nicht geklappt"
+  },
+  "berechtigung": {
+    "fehlt_titel": "Dafür fehlt die Berechtigung",
+    "fehlt_text": "Deine Rolle erlaubt diese Aktion nicht. Bitte eine Person mit passender Rolle anmelden oder die Rolle unter System → Personen & Rollen erweitern lassen.",
+    "seite_titel": "„{{titel}}“ ist für diese Anmeldung nicht freigegeben",
+    "seite_text": "Dafür fehlt die Berechtigung. Eine andere Person anmelden oder die Rolle unter System → Personen & Rollen erweitern lassen."
+  },
+  "sicherung": {
+    "chip_ok": "Sicherung {{zeit}}",
+    "chip_keine": "Noch keine Sicherung",
+    "chip_warnung": "Sicherung gestört",
+    "chip_backup_disabled": "Sicherung aus",
+    "chip_snapshot_failed": "Sicherung fehlgeschlagen",
+    "chip_usb_missing": "Kein Sicherungs-Stick",
+    "chip_usb_not_writable": "Stick schreibgeschützt",
+    "chip_usb_full": "Stick voll",
+    "chip_passphrase_missing": "Passwort fehlt",
+    "chip_usb_copy_failed": "Stick-Kopie fehlgeschlagen",
+    "chip_journal_sync_failed": "Mitschrift gestört",
+    "chip_hinweis": "Zustand der Datensicherung. Einzelheiten unter System → Sicherung.",
+    "banner_seit": "Seit",
+    "banner_hinweis": "Diese Warnung erscheint auf allen Stationen; das lässt sich unter System → Sicherung ändern.",
+    "erneut_pruefen": "Erneut prüfen",
+    "ausblenden": "Für 15 Min. ausblenden"
+  },
+  "fehler": {
+    "nicht_angemeldet": "Bitte zuerst anmelden. Die Sitzung ist abgelaufen oder dieses Gerät ist nicht gekoppelt.",
+    "verboten": "Dafür fehlt die Berechtigung. Bitte eine Person mit passender Rolle anmelden.",
+    "konflikt": "Das geht im aktuellen Zustand nicht. Bitte die Seite neu laden und erneut versuchen.",
+    "gesperrt": "Zu viele Versuche. Bitte kurz warten und erneut versuchen."
+  },
+  "meldung": {
+    "schliessen": "Meldung schließen"
+  },
+  "ziffernfeld": {
+    "loeschen": "Letzte Ziffer löschen",
+    "ok": "OK"
+  },
+  "sichtbar_umschalten": "Eingabe zeigen oder verbergen"
 }

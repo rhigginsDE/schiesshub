@@ -1,0 +1,716 @@
+/* ---------- Kopf mit Reitern ---------- */
+.kopf {
+  display: grid;
+  gap: 4px;
+  padding: 4px 4px 0;
+}
+
+.pfad {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
+.pfad a {
+  color: var(--sh-akzent-text);
+  text-decoration: none;
+  font-weight: 600;
+  padding-block: 4px;
+}
+
+.pfad a:hover {
+  text-decoration: underline;
+}
+
+.kopfzeile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 20px;
+  flex-wrap: wrap;
+}
+
+.reiter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-flaeche);
+}
+
+.reiterLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: var(--sh-radius-s);
+  color: var(--sh-text-gedaempft);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.reiterLink:hover {
+  color: var(--sh-text);
+  background: var(--sh-flaeche-2);
+}
+
+.reiterLink[data-aktiv] {
+  color: var(--sh-text);
+  background: var(--sh-flaeche-2);
+  box-shadow: inset 0 -2px 0 var(--sh-akzent);
+}
+
+/* ---------- Seiten ---------- */
+.seite,
+.seiteFluss {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  align-content: start;
+}
+
+.text {
+  font-size: 14px;
+  color: var(--sh-text-weich);
+  max-width: 70ch;
+}
+
+.skelett {
+  display: grid;
+  gap: 10px;
+}
+
+/* ---------- Personen: Liste | Detail ---------- */
+.spalten {
+  display: grid;
+  grid-template-columns: minmax(340px, 2fr) minmax(0, 3fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.listenSpalte,
+.detailSpalte {
+  min-width: 0;
+}
+
+/* Fenster-Layout (siehe frontend/README.md): Die Seite füllt das Fenster; die Liste scrollt
+   innerhalb der Suche, das Detail für sich. */
+@media (min-width: 1101px) and (min-height: 560px) {
+  .seite {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .spalten {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+  }
+
+  .listenSpalte {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .listenSpalte > * {
+    flex: 1 1 auto;
+  }
+
+  .detailSpalte {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sh-linie) transparent;
+    border-radius: var(--sh-radius-l);
+  }
+}
+
+@media (max-width: 1100px) {
+  .spalten {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .seite[data-detail="zu"] .detailSpalte {
+    display: none;
+  }
+
+  .seite[data-detail="offen"] .listenSpalte,
+  .seite[data-detail="offen"] .kopf {
+    display: none;
+  }
+
+  .zurueck {
+    display: inline-flex;
+  }
+
+  .schliessen {
+    display: none;
+  }
+}
+
+/* ---------- Detail / Formular ---------- */
+.detailPanel {
+  gap: 18px;
+  container-type: inline-size;
+}
+
+.zurueck {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  justify-self: start;
+  margin-block: -8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sh-akzent-text);
+  font: 600 14px / 1 var(--sh-font-text);
+  cursor: pointer;
+}
+
+.detailKopf {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.detailTitel {
+  display: flex;
+  align-items: center;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.detailTitel h2 {
+  overflow-wrap: anywhere;
+}
+
+.formular {
+  display: grid;
+  gap: 18px;
+}
+
+.formRaster {
+  display: grid;
+  gap: 18px 28px;
+}
+
+@container (min-width: 820px) {
+  .formRaster {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.formSpalte {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+
+.optional {
+  font-weight: 400;
+  color: var(--sh-text-gedaempft);
+}
+
+.feldgruppe {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.feldLabel {
+  padding: 0;
+  font-weight: 500;
+  font-size: var(--mantine-font-size-md);
+}
+
+.feldHilfe {
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+  margin-bottom: 4px;
+}
+
+.schalter {
+  margin-top: 8px;
+}
+
+.vorschau {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 14px 16px;
+}
+
+.vorschauName {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: italic 700 24px / 1.15 var(--sh-font-display);
+  overflow-wrap: anywhere;
+}
+
+.vorschauLeer {
+  font: 600 16px / 1.3 var(--sh-font-text);
+  color: var(--sh-text-gedaempft);
+}
+
+.vorschauVerein {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--sh-text-weich);
+}
+
+.dublette {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--sh-warn-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-warn-flaeche);
+  font-size: 14px;
+}
+
+.kandidaten {
+  display: grid;
+  gap: 6px;
+}
+
+.kandidaten li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border-radius: var(--sh-radius-s);
+  background: var(--sh-flaeche);
+}
+
+.kandidatText {
+  display: grid;
+  min-width: 0;
+}
+
+.aktionen {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 16px;
+  border-top: 1px solid var(--sh-linie);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 1.5em;
+  font-size: 14px;
+  color: var(--sh-akzent-text);
+}
+
+.status:empty {
+  min-height: 0;
+}
+
+.aktionen .status {
+  margin-right: auto;
+}
+
+.fehlerZeile {
+  font-size: 14px;
+  color: var(--sh-krit);
+}
+
+.hinweisWarn,
+.hinweisKrit {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: var(--sh-radius-m);
+  font-size: 14px;
+}
+
+.hinweisWarn {
+  border: 1px solid var(--sh-warn-linie);
+  background: var(--sh-warn-flaeche);
+}
+
+.hinweisWarn > svg {
+  color: var(--sh-warn);
+  margin-top: 3px;
+}
+
+.hinweisWarn > p {
+  flex: 1 1 260px;
+}
+
+.hinweisKrit {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--sh-krit-linie);
+  background: var(--sh-krit-flaeche);
+}
+
+/* Zerstörende Aktion: zurückhaltend, aber eindeutig. Farben aus den Variablen. */
+.gefahr {
+  color: var(--sh-krit);
+  border-color: var(--sh-krit-linie);
+}
+
+.gefahr:hover {
+  background: var(--sh-krit-flaeche);
+}
+
+.dialog {
+  display: grid;
+  gap: 14px;
+  font-size: 15px;
+}
+
+.dialogAktionen {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ---------- Vereinsfeld ---------- */
+.vereinOptionen {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.vereinOption {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Vorgewählte Option ruhig hervorheben; Grün bleibt dem Hauptknopf vorbehalten. */
+.vereinOption[data-combobox-selected],
+.vereinNeu[data-combobox-selected] {
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text);
+  box-shadow: inset 3px 0 0 var(--sh-akzent);
+}
+
+.vereinNeu {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--sh-akzent-text);
+  font-weight: 600;
+}
+
+/* ---------- Vereine ---------- */
+.vereineRaster {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(0, 2.4fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.vereine {
+  display: grid;
+}
+
+.vereinZeile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  flex-wrap: wrap;
+  padding: 12px 0;
+}
+
+.vereinZeile + .vereinZeile {
+  border-top: 1px solid var(--sh-linie);
+}
+
+.vereinText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 240px;
+}
+
+.vereinText strong {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.vereinText > span:not(.kuerzel) {
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
+.kuerzel {
+  font-weight: 600;
+  color: var(--sh-text-weich);
+}
+
+.vereinAktionen {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.vereinForm {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.vereinFormAktionen {
+  display: flex;
+  gap: 6px;
+}
+
+@media (max-width: 900px) {
+  .vereineRaster {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .vereinForm {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- Import / Export ---------- */
+.importRaster {
+  display: grid;
+  grid-template-columns: minmax(0, 2.4fr) minmax(280px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.importSeite {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (max-width: 1000px) {
+  .importRaster {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.ablage {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 32px 20px;
+  border: 2px dashed var(--sh-linie-stark);
+  border-radius: var(--sh-radius-l);
+  text-align: center;
+  font-size: 15px;
+}
+
+.ablage[data-ziehen] {
+  border-color: var(--sh-akzent);
+  background: var(--sh-akzent-flaeche);
+}
+
+.ablageSymbol {
+  font-size: 30px;
+  color: var(--sh-text-gedaempft);
+}
+
+.ablage > p {
+  max-width: 56ch;
+}
+
+.dateiZeile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+}
+
+.dateiName {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.spaltenListe {
+  display: grid;
+  gap: 8px;
+}
+
+.spaltenListe > div {
+  display: grid;
+  gap: 2px;
+}
+
+.spaltenListe code {
+  font: 600 13px / 1.3 var(--sh-font-mono);
+}
+
+.spaltenListe dd {
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
+.vorschauKopf {
+  display: grid;
+  gap: 8px;
+}
+
+.vorschauKopf > p {
+  font-size: 13px;
+}
+
+.zusammenfassung {
+  display: flex;
+  align-items: center;
+  gap: 6px 8px;
+  flex-wrap: wrap;
+}
+
+.neueVereine {
+  font-size: 13px;
+  color: var(--sh-text-weich);
+  overflow-wrap: anywhere;
+}
+
+.tabelle {
+  display: grid;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabelle thead,
+.tabelle tbody {
+  display: grid;
+}
+
+.tabelle th {
+  font: inherit;
+  text-align: left;
+}
+
+.tabelle td {
+  padding: 0;
+}
+
+.tabellenZeile {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1.2fr) minmax(0, 1.6fr);
+  gap: 6px 16px;
+  align-items: center;
+  padding: 10px 4px;
+  border-top: 1px solid var(--sh-linie);
+  font-size: 14px;
+}
+
+.tabellenKopf {
+  border-top: 0;
+  padding-block: 0 8px;
+  font: 600 11px / 1.2 var(--sh-font-text);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sh-text-gedaempft);
+}
+
+.zeileNr {
+  color: var(--sh-text-gedaempft);
+}
+
+.zeilePerson {
+  display: grid;
+  min-width: 0;
+}
+
+.zeilePerson strong {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.zeileVerein {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.zeileErgebnis {
+  display: flex;
+  align-items: center;
+  gap: 6px 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.zeileMeldung {
+  font-size: 13px;
+  color: var(--sh-text-weich);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .tabellenKopf {
+    display: none;
+  }
+
+  .tabellenZeile {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .zeileErgebnis {
+    grid-column: 2;
+  }
+}
+
+.zeileAktionen {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 16px;
+  border-top: 1px solid var(--sh-linie);
+}
+
+.fertig {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 15px;
+}
+
+.fertig > svg {
+  font-size: 24px;
+  color: var(--sh-akzent-text);
+}
+
+.fertig > div {
+  display: grid;
+  gap: 8px;
+}

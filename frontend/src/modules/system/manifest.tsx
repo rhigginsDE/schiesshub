@@ -1,22 +1,115 @@
 import { createRoute } from "@tanstack/react-router";
 import { Settings } from "lucide-react";
+import { schluessel } from "../../api/abfragen";
+import type { EreignisZuordnung } from "../../api/ereignisse";
 import type { ModulManifest } from "../../app/modul";
 import { rootRoute } from "../../app/rootRoute";
-import { InArbeit } from "../../components/InArbeit";
+import { SYSTEM_BERECHTIGUNG } from "./bereiche";
+import { GeraeteBereich } from "./Geraete";
+import { PersonenBereich } from "./Personen";
+import { ProtokollBereich } from "./Protokoll";
+import { ServerBereich } from "./Server";
+import { SicherungBereich } from "./Sicherung";
+import { SystemSeite } from "./SystemSeite";
 
 const ID = "system";
 const PFAD = "/system";
 
-const route = createRoute({
+const systemRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: PFAD,
-  component: () => <InArbeit namensraum={ID} icon={Settings} />,
+  component: SystemSeite,
 });
+
+const startRoute = createRoute({
+  getParentRoute: () => systemRoute,
+  path: "/",
+  // SystemSeite leitet auf den ersten erlaubten Bereich weiter.
+  component: () => null,
+});
+
+const sicherungRoute = createRoute({
+  getParentRoute: () => systemRoute,
+  path: "sicherung",
+  component: SicherungBereich,
+});
+
+const geraeteRoute = createRoute({
+  getParentRoute: () => systemRoute,
+  path: "geraete",
+  component: GeraeteBereich,
+});
+
+const personenRoute = createRoute({
+  getParentRoute: () => systemRoute,
+  path: "personen",
+  component: PersonenBereich,
+});
+
+interface ProtokollSuche {
+  seite?: number;
+}
+
+const protokollRoute = createRoute({
+  getParentRoute: () => systemRoute,
+  path: "protokoll",
+  validateSearch: (suche: Record<string, unknown>): ProtokollSuche => {
+    const seite = Number(suche.seite);
+    return Number.isInteger(seite) && seite > 1 ? { seite } : {};
+  },
+  component: function Protokoll() {
+    const { seite = 1 } = protokollRoute.useSearch();
+    const navigate = protokollRoute.useNavigate();
+    return (
+      <ProtokollBereich
+        seite={seite}
+        onSeite={(neu) => void navigate({ search: neu > 1 ? { seite: neu } : {} })}
+      />
+    );
+  },
+});
+
+const serverRoute = createRoute({
+  getParentRoute: () => systemRoute,
+  path: "server",
+  component: ServerBereich,
+});
+
+const geraete = [schluessel.auth.geraete, schluessel.auth.protokollAlle];
+const personen = [schluessel.auth.personen, schluessel.auth.rollen, schluessel.auth.protokollAlle];
+const rollen = [schluessel.auth.rollen, schluessel.auth.protokollAlle];
+
+/** Live-Aktualisierung; die Sicherung (`backup.*`) lädt die App-Shell selbst neu. */
+const ereignisse: EreignisZuordnung = {
+  "device.paired": geraete,
+  "device.updated": geraete,
+  "device.deleted": geraete,
+  "device.pairing_code_created": [schluessel.auth.protokollAlle],
+  "role.created": rollen,
+  "role.updated": rollen,
+  "role.deleted": rollen,
+  "user.created": personen,
+  "user.updated": personen,
+  "user.locked": personen,
+  "auth.setup": personen,
+  "auth.login": [schluessel.auth.protokollAlle],
+  "auth.logout": [schluessel.auth.protokollAlle],
+};
 
 export const system: ModulManifest = {
   id: ID,
   namensraum: ID,
   navigation: { art: "station", pfad: PFAD, icon: Settings, reihenfolge: 50 },
-  berechtigung: "system.verwalten",
-  routen: [route],
+  berechtigung: SYSTEM_BERECHTIGUNG,
+  routen: [
+    systemRoute.addChildren([
+      startRoute,
+      sicherungRoute,
+      geraeteRoute,
+      personenRoute,
+      protokollRoute,
+      serverRoute,
+    ]),
+  ],
+  ereignisse,
 };

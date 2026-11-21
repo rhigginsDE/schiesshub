@@ -70,7 +70,8 @@
     "wertung": "Wertung",
     "ungeprueft": "Noch nicht geprüft",
     "ungeprueft_hinweis": "Ablauf und Wertung dieser Gruppe sind noch nicht mit dem Regelwerk abgeglichen. Vor einem Wettkampf im Sporthandbuch nachsehen.",
-    "haftung": "Der Katalog ist eine Arbeitshilfe. Maßgeblich ist das aktuelle Regelwerk des Verbands."
+    "haftung": "Der Katalog ist eine Arbeitshilfe. Maßgeblich ist das aktuelle Regelwerk des Verbands.",
+    "aushang": "Aushang drucken"
   },
   "ablauf": {
     "serien_one": "{{count}} Serie",
@@ -87,7 +88,14 @@
     "pause": "{{dauer}} Pause zwischen den Schüssen",
     "sollzeit": "Sollzeit {{dauer}}",
     "max_gesamtzeit": "Abbruch nach {{dauer}}",
-    "zeit_gemessen": "Zeit wird gemessen"
+    "zeit_gemessen": "Zeit wird gemessen",
+    "ringwerte": "Ringwerte {{liste}}",
+    "zeit_bei_abbruch": "bei Abbruch {{dauer}}",
+    "zuschlag_stoerung": "+{{dauer}} bei Störung vor dem ersten Schuss",
+    "serien_gewertet_one": "davon {{count}} gewertet",
+    "serien_gewertet_other": "davon {{count}} gewertet",
+    "trefferaufnahme_nach_one": "Trefferaufnahme nach Serie {{liste}}",
+    "trefferaufnahme_nach_other": "Trefferaufnahme nach den Serien {{liste}}"
   },
   "wertung": {
     "modell": {
@@ -132,5 +140,64 @@
         "parcours_zeit": "die niedrigere Parcourszeit"
       }
     }
+  },
+  "anschlag": {
+    "haltung": {
+      "stehend": "stehend",
+      "kniend": "kniend",
+      "liegend": "liegend"
+    },
+    "hand": {
+      "beidhaendig": "beidhändig",
+      "einhaendig": "einhändig (Hand frei wählbar)",
+      "starke_hand": "nur starke Hand",
+      "schwache_hand": "nur schwache Hand"
+    },
+    "oder": "oder",
+    "position": "Pos. {{nr}}",
+    "scheibe": "Scheibe {{nr}}",
+    "trefferaufnahme": "Trefferaufnahme",
+    "gestrichen": "gestrichen – zählt nicht",
+    "abweichend": "Abweichend vom Sporthandbuch",
+    "legende": {
+      "titel": "Hand-Abzeichen",
+      "beidhaendig": "beidhändig",
+      "starke_hand": "starke Hand",
+      "schwache_hand": "schwache Hand",
+      "einhaendig": "Hand frei wählbar"
+    }
+  },
+  "aushang": {
+    "seitentitel": "Aushang {{kennziffer}}",
+    "zurueck": "Zur Disziplin",
+    "drucken": "Drucken",
+    "drucken_hinweis": "Der Browser erzeugt daraus ein PDF: im Druckdialog „Als PDF speichern“ wählen.",
+    "variante": "Ablauf-Variante",
+    "kopf": "{{verband}} · {{gruppe}}",
+    "schuss": "Schuss",
+    "eckdaten": "Waffe und Munition",
+    "abschnitt": "{{nr}} · {{name}}",
+    "sollzeit": {
+      "erklaerung_one": "Sollzeit = Zeitvorgabe für den ganzen Abschnitt. Jede volle Sekunde darüber kostet {{count}} Ring.",
+      "erklaerung_other": "Sollzeit = Zeitvorgabe für den ganzen Abschnitt. Jede volle Sekunde darüber kostet {{count}} Ringe.",
+      "variante": "Variante",
+      "sollzeit": "Sollzeit",
+      "abbruch": "Abbruch bei"
+    },
+    "zeit": {
+      "titel": "Zeit je Serie",
+      "fall": "Fall",
+      "ergebnis": "Zeit der Serie",
+      "alle_gefallen": "Alle Scheiben gefallen",
+      "gemessen": "gemessene Zeit",
+      "max_schuss": "Alle {{count}} Schuss abgegeben, Scheiben stehen noch",
+      "zeitlimit": "Zeitlimit {{limit}} erreicht – Abbruch durch den Schießleiter",
+      "abbruch_schuetze": "Schütze bricht selbst ab",
+      "stoerung": "Waffenstörung vor dem ersten Wertungsschuss",
+      "plus_zuschlag": "{{basis}} + {{zuschlag}} je stehende Scheibe",
+      "plus": "{{basis}} + {{zuschlag}}"
+    },
+    "quelle": "{{regelwerk}}, Stand {{stand}}",
+    "massgeblich": "Erstellt mit Schiesshub. Maßgeblich ist das Regelwerk des Verbands."
   }
 }

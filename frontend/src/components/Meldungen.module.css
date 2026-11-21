@@ -1,0 +1,67 @@
+.stapel {
+  position: fixed;
+  z-index: 400;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  display: grid;
+  gap: 8px;
+  width: min(420px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.karte {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  padding: 12px 10px 12px 14px;
+  border: 1px solid var(--sh-linie-stark);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-flaeche);
+  font-size: 14px;
+}
+
+.symbol {
+  margin-top: 2px;
+  font-size: 18px;
+}
+
+.text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.text p {
+  color: var(--sh-text-weich);
+}
+
+.erfolg {
+  border-color: var(--sh-akzent);
+}
+
+.erfolg .symbol {
+  color: var(--sh-akzent-text);
+}
+
+.info .symbol {
+  color: var(--sh-info);
+}
+
+.warn {
+  border-color: var(--sh-warn-linie);
+}
+
+.warn .symbol {
+  color: var(--sh-warn);
+}
+
+.krit {
+  border-color: var(--sh-krit-linie);
+}
+
+.krit .symbol {
+  color: var(--sh-krit);
+}

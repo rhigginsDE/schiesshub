@@ -25,6 +25,13 @@ const BEKANNTE_FELDER = new Set([
   "pause_zwischen_schuessen_s",
   "sollzeit_s",
   "max_gesamtzeit_s",
+  // als eigene Ablauf-Darstellung gezeigt, nicht als Text
+  "positionen",
+  "ringwerte",
+  "zeit_bei_abbruch_s",
+  "zuschlag_stoerung_vor_erstem_schuss_s",
+  "serien_gewertet",
+  "trefferaufnahme_nach",
 ]);
 
 function istZahl(wert: unknown): wert is number {
@@ -99,6 +106,28 @@ export function beschreibeAbschnitt(
   }
   if (abschnitt.zeit_wird_gemessen === true) {
     teile.push(t("zeit_gemessen"));
+  }
+  if (istZahlenliste(abschnitt.ringwerte)) {
+    teile.push(t("ringwerte", { liste: liste(abschnitt.ringwerte) }));
+  }
+  if (istZahl(abschnitt.zeit_bei_abbruch_s)) {
+    teile.push(t("zeit_bei_abbruch", { dauer: dauer(abschnitt.zeit_bei_abbruch_s) }));
+  }
+  if (istZahl(abschnitt.zuschlag_stoerung_vor_erstem_schuss_s)) {
+    teile.push(
+      t("zuschlag_stoerung", { dauer: dauer(abschnitt.zuschlag_stoerung_vor_erstem_schuss_s) }),
+    );
+  }
+  if (istZahl(abschnitt.serien_gewertet)) {
+    teile.push(t("serien_gewertet", { count: abschnitt.serien_gewertet }));
+  }
+  if (istZahlenliste(abschnitt.trefferaufnahme_nach)) {
+    teile.push(
+      t("trefferaufnahme_nach", {
+        count: abschnitt.trefferaufnahme_nach.length,
+        liste: abschnitt.trefferaufnahme_nach.map(zahl).join(", "),
+      }),
+    );
   }
 
   for (const [feld, wert] of Object.entries(abschnitt)) {

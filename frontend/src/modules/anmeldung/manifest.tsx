@@ -2,20 +2,20 @@ import { createRoute } from "@tanstack/react-router";
 import { UserPlus } from "lucide-react";
 import type { ModulManifest } from "../../app/modul";
 import { rootRoute } from "../../app/rootRoute";
-import { InArbeit } from "../../components/InArbeit";
+import { AnmeldungSeite } from "./AnmeldungSeite";
 
-const ID = "anmeldung";
+export const ANMELDUNG_ID = "anmeldung";
 const PFAD = "/anmeldung";
 
 const route = createRoute({
   getParentRoute: () => rootRoute,
   path: PFAD,
-  component: () => <InArbeit namensraum={ID} icon={UserPlus} />,
+  component: () => <AnmeldungSeite station={ANMELDUNG_ID} icon={UserPlus} />,
 });
 
 export const anmeldung: ModulManifest = {
-  id: ID,
-  namensraum: ID,
+  id: ANMELDUNG_ID,
+  namensraum: ANMELDUNG_ID,
   navigation: { art: "station", pfad: PFAD, icon: UserPlus, reihenfolge: 10 },
   berechtigung: "anmeldung.nutzen",
   routen: [route],

@@ -1,0 +1,1098 @@
+/* Station Turnier: Liste der Turniere und Einrichtung. Farben nur über --sh-* (theme/tokens.ts). */
+
+/* ---------- Allgemeine Bausteine ---------- */
+.formular {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.zweiSpalten {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  align-items: start;
+}
+
+.dreiSpalten {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 16px;
+  align-items: start;
+}
+
+.dreiSpalten:empty {
+  display: none;
+}
+
+.stapel {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.feldGruppe {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.feldLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--sh-text);
+}
+
+.hilfe {
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+  max-width: 80ch;
+}
+
+.schmal {
+  max-width: 260px;
+}
+
+.segmente {
+  max-width: 520px;
+  justify-self: start;
+}
+
+.knopfReihe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.fehlerText {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--sh-krit);
+  font-size: 14px;
+}
+
+.fehlerText svg {
+  margin-top: 2px;
+}
+
+.okText {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--sh-akzent-text);
+  font-size: 14px;
+}
+
+.hinweisKasten {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--sh-text-weich);
+}
+
+.warnKasten {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--sh-warn-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-warn-flaeche);
+  font-size: 14px;
+}
+
+.warnKasten > svg {
+  color: var(--sh-warn);
+  margin-top: 2px;
+}
+
+.warnBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--sh-warn-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-warn-flaeche);
+  font-size: 14px;
+}
+
+.warnBanner svg {
+  color: var(--sh-warn);
+}
+
+.punktListe {
+  margin-top: 4px;
+  padding-left: 18px;
+  list-style: disc;
+  display: grid;
+  gap: 2px;
+}
+
+.textKnopf {
+  border: 0;
+  padding: 2px 0;
+  background: none;
+  color: var(--sh-text);
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.textKnopf:hover {
+  color: var(--sh-akzent-text);
+}
+
+.textLink {
+  color: var(--sh-akzent-text);
+  font-weight: 600;
+}
+
+.wahlReihe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.wahlchip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 6px 14px;
+  border: 1px solid var(--sh-linie-stark);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sh-text-weich);
+  font: 600 13px / 1 var(--sh-font-text);
+  cursor: pointer;
+}
+
+.wahlchip:hover:not(:disabled) {
+  border-color: var(--sh-akzent);
+}
+
+.wahlchip[aria-pressed="true"] {
+  background: var(--sh-akzent-flaeche);
+  border-color: var(--sh-akzent);
+  color: var(--sh-akzent-text);
+}
+
+.wahlchip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.skelett {
+  display: grid;
+  gap: 8px;
+}
+
+/* ---------- Liste der Turniere ---------- */
+.listenSeite {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.kopf {
+  padding: 24px;
+}
+
+.kopfZeile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  flex-wrap: wrap;
+}
+
+.titel {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.symbol {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-flaeche-2);
+  color: var(--sh-akzent-text);
+  font-size: 20px;
+}
+
+.zweck {
+  font-size: 15px;
+  color: var(--sh-text-weich);
+  max-width: 70ch;
+}
+
+.turnierListe {
+  display: grid;
+}
+
+.turnierListe > li + li {
+  border-top: 1px solid var(--sh-linie);
+}
+
+.turnierZeile {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 12px 0;
+}
+
+.turnierText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.turnierName {
+  font: 600 16px / 1.3 var(--sh-font-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.turnierName:hover {
+  color: var(--sh-akzent-text);
+  text-decoration: underline;
+}
+
+.zeilenAktionen {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.bereiche {
+  display: grid;
+  gap: 10px;
+}
+
+.bereiche h2 {
+  padding-left: 4px;
+}
+
+/* ---------- Einrichten: Kopf, Navigation, Bereich ---------- */
+.einrichten {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.einrichtenKopf {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  flex-wrap: wrap;
+  padding: 4px 4px 0;
+}
+
+.einrichtenTitel {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.einrichtenTitel h1 {
+  overflow-wrap: anywhere;
+}
+
+.einrichtenTitel p {
+  font-size: 14px;
+}
+
+.pfad {
+  justify-self: start;
+  padding-block: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sh-akzent-text);
+  text-decoration: none;
+}
+
+.pfad:hover {
+  text-decoration: underline;
+}
+
+.einrichtenSpalten {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  min-width: 0;
+}
+
+.bereichNav {
+  padding: 8px;
+  background: var(--sh-flaeche);
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-l);
+  min-width: 0;
+}
+
+.bereichNav ul {
+  display: grid;
+  gap: 2px;
+}
+
+.bereichNav button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--sh-radius-s);
+  background: transparent;
+  color: var(--sh-text-gedaempft);
+  font: 500 14px / 1.2 var(--sh-font-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.bereichNav button:hover {
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text);
+}
+
+.bereichNav button[aria-current="page"] {
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--sh-akzent);
+}
+
+.bereichNav button[aria-current="page"] > svg {
+  color: var(--sh-akzent-text);
+}
+
+.navText {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.unvollstaendig {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--sh-warn);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.punkt {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.bereichInhalt {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.bereich {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+
+.bereichKopf {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+  padding: 0 4px;
+}
+
+.bereichKopf p {
+  margin-top: 4px;
+  color: var(--sh-text-gedaempft);
+  font-size: 14px;
+  max-width: 80ch;
+}
+
+.speicherleiste {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--sh-flaeche);
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-l);
+}
+
+.speicherZustand {
+  margin-right: auto;
+  font-size: 14px;
+  color: var(--sh-text-gedaempft);
+  min-width: 0;
+}
+
+/* Wettbewerbe: Katalog links, „Im Turnier“ rechts */
+.bereichInhalt[data-geteilt="zwei"] {
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  align-items: start;
+}
+
+/* Fenster-Layout (frontend/README.md): Die Seite füllt das Fenster, jede Spalte scrollt für sich. */
+@media (min-width: 1101px) and (min-height: 560px) {
+  .einrichten[data-layout="fenster"] {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .einrichten[data-layout="fenster"] .einrichtenSpalten {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+  }
+
+  .einrichten[data-layout="fenster"] .bereichNav,
+  .einrichten[data-layout="fenster"] .bereichInhalt:not([data-geteilt]),
+  .einrichten[data-layout="fenster"] .bereichInhalt[data-geteilt="zwei"] > * {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sh-linie) transparent;
+  }
+
+  .einrichten[data-layout="fenster"] .bereichInhalt:not([data-geteilt]) {
+    align-content: start;
+    padding-right: 4px;
+  }
+
+  .einrichten[data-layout="fenster"] .bereichInhalt[data-geteilt] {
+    min-height: 0;
+    align-items: stretch;
+  }
+
+  /* „voll“: Der Bereich (Ausschreibung) teilt sich selbst in Spalten, die je für sich scrollen. */
+  .einrichten[data-layout="fenster"] .bereichInhalt[data-geteilt="voll"] {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .einrichten[data-layout="fenster"] .bereichNav {
+    align-self: start;
+    max-height: 100%;
+  }
+}
+
+/* ---------- Zeilenlisten (Stände, Klassen) ---------- */
+.zeilenListe {
+  display: grid;
+}
+
+.zeilenListe > li + li {
+  border-top: 1px solid var(--sh-linie);
+}
+
+.zeile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 0;
+}
+
+.zeileOffen {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.zeileText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+}
+
+.zeileText strong {
+  font-weight: 600;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.zeileText span {
+  overflow-wrap: anywhere;
+}
+
+.zeileFormular {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.zeileMitFeld {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px 24px;
+  flex-wrap: wrap;
+}
+
+.kuerzel {
+  display: grid;
+  place-items: center;
+  min-width: 48px;
+  min-height: 32px;
+  padding: 4px 8px;
+  border-radius: var(--sh-radius-s);
+  background: var(--sh-flaeche-2);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.zusammen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--sh-info);
+}
+
+.klassenFelder {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr);
+  gap: 12px;
+  align-items: start;
+}
+
+/* ---------- Wettbewerbe: Katalog ---------- */
+.katalogSpalte,
+.turnierSpalte {
+  align-content: start;
+}
+
+.gruppen {
+  display: grid;
+  gap: 2px;
+  padding: 4px;
+}
+
+.gruppe {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--sh-radius-s);
+  background: transparent;
+  color: var(--sh-text-weich);
+  font: 400 14px / 1.25 var(--sh-font-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.gruppe:hover {
+  background: var(--sh-flaeche);
+}
+
+.gruppe[aria-pressed="true"] {
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text);
+  font-weight: 600;
+}
+
+.anzahl {
+  font-size: 12px;
+  color: var(--sh-text-gedaempft);
+}
+
+.treffer {
+  display: grid;
+}
+
+.treffer[data-laedt] {
+  opacity: 0.55;
+}
+
+.treffer > li + li {
+  border-top: 1px solid var(--sh-linie);
+}
+
+.trefferZeile {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 6px 0;
+}
+
+.kennziffer {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--sh-text-weich);
+}
+
+.eigen {
+  font: 600 11px / 1.2 var(--sh-font-text);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sh-text-gedaempft);
+}
+
+.gewaehlt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--sh-akzent-text);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hinzufuegen {
+  min-height: 40px;
+}
+
+.katalogFuss {
+  font-size: 12px;
+  color: var(--sh-text-gedaempft);
+}
+
+.variantenWahl {
+  display: grid;
+  gap: 12px;
+}
+
+/* ---------- Wettbewerbe: im Turnier ---------- */
+.wettbewerbe {
+  display: grid;
+  gap: 8px;
+}
+
+.wettbewerb {
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-bg);
+  min-width: 0;
+}
+
+.wettbewerb[data-offen] {
+  border-color: var(--sh-linie-stark);
+}
+
+.wettbewerbZeile {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 8px 12px;
+}
+
+.wettbewerbText {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wettbewerbText strong {
+  font-weight: 600;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.wettbewerbText > span {
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+  overflow-wrap: anywhere;
+}
+
+.wettbewerbMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 0;
+}
+
+.wettbewerbMeta > span:not(:last-child)::after {
+  content: "·";
+  margin-inline: 8px;
+}
+
+.wettbewerbInhalt {
+  border-top: 1px solid var(--sh-linie);
+  padding: 16px 14px;
+}
+
+.wettbewerbFormular {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.ohneRahmen {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.gruppenKopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.geaendertMarke {
+  font: 600 12px / 1 var(--sh-font-text);
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--sh-info-flaeche);
+  color: var(--sh-info);
+}
+
+.vorschlag {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+}
+
+.vorschlagSymbol {
+  color: var(--sh-akzent-text);
+  align-self: start;
+  margin-top: 2px;
+}
+
+.vorschlag p {
+  color: var(--sh-text-weich);
+}
+
+.herkunft {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px dashed var(--sh-linie);
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
+.herkunft > span:first-child {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.herkunft > span:first-child svg {
+  margin-top: 2px;
+}
+
+.verlauf {
+  font-size: 13px;
+  color: var(--sh-text-weich);
+}
+
+.verlauf summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  cursor: pointer;
+  color: var(--sh-text-gedaempft);
+}
+
+.verlauf ol {
+  display: grid;
+  gap: 6px;
+  padding-left: 26px;
+}
+
+.verlauf ol > li {
+  display: grid;
+  gap: 2px;
+}
+
+/* ---------- Ablauf ---------- */
+.abschnitte {
+  display: grid;
+  gap: 12px;
+}
+
+.abschnitt {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 14px;
+  min-width: 0;
+}
+
+.abschnittName {
+  padding: 0 6px;
+  font: 600 11px / 1.2 var(--sh-font-text);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sh-text-gedaempft);
+}
+
+.feldRaster {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr));
+  gap: 12px 16px;
+  align-items: end;
+}
+
+/* Vom Katalog abweichend: Info-Farbe am Rand und an der Beschreibung („Katalog: …“). */
+.geaendert input,
+.geaendert textarea {
+  border-color: var(--sh-info);
+}
+
+.geaendert [class*="description"],
+.geaendert > .hilfe {
+  color: var(--sh-info);
+}
+
+.schalterFeld {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding-top: 22px;
+}
+
+.listenFeld {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.serienListe {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+/* ---------- Zusammenfassung ---------- */
+.zfKopf {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+}
+
+.kennzahlen {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: 12px 20px;
+}
+
+.kennzahlen dt {
+  font-size: 12px;
+  color: var(--sh-text-gedaempft);
+}
+
+.kennzahlen dd {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.zfListe {
+  display: grid;
+}
+
+.zfListe > li + li {
+  border-top: 1px solid var(--sh-linie);
+}
+
+.zfZeile {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px 14px;
+  min-height: 56px;
+  padding: 8px 0;
+}
+
+.zfGeld {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+/* ---------- Tablet und schmaler: Seiten-Layout ---------- */
+@media (max-width: 1400px) {
+  .klassenFelder {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1100px) {
+  .einrichtenSpalten,
+  .bereichInhalt[data-geteilt="zwei"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Schmal: erst die Wettbewerbe im Turnier, darunter der Katalog zum Hinzufügen. */
+  .turnierSpalte {
+    order: -1;
+  }
+
+  .bereichNav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .bereichNav li {
+    flex: 1 1 auto;
+  }
+
+  .bereichNav button {
+    justify-content: center;
+  }
+
+  .bereichNav button[aria-current="page"] {
+    box-shadow: inset 0 -3px 0 var(--sh-akzent);
+  }
+
+  .unvollstaendig {
+    margin-left: 0;
+  }
+
+  .navHinweis {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .dreiSpalten {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .kopf {
+    padding: 18px;
+  }
+
+  .zweiSpalten,
+  .dreiSpalten,
+  .klassenFelder,
+  .zeileFormular {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .turnierZeile {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .turnierZeile .zeilenAktionen {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .zeile {
+    flex-wrap: wrap;
+  }
+
+  .zeile .zeilenAktionen {
+    flex-basis: 100%;
+  }
+
+  .wettbewerbZeile {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .wettbewerbZeile .zeilenAktionen {
+    grid-column: 1 / -1;
+  }
+
+  .wettbewerbInhalt {
+    padding: 14px 10px;
+  }
+
+  .vorschlag {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .vorschlag > button {
+    grid-column: 1 / -1;
+  }
+
+  .zfZeile {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .zfZeile > :nth-child(n + 3) {
+    grid-column: 2;
+  }
+
+  .bereichNav li:not(:has([aria-current="page"])) .navText {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .speicherleiste {
+    padding: 10px 12px;
+  }
+
+  .speicherZustand {
+    flex-basis: 100%;
+  }
+}

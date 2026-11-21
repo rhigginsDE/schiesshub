@@ -31,8 +31,16 @@ export class ApiFehler extends Error {
   readonly status?: number;
   /** Erklärung des Servers (`detail` von FastAPI), falls vorhanden. */
   readonly detail?: string;
+  /** Sekunden bis zum nächsten sinnvollen Versuch (Header `Retry-After`, z. B. bei 429). */
+  readonly wiederholenNachSekunden?: number;
 
-  constructor(art: ApiFehlerArt, pfad: string, status?: number, detail?: string) {
+  constructor(
+    art: ApiFehlerArt,
+    pfad: string,
+    status?: number,
+    detail?: string,
+    wiederholenNachSekunden?: number,
+  ) {
     super(
       `API-Fehler (${art}${status ? ` ${status}` : ""}) bei ${pfad}${detail ? `: ${detail}` : ""}`,
     );
@@ -41,7 +49,55 @@ export class ApiFehler extends Error {
     this.pfad = pfad;
     this.status = status;
     this.detail = detail;
+    this.wiederholenNachSekunden = wiederholenNachSekunden;
   }
+}
+
+/** Meldung des Servers in Klartext, wenn er eine geliefert hat (nicht bei Prüffehlern als Liste). */
+export function serverMeldung(fehler: unknown): string | undefined {
+  if (!(fehler instanceof ApiFehler) || !fehler.detail) return undefined;
+  const text = fehler.detail.trim();
+  return text.startsWith("[") || text.startsWith("{") ? undefined : text;
+}
+
+type FehlerBeobachter = (fehler: ApiFehler) => void;
+const beobachter = new Set<FehlerBeobachter>();
+
+/**
+ * Meldet 401 und 403 von jedem Endpunkt an die App-Shell (zurück zur Anmeldung bzw. Hinweis
+ * „Berechtigung fehlt“). Gibt eine Funktion zum Abmelden zurück.
+ * Anfragen mit `still: true` melden nichts, z. B. Hintergrundabfragen der Kopfzeile.
+ */
+export function beiApiFehler(rueckruf: FehlerBeobachter): () => void {
+  beobachter.add(rueckruf);
+  return () => beobachter.delete(rueckruf);
+}
+
+function melden(fehler: ApiFehler, optionen: AnfrageOptionen): ApiFehler {
+  if (!optionen.still && (fehler.art === "nicht_angemeldet" || fehler.art === "verboten")) {
+    for (const rueckruf of beobachter) rueckruf(fehler);
+  }
+  return fehler;
+}
+
+function sekundenAus(antwort: Response): number | undefined {
+  const wert = antwort.headers?.get?.("Retry-After");
+  if (!wert) return undefined;
+  const sekunden = Number(wert);
+  return Number.isFinite(sekunden) && sekunden > 0 ? Math.ceil(sekunden) : undefined;
+}
+
+async function fehlerAus(antwort: Response, pfad: string, optionen: AnfrageOptionen) {
+  return melden(
+    new ApiFehler(
+      artAusStatus(antwort.status),
+      pfad,
+      antwort.status,
+      await detailAus(antwort),
+      sekundenAus(antwort),
+    ),
+    optionen,
+  );
 }
 
 export type AbfrageParameter = Record<string, string | number | boolean | null | undefined>;
@@ -52,6 +108,8 @@ export interface AnfrageOptionen {
   signal?: AbortSignal;
   /** Statuscodes, deren JSON-Inhalt trotzdem als Antwort gilt (z. B. 503 bei `/health`). */
   auchBeiStatus?: number[];
+  /** 401/403 nicht an `beiApiFehler` melden (die Stelle behandelt den Fehler selbst). */
+  still?: boolean;
 }
 
 export function apiUrl(pfad: string, parameter?: AbfrageParameter): string {
@@ -101,12 +159,7 @@ export async function apiGet<T>(pfad: string, optionen: AnfrageOptionen = {}): P
   }
 
   if (!antwort.ok && !optionen.auchBeiStatus?.includes(antwort.status)) {
-    throw new ApiFehler(
-      artAusStatus(antwort.status),
-      pfad,
-      antwort.status,
-      await detailAus(antwort),
-    );
+    throw await fehlerAus(antwort, pfad, optionen);
   }
 
   try {
@@ -161,12 +214,7 @@ export async function apiSenden<T = void>(
   }
 
   if (!antwort.ok && !optionen.auchBeiStatus?.includes(antwort.status)) {
-    throw new ApiFehler(
-      artAusStatus(antwort.status),
-      pfad,
-      antwort.status,
-      await detailAus(antwort),
-    );
+    throw await fehlerAus(antwort, pfad, optionen);
   }
   if (antwort.status === 204) return undefined as T;
 
@@ -175,4 +223,30 @@ export async function apiSenden<T = void>(
   } catch {
     throw new ApiFehler("format", pfad, antwort.status);
   }
+}
+
+export interface Datei {
+  inhalt: Blob;
+  /** Dateiname aus `Content-Disposition`, sonst der Rückfallname */
+  name: string;
+}
+
+/** Datei herunterladen (z. B. eine Sicherung). Fehler kommen wie bei `apiGet` als `ApiFehler`. */
+export async function apiDatei(
+  pfad: string,
+  rueckfallName: string,
+  optionen: AnfrageOptionen = {},
+): Promise<Datei> {
+  let antwort: Response;
+  try {
+    antwort = await fetch(apiUrl(pfad, optionen.parameter), { signal: optionen.signal });
+  } catch (fehler) {
+    if (fehler instanceof DOMException && fehler.name === "AbortError") throw fehler;
+    throw new ApiFehler("netzwerk", pfad);
+  }
+  if (!antwort.ok) throw await fehlerAus(antwort, pfad, optionen);
+  const kopf = antwort.headers.get("Content-Disposition") ?? "";
+  const treffer = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(kopf);
+  const name = treffer?.[1] ? decodeURIComponent(treffer[1]) : rueckfallName;
+  return { inhalt: await antwort.blob(), name };
 }

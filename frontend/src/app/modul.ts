@@ -1,7 +1,8 @@
 import type { AnyRoute } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useMemo } from "react";
 import type { EreignisZuordnung } from "../api/ereignisse";
+import { type Anforderung, darfMit, useRechte } from "./berechtigungen";
 
 /**
  * Ein Modul meldet sich mit diesem Manifest an. Die App-Shell baut daraus Navigation,
@@ -17,10 +18,11 @@ export interface ModulManifest {
   namensraum: string;
   navigation: ModulNavigation;
   /**
-   * Berechtigung, die ein Gerät oder eine Person braucht, um das Modul zu sehen.
-   * Platzhalter, bis das Backend-Modul `auth` steht; `null` = für alle sichtbar.
+   * Berechtigung, die ein Gerät oder eine Person braucht, um das Modul zu sehen, so wie das
+   * Backend sie vergibt (`tournament.read`). Bei einer Liste reicht eine davon; `null` = für alle.
+   * Kennt der Server die Berechtigung nicht, gilt sie als Platzhalter und sperrt nichts.
    */
-  berechtigung: string | null;
+  berechtigung: Anforderung;
   /** Fertige Routen des Moduls; Eltern-Route ist `rootRoute` aus `src/app/rootRoute.ts`. */
   routen: AnyRoute[];
   /** Server-Ereignisse, nach denen Daten dieses Moduls neu geladen werden. */
@@ -41,8 +43,15 @@ function nachReihenfolge(a: ModulManifest, b: ModulManifest): number {
   return a.navigation.reihenfolge - b.navigation.reihenfolge;
 }
 
-/** Alle Module, die das Gerät sehen darf. */
+/** Alle Module, die das Gerät bzw. die angemeldete Person sehen darf. */
 export function useModule(): ModulManifest[] {
+  const alle = useContext(ModulKontext);
+  const rechte = useRechte();
+  return useMemo(() => alle.filter((modul) => darfMit(rechte, modul.berechtigung)), [alle, rechte]);
+}
+
+/** Alle angemeldeten Module, unabhängig von den Rechten (z. B. für Routen und Ereignisse). */
+export function useAlleModule(): ModulManifest[] {
   return useContext(ModulKontext);
 }
 

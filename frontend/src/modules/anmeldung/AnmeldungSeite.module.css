@@ -1,3 +1,10 @@
+.seite {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+
 .kopf {
   gap: 12px;
   padding: 24px;
