@@ -33,7 +33,7 @@ export function formatRestzeit(sekunden: number): string {
   return `${minuten}:${String(rest).padStart(2, "0")}`;
 }
 
-/** Anfangsbuchstaben für die Personen-Kachel: „Ryan Higgins“ → „RH“, „R. Higgins“ → „RH“. */
+/** Anfangsbuchstaben für die Personen-Kachel: „Maria Brandt“ → „MB“, „M. Brandt“ → „MB“. */
 export function initialen(name: string): string {
   const teile = name
     .split(/[\s.-]+/)

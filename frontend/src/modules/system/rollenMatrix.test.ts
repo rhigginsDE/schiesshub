@@ -107,8 +107,8 @@ describe("Eingaben der Anmeldung", () => {
   });
 
   it("bildet Initialen", () => {
-    expect(initialen("Ryan Higgins")).toBe("RH");
-    expect(initialen("R. Higgins")).toBe("RH");
+    expect(initialen("Maria Brandt")).toBe("MB");
+    expect(initialen("M. Brandt")).toBe("MB");
     expect(initialen("Kasse")).toBe("K");
     expect(initialen("Test-Admin")).toBe("TA");
   });
