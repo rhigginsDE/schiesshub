@@ -1,0 +1,128 @@
+.raster {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 12px;
+}
+
+.rasterGross {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 16px;
+}
+
+.kachel {
+  height: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: var(--sh-flaeche);
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-l);
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+
+.kachel:hover {
+  border-color: var(--sh-akzent);
+}
+
+.kachel:active {
+  background: var(--sh-flaeche-2);
+}
+
+.symbol {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-akzent-flaeche);
+  color: var(--sh-akzent-text);
+  font-size: 19px;
+}
+
+.text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  color: var(--sh-text-gedaempft);
+  font-size: 14px;
+}
+
+.text strong {
+  color: var(--sh-text);
+}
+
+.pfeil {
+  color: var(--sh-text-gedaempft);
+}
+
+/* Stationsauswahl: Symbol oben, mehr Luft, große Trefferfläche */
+.gross {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "symbol pfeil"
+    "text text";
+  align-items: start;
+  gap: 18px 14px;
+  padding: 22px;
+  min-height: 190px;
+}
+
+.gross .symbol {
+  grid-area: symbol;
+  width: 56px;
+  height: 56px;
+  font-size: 25px;
+}
+
+.gross .text {
+  grid-area: text;
+  align-self: end;
+  gap: 6px;
+  font-size: 15px;
+}
+
+.gross .text strong {
+  font-size: 24px;
+}
+
+.gross .pfeil {
+  grid-area: pfeil;
+  font-size: 19px;
+  margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .gross {
+    min-height: 0;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "symbol text pfeil";
+    align-items: center;
+    padding: 16px;
+  }
+
+  .gross .symbol {
+    width: 48px;
+    height: 48px;
+    font-size: 21px;
+  }
+
+  .gross .text {
+    align-self: center;
+    font-size: 14px;
+  }
+
+  .gross .text strong {
+    font-size: 20px;
+  }
+
+  .gross .pfeil {
+    margin-top: 0;
+  }
+}
+
+.kachel:hover .pfeil {
+  color: var(--sh-akzent-text);
+}

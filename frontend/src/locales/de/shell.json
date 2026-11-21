@@ -1,0 +1,33 @@
+{
+  "marke": {
+    "startseite": "schiesshub.app – zur Startseite"
+  },
+  "navigation": {
+    "stationen": "Stationen"
+  },
+  "status": {
+    "pruefe": "Verbindung wird geprüft",
+    "pruefe_kurz": "Prüfe …",
+    "verbunden": "Server verbunden",
+    "verbunden_kurz": "Verbunden",
+    "eingeschraenkt": "Server eingeschränkt",
+    "eingeschraenkt_kurz": "Eingeschränkt",
+    "gestoert": "Server gestört",
+    "gestoert_kurz": "Gestört",
+    "getrennt": "Keine Verbindung",
+    "getrennt_kurz": "Getrennt",
+    "hinweis_pruefe": "Die Verbindung zum Server wird geprüft.",
+    "hinweis_verbunden": "Server-Version {{version}}",
+    "hinweis_eingeschraenkt": "Der Server läuft, hat den Disziplin-Katalog aber nicht vollständig eingelesen. Einzelheiten stehen im Disziplin-Katalog.",
+    "hinweis_gestoert": "Der Server antwortet, erreicht aber seine Datenbank nicht. Bitte den Server prüfen; es wird alle paar Sekunden erneut versucht.",
+    "hinweis_getrennt": "Der Server antwortet nicht. Es wird alle paar Sekunden erneut versucht."
+  },
+  "farbschema": {
+    "zu_hell": "Zum hellen Design wechseln",
+    "zu_dunkel": "Zum dunklen Design wechseln"
+  },
+  "start": {
+    "ueberschrift": "Station wählen",
+    "einleitung": "Jedes Gerät im Schützenhaus öffnet die Station, an der es steht."
+  }
+}

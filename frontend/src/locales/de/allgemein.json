@@ -1,0 +1,46 @@
+{
+  "einheit": {
+    "sekunden": "{{wert}} s",
+    "minuten": "{{wert}} Min.",
+    "meter": "{{wert}} m"
+  },
+  "aktion": {
+    "erneut_versuchen": "Erneut versuchen",
+    "zur_startseite": "Zur Startseite"
+  },
+  "in_arbeit": {
+    "chip": "In Arbeit",
+    "text": "Diese Station ist noch nicht gebaut. Was geplant ist, steht in der Roadmap des Projekts."
+  },
+  "nicht_gefunden": {
+    "titel": "Diese Seite gibt es nicht",
+    "text": "Die Adresse ist unbekannt. Vielleicht wurde ein Link falsch abgetippt oder die Seite ist umgezogen."
+  },
+  "fehler": {
+    "technisch": "Technische Angabe",
+    "netzwerk": {
+      "titel": "Keine Verbindung zum Server",
+      "text": "Der Schiesshub-Server antwortet nicht. Bitte prüfen, ob der Server läuft und dieses Gerät im selben Netz ist. Sobald die Verbindung wieder steht, lädt die Seite von selbst neu."
+    },
+    "nicht_gefunden": {
+      "titel": "Nicht gefunden",
+      "text": "Der Server kennt diesen Eintrag nicht. Er wurde möglicherweise umbenannt oder entfernt."
+    },
+    "anfrage": {
+      "titel": "Der Server hat die Anfrage abgelehnt",
+      "text": "Die Anfrage war aus Sicht des Servers nicht gültig. Bitte die Seite neu laden. Bleibt der Fehler, passen Oberfläche und Server vermutlich nicht zusammen (unterschiedliche Versionen)."
+    },
+    "server": {
+      "titel": "Fehler im Server",
+      "text": "Der Server ist erreichbar, konnte die Anfrage aber nicht verarbeiten. Bitte erneut versuchen. Bleibt der Fehler, hilft ein Blick in die Meldungen des Servers."
+    },
+    "format": {
+      "titel": "Unlesbare Antwort",
+      "text": "Der Server hat geantwortet, aber nicht im erwarteten Format. Oberfläche und Server haben vermutlich unterschiedliche Versionen."
+    },
+    "unbekannt": {
+      "titel": "Etwas ist schiefgegangen",
+      "text": "Ein unerwarteter Fehler ist aufgetreten. Bitte die Seite neu laden."
+    }
+  }
+}

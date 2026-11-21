@@ -1,0 +1,92 @@
+/* Grundstil der App. Farben kommen ausschließlich aus den Variablen --sh-* (siehe cssVariables.ts). */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--sh-bg);
+  color: var(--sh-text);
+  font: 400 15px / 1.5 var(--sh-font-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+ul,
+ol,
+dl,
+dd {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--sh-akzent-text);
+  outline-offset: 2px;
+}
+
+svg.lucide {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+}
+
+/* Typo-Bausteine */
+.h-display {
+  font: italic 700 26px / 1.15 var(--sh-font-display);
+  text-wrap: balance;
+}
+
+.h-section {
+  font: italic 700 19px / 1.2 var(--sh-font-display);
+}
+
+.h-label {
+  font: 600 11px / 1.2 var(--sh-font-text);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sh-text-gedaempft);
+}
+
+/* Zahlen: feste Ziffernbreite, damit Spalten nicht springen */
+.num {
+  font-family: var(--sh-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.gedaempft {
+  color: var(--sh-text-gedaempft);
+}
+
+.nur-screenreader {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    /* biome-ignore lint/complexity/noImportantStyles: muss jede Komponente überstimmen */
+    transition: none !important;
+    /* biome-ignore lint/complexity/noImportantStyles: muss jede Komponente überstimmen */
+    animation: none !important;
+  }
+}

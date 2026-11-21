@@ -1,0 +1,454 @@
+.seite {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* ---------- Kopf ---------- */
+.kopf {
+  display: grid;
+  gap: 4px;
+  padding: 4px 4px 0;
+}
+
+.pfad {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
+.pfad a {
+  color: var(--sh-akzent-text);
+  text-decoration: none;
+  font-weight: 600;
+  padding-block: 4px;
+}
+
+.pfad a:hover {
+  text-decoration: underline;
+}
+
+.kopfzeile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.kopf p {
+  font-size: 14px;
+}
+
+/* ---------- Warnung ---------- */
+.banner {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--sh-warn-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-warn-flaeche);
+  font-size: 14px;
+}
+
+.banner > svg {
+  color: var(--sh-warn);
+  margin-top: 3px;
+}
+
+.bannerListe {
+  margin-top: 6px;
+  padding-left: 18px;
+  list-style: disc;
+  font-family: var(--sh-font-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Spalten: Filter | Liste | Detail ---------- */
+.spalten {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.detail {
+  min-width: 0;
+  position: sticky;
+  top: 16px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  border-radius: var(--sh-radius-l);
+}
+
+/* ---------- Filter ---------- */
+.verbaende {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.verbaende legend {
+  float: left;
+  padding: 0;
+  margin-right: 6px;
+}
+
+.wahlchip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid var(--sh-linie);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sh-text-gedaempft);
+  font: 600 13px / 1 var(--sh-font-text);
+  cursor: pointer;
+}
+
+.wahlchip:hover {
+  border-color: var(--sh-akzent);
+}
+
+.wahlchip[aria-pressed="true"] {
+  background: var(--sh-flaeche-2);
+  border-color: var(--sh-akzent);
+  color: var(--sh-text);
+}
+
+.gruppenBlock {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.gruppen {
+  display: grid;
+  gap: 2px;
+  padding: 4px;
+}
+
+.gruppe {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--sh-radius-s);
+  background: transparent;
+  color: var(--sh-text-weich);
+  font: 400 14px / 1.25 var(--sh-font-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.gruppe:hover {
+  background: var(--sh-flaeche);
+}
+
+.gruppe[aria-pressed="true"] {
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text);
+  font-weight: 600;
+}
+
+.gruppeName {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.anzahl {
+  font-size: 12px;
+  color: var(--sh-text-gedaempft);
+}
+
+.ungeprueft {
+  display: inline-flex;
+  color: var(--sh-warn);
+  font-size: 13px;
+}
+
+.skelettListe {
+  display: grid;
+  gap: 8px;
+}
+
+/* ---------- Liste ---------- */
+.treffer {
+  font-size: 13px;
+}
+
+.disziplinen {
+  display: grid;
+}
+
+.disziplinen[data-laedt] {
+  opacity: 0.55;
+}
+
+.disziplinen li + li {
+  border-top: 1px solid var(--sh-linie);
+}
+
+.disziplin {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px;
+  margin-inline: -8px;
+  border-radius: var(--sh-radius-s);
+  text-decoration: none;
+}
+
+.disziplin:hover {
+  background: var(--sh-flaeche-2);
+}
+
+.disziplin[aria-current="true"] {
+  background: var(--sh-flaeche-2);
+  box-shadow: inset 3px 0 0 var(--sh-akzent);
+}
+
+.kennziffer {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--sh-text-weich);
+}
+
+.disziplinText {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.disziplinText strong {
+  font-weight: 600;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.disziplinText span {
+  font-size: 12px;
+  color: var(--sh-text-gedaempft);
+  overflow-wrap: anywhere;
+}
+
+.weiter {
+  color: var(--sh-text-gedaempft);
+}
+
+/* ---------- Detail ---------- */
+.detailPanel {
+  gap: 20px;
+}
+
+.zurueck {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  justify-self: start;
+  margin-block: -8px;
+  color: var(--sh-akzent-text);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.detailKopf {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.detailKennziffer {
+  font-weight: 700;
+  font-size: 15px;
+  padding: 5px 9px;
+  border-radius: var(--sh-radius-s);
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text-weich);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hinweis {
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+  max-width: 70ch;
+}
+
+.hinweisWarn {
+  font-size: 13px;
+  color: var(--sh-text-weich);
+  padding: 10px 12px;
+  border: 1px solid var(--sh-warn-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-warn-flaeche);
+  max-width: 70ch;
+}
+
+.abschnitt {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.stammdaten {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: 12px 20px;
+}
+
+.stammdaten dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--sh-text-gedaempft);
+}
+
+.stammdaten dd {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.varianten {
+  display: grid;
+  gap: 8px;
+}
+
+.variante {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.varianteKopf {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.gesamt {
+  font-size: 12px;
+  color: var(--sh-text-gedaempft);
+  margin-left: auto;
+}
+
+.abschnitte {
+  display: grid;
+  gap: 10px;
+}
+
+.abschnittZeile {
+  display: grid;
+  gap: 4px;
+}
+
+.abschnittName {
+  font: 600 11px / 1.2 var(--sh-font-text);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sh-text-gedaempft);
+}
+
+.teile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 0;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.teil {
+  white-space: nowrap;
+}
+
+.teil:not(:last-child)::after {
+  content: "·";
+  margin-inline: 8px;
+  color: var(--sh-text-gedaempft);
+}
+
+.wertung {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  font-size: 14px;
+}
+
+.wertung strong {
+  font-size: 15px;
+}
+
+.gleichstand {
+  margin-top: 4px;
+  padding-left: 22px;
+  list-style: decimal;
+}
+
+/* ---------- Tablet hochkant und Handy: eine Spalte, Detail ersetzt die Liste ---------- */
+@media (max-width: 1100px) {
+  .spalten {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detail {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .seite[data-detail="zu"] .detail {
+    display: none;
+  }
+
+  .seite[data-detail="offen"] .filter,
+  .seite[data-detail="offen"] .liste,
+  .seite[data-detail="offen"] .kopf {
+    display: none;
+  }
+
+  .zurueck {
+    display: inline-flex;
+  }
+
+  .gruppen {
+    max-height: 244px;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .disziplin {
+    grid-template-columns: 44px minmax(0, 1fr) auto auto;
+    gap: 8px;
+  }
+
+  .teil {
+    white-space: normal;
+  }
+}

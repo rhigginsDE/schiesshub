@@ -1,0 +1,49 @@
+.kopf {
+  gap: 12px;
+  padding: 24px;
+}
+
+.titel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.symbol {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text-weich);
+  font-size: 20px;
+}
+
+.zweck {
+  font-size: 17px;
+  max-width: 60ch;
+}
+
+.hinweis {
+  display: flex;
+  align-items: center;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.bereiche {
+  display: grid;
+  gap: 10px;
+}
+
+.bereiche h2 {
+  padding-left: 4px;
+}
+
+@media (max-width: 640px) {
+  .kopf {
+    padding: 18px;
+  }
+}

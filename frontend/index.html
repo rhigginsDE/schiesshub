@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="de" data-mantine-color-scheme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <title>schiesshub.app</title>
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate icon" href="/icons/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon_180.png" />
+    <style>
+      html { background: #0b131b; }
+      html[data-mantine-color-scheme="light"] { background: #f2f4f7; }
+    </style>
+    <script>
+      // Gespeichertes Farbschema vor dem ersten Zeichnen setzen (kein Aufblitzen). Standard: dunkel.
+      (() => {
+        let schema = "dark";
+        try {
+          if (localStorage.getItem("schiesshub-farbschema") === "light") schema = "light";
+        } catch {
+          // Speicher gesperrt: es bleibt beim Standard
+        }
+        document.documentElement.setAttribute("data-mantine-color-scheme", schema);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

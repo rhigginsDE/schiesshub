@@ -1,0 +1,136 @@
+{
+  "titel": "Disziplin-Katalog",
+  "zweck": "Alle Disziplinen des Verbands mit Ablauf und Wertung nachschlagen.",
+  "kopf": {
+    "umfang": "{{disziplinen}} Disziplinen · {{gruppen}} Gruppen",
+    "regelwerk": "{{name}}, Stand {{stand}}",
+    "entwurf": "Entwurf",
+    "entwurf_hinweis": "Der Katalog dieses Verbands ist noch nicht vollständig mit dem Regelwerk abgeglichen."
+  },
+  "importfehler": {
+    "titel": "Der Katalog wurde nicht vollständig eingelesen",
+    "text": "Der Server hat beim Einlesen Fehler gemeldet. Betroffene Disziplinen fehlen, bis die YAML-Dateien unter catalog/ berichtigt sind und der Server neu gestartet wurde."
+  },
+  "suche": {
+    "beschriftung": "Katalog durchsuchen",
+    "platzhalter": "Kennziffer oder Name",
+    "leeren": "Suche leeren"
+  },
+  "verband": {
+    "beschriftung": "Verband"
+  },
+  "gruppen": {
+    "beschriftung": "Gruppen",
+    "alle": "Alle Gruppen",
+    "ungeprueft": "Noch nicht mit dem Regelwerk abgeglichen",
+    "leer_titel": "Keine Gruppen",
+    "leer_text": "Für diesen Verband hat der Server keine Disziplingruppen eingelesen. Bitte die Dateien unter catalog/ und die Meldungen des Servers prüfen."
+  },
+  "liste": {
+    "beschriftung": "Disziplinen",
+    "treffer_one": "{{count}} Disziplin",
+    "treffer_other": "{{count}} Disziplinen",
+    "treffer_suche_one": "{{count}} Treffer für „{{q}}“",
+    "treffer_suche_other": "{{count}} Treffer für „{{q}}“",
+    "optional": "Optional",
+    "optional_hinweis": "Wird nicht mehr auf Deutschen Meisterschaften ausgetragen",
+    "leer_titel": "Keine Disziplin gefunden",
+    "leer_suche_gruppe": "In der Gruppe „{{gruppe}}“ passt nichts zu „{{q}}“. Gesucht wird in Kennziffer und Name.",
+    "leer_suche": "Zu „{{q}}“ gibt es im Katalog keinen Treffer. Gesucht wird in Kennziffer und Name.",
+    "leer_gruppe": "Diese Gruppe enthält keine Disziplinen.",
+    "in_allen_suchen": "In allen Gruppen suchen"
+  },
+  "leer": {
+    "titel": "Der Katalog ist leer",
+    "text": "Der Server hat keinen Verband eingelesen. Bitte prüfen, ob das Verzeichnis catalog/ vorhanden ist, und den Server neu starten."
+  },
+  "auswahl": {
+    "titel": "Disziplin auswählen",
+    "text": "Eine Disziplin in der Liste antippen, um Stammdaten, Ablauf und Wertung zu sehen."
+  },
+  "detail": {
+    "zurueck": "Zur Liste",
+    "kennziffer": "Kennziffer",
+    "nicht_gefunden_titel": "Disziplin {{kennziffer}} nicht gefunden",
+    "nicht_gefunden_text": "Im Katalog des Verbands „{{verband}}“ gibt es keine Disziplin mit dieser Kennziffer. Bitte die Kennziffer prüfen oder die Disziplin in der Liste suchen.",
+    "stammdaten": "Stammdaten",
+    "feld": {
+      "waffe": "Waffe",
+      "munition": "Munition",
+      "visierung": "Visierung",
+      "anschlag": "Anschlag",
+      "scheibe": "Scheibe",
+      "hinweis": "Hinweis",
+      "fruehere_kennziffer": "Frühere Kennziffer"
+    },
+    "unsicher": "Angabe in der Quelle unsicher, bitte im Regelwerk nachsehen",
+    "ablauf": "Ablauf",
+    "ablauf_je_serie": "Schuss-, Ziel- und Zeitangaben gelten je Serie.",
+    "schuss_gesamt": "{{count}} Schuss gesamt",
+    "wertung": "Wertung",
+    "ungeprueft": "Noch nicht geprüft",
+    "ungeprueft_hinweis": "Ablauf und Wertung dieser Gruppe sind noch nicht mit dem Regelwerk abgeglichen. Vor einem Wettkampf im Sporthandbuch nachsehen.",
+    "haftung": "Der Katalog ist eine Arbeitshilfe. Maßgeblich ist das aktuelle Regelwerk des Verbands."
+  },
+  "ablauf": {
+    "serien_one": "{{count}} Serie",
+    "serien_other": "{{count}} Serien",
+    "schuss": "{{count}} Schuss",
+    "ziele_one": "{{count}} Ziel",
+    "ziele_other": "{{count}} Ziele",
+    "max_schuss": "max. {{count}} Schuss",
+    "zeiten": "Zeiten {{liste}}",
+    "max_zeit": "max. {{dauer}}",
+    "zuschlag": "+{{dauer}} je stehender Scheibe",
+    "distanzen": "Distanzen {{liste}}",
+    "zeit_je_schuss": "{{dauer}} je Schuss",
+    "pause": "{{dauer}} Pause zwischen den Schüssen",
+    "sollzeit": "Sollzeit {{dauer}}",
+    "max_gesamtzeit": "Abbruch nach {{dauer}}",
+    "zeit_gemessen": "Zeit wird gemessen"
+  },
+  "wertung": {
+    "modell": {
+      "ringe": {
+        "name": "Ringe",
+        "text": "Gewertet wird die Summe der Ringe."
+      },
+      "ringe_minus_zeit": {
+        "name": "Ringe minus Zeit",
+        "text": "Von der Summe der Ringe werden die geschossenen Sekunden abgezogen."
+      },
+      "ringe_mit_zeitabzug": {
+        "name": "Ringe mit Zeitabzug",
+        "text": "Gewertet wird die Summe der Ringe. Wer über der Sollzeit liegt, bekommt einen Abzug."
+      },
+      "zeit_plus_zuschlaege": {
+        "name": "Zeit plus Zuschläge",
+        "text": "Gewertet wird die Summe der Zeiten plus Zeitzuschläge für stehende Scheiben."
+      },
+      "unbekannt": {
+        "name": "Modell „{{modell}}“",
+        "text": "Für dieses Wertungsmodell gibt es noch keine Beschreibung in der Oberfläche."
+      }
+    },
+    "rangfolge": {
+      "absteigend": "Das höhere Ergebnis gewinnt.",
+      "aufsteigend": "Das niedrigere Ergebnis gewinnt."
+    },
+    "abzug_one": "Abzug: {{wert}} Ring je voller Sekunde über der Sollzeit.",
+    "abzug_other": "Abzug: {{wert}} Ringe je voller Sekunde über der Sollzeit.",
+    "min_teilergebnis": "Ein Teilergebnis kann nicht unter {{wert}} fallen.",
+    "zeit_rundung": {
+      "summe_abrunden": "Die Summe der Serienzeiten wird vor dem Abzug auf volle Sekunden abgerundet."
+    },
+    "gleichstand": {
+      "titel": "Bei Gleichstand entscheidet der Reihe nach",
+      "keine_regel": "Das Regelwerk nennt für diese Wertung keine Regel bei Gleichstand.",
+      "kriterium": {
+        "zehner": "die höhere Zahl der Zehner",
+        "innenzehner": "die höhere Zahl der Innenzehner",
+        "neuner_abwaerts": "die höhere Zahl der Neuner, dann der Achter und so weiter",
+        "parcours_zeit": "die niedrigere Parcourszeit"
+      }
+    }
+  }
+}

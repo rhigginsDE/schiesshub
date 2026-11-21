@@ -1,0 +1,157 @@
+.rahmen {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding-block: 16px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid;
+  gap: 16px;
+}
+
+.leiste {
+  display: flex;
+  align-items: center;
+  gap: 10px 20px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: var(--sh-flaeche);
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-l);
+}
+
+.marke {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  border-radius: var(--sh-radius-s);
+}
+
+.marke img {
+  display: block;
+  border-radius: 8px;
+}
+
+.marke b {
+  font: italic 700 18px / 1 var(--sh-font-display);
+  letter-spacing: -0.01em;
+}
+
+.marke span {
+  color: var(--sh-akzent);
+}
+
+/* Markengrün ist als Schrift auf Weiß zu schwach; hell nutzt das dunklere Textgrün. */
+:global([data-mantine-color-scheme="light"]) .marke span {
+  color: var(--sh-akzent-text);
+}
+
+.stationen {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.station {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 12px;
+  border-radius: var(--sh-radius-m);
+  color: var(--sh-text-gedaempft);
+  font: 600 14px / 1 var(--sh-font-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.station:hover {
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text);
+}
+
+.station[aria-current="page"] {
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text);
+}
+
+.station[aria-current="page"] svg {
+  color: var(--sh-akzent-text);
+}
+
+.status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kurz {
+  display: none;
+}
+
+.uhr {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1;
+  padding-left: 6px;
+}
+
+.inhalt {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Tablet: Stationen rutschen in eine eigene Zeile */
+@media (max-width: 1180px) {
+  .stationen {
+    order: 3;
+    flex-basis: 100%;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    padding-top: 8px;
+    border-top: 1px solid var(--sh-linie);
+  }
+
+  .station {
+    min-height: 44px;
+  }
+}
+
+/* Handy: Symbol über dem Namen, kurze Statusanzeige */
+@media (max-width: 640px) {
+  .leiste {
+    padding: 10px 12px;
+    gap: 10px 8px;
+  }
+
+  .station {
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px 2px;
+    font-size: 11.5px;
+    font-weight: 500;
+  }
+
+  .station svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .lang {
+    display: none;
+  }
+
+  .kurz {
+    display: inline;
+  }
+}
+
+@media (max-width: 380px) {
+  .uhr {
+    display: none;
+  }
+}

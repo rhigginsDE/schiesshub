@@ -1,0 +1,33 @@
+.seite {
+  gap: 12px;
+  padding: 28px;
+}
+
+.kopf {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.symbol {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text-weich);
+  font-size: 20px;
+}
+
+.zweck {
+  font-size: 17px;
+  max-width: 60ch;
+}
+
+@media (max-width: 640px) {
+  .seite {
+    padding: 18px;
+  }
+}

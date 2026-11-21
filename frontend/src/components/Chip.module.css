@@ -1,0 +1,49 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font: 600 12px / 1 var(--sh-font-text);
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text-gedaempft);
+}
+
+.neutral {
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text-gedaempft);
+}
+
+.gruen {
+  background: var(--sh-akzent-flaeche);
+  color: var(--sh-akzent-text);
+}
+
+.warn {
+  background: var(--sh-warn-flaeche);
+  color: var(--sh-warn);
+}
+
+.krit {
+  background: var(--sh-krit-flaeche);
+  color: var(--sh-krit);
+}
+
+.info {
+  background: var(--sh-info-flaeche);
+  color: var(--sh-info);
+}
+
+.gold {
+  background: var(--sh-gold-flaeche);
+  color: var(--sh-gold);
+}
+
+.punkt {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
