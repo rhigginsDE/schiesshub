@@ -105,10 +105,6 @@ h3 { font: 600 18px/1.3 var(--font-body); }
 
 /* ---------- Hero ---------- */
 .hero { position: relative; overflow: hidden; padding-block: clamp(48px, 7vw, 96px) var(--section); }
-.hero::before {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(60% 70% at 78% 30%, #1A2A3A 0%, rgba(11, 19, 27, 0) 70%);
-}
 .hero-rings { position: absolute; right: -180px; top: -140px; width: 900px; height: 900px; pointer-events: none; opacity: .5; }
 .hero .wrap { position: relative; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: clamp(32px, 5vw, 72px); align-items: center; }
 .hero h1 em { font-style: inherit; color: var(--sh-green); }
@@ -179,10 +175,9 @@ h3 { font: 600 18px/1.3 var(--font-body); }
 .card { grid-column: span 2; background: var(--sh-navy-2); border: 1px solid var(--sh-line); border-radius: var(--r-l); padding: 24px; }
 .cards.five .card:nth-child(-n+2) { grid-column: span 3; }
 .section.alt .card { background: var(--sh-navy); }
-.card .badge { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-m); background: rgba(108, 187, 36, .14); color: var(--sh-green-light); margin-bottom: 16px; }
-.card .badge .icon { width: 22px; height: 22px; }
-.card h3 { margin-bottom: 8px; }
-.card p { color: var(--sh-soft); font-size: 15.5px; }
+.card { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 12px; align-items: center; align-content: start; }
+.card > .icon { width: 24px; height: 24px; color: var(--sh-green-light); }
+.card p { grid-column: 1 / -1; margin-top: 10px; color: var(--sh-soft); font-size: 15.5px; }
 @media (max-width: 860px) { .cards { grid-template-columns: minmax(0, 1fr); } .cards .card, .cards.five .card:nth-child(-n+2) { grid-column: auto; } }
 
 /* ---------- Katalog ---------- */
