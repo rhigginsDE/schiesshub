@@ -82,7 +82,18 @@ Zeiten werden in Hundertstelsekunden gespeichert. Im Turnier kann jeder Katalogw
 
 ## Ablauf am Stand
 
-Feste Startzeiten gibt es nicht. Jeder Stand hat eine **Reihenfolge** der wartenden Starts.
+Wie geplant wird, ist **je Wettbewerb einstellbar**:
+
+| Planung | Wann sinnvoll | Was die App tut |
+|---|---|---|
+| Reihenfolge | Dauer nicht vorhersehbar, zum Beispiel Fallscheibe: ein Durchgang dauert Sekunden oder Minuten | Wartende Starts stehen in einer Reihenfolge, die Standaufsicht ruft den nächsten auf |
+| Zeitplan | Disziplinen mit fester Schießzeit, zum Beispiel Präzision mit 2×10 Schuss in je 5 Minuten | Durchgänge mit Uhrzeit und Bahn, die Anmeldung bucht einen freien Platz |
+
+Die Voreinstellung leitet der Server aus dem Katalog ab: Haben alle Abschnitte eines Ablaufs eine feste Zeit je Serie, ist der Wettbewerb planbar. Die Durchgangsdauer ergibt sich dann aus den Serienzeiten plus einer einstellbaren Wechselzeit (Scheibenwechsel, Trefferaufnahme). Sonst gilt die Reihenfolge. Beides lässt sich im Turnier überschreiben, auch die berechnete Dauer.
+
+Teilen sich mehrere Wettbewerbe einen Stand, können beide Planungsarten nebeneinander vorkommen; die Bahnbelegung gehört zum Stand, nicht zum Wettbewerb.
+
+In beiden Fällen durchläuft ein Start dieselben Zustände:
 
 | Status eines Starts | Bedeutung |
 |---|---|
@@ -92,7 +103,7 @@ Feste Startzeiten gibt es nicht. Jeder Stand hat eine **Reihenfolge** der warten
 | abgeschlossen | Ergebnis bestätigt, erscheint in der Wertung |
 | abgebrochen | nicht angetreten, aufgegeben oder disqualifiziert |
 
-Die Standaufsicht ruft die nächsten Starts auf eine freie Bahn. Die Anzeige zeigt „am Stand“ und „als Nächstes“ aus dieser Reihenfolge.
+Die Standaufsicht ruft die nächsten Starts auf eine freie Bahn. Die Anzeige zeigt „am Stand“ und „als Nächstes“, bei einem Zeitplan zusätzlich die Uhrzeit des Durchgangs.
 
 ## Sicherheit und Daten
 
