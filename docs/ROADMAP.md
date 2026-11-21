@@ -1,4 +1,4 @@
-# Roadmap
+| Weitere BDS-Teile | undefined | [#11](https://github.com/rhigginsDE/schiesshub/issues/11) || Weitere Verbände | undefined | [#10](https://github.com/rhigginsDE/schiesshub/issues/10) || Kamera-Auswertung | undefined | [#9](https://github.com/rhigginsDE/schiesshub/issues/9) || Elektronische Scheiben | undefined | [#8](https://github.com/rhigginsDE/schiesshub/issues/8) || Verbandsportal | undefined | [#7](https://github.com/rhigginsDE/schiesshub/issues/7) || Ergebnisse im Internet | undefined | [#6](https://github.com/rhigginsDE/schiesshub/issues/6) || Urkunden | undefined | [#5](https://github.com/rhigginsDE/schiesshub/issues/5) || Mannschaftswertung | undefined | [#4](https://github.com/rhigginsDE/schiesshub/issues/4) || Voranmeldung | undefined | [#3](https://github.com/rhigginsDE/schiesshub/issues/3) || Startzettel | undefined | [#2](https://github.com/rhigginsDE/schiesshub/issues/2) || Kasse | undefined | [#1](https://github.com/rhigginsDE/schiesshub/issues/1) |# Roadmap
 
 Schiesshub wird in Modulen gebaut. Die erste Version enthält nur, was ein Verein für ein einfaches Turnier braucht. Alles Weitere kommt als eigenes Modul dazu.
 
@@ -20,10 +20,10 @@ Ziel ist ein internes Testturnier mit BDS-Fallscheibe.
 
 ## Geplante Module
 
-Die Reihenfolge ist offen. Wer an einem Modul mitarbeiten will, meldet sich bitte vorher in einem Issue.
+Die Reihenfolge ist offen. Zu jedem Modul gibt es ein Issue mit den Labels `modul` und `geplant`. Dort ist Platz für Wünsche und Erfahrungen; wer mitarbeiten will, meldet sich bitte vorher dort.
 
-| Modul | Inhalt |
-|---|---|
+| Modul | Inhalt | Issue |
+|---|---|---|
 | Kasse | Zahlungen verbuchen, Zahlarten, Tagesabschluss |
 | Startzettel | Ausdruck mit QR-Code, optional über Bondrucker |
 | Voranmeldung | Anmeldung vor dem Wettkampftag, Import einer fertigen Turnier-Konfiguration |
