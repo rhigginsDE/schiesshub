@@ -25,6 +25,7 @@ Alles ist einstellbar. Disziplinen liegen als Dateien im [Disziplin-Katalog](cat
 ## Dokumentation
 
 - [Architektur](docs/ARCHITEKTUR.md)
+- [Datenmodell](docs/DATENMODELL.md)
 - [Roadmap und geplante Module](docs/ROADMAP.md)
 - [Disziplin-Katalog pflegen](catalog/README.md)
 
