@@ -200,6 +200,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tournaments/{tournament_id}/announcement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ausschreibung */
+        get: operations["turnier_get_announcement"];
+        /**
+         * Ausschreibung speichern
+         * @description Ersetzt die Ausschreibung als Ganzes. Auch im laufenden Turnier änderbar, nicht mehr nach dem Abschluss. Texte sind reiner Text (Absätze mit Leerzeilen), kein HTML.
+         */
+        put: operations["turnier_put_announcement"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/announcement/document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ausschreibung zum Drucken
+         * @description Sichtbare Bausteine in ihrer Reihenfolge; automatische Bausteine bringen die aktuellen Turnierdaten mit. Enthält keine Teilnehmerdaten.
+         */
+        get: operations["turnier_get_announcement_document"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tournaments/{tournament_id}/ranges": {
         parameters: {
             query?: never;
@@ -381,7 +422,10 @@ export interface paths {
         delete: operations["turnier_delete_competition"];
         options?: never;
         head?: never;
-        /** Wettbewerb ändern */
+        /**
+         * Wettbewerb ändern
+         * @description Änderungen an den wertungsrelevanten Feldern (`definition`, `capture_mode`, `multi_start`, `max_starts`, `multi_start_rule`, `combined_ranking`) legen eine neue Revision an und melden `competition.definition_changed`. Sie sind auch im laufenden Turnier erlaubt, verlangen dann aber `reason`. `definition` wird als Ganzes ersetzt; ein weggelassenes optionales Feld ist danach entfernt.
+         */
         patch: operations["turnier_update_competition"];
         trace?: never;
     };
@@ -396,6 +440,63 @@ export interface paths {
         put?: never;
         /** Definition auf den Katalogwert zurücksetzen */
         post: operations["turnier_reset_definition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/competitions/{competition_id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Revisionen der Wertung
+         * @description Alle Stände der wertungsrelevanten Felder, die älteste zuerst.
+         */
+        get: operations["turnier_list_revisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/competitions/{competition_id}/revisions/{revision}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Eine Revision der Wertung */
+        get: operations["turnier_get_revision"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/competitions/{competition_id}/catalog-diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Abweichungen vom Katalog
+         * @description Vergleicht die aktuelle Definition mit der Katalog-Variante, aus der sie stammt (aktueller Katalogstand). `deviates` kennzeichnet „abweichend vom Sporthandbuch“. Ohne Katalogherkunft ist die Liste leer.
+         */
+        get: operations["turnier_get_catalog_diff"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -543,6 +644,574 @@ export interface paths {
         head?: never;
         /** Person ändern */
         patch: operations["teilnehmer_update_person"];
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Anmeldungen
+         * @description Nach Startnummer sortiert. Mit `q`: Treffer der Startnummer (genau) zuerst, dann Treffer in Name, Mitgliedsnummer oder Verein.
+         */
+        get: operations["starts_list_entries"];
+        put?: never;
+        /**
+         * Person anmelden
+         * @description Ohne `start_number` vergibt der Server die nächste freie Nummer ab `settings.first_start_number` des Turniers.
+         */
+        post: operations["starts_create_entry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/entries/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Anmeldung mit Starts und Summe */
+        get: operations["starts_get_entry"];
+        put?: never;
+        post?: never;
+        /**
+         * Anmeldung löschen
+         * @description Nur solange kein Start geschossen wurde oder gerade aufgerufen ist.
+         */
+        delete: operations["starts_delete_entry"];
+        options?: never;
+        head?: never;
+        /** Anmeldung ändern (Klasse, Startnummer) */
+        patch: operations["starts_update_entry"];
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/entries/{entry_id}/starts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Starts buchen
+         * @description Bucht `count` Starts im Wettbewerb. Der Betrag (`fee_first_cents` für den ersten Start der Person im Wettbewerb, sonst `fee_repeat_cents`) wird am Start festgeschrieben. Bei Zeitplan optional gleich mit `heat_id` (und `lane`).
+         */
+        post: operations["starts_book_starts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/starts/{start_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Start stornieren (nur angemeldet) */
+        delete: operations["starts_cancel_start"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/starts/{start_id}/abort": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start abbrechen (dns, dnf, dsq) */
+        post: operations["starts_abort_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/ranges/{range_id}/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reihenfolge eines Stands
+         * @description Wartende Starts in ihrer Reihenfolge und die aufgerufenen Starts je Bahn.
+         */
+        get: operations["starts_get_queue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/starts/{start_id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start in der Reihenfolge verschieben */
+        post: operations["starts_move_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/starts/{start_id}/call": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start aufrufen
+         * @description Reihenfolge: auf `lane` oder die erste freie Bahn. Zeitplan: auf die Bahn des Durchgangs. Eine Bahn trägt nur einen aufgerufenen Start, eine Person steht nur auf einer Bahn.
+         */
+        post: operations["starts_call_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/starts/{start_id}/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Aufgerufenen Start zurückstellen
+         * @description Die Bahn wird frei. Bei der Reihenfolge kommt der Start vorn (`front`) oder hinten (`back`) wieder in die Warteschlange; im Zeitplan behält er seinen Platz.
+         */
+        post: operations["starts_return_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/ranges/{range_id}/call-next": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Nächste aufrufen
+         * @description Füllt alle freien Bahnen des Stands der Reihe nach aus der Reihenfolge. Wer schon auf einer Bahn steht, wird übersprungen. Antwort: die aufgerufenen Starts.
+         */
+        post: operations["starts_call_next"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/ranges/{range_id}/heats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Durchgänge eines Stands */
+        get: operations["starts_list_heats"];
+        put?: never;
+        /** Durchgang anlegen */
+        post: operations["starts_create_heat"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/ranges/{range_id}/heats/series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Durchgänge als Serie anlegen
+         * @description `count` Durchgänge ab `starts_at`, lückenlos hintereinander, je `heat_minutes` des Wettbewerbs lang (die Wechselzeit ist darin enthalten).
+         */
+        post: operations["starts_create_series"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/ranges/{range_id}/heats/{heat_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Durchgang löschen (nur ohne Starts) */
+        delete: operations["starts_delete_heat"];
+        options?: never;
+        head?: never;
+        /** Durchgang ändern */
+        patch: operations["starts_update_heat"];
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/ranges/{range_id}/heats/{heat_id}/call": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Durchgang aufrufen
+         * @description Ruft alle wartenden Starts des Durchgangs auf ihre Bahnen – alle oder keinen.
+         */
+        post: operations["starts_call_heat"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/starts/{start_id}/slot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Start einem Durchgang und einer Bahn zuweisen */
+        put: operations["starts_assign_slot"];
+        post?: never;
+        /** Start aus dem Durchgang nehmen */
+        delete: operations["starts_clear_slot"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/competitions/{competition_id}/next-slot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Nächster freier Platz (Vorschlag)
+         * @description Frühester Durchgang ab `after` (Standard: jetzt) mit freier Bahn auf dem Stand des Wettbewerbs. Mit `entry_id` ohne Überschneidung mit den übrigen Durchgängen der Person. `null`, wenn es keinen freien Platz gibt.
+         */
+        get: operations["starts_next_slot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/startlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Startliste
+         * @description Alle Starts, wahlweise eines Wettbewerbs oder Stands. Namen nur nach der Anzeige-Einstellung der Person, der Verein nur mit `show_club`.
+         */
+        get: operations["starts_get_startlist"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/ranges/{range_id}/now": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Am Stand und als Nächstes
+         * @description Aufgerufene Starts je Bahn, der nächste Durchgang mit seinen Starts und die nächsten Wartenden der Reihenfolge. Namen nur nach der Anzeige-Einstellung der Person.
+         */
+        get: operations["starts_get_range_now"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/starts/{start_id}/form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Eingabemaske eines Starts
+         * @description Maske für die aktuelle Definition des Wettbewerbs, Kopf des Starts (mit `result.capture` voller Name, sonst nach Anzeige-Einstellung), aktueller Rohwert und Zwischenstand. `capture_mode` wählt nur die Darstellung (Einzelschuss oder Seriensumme); ohne Angabe gilt die des Wettbewerbs. Rohwerte dürfen beides enthalten und werden gleich gewertet.
+         */
+        get: operations["ergebnisse_get_form"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/starts/{start_id}/raw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Rohwerte erfassen
+         * @description Ersetzt den Rohwert-Stand eines offenen Starts (Zwischenstand erlaubt). Der Start wird dabei „erfasst“. Antwort: neuer Stand mit Wertung und Rechenweg. Fehlerhafte Rohwerte: 422 mit Pfad und Meldung je Fehler.
+         */
+        put: operations["ergebnisse_put_raw"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/starts/{start_id}/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ergebnis abschließen
+         * @description Verlangt vollständige Rohwerte (sonst 422 mit der Liste). Der Start wird „abgeschlossen“; bis `provisional_until` (Einspruchsfrist des Turniers) gilt das Ergebnis als vorläufig.
+         */
+        post: operations["ergebnisse_finalize"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/starts/{start_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Abschluss zurücknehmen (mit Grund) */
+        post: operations["ergebnisse_reopen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/starts/{start_id}/correct": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Abgeschlossenes Ergebnis korrigieren (mit Grund)
+         * @description Ersetzt die Rohwerte eines abgeschlossenen Ergebnisses; es bleibt abgeschlossen, die Einspruchsfrist beginnt neu.
+         */
+        post: operations["ergebnisse_correct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/starts/{start_id}/result/abort": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start mit Ergebnis-Ereignis abbrechen (dns, dnf, dsq)
+         * @description Wie `POST …/starts/{start_id}/abort` des Moduls `starts`, schreibt aber zusätzlich ein Ereignis `aborted` (mit optionalem Grund) ins Ergebnisprotokoll. Vorhandene Rohwerte bleiben erhalten.
+         */
+        post: operations["ergebnisse_abort"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/starts/{start_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Verlauf eines Ergebnisses
+         * @description Alle Ereignisse: wer, wann, was, Grund und Unterschied zum vorigen Rohwert.
+         */
+        get: operations["ergebnisse_list_events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/competitions/{competition_id}/recompute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ergebnisse eines Wettbewerbs neu berechnen
+         * @description Baut den aktuellen Stand aller Starts aus den Ereignissen und der aktuellen Definition neu auf. Läuft bei jeder Änderung der Wertung automatisch.
+         */
+        post: operations["ergebnisse_recompute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/results/needs-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Zu prüfende Ergebnisse
+         * @description Ergebnisse, die nach einer Änderung der Wertung unvollständig oder nicht wertbar sind.
+         */
+        get: operations["ergebnisse_needs_review"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/competitions/{competition_id}/ranking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Rangliste eines Wettbewerbs
+         * @description Platzierungen je Klasse (bei gemeinsamer Wertung eine Gruppe). `scope=live` nimmt laufende Zwischenstände auf (`status: running`). `merged=true` legt Klassen über `merge_into_id` zusammen. Namen nur nach Anzeige-Einstellung der Person.
+         */
+        get: operations["ergebnisse_get_ranking"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/ranking-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stand aller Wettbewerbe
+         * @description Je Wettbewerb: Starts je Status, zu prüfende, vorläufige und die Führenden.
+         */
+        get: operations["ergebnisse_get_ranking_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/auth/status": {
@@ -989,6 +1658,24 @@ export interface components {
             /** Varianten */
             varianten: components["schemas"]["Variante"][];
         };
+        /** AbortRequest */
+        AbortRequest: {
+            /**
+             * Abort Reason
+             * @enum {string}
+             */
+            abort_reason: "dns" | "dnf" | "dsq";
+        };
+        /** AbortResultRequest */
+        AbortResultRequest: {
+            /**
+             * Abort Reason
+             * @enum {string}
+             */
+            abort_reason: "dns" | "dnf" | "dsq";
+            /** Reason */
+            reason?: string | null;
+        };
         /** Abschnitt */
         Abschnitt: {
             /** Id */
@@ -1035,6 +1722,80 @@ export interface components {
             serien_gewertet?: number | null;
             /** Trefferaufnahme Nach */
             trefferaufnahme_nach?: number[] | null;
+        };
+        /**
+         * Announcement
+         * @description Ausschreibung eines Turniers. Ohne `title` zeigt das Frontend „Ausschreibung <Name>“.
+         */
+        Announcement: {
+            /** Title */
+            title?: string | null;
+            /** @default {} */
+            facts: components["schemas"]["AnnouncementFacts"];
+            /**
+             * Blocks
+             * @default []
+             */
+            blocks: components["schemas"]["AnnouncementBlock"][];
+        };
+        /**
+         * AnnouncementBlock
+         * @description Ein Abschnitt. `text`: Freitext in `body`. Sonst ein automatischer Baustein, dessen Inhalt
+         *     aus den Turnierdaten kommt; `body` ist dann ein optionaler Zusatztext.
+         */
+        AnnouncementBlock: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "text" | "competitions" | "classes" | "fees" | "dates" | "ranges";
+            /**
+             * Heading
+             * @default
+             */
+            heading: string;
+            /**
+             * Body
+             * @default
+             */
+            body: string;
+            /**
+             * Visible
+             * @default true
+             */
+            visible: boolean;
+        };
+        /**
+         * AnnouncementDocument
+         * @description Fertig zusammengesetzte Ausschreibung zum Drucken. Ohne Personendaten.
+         */
+        AnnouncementDocument: {
+            /** Title */
+            title: string;
+            tournament: components["schemas"]["DocumentTournament"];
+            facts: components["schemas"]["AnnouncementFacts"];
+            /** Blocks */
+            blocks: components["schemas"]["DocumentBlock"][];
+        };
+        /**
+         * AnnouncementFacts
+         * @description Eckdaten der Ausschreibung, alles freiwillig.
+         */
+        AnnouncementFacts: {
+            /** Venue */
+            venue?: string | null;
+            /** Address */
+            address?: string | null;
+            /** Registration Deadline */
+            registration_deadline?: string | null;
+            /** Registration Info */
+            registration_info?: string | null;
+            /** Contact Name */
+            contact_name?: string | null;
+            /** Contact Info */
+            contact_info?: string | null;
         };
         /** Anschlag */
         Anschlag: {
@@ -1139,6 +1900,37 @@ export interface components {
             warning: components["schemas"]["WarningOut"] | null;
             /** Passphrase Set */
             passphrase_set: boolean;
+        };
+        /** CallRequest */
+        CallRequest: {
+            /** Lane */
+            lane?: number | null;
+        };
+        /**
+         * CatalogDiffOut
+         * @description Vergleich der aktuellen Definition mit der Katalog-Variante, aus der sie stammt.
+         */
+        CatalogDiffOut: {
+            /** Deviates */
+            deviates: boolean;
+            /** Federation */
+            federation?: string | null;
+            /** Code */
+            code?: string | null;
+            /** Variant Id */
+            variant_id?: string | null;
+            /** Catalog Stand */
+            catalog_stand?: string | null;
+            /**
+             * Catalog Available
+             * @default false
+             */
+            catalog_available: boolean;
+            /**
+             * Differences
+             * @default []
+             */
+            differences: components["schemas"]["DeviationOut"][];
         };
         /** ClassCreate */
         ClassCreate: {
@@ -1346,6 +2138,25 @@ export interface components {
             heat_minutes: number | null;
             /** Changeover Minutes */
             changeover_minutes: number;
+            /** Definition Revision */
+            definition_revision: number;
+        };
+        /** CompetitionSummary */
+        CompetitionSummary: {
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Competition Name */
+            competition_name: string;
+            counts: components["schemas"]["StatusCounts"];
+            /** Needs Review */
+            needs_review: number;
+            /** Provisional */
+            provisional: number;
+            /** Leaders */
+            leaders: components["schemas"]["LeaderOut"][];
         };
         /** CompetitionUpdate */
         CompetitionUpdate: {
@@ -1378,11 +2189,71 @@ export interface components {
             /** Changeover Minutes */
             changeover_minutes?: number | null;
             definition?: components["schemas"]["CompetitionDefinition"] | null;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** ComputedResult */
+        ComputedResult: {
+            /** Model */
+            model: string;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "absteigend" | "aufsteigend";
+            /** Unit */
+            unit: string;
+            /** Score */
+            score: string;
+            /** Score Text */
+            score_text: string;
+            /** Complete */
+            complete: boolean;
+            /** Rings */
+            rings: number | null;
+            /** Tens */
+            tens: number | null;
+            /** Inner Tens */
+            inner_tens: number | null;
+            /** Ring Counts */
+            ring_counts: {
+                [key: string]: number;
+            } | null;
+            /** Time Cs */
+            time_cs: number | null;
+            /** Penalty Cs */
+            penalty_cs: number | null;
+            /** Deduction */
+            deduction: string | null;
+            /** Parcours Time Cs */
+            parcours_time_cs: number | null;
+            /** Tie Breakers Missing */
+            tie_breakers_missing: string[];
+            /** Sections */
+            sections: components["schemas"]["SectionResult"][];
+            progress: components["schemas"]["Progress"];
+            /** Steps */
+            steps: string[];
+            /** Warnings */
+            warnings: components["schemas"]["Issue"][];
+        };
+        /** CorrectRequest */
+        CorrectRequest: {
+            /** Raw */
+            raw: {
+                [key: string]: unknown;
+            };
+            /** Reason */
+            reason: string;
+            /** Base Seq */
+            base_seq: number;
         };
         /** DefinitionReset */
         DefinitionReset: {
             /** Variant Id */
             variant_id?: string | null;
+            /** Reason */
+            reason?: string | null;
         };
         /**
          * DefinitionSource
@@ -1395,11 +2266,29 @@ export interface components {
             code: string;
             /** Group */
             group: string;
+            /** Variant Id */
+            variant_id?: string | null;
             /**
              * Catalog Stand
              * Format: date
              */
             catalog_stand: string;
+        };
+        /**
+         * DeviationOut
+         * @description Eine Abweichung vom Katalog. Werte im Format der Definition, `null` = nicht gesetzt.
+         */
+        DeviationOut: {
+            /** Path */
+            path: string;
+            /** Catalog Value */
+            catalog_value: unknown;
+            /** Tournament Value */
+            tournament_value: unknown;
+            /** Text */
+            text: string;
+            /** Section Id */
+            section_id?: string | null;
         };
         /** DeviceBrief */
         DeviceBrief: {
@@ -1506,6 +2395,163 @@ export interface components {
             hinweis: string | null;
         };
         /**
+         * DocumentBlock
+         * @description Sichtbarer Baustein. Genau das Feld zur Art (`kind`) ist gefüllt, bei `text` keines.
+         */
+        DocumentBlock: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "text" | "competitions" | "classes" | "fees" | "dates" | "ranges";
+            /** Heading */
+            heading: string;
+            /** Body */
+            body: string;
+            /** Competitions */
+            competitions?: components["schemas"]["DocumentCompetition"][] | null;
+            /** Classes */
+            classes?: components["schemas"]["DocumentClass"][] | null;
+            fees?: components["schemas"]["DocumentFees"] | null;
+            dates?: components["schemas"]["DocumentDates"] | null;
+            /** Ranges */
+            ranges?: components["schemas"]["DocumentRange"][] | null;
+        };
+        /** DocumentClass */
+        DocumentClass: {
+            /** Name */
+            name: string;
+            /** Short */
+            short: string;
+        };
+        /** DocumentCompetition */
+        DocumentCompetition: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Catalog Federation */
+            catalog_federation: string | null;
+            /** Catalog Code */
+            catalog_code: string | null;
+            /** Group */
+            group: string | null;
+            /** Range Name */
+            range_name: string | null;
+            /** Procedure */
+            procedure: string | null;
+            /** Sections */
+            sections: components["schemas"]["DocumentSection"][];
+            /** Multi Start */
+            multi_start: boolean;
+            /** Max Starts */
+            max_starts: number;
+            /**
+             * Multi Start Rule
+             * @enum {string}
+             */
+            multi_start_rule: "best" | "first" | "all";
+            /** Multi Start Text */
+            multi_start_text: string;
+            /** Deviates From Catalog */
+            deviates_from_catalog: boolean;
+            /** Deviations */
+            deviations: string[];
+        };
+        /** DocumentDates */
+        DocumentDates: {
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /** Registration Deadline */
+            registration_deadline: string | null;
+        };
+        /** DocumentFee */
+        DocumentFee: {
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Name */
+            name: string;
+            /** Fee First Cents */
+            fee_first_cents: number;
+            /** Fee Repeat Cents */
+            fee_repeat_cents: number | null;
+        };
+        /** DocumentFees */
+        DocumentFees: {
+            /** Currency */
+            currency: string;
+            /** Items */
+            items: components["schemas"]["DocumentFee"][];
+        };
+        /** DocumentRange */
+        DocumentRange: {
+            /** Name */
+            name: string;
+            /** Lane Count */
+            lane_count: number;
+        };
+        /**
+         * DocumentSection
+         * @description Ein Abschnitt des Ablaufs in Kurzform.
+         */
+        DocumentSection: {
+            /** Name */
+            name: string;
+            /** Serien */
+            serien: number;
+            /** Schuss Je Serie */
+            schuss_je_serie: number | null;
+            /** Serien Gewertet */
+            serien_gewertet: number | null;
+            /** Summary */
+            summary: string;
+        };
+        /** DocumentTournament */
+        DocumentTournament: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Organizer */
+            organizer: string | null;
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "active" | "closed";
+            /** Currency */
+            currency: string;
+        };
+        /**
          * DuplicateOut
          * @description Antwort 409 beim Anlegen: ähnliche Personen im selben Verein.
          */
@@ -1514,6 +2560,224 @@ export interface components {
             detail: string;
             /** Candidates */
             candidates: components["schemas"]["PersonOut"][];
+        };
+        /** EntryCreate */
+        EntryCreate: {
+            /**
+             * Person Id
+             * Format: uuid
+             */
+            person_id: string;
+            /**
+             * Class Id
+             * Format: uuid
+             */
+            class_id: string;
+            /** Start Number */
+            start_number?: number | null;
+        };
+        /** EntryOut */
+        EntryOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Tournament Id
+             * Format: uuid
+             */
+            tournament_id: string;
+            /** Start Number */
+            start_number: number;
+            /**
+             * Class Id
+             * Format: uuid
+             */
+            class_id: string;
+            person: components["schemas"]["EntryPersonOut"];
+            /** Starts */
+            starts: components["schemas"]["StartOut"][];
+            /** Fee Total Cents */
+            fee_total_cents: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** EntryPersonOut */
+        EntryPersonOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Display Name */
+            display_name: string | null;
+            /** Club */
+            club: string | null;
+        };
+        /** EntryUpdate */
+        EntryUpdate: {
+            /** Class Id */
+            class_id?: string | null;
+            /** Start Number */
+            start_number?: number | null;
+        };
+        /** EventOut */
+        EventOut: {
+            /** Seq */
+            seq: number;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "raw_set" | "finalized" | "corrected" | "reopened" | "aborted";
+            /** Type Label */
+            type_label: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** User Id */
+            user_id: string | null;
+            /** User Name */
+            user_name: string | null;
+            /** Device Id */
+            device_id: string | null;
+            /** Device Name */
+            device_name: string | null;
+            /** Reason */
+            reason: string | null;
+            /** Abort Reason */
+            abort_reason: ("dns" | "dnf" | "dsq") | null;
+            /** Provisional Until */
+            provisional_until: string | null;
+            /** Raw */
+            raw: {
+                [key: string]: unknown;
+            } | null;
+            /** Changes */
+            changes: components["schemas"]["RawChangeOut"][];
+        };
+        /** FieldSpec */
+        FieldSpec: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "shots" | "integer" | "time" | "choice";
+            /** Required */
+            required: boolean;
+            /** Options */
+            options?: components["schemas"]["StatusOption"][] | null;
+            /** Count */
+            count?: number | null;
+            /** Allowed Values */
+            allowed_values?: (number | string)[] | null;
+            /** Min */
+            min?: number | null;
+            /** Max */
+            max?: number | null;
+            /** Unit */
+            unit?: string | null;
+        };
+        /** FinalizeRequest */
+        FinalizeRequest: {
+            /** Base Seq */
+            base_seq: number;
+        };
+        /** FormDescription */
+        FormDescription: {
+            /** Variant Id */
+            variant_id: string;
+            /** Variant Name */
+            variant_name: string;
+            /** Model */
+            model: string;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "absteigend" | "aufsteigend";
+            /** Unit */
+            unit: string;
+            /**
+             * Capture Mode
+             * @enum {string}
+             */
+            capture_mode: "shot" | "series";
+            /** Tie Breakers */
+            tie_breakers: string[];
+            /** Sections */
+            sections: components["schemas"]["SectionForm"][];
+            /** Shots Expected */
+            shots_expected: number;
+            /** Series Expected */
+            series_expected: number;
+            /** Max Rings */
+            max_rings: number | null;
+            /** Notes */
+            notes: string[];
+        };
+        /** FormHeader */
+        FormHeader: {
+            /** Start Number */
+            start_number: number;
+            /** Display Name */
+            display_name: string | null;
+            /** Full Name Shown */
+            full_name_shown: boolean;
+            /** Club */
+            club: string | null;
+            /**
+             * Class Id
+             * Format: uuid
+             */
+            class_id: string;
+            /** Class Name */
+            class_name: string;
+            /** Class Short */
+            class_short: string;
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Competition Name */
+            competition_name: string;
+            /** Attempt */
+            attempt: number;
+            /** Attempts Booked */
+            attempts_booked: number;
+            /** Max Starts */
+            max_starts: number;
+            /** Lane */
+            lane: number | null;
+        };
+        /** FormOut */
+        FormOut: {
+            header: components["schemas"]["FormHeader"];
+            /**
+             * Competition Capture Mode
+             * @enum {string}
+             */
+            competition_capture_mode: "shot" | "series";
+            form: components["schemas"]["FormDescription"];
+            current: components["schemas"]["ResultState"];
         };
         /** GruppeOut */
         GruppeOut: {
@@ -1536,10 +2800,15 @@ export interface components {
             /** Geprueft */
             geprueft: boolean;
         };
-        /** HTTPValidationError */
+        /**
+         * HTTPValidationError
+         * @description Antwort bei ungültiger Eingabe (HTTP 422).
+         */
         HTTPValidationError: {
             /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
+            detail: string;
+            /** Errors */
+            errors: components["schemas"]["FieldError"][];
         };
         /** HealthOut */
         HealthOut: {
@@ -1556,6 +2825,77 @@ export interface components {
              */
             db: "ok" | "fehler";
             katalog: components["schemas"]["KatalogStatusOut"] | null;
+        };
+        /** HeatCreate */
+        HeatCreate: {
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Number */
+            number?: number | null;
+        };
+        /** HeatOut */
+        HeatOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Range Id
+             * Format: uuid
+             */
+            range_id: string;
+            /** Number */
+            number: number;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Booked */
+            booked: number;
+            /** Capacity */
+            capacity: number;
+        };
+        /**
+         * HeatSeries
+         * @description Durchgänge hintereinander; Dauer je Durchgang aus `heat_minutes` des Wettbewerbs.
+         */
+        HeatSeries: {
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Count */
+            count: number;
+        };
+        /** HeatUpdate */
+        HeatUpdate: {
+            /** Starts At */
+            starts_at?: string | null;
+            /** Ends At */
+            ends_at?: string | null;
+            /** Number */
+            number?: number | null;
         };
         /** ImportReportOut */
         ImportReportOut: {
@@ -1593,6 +2933,19 @@ export interface components {
              * @constant
              */
             confirm: true;
+        };
+        /**
+         * Issue
+         * @description Ein Fehler oder eine Warnung zu einer Stelle der Rohwerte.
+         *
+         *     `path` folgt dem Aufbau der Rohwerte, zum Beispiel `sections.fallscheibe.series[2].standing`
+         *     (Serien und Schüsse ab 0 gezählt); die Meldung zählt für Menschen ab 1.
+         */
+        Issue: {
+            /** Path */
+            path: string;
+            /** Message */
+            message: string;
         };
         /** JournalStatusOut */
         JournalStatusOut: {
@@ -1648,6 +3001,32 @@ export interface components {
             /** Hinweis */
             hinweis: string | null;
         };
+        /** LaneOut */
+        LaneOut: {
+            /** Lane */
+            lane: number;
+            start: components["schemas"]["StationStartOut"] | null;
+        };
+        /** LeaderOut */
+        LeaderOut: {
+            /** Class Id */
+            class_id: string | null;
+            /** Class Short */
+            class_short: string | null;
+            /** Start Number */
+            start_number: number;
+            /** Display Name */
+            display_name: string | null;
+            /** Club */
+            club: string | null;
+            /** Score Text */
+            score_text: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "provisional" | "final" | "running" | "aborted" | "review";
+        };
         /** LoginIn */
         LoginIn: {
             /**
@@ -1657,6 +3036,22 @@ export interface components {
             user_id: string;
             /** Pin */
             pin: string;
+        };
+        /**
+         * MoveRequest
+         * @description Genau eins von beiden: eine Stelle nach oben/unten oder an eine Position (ab 1).
+         */
+        MoveRequest: {
+            /** Direction */
+            direction?: ("up" | "down") | null;
+            /** Position */
+            position?: number | null;
+        };
+        /** NextSlotOut */
+        NextSlotOut: {
+            heat: components["schemas"]["HeatOut"];
+            /** Lane */
+            lane: number;
         };
         /**
          * Order
@@ -1805,6 +3200,46 @@ export interface components {
             /** Scheibe */
             scheibe?: number | null;
         };
+        /** PositionForm */
+        PositionForm: {
+            /** Nr */
+            nr: number;
+            /** Distance M */
+            distance_m: string | null;
+            /** Target */
+            target: number | null;
+            /** Stances */
+            stances: components["schemas"]["StanceForm"][];
+        };
+        /** Progress */
+        Progress: {
+            /** Shots Entered */
+            shots_entered: number;
+            /** Shots Expected */
+            shots_expected: number;
+            /** Series Complete */
+            series_complete: number;
+            /** Series Expected */
+            series_expected: number;
+            /** Section Times Entered */
+            section_times_entered: number;
+            /** Section Times Expected */
+            section_times_expected: number;
+        };
+        /** QueueOut */
+        QueueOut: {
+            /**
+             * Range Id
+             * Format: uuid
+             */
+            range_id: string;
+            /** Lane Count */
+            lane_count: number;
+            /** Waiting */
+            waiting: components["schemas"]["StationStartOut"][];
+            /** Lanes */
+            lanes: components["schemas"]["LaneOut"][];
+        };
         /** RangeCreate */
         RangeCreate: {
             /** Name */
@@ -1813,6 +3248,26 @@ export interface components {
             lane_count: number;
             /** Sort */
             sort?: number | null;
+        };
+        /**
+         * RangeNowOut
+         * @description „Am Stand“ und „als Nächstes“ für Anzeige und Erfassung.
+         */
+        RangeNowOut: {
+            /**
+             * Range Id
+             * Format: uuid
+             */
+            range_id: string;
+            /** Lane Count */
+            lane_count: number;
+            /** Lanes */
+            lanes: components["schemas"]["LaneOut"][];
+            next_heat: components["schemas"]["HeatOut"] | null;
+            /** Next Heat Starts */
+            next_heat_starts: components["schemas"]["StationStartOut"][];
+            /** Next Queue */
+            next_queue: components["schemas"]["StationStartOut"][];
         };
         /** RangeOut */
         RangeOut: {
@@ -1842,6 +3297,163 @@ export interface components {
             /** Sort */
             sort?: number | null;
         };
+        /** RankingGroup */
+        RankingGroup: {
+            /** Class Id */
+            class_id: string | null;
+            /** Class Name */
+            class_name: string | null;
+            /** Class Short */
+            class_short: string | null;
+            /** Class Ids */
+            class_ids: string[];
+            /** Rows */
+            rows: components["schemas"]["RankingRow"][];
+        };
+        /** RankingOut */
+        RankingOut: {
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Competition Name */
+            competition_name: string;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "final" | "live";
+            /** Include Provisional */
+            include_provisional: boolean;
+            /** Merged */
+            merged: boolean;
+            /** Combined */
+            combined: boolean;
+            /**
+             * Multi Start Rule
+             * @enum {string}
+             */
+            multi_start_rule: "best" | "first" | "all";
+            /** Direction */
+            direction: string | null;
+            /** Unit */
+            unit: string | null;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Groups */
+            groups: components["schemas"]["RankingGroup"][];
+        };
+        /** RankingRow */
+        RankingRow: {
+            /** Place */
+            place: number | null;
+            /** Tied */
+            tied: boolean;
+            /** Tie Unresolved */
+            tie_unresolved: boolean;
+            /**
+             * Group
+             * @enum {string}
+             */
+            group: "ranked" | "last" | "unranked";
+            /**
+             * Start Id
+             * Format: uuid
+             */
+            start_id: string;
+            /**
+             * Entry Id
+             * Format: uuid
+             */
+            entry_id: string;
+            /** Start Number */
+            start_number: number;
+            /** Attempt */
+            attempt: number;
+            /** Display Name */
+            display_name: string | null;
+            /** Club */
+            club: string | null;
+            /**
+             * Class Id
+             * Format: uuid
+             */
+            class_id: string;
+            /** Class Short */
+            class_short: string;
+            /** Score */
+            score: string | null;
+            /** Score Text */
+            score_text: string | null;
+            /** Complete */
+            complete: boolean;
+            /** Tens */
+            tens: number | null;
+            /** Inner Tens */
+            inner_tens: number | null;
+            /** Series */
+            series: components["schemas"]["SeriesPart"][];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "provisional" | "final" | "running" | "aborted" | "review";
+            /** Abort Reason */
+            abort_reason: ("dns" | "dnf" | "dsq") | null;
+            /** Provisional Until */
+            provisional_until: string | null;
+        };
+        /** RankingSummaryOut */
+        RankingSummaryOut: {
+            /**
+             * Tournament Id
+             * Format: uuid
+             */
+            tournament_id: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Competitions */
+            competitions: components["schemas"]["CompetitionSummary"][];
+        };
+        /** RawChangeOut */
+        RawChangeOut: {
+            /** Path */
+            path: string;
+            /** Before */
+            before: unknown;
+            /** After */
+            after: unknown;
+        };
+        /** RawPut */
+        RawPut: {
+            /** Raw */
+            raw: {
+                [key: string]: unknown;
+            };
+            /** Base Seq */
+            base_seq: number;
+        };
+        /** RecomputeOut */
+        RecomputeOut: {
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Definition Revision */
+            definition_revision: number;
+            /** Recomputed */
+            recomputed: number;
+            /** Needs Review */
+            needs_review: number;
+        };
         /** RegelwerkOut */
         RegelwerkOut: {
             /** Name */
@@ -1851,6 +3463,134 @@ export interface components {
              * Format: date
              */
             stand: string;
+        };
+        /** ReopenRequest */
+        ReopenRequest: {
+            /** Reason */
+            reason: string;
+            /** Base Seq */
+            base_seq?: number | null;
+        };
+        /**
+         * ResultState
+         * @description Aktueller Stand eines Starts mit Wertung und Rechenweg (`computed.steps`).
+         */
+        ResultState: {
+            /**
+             * Start Id
+             * Format: uuid
+             */
+            start_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "registered" | "called" | "captured" | "final" | "aborted";
+            /** Abort Reason */
+            abort_reason: ("dns" | "dnf" | "dsq") | null;
+            /** Seq */
+            seq: number;
+            /** Raw */
+            raw: {
+                [key: string]: unknown;
+            };
+            computed: components["schemas"]["ComputedResult"] | null;
+            /** Score */
+            score: string | null;
+            /** Is Final */
+            is_final: boolean;
+            /** Finalized At */
+            finalized_at: string | null;
+            /** Provisional Until */
+            provisional_until: string | null;
+            /** Is Provisional */
+            is_provisional: boolean;
+            /** Needs Review */
+            needs_review: boolean;
+            /** Review Reason */
+            review_reason: string | null;
+            /** Definition Revision */
+            definition_revision: number;
+        };
+        /** ReturnRequest */
+        ReturnRequest: {
+            /**
+             * Position
+             * @default back
+             * @enum {string}
+             */
+            position: "front" | "back";
+        };
+        /** ReviewItemOut */
+        ReviewItemOut: {
+            /**
+             * Start Id
+             * Format: uuid
+             */
+            start_id: string;
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Competition Name */
+            competition_name: string;
+            /** Start Number */
+            start_number: number;
+            /** Display Name */
+            display_name: string | null;
+            /** Attempt */
+            attempt: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "registered" | "called" | "captured" | "final" | "aborted";
+            /** Review Reason */
+            review_reason: string;
+            /** Definition Revision */
+            definition_revision: number;
+        };
+        /**
+         * RevisionOut
+         * @description Stand der wertungsrelevanten Felder eines Wettbewerbs nach einer Änderung.
+         */
+        RevisionOut: {
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Revision */
+            revision: number;
+            definition: components["schemas"]["CompetitionDefinition"];
+            /**
+             * Capture Mode
+             * @enum {string}
+             */
+            capture_mode: "shot" | "series";
+            /** Multi Start */
+            multi_start: boolean;
+            /** Max Starts */
+            max_starts: number;
+            /**
+             * Multi Start Rule
+             * @enum {string}
+             */
+            multi_start_rule: "best" | "first" | "all";
+            /** Combined Ranking */
+            combined_ranking: boolean;
+            /** Changed By */
+            changed_by: string | null;
+            /** Device Id */
+            device_id: string | null;
+            /** Reason */
+            reason: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** RoleBrief */
         RoleBrief: {
@@ -1935,6 +3675,160 @@ export interface components {
             /** Error */
             error: string | null;
         };
+        /** SectionForm */
+        SectionForm: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Path */
+            path: string;
+            /** Fields */
+            fields: components["schemas"]["FieldSpec"][];
+            /** Series */
+            series: components["schemas"]["SeriesForm"][];
+            /** Series Counted */
+            series_counted: number;
+            /** Targets */
+            targets: number | null;
+            /** Max Shots Per Series */
+            max_shots_per_series: number | null;
+            /** Penalty Per Standing S */
+            penalty_per_standing_s: string | null;
+            /** Target Time S */
+            target_time_s: string | null;
+            /** Max Total Time S */
+            max_total_time_s: string | null;
+            /** Time Per Shot S */
+            time_per_shot_s: string | null;
+            /** Pause Between Shots S */
+            pause_between_shots_s: string | null;
+            /** Max Rings */
+            max_rings: number | null;
+            /** Hints */
+            hints: string[];
+        };
+        /** SectionResult */
+        SectionResult: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Complete */
+            complete: boolean;
+            /** Rings */
+            rings: number | null;
+            /** Time Cs */
+            time_cs: number | null;
+            /** Penalty Cs */
+            penalty_cs: number | null;
+            /** Overtime S */
+            overtime_s: number | null;
+            /** Deduction */
+            deduction: string | null;
+            /** Subtotal */
+            subtotal: string;
+            /** Result */
+            result: string;
+            /** Floored */
+            floored: boolean;
+            /** Series */
+            series: components["schemas"]["SeriesResult"][];
+        };
+        /**
+         * SeqConflictOut
+         * @description HTTP 409: Ein anderes Gerät hat inzwischen erfasst. Nichts wurde geschrieben.
+         */
+        SeqConflictOut: {
+            /** Detail */
+            detail: string;
+            current: components["schemas"]["ResultState"];
+        };
+        /** SeriesForm */
+        SeriesForm: {
+            /** Index */
+            index: number;
+            /** Number */
+            number: number;
+            /** Label */
+            label: string;
+            /** Path */
+            path: string;
+            /** Fields */
+            fields: components["schemas"]["FieldSpec"][];
+            /** Shots */
+            shots: number | null;
+            /** Distance M */
+            distance_m: string | null;
+            /** Time Limit S */
+            time_limit_s: string | null;
+            /** Max Time S */
+            max_time_s: string | null;
+            position: components["schemas"]["PositionForm"] | null;
+            /** Struck */
+            struck: boolean;
+            /** Scoring Break After */
+            scoring_break_after: boolean;
+            /** Max Rings */
+            max_rings: number | null;
+            /** Hints */
+            hints: string[];
+        };
+        /** SeriesPart */
+        SeriesPart: {
+            /** Section Id */
+            section_id: string;
+            /** Number */
+            number: number;
+            /** Struck */
+            struck: boolean;
+            /** Status */
+            status: string;
+            /** Rings */
+            rings: number | null;
+            /** Time Cs */
+            time_cs: number | null;
+            /** Standing */
+            standing: number | null;
+            /** Total Cs */
+            total_cs: number | null;
+        };
+        /** SeriesResult */
+        SeriesResult: {
+            /** Number */
+            number: number;
+            /** Struck */
+            struck: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "normal" | "unfinished" | "time_limit" | "aborted_by_shooter" | "malfunction_before_first_shot";
+            /** Captured */
+            captured: boolean;
+            /** Complete */
+            complete: boolean;
+            /** Shots Entered */
+            shots_entered: number;
+            /** Shots Expected */
+            shots_expected: number;
+            /** Rings */
+            rings: number | null;
+            /** Tens */
+            tens: number | null;
+            /** Inner Tens */
+            inner_tens: number | null;
+            /** Measured Time Cs */
+            measured_time_cs: number | null;
+            /** Time Cs */
+            time_cs: number | null;
+            /** Standing */
+            standing: number | null;
+            /** Penalty Cs */
+            penalty_cs: number | null;
+            /** Total Cs */
+            total_cs: number | null;
+        };
         /** SetupIn */
         SetupIn: {
             /** Name */
@@ -1944,6 +3838,144 @@ export interface components {
             /** Device Name */
             device_name: string;
         };
+        /** SlotRequest */
+        SlotRequest: {
+            /**
+             * Heat Id
+             * Format: uuid
+             */
+            heat_id: string;
+            /** Lane */
+            lane?: number | null;
+        };
+        /** StanceForm */
+        StanceForm: {
+            /** Haltung */
+            haltung: string;
+            /** Hand */
+            hand: string | null;
+            /** Text */
+            text: string;
+        };
+        /** StartBooking */
+        StartBooking: {
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /**
+             * Count
+             * @default 1
+             */
+            count: number;
+            /** Heat Id */
+            heat_id?: string | null;
+            /** Lane */
+            lane?: number | null;
+        };
+        /** StartOut */
+        StartOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Entry Id
+             * Format: uuid
+             */
+            entry_id: string;
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Attempt */
+            attempt: number;
+            /** Fee Cents */
+            fee_cents: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "registered" | "called" | "captured" | "final" | "aborted";
+            /** Abort Reason */
+            abort_reason: ("dns" | "dnf" | "dsq") | null;
+            /** Queue Position */
+            queue_position: number | null;
+            /** Heat Id */
+            heat_id: string | null;
+            /** Lane */
+            lane: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * StationStartOut
+         * @description Ein Start in Startliste, Reihenfolge und Standanzeige. Nie mit vollem Namen.
+         */
+        StationStartOut: {
+            /**
+             * Start Id
+             * Format: uuid
+             */
+            start_id: string;
+            /**
+             * Entry Id
+             * Format: uuid
+             */
+            entry_id: string;
+            /** Start Number */
+            start_number: number;
+            /** Display Name */
+            display_name: string | null;
+            /** Club */
+            club: string | null;
+            /**
+             * Class Id
+             * Format: uuid
+             */
+            class_id: string;
+            /** Class Short */
+            class_short: string;
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Competition Name */
+            competition_name: string;
+            /** Range Id */
+            range_id: string | null;
+            /** Attempt */
+            attempt: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "registered" | "called" | "captured" | "final" | "aborted";
+            /** Abort Reason */
+            abort_reason: ("dns" | "dnf" | "dsq") | null;
+            /** Queue Position */
+            queue_position: number | null;
+            /** Lane */
+            lane: number | null;
+            /** Heat Id */
+            heat_id: string | null;
+            /** Heat Number */
+            heat_number: number | null;
+            /** Heat Starts At */
+            heat_starts_at: string | null;
+        };
         /** StatusChange */
         StatusChange: {
             /**
@@ -1951,6 +3983,49 @@ export interface components {
              * @enum {string}
              */
             status: "draft" | "active" | "closed";
+        };
+        /** StatusCounts */
+        StatusCounts: {
+            /**
+             * Registered
+             * @default 0
+             */
+            registered: number;
+            /**
+             * Called
+             * @default 0
+             */
+            called: number;
+            /**
+             * Captured
+             * @default 0
+             */
+            captured: number;
+            /**
+             * Final
+             * @default 0
+             */
+            final: number;
+            /**
+             * Aborted
+             * @default 0
+             */
+            aborted: number;
+        };
+        /**
+         * StatusOption
+         * @description Ein möglicher Ablauf der Serie und die Felder, die er verlangt.
+         */
+        StatusOption: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "normal" | "unfinished" | "time_limit" | "aborted_by_shooter" | "malfunction_before_first_shot";
+            /** Label */
+            label: string;
+            /** Required Fields */
+            required_fields: string[];
         };
         /** StatusOut */
         StatusOut: {
@@ -2127,6 +4202,11 @@ export interface components {
              */
             default_capture_mode: "shot" | "series";
             /**
+             * First Start Number
+             * @default 1
+             */
+            first_start_number: number;
+            /**
              * Display
              * @default {}
              */
@@ -2157,6 +4237,8 @@ export interface components {
             default_changeover_minutes?: number | null;
             /** Default Capture Mode */
             default_capture_mode?: ("shot" | "series") | null;
+            /** First Start Number */
+            first_start_number?: number | null;
             /** Display */
             display?: {
                 [key: string]: unknown;
@@ -2239,19 +4321,6 @@ export interface components {
             role_id?: string | null;
             /** Active */
             active?: boolean | null;
-        };
-        /** ValidationError */
-        ValidationError: {
-            /** Location */
-            loc: (string | number)[];
-            /** Message */
-            msg: string;
-            /** Error Type */
-            type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
         };
         /** Variante */
         Variante: {
@@ -2350,6 +4419,16 @@ export interface components {
             zeit_rundung?: "summe_abrunden" | null;
             /** Unbeendete Serie */
             unbeendete_serie?: "ringe_bis_dahin_zeit_letzter_schuss" | null;
+        };
+        /**
+         * FieldError
+         * @description Ein Fehler für ein Formular: Pfad des Felds und deutscher Teilsatz.
+         */
+        FieldError: {
+            /** Field */
+            field: string | null;
+            /** Message */
+            message: string;
         };
     };
     responses: never;
@@ -2839,6 +4918,131 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TournamentOverview"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_get_announcement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Announcement"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_put_announcement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Announcement"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Announcement"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_get_announcement_document: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnouncementDocument"];
                 };
             };
             /** @description Nicht gefunden */
@@ -3765,6 +5969,124 @@ export interface operations {
             };
         };
     };
+    turnier_list_revisions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                competition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevisionOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_get_revision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                competition_id: string;
+                revision: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevisionOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_get_catalog_diff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                competition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogDiffOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     teilnehmer_list_clubs: {
         parameters: {
             query?: never;
@@ -4267,6 +6589,1638 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    starts_list_entries: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                class_id?: string | null;
+            };
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_create_entry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_get_entry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_delete_entry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_update_entry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntryUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_book_starts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartBooking"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_cancel_start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                start_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_abort_start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                start_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AbortRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_get_queue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                range_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_move_start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                start_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_call_start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                start_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CallRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_return_start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                start_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ReturnRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_call_next: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                range_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_list_heats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                range_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HeatOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_create_heat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                range_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HeatCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HeatOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_create_series: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                range_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HeatSeries"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HeatOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_delete_heat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                range_id: string;
+                heat_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_update_heat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                range_id: string;
+                heat_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HeatUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HeatOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_call_heat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                range_id: string;
+                heat_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_assign_slot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                start_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SlotRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_clear_slot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                start_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_next_slot: {
+        parameters: {
+            query?: {
+                entry_id?: string | null;
+                after?: string | null;
+            };
+            header?: never;
+            path: {
+                tournament_id: string;
+                competition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NextSlotOut"] | null;
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_get_startlist: {
+        parameters: {
+            query?: {
+                competition_id?: string | null;
+                range_id?: string | null;
+            };
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StationStartOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_get_range_now: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                range_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RangeNowOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ergebnisse_get_form: {
+        parameters: {
+            query?: {
+                capture_mode?: ("shot" | "series") | null;
+            };
+            header?: never;
+            path: {
+                tournament_id: string;
+                start_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich. Bei veraltetem `base_seq` mit dem aktuellen Stand in `current`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeqConflictOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ergebnisse_put_raw: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Beliebiger eindeutiger Schlüssel je Vorgang, z. B. eine UUID des Clients. */
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                tournament_id: string;
+                start_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RawPut"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultState"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich. Bei veraltetem `base_seq` mit dem aktuellen Stand in `current`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeqConflictOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ergebnisse_finalize: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Beliebiger eindeutiger Schlüssel je Vorgang, z. B. eine UUID des Clients. */
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                tournament_id: string;
+                start_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinalizeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultState"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich. Bei veraltetem `base_seq` mit dem aktuellen Stand in `current`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeqConflictOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ergebnisse_reopen: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Beliebiger eindeutiger Schlüssel je Vorgang, z. B. eine UUID des Clients. */
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                tournament_id: string;
+                start_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReopenRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultState"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich. Bei veraltetem `base_seq` mit dem aktuellen Stand in `current`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeqConflictOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ergebnisse_correct: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Beliebiger eindeutiger Schlüssel je Vorgang, z. B. eine UUID des Clients. */
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                tournament_id: string;
+                start_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CorrectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultState"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich. Bei veraltetem `base_seq` mit dem aktuellen Stand in `current`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeqConflictOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ergebnisse_abort: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Beliebiger eindeutiger Schlüssel je Vorgang, z. B. eine UUID des Clients. */
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                tournament_id: string;
+                start_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AbortResultRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultState"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich. Bei veraltetem `base_seq` mit dem aktuellen Stand in `current`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeqConflictOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ergebnisse_list_events: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                start_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ergebnisse_recompute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                competition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecomputeOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ergebnisse_needs_review: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewItemOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ergebnisse_get_ranking: {
+        parameters: {
+            query?: {
+                class_id?: string | null;
+                include_provisional?: boolean;
+                scope?: "final" | "live";
+                merged?: boolean;
+            };
+            header?: never;
+            path: {
+                tournament_id: string;
+                competition_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RankingOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ergebnisse_get_ranking_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RankingSummaryOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

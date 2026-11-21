@@ -17,9 +17,11 @@ wertung:
   min_teilergebnis: 0
   gleichstand: ["zehner", "innenzehner", "neuner_abwaerts"]
   geprueft: true
+# Abläufe je Waffe getrennt: Pistolen nur Variante 1 und 2-Pistole, Revolver nur Variante 1 und 2-Revolver (K 4.07/4.08);
+# "Pistole oder Revolver" behält alle drei.
 ablaeufe:
   mehrdistanz-40:
-    beschreibung: "40 Schuss: Fertigkeit stehend, je 5 Schuss in 10 s – Pos. 1 5 m schwache Hand, Pos. 2 10 m starke Hand, Pos. 3 15 m beidhändig, Pos. 4 20 m beidhändig; Parcours auf Zeit, je 5 Schuss auf eine eigene Scheibe (1.–4. von links) – Pos. 5 20 m stehend beidhändig, Pos. 6 15 m kniend beidhändig oder stehend einhändig schwache Hand, Pos. 7 10 m stehend beidhändig, Pos. 8 5 m stehend einhändig; Sollzeit je Parcours-Variante"
+    beschreibung: "40 Schuss: Fertigkeit stehend, je 5 Schuss in 10 s – Pos. 1 5 m schwache Hand, Pos. 2 10 m starke Hand, Pos. 3 15 m beidhändig, Pos. 4 20 m beidhändig; Parcours auf Zeit, je 5 Schuss auf eine eigene Scheibe (1.–4. von links) – Pos. 5 20 m stehend beidhändig, Pos. 6 15 m kniend beidhändig oder stehend einhändig schwache Hand, Pos. 7 10 m stehend beidhändig, Pos. 8 5 m stehend einhändig; Sollzeit je Parcours-Variante (Pistole oder Revolver)"
     varianten:
       - id: "variante-1"
         name: "Parcours-Variante 1 (1 Magazin / ohne Ladehilfen)"
@@ -195,6 +197,244 @@ ablaeufe:
             zeit_wird_gemessen: true
             sollzeit_s: 70
             max_gesamtzeit_s: 140
+  mehrdistanz-40-pistole:
+    beschreibung: "40 Schuss: Fertigkeit stehend, je 5 Schuss in 10 s – Pos. 1 5 m schwache Hand, Pos. 2 10 m starke Hand, Pos. 3 15 m beidhändig, Pos. 4 20 m beidhändig; Parcours auf Zeit, je 5 Schuss auf eine eigene Scheibe (1.–4. von links) – Pos. 5 20 m stehend beidhändig, Pos. 6 15 m kniend beidhändig oder stehend einhändig schwache Hand, Pos. 7 10 m stehend beidhändig, Pos. 8 5 m stehend einhändig; Sollzeit je Parcours-Variante (Pistole)"
+    varianten:
+      - id: "variante-1"
+        name: "Parcours-Variante 1 (1 Magazin / ohne Ladehilfen)"
+        abschnitte:
+          - id: "fertigkeit"
+            name: "Fertigkeit"
+            serien: 4
+            trefferaufnahme_nach: [2, 4]
+            schuss_je_serie: 5
+            zeit_je_serie_s: 10
+            distanzen_m: [5, 10, 15, 20]
+            positionen:
+              - nr: 1
+                distanz_m: 5
+                anschlaege:
+                  - { haltung: "stehend", hand: "schwache_hand" }
+              - nr: 2
+                distanz_m: 10
+                anschlaege:
+                  - { haltung: "stehend", hand: "starke_hand" }
+              - nr: 3
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+              - nr: 4
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+          - id: "parcours"
+            name: "Parcours"
+            serien: 4
+            trefferaufnahme_nach: [4]
+            schuss_je_serie: 5
+            distanzen_m: [20, 15, 10, 5]
+            positionen:
+              - nr: 5
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+                scheibe: 1
+              - nr: 6
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "kniend", hand: "beidhaendig" }
+                  - { haltung: "stehend", hand: "schwache_hand" }
+                scheibe: 2
+              - nr: 7
+                distanz_m: 10
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+                scheibe: 3
+              - nr: 8
+                distanz_m: 5
+                anschlaege:
+                  - { haltung: "stehend", hand: "einhaendig" }
+                scheibe: 4
+            zeit_wird_gemessen: true
+            sollzeit_s: 80
+            max_gesamtzeit_s: 160
+      - id: "variante-2-pistole"
+        name: "Parcours-Variante 2, Pistole (4 Magazine)"
+        abschnitte:
+          - id: "fertigkeit"
+            name: "Fertigkeit"
+            serien: 4
+            trefferaufnahme_nach: [2, 4]
+            schuss_je_serie: 5
+            zeit_je_serie_s: 10
+            distanzen_m: [5, 10, 15, 20]
+            positionen:
+              - nr: 1
+                distanz_m: 5
+                anschlaege:
+                  - { haltung: "stehend", hand: "schwache_hand" }
+              - nr: 2
+                distanz_m: 10
+                anschlaege:
+                  - { haltung: "stehend", hand: "starke_hand" }
+              - nr: 3
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+              - nr: 4
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+          - id: "parcours"
+            name: "Parcours"
+            serien: 4
+            trefferaufnahme_nach: [4]
+            schuss_je_serie: 5
+            distanzen_m: [20, 15, 10, 5]
+            positionen:
+              - nr: 5
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+                scheibe: 1
+              - nr: 6
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "kniend", hand: "beidhaendig" }
+                  - { haltung: "stehend", hand: "schwache_hand" }
+                scheibe: 2
+              - nr: 7
+                distanz_m: 10
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+                scheibe: 3
+              - nr: 8
+                distanz_m: 5
+                anschlaege:
+                  - { haltung: "stehend", hand: "einhaendig" }
+                scheibe: 4
+            zeit_wird_gemessen: true
+            sollzeit_s: 60
+            max_gesamtzeit_s: 120
+  mehrdistanz-40-revolver:
+    beschreibung: "40 Schuss: Fertigkeit stehend, je 5 Schuss in 10 s – Pos. 1 5 m schwache Hand, Pos. 2 10 m starke Hand, Pos. 3 15 m beidhändig, Pos. 4 20 m beidhändig; Parcours auf Zeit, je 5 Schuss auf eine eigene Scheibe (1.–4. von links) – Pos. 5 20 m stehend beidhändig, Pos. 6 15 m kniend beidhändig oder stehend einhändig schwache Hand, Pos. 7 10 m stehend beidhändig, Pos. 8 5 m stehend einhändig; Sollzeit je Parcours-Variante (Revolver)"
+    varianten:
+      - id: "variante-1"
+        name: "Parcours-Variante 1 (1 Magazin / ohne Ladehilfen)"
+        abschnitte:
+          - id: "fertigkeit"
+            name: "Fertigkeit"
+            serien: 4
+            trefferaufnahme_nach: [2, 4]
+            schuss_je_serie: 5
+            zeit_je_serie_s: 10
+            distanzen_m: [5, 10, 15, 20]
+            positionen:
+              - nr: 1
+                distanz_m: 5
+                anschlaege:
+                  - { haltung: "stehend", hand: "schwache_hand" }
+              - nr: 2
+                distanz_m: 10
+                anschlaege:
+                  - { haltung: "stehend", hand: "starke_hand" }
+              - nr: 3
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+              - nr: 4
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+          - id: "parcours"
+            name: "Parcours"
+            serien: 4
+            trefferaufnahme_nach: [4]
+            schuss_je_serie: 5
+            distanzen_m: [20, 15, 10, 5]
+            positionen:
+              - nr: 5
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+                scheibe: 1
+              - nr: 6
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "kniend", hand: "beidhaendig" }
+                  - { haltung: "stehend", hand: "schwache_hand" }
+                scheibe: 2
+              - nr: 7
+                distanz_m: 10
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+                scheibe: 3
+              - nr: 8
+                distanz_m: 5
+                anschlaege:
+                  - { haltung: "stehend", hand: "einhaendig" }
+                scheibe: 4
+            zeit_wird_gemessen: true
+            sollzeit_s: 80
+            max_gesamtzeit_s: 160
+      - id: "variante-2-revolver"
+        name: "Parcours-Variante 2, Revolver (4 Speedloader/Ladeclips)"
+        abschnitte:
+          - id: "fertigkeit"
+            name: "Fertigkeit"
+            serien: 4
+            trefferaufnahme_nach: [2, 4]
+            schuss_je_serie: 5
+            zeit_je_serie_s: 10
+            distanzen_m: [5, 10, 15, 20]
+            positionen:
+              - nr: 1
+                distanz_m: 5
+                anschlaege:
+                  - { haltung: "stehend", hand: "schwache_hand" }
+              - nr: 2
+                distanz_m: 10
+                anschlaege:
+                  - { haltung: "stehend", hand: "starke_hand" }
+              - nr: 3
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+              - nr: 4
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+          - id: "parcours"
+            name: "Parcours"
+            serien: 4
+            trefferaufnahme_nach: [4]
+            schuss_je_serie: 5
+            distanzen_m: [20, 15, 10, 5]
+            positionen:
+              - nr: 5
+                distanz_m: 20
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+                scheibe: 1
+              - nr: 6
+                distanz_m: 15
+                anschlaege:
+                  - { haltung: "kniend", hand: "beidhaendig" }
+                  - { haltung: "stehend", hand: "schwache_hand" }
+                scheibe: 2
+              - nr: 7
+                distanz_m: 10
+                anschlaege:
+                  - { haltung: "stehend", hand: "beidhaendig" }
+                scheibe: 3
+              - nr: 8
+                distanz_m: 5
+                anschlaege:
+                  - { haltung: "stehend", hand: "einhaendig" }
+                scheibe: 4
+            zeit_wird_gemessen: true
+            sollzeit_s: 70
+            max_gesamtzeit_s: 140
 disziplinen:
   - kennziffer: "1201"
     name: "Pistole bis 9 mm"
@@ -203,7 +443,7 @@ disziplinen:
     visierung: "offen"
     anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
     scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
-    ablauf: "mehrdistanz-40"
+    ablauf: "mehrdistanz-40-pistole"
     hinweis: "max. 1300 g"
   - kennziffer: "1202"
     name: "Pistole über 9 mm"
@@ -212,7 +452,7 @@ disziplinen:
     visierung: "offen"
     anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
     scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
-    ablauf: "mehrdistanz-40"
+    ablauf: "mehrdistanz-40-pistole"
     hinweis: "max. 1400 g"
   - kennziffer: "1205"
     name: "Revolver unter 4 Zoll"
@@ -221,7 +461,7 @@ disziplinen:
     visierung: "offen, höhen- und seitenverstellbare Kimme"
     anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
     scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
-    ablauf: "mehrdistanz-40"
+    ablauf: "mehrdistanz-40-revolver"
     hinweis: "max. 1200 g; Lauf 3 bis 3,5 Zoll"
   - kennziffer: "1206"
     name: "Revolver bis .38"
@@ -230,7 +470,7 @@ disziplinen:
     visierung: "offen"
     anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
     scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
-    ablauf: "mehrdistanz-40"
+    ablauf: "mehrdistanz-40-revolver"
     hinweis: "max. 1400 g"
   - kennziffer: "1207"
     name: "Revolver über .38"
@@ -239,7 +479,7 @@ disziplinen:
     visierung: "offen"
     anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
     scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
-    ablauf: "mehrdistanz-40"
+    ablauf: "mehrdistanz-40-revolver"
     hinweis: "max. 1500 g"
   - kennziffer: "1208"
     name: "Revolver Magnum bis .357"
@@ -248,7 +488,7 @@ disziplinen:
     visierung: "offen"
     anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
     scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
-    ablauf: "mehrdistanz-40"
+    ablauf: "mehrdistanz-40-revolver"
     hinweis: "max. 1600 g"
   - kennziffer: "1209"
     name: "Revolver Magnum über .357"
@@ -257,7 +497,7 @@ disziplinen:
     visierung: "offen"
     anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
     scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
-    ablauf: "mehrdistanz-40"
+    ablauf: "mehrdistanz-40-revolver"
     hinweis: "max. 1700 g"
     optional: true
   - kennziffer: "1210"
@@ -303,5 +543,5 @@ disziplinen:
     visierung: "offen, keine Höhenverstellung"
     anschlag: "stehend und kniend, ein- und beidhändig (je Position, K 4.06/4.07)"
     scheibe: "BDS-Kurzwaffenscheibe (Fertigkeit 1, Parcours 4)"
-    ablauf: "mehrdistanz-40"
+    ablauf: "mehrdistanz-40-pistole"
     hinweis: "max. 900 g; Positivliste im Kommentar (K 2.01.2)"
