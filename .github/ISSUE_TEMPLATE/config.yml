@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Sicherheitslücke vertraulich melden
+    url: https://github.com/rhigginsDE/schiesshub/security/advisories/new
+    about: Bitte Sicherheitslücken nicht öffentlich melden, sondern hier vertraulich.
+  - name: Roadmap und geplante Module
+    url: https://github.com/rhigginsDE/schiesshub/blob/main/docs/ROADMAP.md
+    about: Bevor du eine Idee einreichst, schau, ob sie schon geplant ist.

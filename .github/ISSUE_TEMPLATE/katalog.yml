@@ -1,0 +1,58 @@
+name: Katalog-Korrektur
+description: Eine Disziplin im Katalog ist falsch, fehlt oder ist veraltet.
+labels: ["katalog"]
+title: "[Katalog] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke! Format und Regeln stehen in [catalog/README.md](https://github.com/rhigginsDE/schiesshub/blob/main/catalog/README.md).
+        Katalogdaten stehen unter CC0 1.0. **Bitte keine Texte oder Tabellen aus Sporthandbüchern kopieren**, sondern die Fakten in eigenen Worten nennen.
+  - type: dropdown
+    id: art
+    attributes:
+      label: Art der Änderung
+      options:
+        - Angabe korrigieren
+        - Disziplin fehlt
+        - Disziplin entfällt oder ist veraltet
+        - Klasse korrigieren
+        - Sonstiges
+    validations:
+      required: true
+  - type: input
+    id: verband
+    attributes:
+      label: Verband
+      placeholder: "z. B. BDS"
+    validations:
+      required: true
+  - type: input
+    id: kennziffer
+    attributes:
+      label: Kennziffer und Name der Disziplin
+      placeholder: "z. B. 1001 Pistole bis 9 mm"
+    validations:
+      required: false
+  - type: textarea
+    id: aenderung
+    attributes:
+      label: Was ist falsch, was ist richtig?
+      description: Welches Feld (zum Beispiel Schusszahl, Zeit je Serie, Scheibe) hat welchen Wert, und welcher Wert wäre richtig?
+    validations:
+      required: true
+  - type: textarea
+    id: quelle
+    attributes:
+      label: Quelle
+      description: Regelwerk, Fassung oder Datum, Abschnitt bzw. Regelnummer. Ohne Quelle können wir die Änderung nicht übernehmen.
+      placeholder: "z. B. BDS Sporthandbuch Teil K, Fassung vom …, Abschnitt …"
+    validations:
+      required: true
+  - type: checkboxes
+    id: bestaetigung
+    attributes:
+      label: Bestätigung
+      options:
+        - label: Ich habe keine Regeltexte oder Tabellen kopiert und bin einverstanden, dass mein Beitrag unter CC0 1.0 steht.
+          required: true

@@ -1,0 +1,53 @@
+name: Idee oder Wunsch
+description: Vorschlag für eine neue Funktion oder eine Verbesserung.
+title: "[Idee] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke für deine Idee! Schau bitte vorher in die [Roadmap](https://github.com/rhigginsDE/schiesshub/blob/main/docs/ROADMAP.md). Zu geplanten Modulen gibt es schon ein Issue mit dem Label `geplant`; dort kannst du direkt mitreden.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Was möchtest du erreichen?
+      description: Beschreibe die Situation im Verein oder am Wettkampftag. Was fehlt, was ist umständlich?
+    validations:
+      required: true
+  - type: textarea
+    id: vorschlag
+    attributes:
+      label: Wie könnte es aussehen?
+      description: Dein Vorschlag. Skizzen oder Beispiele aus anderen Programmen sind willkommen.
+    validations:
+      required: false
+  - type: dropdown
+    id: station
+    attributes:
+      label: Betrifft
+      multiple: true
+      options:
+        - Anmeldung
+        - Turnier
+        - Erfassung
+        - Anzeige
+        - System
+        - Disziplin-Katalog
+        - Installation / Server
+        - neues Modul
+    validations:
+      required: false
+  - type: textarea
+    id: regelwerk
+    attributes:
+      label: Regelwerk oder Verband
+      description: Falls die Idee auf einer Regel beruht, nenne Verband, Regelwerk, Fassung und Abschnitt. Bitte keine Regeltexte kopieren.
+    validations:
+      required: false
+  - type: checkboxes
+    id: mitmachen
+    attributes:
+      label: Mitmachen
+      options:
+        - label: Ich würde beim Testen oder Umsetzen helfen.
+          required: false

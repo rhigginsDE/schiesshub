@@ -1,0 +1,69 @@
+name: Fehler melden
+description: Etwas funktioniert nicht wie erwartet.
+title: "[Fehler] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke, dass du einen Fehler meldest!
+        **Sicherheitslücken bitte nicht hier**, sondern vertraulich melden, siehe [SECURITY.md](https://github.com/rhigginsDE/schiesshub/blob/main/SECURITY.md).
+        Bitte keine echten Personendaten (Namen, Ergebnisse) in Text oder Screenshots. Beispielnamen verwenden oder schwärzen.
+  - type: textarea
+    id: beschreibung
+    attributes:
+      label: Was ist passiert?
+      description: Beschreibe den Fehler kurz.
+    validations:
+      required: true
+  - type: textarea
+    id: schritte
+    attributes:
+      label: Wie kann man ihn nachstellen?
+      placeholder: |
+        1. Station „Erfassung“ öffnen
+        2. …
+        3. Fehler tritt auf
+    validations:
+      required: true
+  - type: textarea
+    id: erwartet
+    attributes:
+      label: Was hast du stattdessen erwartet?
+    validations:
+      required: true
+  - type: dropdown
+    id: station
+    attributes:
+      label: Station
+      options:
+        - Anmeldung
+        - Turnier
+        - Erfassung
+        - Anzeige
+        - System
+        - Installation / Server
+        - weiß nicht
+    validations:
+      required: false
+  - type: input
+    id: stand
+    attributes:
+      label: Stand der Software
+      description: Commit, Datum des Downloads oder Version, falls bekannt.
+    validations:
+      required: false
+  - type: input
+    id: geraet
+    attributes:
+      label: Gerät und Browser
+      placeholder: "z. B. Tablet, Android 14, Chrome"
+    validations:
+      required: false
+  - type: textarea
+    id: zusatz
+    attributes:
+      label: Weitere Hinweise
+      description: Fehlermeldungen, Log-Auszüge (ohne Personendaten), Screenshots.
+    validations:
+      required: false
