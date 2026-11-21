@@ -34,3 +34,14 @@ intern/
 CLAUDE.md
 CLAUDE.local.md
 .claude/
+
+# Frontend
+*.tsbuildinfo
+.vite/
+
+# Python (backend/)
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/

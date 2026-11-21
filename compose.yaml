@@ -1,0 +1,55 @@
+# Entwicklungsumgebung: Datenbank und Backend. Das Frontend läuft lokal mit Vite (Port 5180).
+# Vorher: cp .env.example .env
+name: schiesshub
+
+services:
+  db:
+    image: postgres:19.0-alpine3.24
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Bitte zuerst .env aus .env.example anlegen}
+      POSTGRES_USER: ${POSTGRES_USER:?Bitte zuerst .env aus .env.example anlegen}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Bitte zuerst .env aus .env.example anlegen}
+    ports:
+      - "127.0.0.1:5442:5432"
+    volumes:
+      # Ab PostgreSQL 18 liegt das Datenverzeichnis versioniert unter /var/lib/postgresql.
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    build:
+      context: .
+      dockerfile: deploy/backend.Dockerfile
+      target: dev
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      CATALOG_DIR: /catalog
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5180}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # Dateiänderungen auf Windows-/macOS-Mounts erreichen den Container nicht als inotify-Ereignis.
+      WATCHFILES_FORCE_POLLING: "true"
+    ports:
+      - "127.0.0.1:8010:8000"
+    volumes:
+      - ./backend:/app
+      - ./catalog:/catalog:ro
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  db-data:
