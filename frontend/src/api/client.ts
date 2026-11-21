@@ -5,12 +5,25 @@ export const API_BASIS = "/api/v1";
 /**
  * Art des Fehlers, damit die Oberfläche sagen kann, was los ist und was zu tun ist.
  * - `netzwerk`: Server nicht erreichbar (keine Antwort oder 502/503/504 vom Proxy)
+ * - `nicht_angemeldet`: 401 (Gerät nicht gekoppelt oder niemand angemeldet)
+ * - `verboten`: 403 (Berechtigung fehlt)
  * - `nicht_gefunden`: 404
+ * - `konflikt`: 409 (z. B. Dublette, Zustand passt nicht)
+ * - `gesperrt`: 429 (zu viele Fehlversuche)
  * - `anfrage`: sonstige 4xx
  * - `server`: 5xx
  * - `format`: Antwort ist kein lesbares JSON
  */
-export type ApiFehlerArt = "netzwerk" | "nicht_gefunden" | "anfrage" | "server" | "format";
+export type ApiFehlerArt =
+  | "netzwerk"
+  | "nicht_angemeldet"
+  | "verboten"
+  | "nicht_gefunden"
+  | "konflikt"
+  | "gesperrt"
+  | "anfrage"
+  | "server"
+  | "format";
 
 export class ApiFehler extends Error {
   readonly art: ApiFehlerArt;
@@ -52,7 +65,11 @@ export function apiUrl(pfad: string, parameter?: AbfrageParameter): string {
 }
 
 function artAusStatus(status: number): ApiFehlerArt {
+  if (status === 401) return "nicht_angemeldet";
+  if (status === 403) return "verboten";
   if (status === 404) return "nicht_gefunden";
+  if (status === 409) return "konflikt";
+  if (status === 429) return "gesperrt";
   if (status === 502 || status === 503 || status === 504) return "netzwerk";
   if (status >= 500) return "server";
   return "anfrage";
@@ -91,6 +108,67 @@ export async function apiGet<T>(pfad: string, optionen: AnfrageOptionen = {}): P
       await detailAus(antwort),
     );
   }
+
+  try {
+    return (await antwort.json()) as T;
+  } catch {
+    throw new ApiFehler("format", pfad, antwort.status);
+  }
+}
+
+export type Schreibmethode = "POST" | "PUT" | "PATCH" | "DELETE";
+
+export interface SendeOptionen extends AnfrageOptionen {
+  /** Inhalt ohne JSON-Umwandlung senden, z. B. CSV. */
+  roh?: { inhalt: BodyInit; typ: string };
+}
+
+/**
+ * Schreibende Anfrage. Sendet den Inhalt als JSON und den Header `X-Schiesshub-Request`,
+ * den das Backend für alle schreibenden Methoden verlangt (Schutz vor fremden Seiten).
+ * Antworten ohne Inhalt (204) ergeben `undefined`.
+ */
+export async function apiSenden<T = void>(
+  methode: Schreibmethode,
+  pfad: string,
+  inhalt?: unknown,
+  optionen: SendeOptionen = {},
+): Promise<T> {
+  const kopf: Record<string, string> = {
+    Accept: "application/json",
+    "X-Schiesshub-Request": "1",
+  };
+  let koerper: BodyInit | undefined;
+  if (optionen.roh) {
+    kopf["Content-Type"] = optionen.roh.typ;
+    koerper = optionen.roh.inhalt;
+  } else if (inhalt !== undefined) {
+    kopf["Content-Type"] = "application/json";
+    koerper = JSON.stringify(inhalt);
+  }
+
+  let antwort: Response;
+  try {
+    antwort = await fetch(apiUrl(pfad, optionen.parameter), {
+      method: methode,
+      headers: kopf,
+      body: koerper,
+      signal: optionen.signal,
+    });
+  } catch (fehler) {
+    if (fehler instanceof DOMException && fehler.name === "AbortError") throw fehler;
+    throw new ApiFehler("netzwerk", pfad);
+  }
+
+  if (!antwort.ok && !optionen.auchBeiStatus?.includes(antwort.status)) {
+    throw new ApiFehler(
+      artAusStatus(antwort.status),
+      pfad,
+      antwort.status,
+      await detailAus(antwort),
+    );
+  }
+  if (antwort.status === 204) return undefined as T;
 
   try {
     return (await antwort.json()) as T;
