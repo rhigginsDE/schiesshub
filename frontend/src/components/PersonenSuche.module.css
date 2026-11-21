@@ -67,7 +67,10 @@
 .treffer {
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  /* Text, dann beliebig viele Marken (Anzeige, Anmeldung) in eigenen Spalten */
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: auto;
   align-items: center;
   gap: 10px;
   min-height: 56px;

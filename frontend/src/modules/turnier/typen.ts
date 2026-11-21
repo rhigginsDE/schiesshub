@@ -43,7 +43,7 @@ export interface ZusatzEinstellungen {
 
 /** Änderung der Definition mit Grund (aktives Turnier). Feldname laut Backend-Absprache. */
 export interface DefinitionGrund {
-  reason?: string;
+  reason?: string | null;
 }
 
 /** Ein Eintrag aus `GET …/competitions/{id}/revisions` (Backend `RevisionOut`, gekürzt). */

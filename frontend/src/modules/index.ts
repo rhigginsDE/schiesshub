@@ -3,6 +3,7 @@ import { anmeldung } from "./anmeldung/manifest";
 import { anzeige } from "./anzeige/manifest";
 import { erfassung } from "./erfassung/manifest";
 import { katalog } from "./katalog/manifest";
+import { stand } from "./stand/manifest";
 import { system } from "./system/manifest";
 import { teilnehmer } from "./teilnehmer/manifest";
 import { turnier } from "./turnier/manifest";
@@ -17,6 +18,7 @@ export const module: ModulManifest[] = [
   turnier,
   katalog,
   erfassung,
+  stand,
   anzeige,
   system,
 ];

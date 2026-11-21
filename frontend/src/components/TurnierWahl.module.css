@@ -1,0 +1,91 @@
+.rahmen {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+
+.auswahl {
+  max-width: 880px;
+}
+
+.liste {
+  display: grid;
+  gap: 8px;
+}
+
+.eintrag {
+  width: 100%;
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-bg);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.eintrag:hover {
+  border-color: var(--sh-linie-stark);
+  background: var(--sh-flaeche-2);
+}
+
+.eintrag[aria-current="true"] {
+  border-color: var(--sh-akzent);
+}
+
+.eintragText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.eintragText strong {
+  font-size: 17px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.eintragText span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.pfeil {
+  color: var(--sh-text-gedaempft);
+}
+
+.wechsel {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  min-width: 0;
+}
+
+.wechselSymbol {
+  color: var(--sh-text-gedaempft);
+}
+
+.wechselName {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 560px) {
+  .eintrag {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .pfeil {
+    display: none;
+  }
+}

@@ -1,6 +1,163 @@
 {
   "titel": "Anmeldung",
-  "zweck": "Teilnehmer erfassen, Starts buchen und den zu zahlenden Betrag anzeigen.",
+  "zweck": "Schützen anmelden, Starts buchen und den zu zahlenden Betrag anzeigen.",
   "bereiche": "Bereiche",
-  "noch_nicht": "Starts buchen und kassieren folgt noch. Personen und Vereine lassen sich schon pflegen."
+  "turnier_hinweis": "Die Anmeldung arbeitet in einem Turnier. Die Wahl gilt für dieses Gerät.",
+  "schuetze": {
+    "bereich": "Schütze",
+    "titel": "Schütze anmelden",
+    "neu": "Neue Person",
+    "andere": "Anderer Schütze",
+    "angemeldet": "Schon angemeldet",
+    "neue_anmeldung": "Neue Anmeldung",
+    "angemeldet_nr": "Nr. {{nr}}",
+    "treffer_startnummer": "Treffer über die Startnummer – Enter öffnet"
+  },
+  "person": {
+    "startnummer": "Startnummer",
+    "startnummer_auto": "Leer lassen: Der Server vergibt die nächste freie.",
+    "startnummer_aendern": "Ändern, falls nötig.",
+    "ohne_verein": "ohne Verein",
+    "mitgliedsnummer": "Mitgl.-Nr. {{nr}}",
+    "anzeige_als": "Anzeige: {{name}}",
+    "anzeige_verborgen": "Anzeige: ohne Namen"
+  },
+  "klasse": {
+    "titel": "Klasse",
+    "platzhalter": "Klasse wählen",
+    "fehlt": "Bitte eine Klasse wählen.",
+    "nichts": "Keine passende Klasse",
+    "keine": "Im Turnier sind noch keine Klassen angelegt."
+  },
+  "buchen": {
+    "titel": "Starts buchen",
+    "keine": "Im Turnier gibt es noch keine Wettbewerbe.",
+    "ohne_stand": "ohne Stand",
+    "reihenfolge": "Reihenfolge",
+    "zeitplan": "Zeitplan",
+    "schon_one": "{{count}} Start gebucht",
+    "schon_other": "{{count}} Starts gebucht",
+    "sperre_klasse": "Klasse „{{klasse}}“ ist hier nicht zugelassen.",
+    "sperre_ohne_klasse": "Nur für bestimmte Klassen – erst die Klasse wählen.",
+    "sperre_voll_one": "Nur ein Start je Person möglich, schon gebucht.",
+    "sperre_voll_other": "Höchstens {{count}} Starts je Person, alle gebucht.",
+    "gesperrt": "gesperrt",
+    "noch_one": "noch {{count}} möglich",
+    "noch_other": "noch {{count}} möglich",
+    "anzahl": "Neue Starts in {{name}}",
+    "weniger": "{{name}}: ein Start weniger",
+    "mehr": "{{name}}: ein Start mehr",
+    "preis_start": "Start {{betrag}}",
+    "preis_nachkauf": "Nachkauf {{betrag}}",
+    "ein_start": "1 Start",
+    "start_und_nachkauf_one": "1 Start + {{count}} Nachkauf",
+    "start_und_nachkauf_other": "1 Start + {{count}} Nachkäufe",
+    "nachkauf_one": "{{count}} Nachkauf",
+    "nachkauf_other": "{{count}} Nachkäufe"
+  },
+  "platz": {
+    "titel": "Platz wählen: {{wettbewerb}}",
+    "hinweis": "Durchgang und Bahn auf dem {{stand}} für den ersten neuen Start. Weitere Starts bekommen den nächsten freien Platz.",
+    "schliessen": "Schließen",
+    "kurz": "{{zeit}} · Bahn {{bahn}}",
+    "durchgang": "Durchgang {{nummer}}",
+    "vorschlag": "Vorschlag:",
+    "gewaehlt": "Gewählt:",
+    "laedt": "Suche freien Platz …",
+    "keiner": "Kein freier Durchgang – der Start wird ohne Platz gebucht, die Standaufsicht plant ihn ein.",
+    "aendern": "Anderer Platz",
+    "vorschlag_nehmen": "Vorschlag nehmen",
+    "weitere_one": "+ {{count}} weiterer Start: nächster freier Platz",
+    "weitere_other": "+ {{count}} weitere Starts: jeweils nächster freier Platz",
+    "bahn_frei": "Bahn {{bahn}} um {{zeit}} wählen",
+    "bahn_belegt": "Bahn {{bahn}} um {{zeit}} ist belegt",
+    "leer_titel": "Keine Durchgänge",
+    "leer_text": "Auf diesem Stand gibt es keinen kommenden Durchgang. Durchgänge legt die Standaufsicht an."
+  },
+  "summe": {
+    "titel": "Zu zahlen",
+    "nichts": "Noch kein neuer Start",
+    "starts_one": "{{count}} Start",
+    "starts_other": "{{count}} Starts",
+    "davon_nachkauf_one": "davon {{count}} Nachkauf",
+    "davon_nachkauf_other": "davon {{count}} Nachkäufe"
+  },
+  "aktion": {
+    "anmelden": "Anmelden",
+    "buchen": "Starts buchen",
+    "speichern": "Speichern",
+    "tasten_speichern": "speichern",
+    "tasten_zurueck": "zurück zur Suche"
+  },
+  "fertig": {
+    "angemeldet": "{{name}} ist angemeldet.",
+    "gebucht": "Starts für {{name}} gebucht.",
+    "startnummer": "Startnummer",
+    "starts_one": "{{count}} Start",
+    "starts_other": "{{count}} Starts",
+    "zu_zahlen": "zu zahlen",
+    "ausblenden": "Hinweis ausblenden"
+  },
+  "fehler": {
+    "teilweise_one": "{{count}} Start wurde gebucht, der Rest nicht. Die übrigen Eingaben stehen noch da.",
+    "teilweise_other": "{{count}} Starts wurden gebucht, der Rest nicht. Die übrigen Eingaben stehen noch da."
+  },
+  "gebucht": {
+    "titel": "Gebuchte Starts",
+    "summe": "Summe",
+    "keine": "Noch keine Starts gebucht.",
+    "unbekannt": "Wettbewerb entfernt",
+    "versuch": "{{nr}}. Start",
+    "position": "Platz {{nr}} in der Reihenfolge",
+    "ohne_platz": "noch ohne Platz im Zeitplan",
+    "sperre_aufgerufen": "Steht gerade auf der Bahn – stornieren geht nicht mehr, nur abbrechen am Stand.",
+    "sperre_geschossen": "Schon geschossen – stornieren geht nicht mehr.",
+    "sperre_abgebrochen": "Abgebrochen – stornieren geht nicht mehr."
+  },
+  "status": {
+    "angemeldet": "angemeldet",
+    "aufgerufen": "aufgerufen",
+    "erfasst": "erfasst",
+    "abgeschlossen": "abgeschlossen",
+    "dns": "nicht angetreten",
+    "dnf": "aufgegeben",
+    "dsq": "disqualifiziert",
+    "bahn": "Bahn {{bahn}}"
+  },
+  "storno": {
+    "knopf": "Stornieren",
+    "knopf_lang": "{{nr}}. Start in {{wettbewerb}} stornieren",
+    "titel": "Start stornieren?",
+    "text": "Der {{versuch}}. Start in „{{wettbewerb}}“ ({{betrag}}) wird entfernt. Weitere Starts rücken nach und behalten ihren Betrag.",
+    "bestaetigen": "Stornieren",
+    "abbrechen": "Behalten"
+  },
+  "loeschen": {
+    "knopf": "Anmeldung löschen",
+    "gesperrt": "Geht nicht mehr: Ein Start wurde schon aufgerufen, geschossen oder abgebrochen.",
+    "titel": "Anmeldung löschen?",
+    "text_one": "{{name}} (Startnummer {{nr}}) wird abgemeldet, {{count}} Start wird entfernt. Die Person bleibt in der Teilnehmerverwaltung.",
+    "text_other": "{{name}} (Startnummer {{nr}}) wird abgemeldet, {{count}} Starts werden entfernt. Die Person bleibt in der Teilnehmerverwaltung.",
+    "bestaetigen": "Löschen",
+    "abbrechen": "Behalten"
+  },
+  "verwerfen": {
+    "titel": "Eingaben verwerfen?",
+    "text": "Für diesen Schützen ist noch nichts gespeichert.",
+    "bestaetigen": "Verwerfen",
+    "weiter": "Weiter bearbeiten"
+  },
+  "liste": {
+    "titel": "Angemeldet",
+    "schuetzen": "Schützen",
+    "starts": "Starts",
+    "startgeld": "Startgeld",
+    "suche": "Anmeldungen durchsuchen",
+    "suche_platzhalter": "Startnr., Name oder Verein",
+    "suche_leeren": "Suche leeren",
+    "leer_titel": "Noch niemand angemeldet",
+    "leer_text": "Angemeldete Schützen erscheinen hier, sobald sie gespeichert sind.",
+    "keine_titel": "Keine Anmeldung gefunden",
+    "keine_text": "Andere Schreibweise oder die Startnummer versuchen."
+  }
 }

@@ -2,7 +2,7 @@ import { Button, CloseButton, Skeleton, TextInput } from "@mantine/core";
 import { useDebouncedCallback } from "@mantine/hooks";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Search, SearchX, UserPlus, Users } from "lucide-react";
-import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatZahl } from "../lib/format";
 import { type Person, personenAbfrage } from "../modules/teilnehmer/api";
@@ -27,6 +27,11 @@ const SUCHE_VERZOEGERUNG_MS = 200;
  * - `tastenkuerzel` (Standard `true`): „/“ springt von überall auf der Seite ins Suchfeld, außer
  *   aus Eingabefeldern und Dialogen heraus.
  * - `primaerNeu`: „Neue Person anlegen“ als grüner Hauptknopf (nur, wenn die Ansicht sonst keinen hat).
+ * - `markierung(person)`: optional. Zusatz am Treffer, z. B. „angemeldet · Nr. 7“.
+ * - `vorTreffern(text)`: optional. Inhalt über der Trefferliste zum getippten Text (bereinigt), z. B.
+ *   ein Treffer über die Startnummer. Liefert sie etwas, entfällt der Hinweis „keine Treffer“.
+ * - `enterVorrang(text)`: optional. Enter im Suchfeld fragt zuerst hier; `true` = erledigt.
+ * - `autoFokus`: Suchfeld beim Einblenden fokussieren (z. B. nach dem Speichern neu einblenden).
  *
  * Tastatur: „/“ fokussiert, Enter öffnet den ersten Treffer, ↓/↑ wandern durch die Treffer.
  * Datenschutz: Der Suchtext bleibt im Zustand der Komponente – nicht in der Adresse, nicht im
@@ -42,6 +47,10 @@ export interface PersonenSucheProps {
   onEsc?: () => void;
   tastenkuerzel?: boolean;
   primaerNeu?: boolean;
+  markierung?: (person: Person) => ReactNode;
+  vorTreffern?: (text: string) => ReactNode;
+  enterVorrang?: (text: string) => boolean;
+  autoFokus?: boolean;
 }
 
 export function PersonenSuche({
@@ -51,6 +60,10 @@ export function PersonenSuche({
   onEsc,
   tastenkuerzel = true,
   primaerNeu = false,
+  markierung,
+  vorTreffern,
+  enterVorrang,
+  autoFokus = false,
 }: PersonenSucheProps) {
   const { t, i18n } = useTranslation("teilnehmer");
   const [eingabe, setEingabe] = useState("");
@@ -112,6 +125,7 @@ export function PersonenSuche({
     if (ereignis.key === "Enter") {
       ereignis.preventDefault();
       const text = eingabe.trim();
+      if (enterVorrang?.(text)) return;
       if (text !== suchtext || !aktuell) {
         verzoegert.cancel();
         ersterNachLaden.current = text;
@@ -153,6 +167,7 @@ export function PersonenSuche({
   const sprache = i18n.language;
   const daten = abfrage.data;
   const gezeigt = daten?.personen.length ?? 0;
+  const zusatz = vorTreffern?.(eingabe.trim()) ?? null;
 
   return (
     <div className={s.suche}>
@@ -173,6 +188,7 @@ export function PersonenSuche({
           aria-describedby={`${listeId}-tasten`}
           autoComplete="off"
           spellCheck={false}
+          autoFocus={autoFokus}
           classNames={{ input: s.feld }}
           leftSection={<Search aria-hidden />}
           rightSectionWidth={52}
@@ -211,6 +227,7 @@ export function PersonenSuche({
       </div>
 
       <div className={s.inhalt}>
+        {zusatz}
         {abfrage.isPending ? (
           <div className={s.skelett} aria-busy="true">
             {[0, 1, 2, 3, 4, 5].map((nr) => (
@@ -220,7 +237,7 @@ export function PersonenSuche({
         ) : abfrage.isError ? (
           <Fehlerzustand fehler={abfrage.error} onErneut={() => void abfrage.refetch()} />
         ) : gezeigt === 0 ? (
-          suchtext ? (
+          zusatz !== null ? null : suchtext ? (
             <Leerzustand
               icon={SearchX}
               titel={t("suche.leer_titel")}
@@ -270,6 +287,7 @@ export function PersonenSuche({
                         )}
                       </span>
                     </span>
+                    {markierung?.(person)}
                     {person.display_mode !== "full" && (
                       <Chip ton={person.display_mode === "hidden" ? "warn" : "info"}>
                         {t(`anzeige.chip_${person.display_mode}`)}
