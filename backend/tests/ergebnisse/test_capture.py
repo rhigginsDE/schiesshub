@@ -516,7 +516,9 @@ async def test_journal_failure_never_breaks_capture(
     assert len(events) == 2
 
 
-async def test_raw_set_on_schedule_start_calls_and_captures(api: Api) -> None:
+async def test_raw_set_on_schedule_start_captures_without_lane(api: Api) -> None:
+    """Zeitplan, nachträglich erfasst: angemeldet → erfasst, ohne Aufruf; die gebuchte Bahn
+    bleibt Angabe und wird nicht belegt."""
     setup = await make_setup(
         api, definition=precision_definition(), planning="schedule", heat_minutes=20
     )
@@ -540,4 +542,9 @@ async def test_raw_set_on_schedule_start_calls_and_captures(api: Api) -> None:
     state = await api.put_raw(setup.tid, sid, shots([10, 10]), 0)
     assert state["status"] == "captured"
     changes = [e.data["to"] for e in api.drain() if e.name == "start.status_changed"]
-    assert changes == ["called", "captured"]
+    assert changes == ["captured"]
+    now = await api.ok("GET", f"/tournaments/{setup.tid}/ranges/{setup.range_id}/now")
+    assert all(lane["start"] is None for lane in now["lanes"])
+    rows = await api.ok("GET", f"/tournaments/{setup.tid}/startlist")
+    row = next(row for row in rows if row["start_id"] == sid)
+    assert (row["lane"], row["on_lane"]) == (1, False)

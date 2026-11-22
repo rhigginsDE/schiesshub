@@ -7,6 +7,10 @@ bei `hidden` nur die Startnummer (hier auch ohne Verein). Die Anzeige verschärf
 
 Leere Szenen erscheinen nicht, sondern unter `skipped` mit Grund. Bleibt nichts übrig, kommt eine
 Ruhe-Szene mit dem Turniernamen, damit der Bildschirm nie leer ist.
+
+Uhrzeiten stehen als UTC-Zeitpunkt und zusätzlich in Ortszeit des Turniers (`*_local`,
+`settings.timezone`). `reload_on` nennt genaue Ereignisnamen: die Muster aus
+`defaults.RELOAD_EVENTS`, aufgelöst gegen die bekannten Namen des Servers.
 """
 
 import hashlib
@@ -15,10 +19,14 @@ import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.events import match_names
+from app.core.localtime import DEFAULT_TIMEZONE, local_iso, zone, zone_of
 from app.modules.anzeige import defaults
 from app.modules.anzeige.models import Display
 from app.modules.anzeige.procedure import build_procedure
@@ -32,6 +40,8 @@ from app.modules.anzeige.schemas import (
     FeedNoticeScene,
     FeedOut,
     FeedPerson,
+    FeedProcedure,
+    FeedProcedureCurrent,
     FeedRange,
     FeedRangeScene,
     FeedRankGroup,
@@ -54,7 +64,7 @@ from app.modules.anzeige.service import config_of
 from app.modules.ergebnisse.ranking import competition_ranking
 from app.modules.ergebnisse.schemas import RankingOut, RankingRow
 from app.modules.ergebnisse.service import server_now
-from app.modules.starts.schemas import StationStartOut
+from app.modules.starts.schemas import LaneOut, StationStartOut
 from app.modules.starts.views import queue_view, range_now, startlist
 from app.modules.teilnehmer.names import abbreviate_name
 from app.modules.turnier.models import Competition, Range, Tournament
@@ -87,6 +97,7 @@ class Context:
     competitions: list[Competition] = field(default_factory=list)
     ranges: dict[uuid.UUID, Range] = field(default_factory=dict)
     provisional: bool = False
+    tz: ZoneInfo = field(default_factory=lambda: zone(DEFAULT_TIMEZONE))
     _startlist: list[StationStartOut] | None = None
 
     # --- Namen ---------------------------------------------------------------
@@ -116,6 +127,7 @@ class Context:
             lane=start.lane,
             heat_number=start.heat_number,
             heat_starts_at=start.heat_starts_at,
+            heat_starts_at_local=local_iso(start.heat_starts_at, self.tz),
         )
 
     async def all_starts(self) -> list[StationStartOut]:
@@ -142,10 +154,10 @@ class Pages:
 
 
 async def _resolve_tournament(
-    session: AsyncSession, display: Display
+    session: AsyncSession, tournament_id: uuid.UUID | None
 ) -> tuple[Tournament | None, str | None]:
-    if display.tournament_id is not None:
-        tournament = await session.get(Tournament, display.tournament_id)
+    if tournament_id is not None:
+        tournament = await session.get(Tournament, tournament_id)
         if tournament is not None:
             return tournament, None
     active = list(
@@ -158,8 +170,10 @@ async def _resolve_tournament(
     return None, defaults.IDLE_MANY_TOURNAMENTS
 
 
-def _header(display: Display, tournament: Tournament | None) -> FeedHeader:
-    mode = "fixed" if display.tournament_id is not None else "auto"
+def _header(
+    display: Display, tournament_id: uuid.UUID | None, tournament: Tournament | None
+) -> FeedHeader:
+    mode = "fixed" if tournament_id is not None else "auto"
     if tournament is None:
         return FeedHeader(
             tournament_id=None,
@@ -169,6 +183,7 @@ def _header(display: Display, tournament: Tournament | None) -> FeedHeader:
             date_to=None,
             tournament_status=None,
             tournament_mode=mode,
+            timezone=DEFAULT_TIMEZONE,
         )
     return FeedHeader(
         tournament_id=tournament.id,
@@ -178,6 +193,7 @@ def _header(display: Display, tournament: Tournament | None) -> FeedHeader:
         date_to=tournament.date_to,
         tournament_status=tournament.status,  # type: ignore[arg-type]
         tournament_mode=mode,
+        timezone=str(zone_of(tournament.settings)),
     )
 
 
@@ -400,6 +416,40 @@ async def _startlist(context: Context, scene: StartlistScene, pages: Pages) -> N
 # --- Standanzeige ------------------------------------------------------------
 
 
+def _current_positions(
+    procedure: FeedProcedure, lanes: Sequence[LaneOut]
+) -> list[FeedProcedureCurrent]:
+    """Laufende Serie je belegter Bahn dieses Wettbewerbs.
+
+    Aus dem Erfassungsfortschritt: erste noch nicht vollständige Serie des laufenden Abschnitts.
+    Ohne Eingabe (gerade aufgerufen): erste Serie des ersten Abschnitts. Fertig erfasste Bahnen
+    und Abschnitte, die der Ablauf nicht kennt, fehlen.
+    """
+    sections = {section.id: section for section in procedure.sections}
+    current = []
+    for lane in lanes:
+        start = lane.start
+        if start is None or start.competition_id != procedure.competition_id:
+            continue
+        progress = lane.progress
+        if progress is None:
+            if not procedure.sections:
+                continue
+            section_id, number = procedure.sections[0].id, 1
+        else:
+            if progress.complete or progress.section_id not in sections:
+                continue
+            section = sections[progress.section_id]
+            section_id = section.id
+            number = min(progress.series_done + 1, max(section.series_count, 1))
+        current.append(
+            FeedProcedureCurrent(
+                lane=lane.lane, start_id=start.start_id, section_id=section_id, series_number=number
+            )
+        )
+    return current
+
+
 async def _range(context: Context, scene: RangeScene, pages: Pages) -> None:
     assert context.tournament is not None
     range_ = context.ranges.get(scene.range_id)
@@ -429,7 +479,9 @@ async def _range(context: Context, scene: RangeScene, pages: Pages) -> None:
             competition = by_id.get(competition_id)
             if competition is not None:
                 diff = await catalog_diff_of(context.session, competition)
-                procedures.append(build_procedure(competition, diff))
+                procedure = build_procedure(competition, diff)
+                procedure.current = _current_positions(procedure, now.lanes)
+                procedures.append(procedure)
 
     pages.scenes.append(
         FeedRangeScene(
@@ -448,6 +500,7 @@ async def _range(context: Context, scene: RangeScene, pages: Pages) -> None:
                     FeedLane(
                         lane=lane.lane,
                         start=context.person(lane.start) if lane.start is not None else None,
+                        progress=lane.progress,
                     )
                     for lane in now.lanes
                 ],
@@ -456,6 +509,8 @@ async def _range(context: Context, scene: RangeScene, pages: Pages) -> None:
                         number=now.next_heat.number,
                         starts_at=now.next_heat.starts_at,
                         ends_at=now.next_heat.ends_at,
+                        starts_at_local=local_iso(now.next_heat.starts_at, context.tz) or "",
+                        ends_at_local=local_iso(now.next_heat.ends_at, context.tz) or "",
                     )
                     if now.next_heat is not None
                     else None
@@ -520,11 +575,28 @@ def _version(feed: FeedOut) -> str:
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:32]
 
 
-async def build_feed(session: AsyncSession, display: Display, backup: BackupInfo) -> FeedOut:
-    config = config_of(display)
-    tournament, no_tournament = await _resolve_tournament(session, display)
+_UNSET: Any = object()
+
+
+async def build_feed(
+    session: AsyncSession,
+    display: Display,
+    backup: BackupInfo,
+    known_events: Sequence[str] = (),
+    *,
+    config: DisplayConfig | None = None,
+    tournament_id: uuid.UUID | None = _UNSET,
+) -> FeedOut:
+    """Feed einer Anzeige. `config` und `tournament_id` ersetzen die gespeicherten Werte (für
+    die Vorschau ungespeicherter Änderungen); `known_events` sind die bekannten Ereignisnamen
+    des Servers, gegen die `reload_on` aufgelöst wird."""
+    config = config if config is not None else config_of(display)
+    if tournament_id is _UNSET:
+        tournament_id = display.tournament_id
+    tournament, no_tournament = await _resolve_tournament(session, tournament_id)
     context = Context(session, config, tournament, no_tournament)
     if tournament is not None:
+        context.tz = zone_of(tournament.settings)
         context.competitions = list(
             await session.scalars(
                 select(Competition)
@@ -538,7 +610,7 @@ async def build_feed(session: AsyncSession, display: Display, backup: BackupInfo
                 select(Range).where(Range.tournament_id == tournament.id)
             )
         }
-    header = _header(display, tournament)
+    header = _header(display, tournament_id, tournament)
 
     pages = Pages()
     for scene in config.scenes:
@@ -586,7 +658,7 @@ async def build_feed(session: AsyncSession, display: Display, backup: BackupInfo
         skipped=pages.skipped,
         ticker=config.ticker or None,
         warnings=warnings,
-        reload_on=list(defaults.RELOAD_EVENTS),
+        reload_on=match_names(defaults.RELOAD_EVENTS, known_events),
         poll_seconds=defaults.POLL_SECONDS,
     )
     feed.version = _version(feed)

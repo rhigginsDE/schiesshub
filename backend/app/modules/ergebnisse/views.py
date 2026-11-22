@@ -23,7 +23,7 @@ from app.modules.starts.common import ConflictError, get_start, get_tournament
 from app.modules.starts.models import Entry, Start
 from app.modules.teilnehmer.models import Club, Person
 from app.modules.teilnehmer.names import clean_text, display_name
-from app.modules.turnier.models import Competition, TournamentClass
+from app.modules.turnier.models import Competition, Range, TournamentClass
 from app.scoring import DefinitionError, describe_form
 
 
@@ -59,6 +59,9 @@ async def form(
         if person.club_id is not None
         else None
     )
+    range_ = (
+        await session.get(Range, competition.range_id) if competition.range_id is not None else None
+    )
     booked = await session.scalar(
         select(func.count()).where(
             Start.entry_id == loaded.entry.id, Start.competition_id == competition.id
@@ -78,6 +81,9 @@ async def form(
         class_short=klass.short,
         competition_id=competition.id,
         competition_name=competition.name,
+        competition_code=competition.catalog_code,
+        range_id=range_.id if range_ is not None else None,
+        range_name=range_.name if range_ is not None else None,
         attempt=loaded.start.attempt,
         attempts_booked=booked or 0,
         max_starts=competition.max_starts if competition.multi_start else 1,

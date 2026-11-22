@@ -65,6 +65,8 @@ async def test_first_rule_waits_for_first_attempt(api: Api) -> None:
     )
     first, second = await person_start(api, setup, count=2)
     await api.shoot(setup.tid, first, shots([9] * 5), final=False)
+    # Der erste Start ist erfasst und belegt noch die Bahn; für den zweiten erst freigeben.
+    await api.ok("POST", f"{api.start_path(setup.tid, first)}/release-lane")
     await api.shoot(setup.tid, second, shots([10] * 5, [10] * 5))
     assert rows_of(await api.ranking(setup.tid, setup.cid)) == []
     live = rows_of(await api.ranking(setup.tid, setup.cid, scope="live"))

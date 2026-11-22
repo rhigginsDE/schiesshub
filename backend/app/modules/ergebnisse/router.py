@@ -26,6 +26,8 @@ from app.modules.ergebnisse.schemas import (
     EventOut,
     FinalizeRequest,
     FormOut,
+    PreviewOut,
+    PreviewRequest,
     RankingOut,
     RankingSummaryOut,
     RawPut,
@@ -95,7 +97,8 @@ async def _may_capture(request: Request) -> bool:
     summary="Eingabemaske eines Starts",
     description=(
         "Maske für die aktuelle Definition des Wettbewerbs, Kopf des Starts (mit "
-        "`result.capture` voller Name, sonst nach Anzeige-Einstellung), aktueller Rohwert und "
+        "`result.capture` voller Name, sonst nach Anzeige-Einstellung; dazu Kennziffer des "
+        "Wettbewerbs und Stand), aktueller Rohwert und "
         "Zwischenstand. `capture_mode` wählt nur die Darstellung (Einzelschuss oder "
         "Seriensumme); ohne Angabe gilt die des Wettbewerbs. Rohwerte dürfen beides enthalten "
         "und werden gleich gewertet."
@@ -151,6 +154,28 @@ async def put_raw(
             idempotency_key,
         )
     )
+
+
+@router.post(
+    f"{START}/preview",
+    summary="Rohwerte probeweise werten (ohne Speichern)",
+    description=(
+        "Rechnet `raw` gegen die aktuelle Definition des Wettbewerbs durch und liefert "
+        "Validierungsfehler und berechneten Stand, speichert aber nichts (kein Ereignis, kein "
+        "Statuswechsel). `errors`: Fehler, die auch `PUT …/raw` meldete; `finalize_errors`: was "
+        "zum Abschließen oder Korrigieren fehlt. Für „Korrigieren“ und Eingaben, die erst "
+        "später gespeichert werden."
+    ),
+    responses=WRITE,
+)
+async def preview(
+    tournament_id: UUID,
+    start_id: UUID,
+    data: PreviewRequest,
+    session: SessionDep,
+    _: Reader,
+) -> PreviewOut:
+    return await service.preview(session, tournament_id, start_id, data.raw)
 
 
 @router.post(
@@ -211,8 +236,10 @@ async def reopen(
     f"{START}/correct",
     summary="Abgeschlossenes Ergebnis korrigieren (mit Grund)",
     description=(
-        "Ersetzt die Rohwerte eines abgeschlossenen Ergebnisses; es bleibt abgeschlossen, die "
-        "Einspruchsfrist beginnt neu."
+        "Ersetzt die Rohwerte eines abgeschlossenen Ergebnisses; es bleibt abgeschlossen. Die "
+        "Einspruchsfrist beginnt neu, außer das Turnier hat "
+        "`settings.protest_restart_on_correction: false` (dann läuft sie ab dem Abschluss "
+        "weiter)."
     ),
     responses=WRITE,
 )
@@ -277,7 +304,12 @@ async def abort(
 @router.get(
     f"{START}/events",
     summary="Verlauf eines Ergebnisses",
-    description="Alle Ereignisse: wer, wann, was, Grund und Unterschied zum vorigen Rohwert.",
+    description=(
+        "Alle Ereignisse: wer, wann, was, Grund und Unterschied zum vorigen Rohwert. "
+        "`user_name` und `device_name` werden zum Abfragezeitpunkt aufgelöst (heutiger Name); "
+        "`user_name` ist null, wenn beim Ereignis niemand angemeldet war oder die Person "
+        "gelöscht ist."
+    ),
     responses=NOT_FOUND,
 )
 async def list_events(
@@ -309,7 +341,7 @@ async def recompute(
     result = await recompute_competition(session, competition_id, actor)
     await session.commit()
     events.publish(
-        "result.recomputed",
+        service.EVENT_RECOMPUTED,
         {"tournament_id": str(tournament_id), "competition_id": str(competition_id)},
     )
     return RecomputeOut(

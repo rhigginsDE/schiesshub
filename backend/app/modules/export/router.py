@@ -169,7 +169,7 @@ async def startlist_csv(
     meta, records = await _startlist(
         request, session, tournament_id, competition_id, range_id, names
     )
-    return _csv(tables.startlist_sheet(records, sort), meta, "Startliste")
+    return _csv(tables.startlist_sheet(records, sort, meta.tz), meta, "Startliste")
 
 
 # --- Siegerliste ---------------------------------------------------------------------------
@@ -273,7 +273,7 @@ async def winners_csv(
         include_provisional=include_provisional,
         names=names,
     )
-    return _csv(tables.winners_sheet(sections), meta, "Siegerliste")
+    return _csv(tables.winners_sheet(sections, meta.tz), meta, "Siegerliste")
 
 
 # --- Ergebnisse (Rohexport) ----------------------------------------------------------------
@@ -304,7 +304,7 @@ async def results_csv(
         session, tournament_id, competition_id=competition_id, names=names
     )
     meta = await service.meta(session, tournament_id, names)
-    return _csv(tables.results_sheet(records), meta, "Ergebnisse")
+    return _csv(tables.results_sheet(records, meta.tz), meta, "Ergebnisse")
 
 
 __all__ = ["PERMISSION_FULL_NAMES", "PERMISSION_READ", "router"]

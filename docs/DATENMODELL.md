@@ -44,7 +44,7 @@ Alle Tabellen haben `id` (UUID), `created_at`, `updated_at`. Geld steht in Cent 
 
 **`tournament`**: `name`, `organizer`, `date_from`, `date_to`, `status` (`draft`, `active`, `closed`), `template` (`open`, `club_championship`, `custom`), `settings` (JSONB).
 
-`settings` enthält alles, was kein eigenes Feld braucht, zum Beispiel `protest_minutes` (Einspruchsfrist, `null` = aus), `currency`, `first_start_number` (erste vergebene Startnummer, Standard 1), Voreinstellungen für die Anzeige.
+`settings` enthält alles, was kein eigenes Feld braucht, zum Beispiel `protest_minutes` (Einspruchsfrist, `null` = aus), `protest_restart_on_correction` (beginnt die Einspruchsfrist mit einer Korrektur neu? Standard `true`; bei `false` läuft sie ab dem Abschluss weiter), `timezone` (Ortszeit für Uhrzeiten in Listen und auf der Anzeige, IANA-Name, Standard `Europe/Berlin`), `currency`, `first_start_number` (erste vergebene Startnummer, Standard 1), Voreinstellungen für die Anzeige. Fehlt ein Schlüssel (ältere Turniere), gilt der Standard.
 
 `announcement` (JSONB): Ausschreibung. `title`, `facts` (`venue`, `address`, `registration_deadline`, `registration_info`, `contact_name`, `contact_info`) und `blocks`, eine geordnete Liste aus `id`, `kind`, `heading`, `body`, `visible`. `kind` ist `text` (Freitext, kein HTML) oder ein automatischer Baustein `competitions`, `classes`, `fees`, `dates`, `ranges` (je höchstens einmal; Inhalt aus den Turnierdaten). Ein neues Turnier bekommt eine Standardgliederung mit leeren Texten; `null` bei älteren Turnieren heißt ebenfalls Standardgliederung.
 
@@ -96,6 +96,7 @@ Felder mit `_enc` sind verschlüsselt (BYTEA, AES-GCM, siehe `app/core/crypto.py
 | `abort_reason` | `dns` (nicht angetreten), `dnf` (aufgegeben), `dsq` (disqualifiziert) |
 | `queue_position` | Platz in der Reihenfolge des Stands |
 | `heat_id`, `lane` | Durchgang (nur Zeitplan) und Bahn |
+| `on_lane` | steht gerade auf `lane` und belegt sie (siehe unten) |
 | `called_at` | Zeitpunkt des letzten Aufrufs; leer, solange der Start wartet (auch nach dem Zurückstellen) |
 
 Erlaubte Statuswechsel:
@@ -108,7 +109,7 @@ Erlaubte Statuswechsel:
 | `final` | `captured` (Wiederöffnen, verlangt einen Grund) |
 | `aborted` | – |
 
-`aborted` verlangt `abort_reason`. Eine Bahn ist belegt, solange ein Start mit Status `called` auf ihr steht (über alle Wettbewerbe des Stands); danach bleibt `lane` als Angabe stehen, wo geschossen wurde. Wird ein Start der Reihenfolge ohne Aufruf erfasst (`registered → captured`), bleibt `lane` leer. Ein Abbruch steht immer auch als Ereignis `aborted` im Ergebnisprotokoll, gleich über welchen Endpunkt er kam. Starts mit Ergebnis-Ereignissen lassen sich weder stornieren noch mit ihrer Anmeldung löschen.
+`aborted` verlangt `abort_reason`. Eine Bahn ist belegt, solange ein Start mit `on_lane` auf ihr steht (über alle Wettbewerbe des Stands). `on_lane` setzt der Aufruf (`→ called`); es bleibt beim Erfassen (`called → captured`) stehen und fällt bei `final`, `aborted`, beim Zurückstellen (`→ registered`) oder über „Bahn freigeben“ (`POST …/starts/{id}/release-lane`, nur `captured`, Status bleibt). Ein Wiederöffnen (`final → captured`) belegt die Bahn nicht wieder. `lane` bleibt danach als Angabe stehen, wo geschossen wurde. Ein Start, der ohne Aufruf erfasst wird (`registered → captured`), belegt keine Bahn: bei der Reihenfolge bleibt `lane` leer, beim Zeitplan steht die gebuchte Bahn nur als Angabe da. Eine Person steht höchstens auf einer Bahn. Ein Abbruch steht immer auch als Ereignis `aborted` im Ergebnisprotokoll, gleich über welchen Endpunkt er kam. Starts mit Ergebnis-Ereignissen lassen sich weder stornieren noch mit ihrer Anmeldung löschen.
 
 **`heat`**: `range_id`, `number`, `starts_at`, `ends_at`.
 
@@ -122,7 +123,7 @@ Ergebnisse werden nie überschrieben.
 |---|---|
 | `raw_set` | Rohwerte eingegeben oder geändert, solange der Start offen ist |
 | `finalized` | Ergebnis abgeschlossen |
-| `corrected` | Korrektur nach dem Abschluss, `reason` ist Pflicht |
+| `corrected` | Korrektur nach dem Abschluss, `reason` ist Pflicht; `payload.protest_restarted` sagt, ob die Einspruchsfrist neu begann |
 | `reopened` | Abschluss zurückgenommen, `reason` ist Pflicht |
 | `aborted` | Start abgebrochen |
 

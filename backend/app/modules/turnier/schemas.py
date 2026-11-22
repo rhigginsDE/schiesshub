@@ -9,8 +9,9 @@ from datetime import date, datetime
 from typing import Annotated, Any, Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
+from app.core.localtime import DEFAULT_TIMEZONE, check_timezone
 from app.modules.katalog.fileformat import Variante, Wertung
 
 # UUIDs und Datumsangaben kommen als Text aus dem JSON und dürfen umgewandelt werden.
@@ -23,6 +24,8 @@ NonNegativeInt = Annotated[int, Field(ge=0)]
 PositiveInt = Annotated[int, Field(ge=1)]
 Sort = Annotated[int, Field(ge=0)]
 Currency = Annotated[str, Field(pattern=r"^[A-Z]{3}$")]
+# IANA-Zeitzone („Europe/Berlin“), geprüft gegen die Zeitzonen-Datenbank des Servers.
+Timezone = Annotated[str, Field(min_length=1, max_length=64), AfterValidator(check_timezone)]
 # Grund einer Änderung; Pflicht für Änderungen an der Wertung, sobald das Turnier läuft.
 Reason = Annotated[str, Field(min_length=1, max_length=500)]
 
@@ -52,6 +55,11 @@ class TournamentSettings(StrictModel):
 
     # Einspruchsfrist in Minuten; null = keine Frist.
     protest_minutes: NonNegativeInt | None = None
+    # Beginnt die Einspruchsfrist mit einer Korrektur eines abgeschlossenen Ergebnisses neu?
+    # false: Die Frist läuft ab dem Abschluss weiter.
+    protest_restart_on_correction: bool = True
+    # Ortszeit für Uhrzeiten in Listen und auf der Anzeige (IANA-Name).
+    timezone: Timezone = DEFAULT_TIMEZONE
     currency: Currency = "EUR"
     default_fee_first_cents: NonNegativeInt = 0
     default_fee_repeat_cents: NonNegativeInt = 0
@@ -76,6 +84,8 @@ class TournamentSettingsUpdate(StrictModel):
     """Teiländerung der Einstellungen: Nur mitgeschickte Schlüssel werden übernommen."""
 
     protest_minutes: NonNegativeInt | None = None
+    protest_restart_on_correction: bool | None = None
+    timezone: Timezone | None = None
     currency: Currency | None = None
     default_fee_first_cents: NonNegativeInt | None = None
     default_fee_repeat_cents: NonNegativeInt | None = None

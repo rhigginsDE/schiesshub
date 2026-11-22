@@ -21,6 +21,7 @@ from app.modules.anzeige.schemas import (
     DisplayOut,
     DisplayUpdate,
     FeedOut,
+    FeedPreviewRequest,
     SceneOrder,
 )
 
@@ -75,7 +76,9 @@ def _matches(if_none_match: str | None, etag: str) -> bool:
 async def _feed_response(
     request: Request, response: Response, session: SessionDep, display: Display
 ) -> FeedOut | Response:
-    feed = await build_feed(session, display, _backup_info(request))
+    feed = await build_feed(
+        session, display, _backup_info(request), request.app.state.events.known_names()
+    )
     etag = f'"{feed.version}"'
     headers = {"ETag": etag, "Cache-Control": "no-cache"}
     if _matches(request.headers.get("if-none-match"), etag):
@@ -89,8 +92,9 @@ FEED_DESCRIPTION = (
     "Reihenfolge (eine Szene kann mehrere Seiten ergeben, `part`/`parts`), übersprungene Szenen "
     "mit Grund, Laufzeile und Warnungen. Ist nichts zu zeigen, kommt eine Ruhe-Szene (`idle`). "
     "`version` steht auch im ETag; mit `If-None-Match` antwortet der Server 304, solange sich "
-    "der Inhalt nicht ändert. Neu laden bei den Ereignissen aus `reload_on` und spätestens nach "
-    "`poll_seconds`."
+    "der Inhalt nicht ändert. Neu laden bei den Ereignissen aus `reload_on` (genaue Namen, "
+    "direkt für `EventSource.addEventListener`) und spätestens nach `poll_seconds`. Uhrzeiten "
+    "zusätzlich in Ortszeit des Turniers (`*_local`, Zone in `header.timezone`)."
 )
 
 
@@ -161,8 +165,12 @@ async def get_display(display_id: UUID, session: SessionDep, _: Controller) -> D
 
 @router.patch(
     DISPLAY,
-    summary="Anzeige ändern (Name, Turnier, Reihenfolge)",
-    description="`tournament_id: null` heißt: automatisch das aktive Turnier.",
+    summary="Anzeige ändern (Name, Turnier, Reihenfolge, Inhalt)",
+    description=(
+        "`tournament_id: null` heißt: automatisch das aktive Turnier. Mit `config` werden "
+        "Szenen und Einstellungen im selben Schritt ersetzt (wie `PUT …/config`); die Szenen "
+        "werden gegen das neue Turnier geprüft, Fehler nennen `config.scenes[…]`."
+    ),
     responses=WRITE,
 )
 async def update_display(
@@ -246,3 +254,35 @@ async def get_feed(
 ) -> FeedOut:
     display = await service.get_display(session, display_id)
     return await _feed_response(request, response, session, display)  # type: ignore[return-value]
+
+
+@router.post(
+    f"{DISPLAY}/preview-feed",
+    summary="Feed-Vorschau für eine ungespeicherte Konfiguration",
+    description=(
+        "Baut den Feed der Anzeige mit `config` (und wahlweise `tournament_id`) statt der "
+        "gespeicherten Werte, ohne etwas zu speichern. Die Szenen werden wie beim Speichern "
+        "geprüft (422 mit `config.scenes[…]`). Kein ETag."
+    ),
+    responses=WRITE,
+)
+async def preview_feed(
+    display_id: UUID,
+    data: FeedPreviewRequest,
+    request: Request,
+    session: SessionDep,
+    _: Controller,
+) -> FeedOut:
+    display = await service.get_display(session, display_id)
+    tournament_id = (
+        data.tournament_id if "tournament_id" in data.model_fields_set else display.tournament_id
+    )
+    await service.check_config(session, tournament_id, data.config)
+    return await build_feed(
+        session,
+        display,
+        _backup_info(request),
+        request.app.state.events.known_names(),
+        config=data.config,
+        tournament_id=tournament_id,
+    )

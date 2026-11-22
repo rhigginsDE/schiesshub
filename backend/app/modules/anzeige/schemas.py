@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.modules.ergebnisse.schemas import RowStatus, SeriesPart
 from app.modules.starts.rules import AbortReason, StartStatus
+from app.modules.starts.schemas import LaneProgressOut
 from app.modules.turnier.schemas import Id, StrictModel
 
 DisplayName = Annotated[str, Field(min_length=1, max_length=80)]
@@ -172,6 +173,17 @@ class DisplayUpdate(StrictModel):
     # null: automatisch das aktive Turnier.
     tournament_id: Id | None = None
     sort: Sort | None = None
+    # Szenen und Einstellungen (ersetzt sie vollständig, wie `PUT …/config`). Zusammen mit
+    # `tournament_id` werden die Szenen gegen das neue Turnier geprüft.
+    config: DisplayConfig | None = None
+
+
+class FeedPreviewRequest(StrictModel):
+    """Feed für eine nicht gespeicherte Konfiguration (Vorschau in der Verwaltung)."""
+
+    config: DisplayConfig
+    # Ohne Angabe das Turnier der Anzeige; null: automatisch das aktive Turnier.
+    tournament_id: Id | None = None
 
 
 class DeviceAssign(StrictModel):
@@ -209,6 +221,8 @@ class FeedHeader(BaseModel):
     tournament_status: Literal["draft", "active", "closed"] | None
     # fixed: an der Anzeige gewählt; auto: das einzige aktive Turnier.
     tournament_mode: Literal["fixed", "auto"]
+    # Ortszeit des Turniers (IANA-Name); die `*_local`-Felder im Feed stehen in dieser Zone.
+    timezone: str
 
 
 class FeedWarning(BaseModel):
@@ -232,6 +246,8 @@ class FeedPerson(BaseModel):
     lane: int | None
     heat_number: int | None
     heat_starts_at: datetime | None
+    # Dieselbe Uhrzeit in Ortszeit des Turniers, ISO 8601 mit Versatz („…T10:00:00+01:00“).
+    heat_starts_at_local: str | None
 
 
 class FeedRankRow(BaseModel):
@@ -331,6 +347,16 @@ class FeedSection(BaseModel):
     series: list[FeedSeriesStep]
 
 
+class FeedProcedureCurrent(BaseModel):
+    """Laufende Position einer Bahn in diesem Ablauf (zum Hervorheben auf dem Bildschirm)."""
+
+    lane: int
+    start_id: UUID
+    section_id: str
+    # Serie, die gerade geschossen wird (ab 1): die erste noch nicht vollständig erfasste.
+    series_number: int
+
+
 class FeedProcedure(BaseModel):
     competition_id: UUID
     competition_name: str
@@ -345,17 +371,26 @@ class FeedProcedure(BaseModel):
     deviates: bool
     deviations: list[str]
     sections: list[FeedSection]
+    # Je belegter Bahn dieses Wettbewerbs die laufende Serie (aus dem Erfassungsfortschritt;
+    # aufgerufen ohne Eingabe: erste Serie). Fertig erfasste Bahnen fehlen.
+    current: list[FeedProcedureCurrent] = []
 
 
 class FeedLane(BaseModel):
     lane: int
+    # Start auf der Bahn (aufgerufen oder erfasst, noch nicht freigegeben), null wenn frei.
     start: FeedPerson | None
+    # Erfassungsfortschritt des Starts; null ohne Start oder solange nichts erfasst ist.
+    progress: LaneProgressOut | None = None
 
 
 class FeedNextHeat(BaseModel):
     number: int
     starts_at: datetime
     ends_at: datetime
+    # Dieselben Zeitpunkte in Ortszeit des Turniers (ISO 8601 mit Versatz).
+    starts_at_local: str
+    ends_at_local: str
 
 
 class FeedRange(BaseModel):
@@ -448,7 +483,8 @@ class FeedOut(BaseModel):
     skipped: list[FeedSkipped]
     ticker: str | None
     warnings: list[FeedWarning]
-    # Bei diesen Server-Ereignissen neu laden (`*` am Ende: alle mit diesem Anfang).
+    # Bei diesen Server-Ereignissen neu laden: genaue Namen (aus den bekannten Ereignissen des
+    # Servers, `GET /events/names`), direkt für `EventSource.addEventListener` geeignet.
     reload_on: list[str]
     # Zusätzlich spätestens nach so vielen Sekunden neu laden (z. B. Ablauf der Einspruchsfrist).
     poll_seconds: int

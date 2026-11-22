@@ -1,14 +1,16 @@
 """Tabellen des Moduls `starts`: Anmeldung, Start, Durchgang (siehe docs/DATENMODELL.md).
 
-Die Bahnbelegung gehört zum Stand: Eine Bahn ist belegt, solange ein Start mit Status `called`
-auf ihr steht (Stand über `competition.range_id`). Mit `captured`, `final` oder `aborted` ist sie
-wieder frei; `lane` bleibt als Angabe erhalten, auf welcher Bahn geschossen wurde.
+Die Bahnbelegung gehört zum Stand: Eine Bahn ist belegt, solange ein Start mit `on_lane` auf ihr
+steht (Stand über `competition.range_id`). `on_lane` setzt der Aufruf; es bleibt beim Erfassen
+(`captured`) stehen und fällt bei `final`, `aborted`, beim Zurückstellen oder über „Bahn
+freigeben“. `lane` bleibt danach als Angabe erhalten, auf welcher Bahn geschossen wurde.
 """
 
 import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -87,6 +89,10 @@ class Start(UUIDPrimaryKey, Timestamps, Base):
         CheckConstraint("queue_position IS NULL OR queue_position >= 1", name="queue_position"),
         CheckConstraint("lane IS NULL OR lane >= 1", name="lane"),
         CheckConstraint("heat_id IS NULL OR lane IS NOT NULL", name="heat_lane"),
+        CheckConstraint(
+            "NOT on_lane OR (lane IS NOT NULL AND status IN ('called', 'captured'))",
+            name="on_lane",
+        ),
         # Ein Platz (Bahn) je Durchgang; abgebrochene Starts geben ihn frei.
         Index(
             "uq_start_heat_lane",
@@ -112,6 +118,8 @@ class Start(UUIDPrimaryKey, Timestamps, Base):
         ForeignKey("heat.id", ondelete="SET NULL"), index=True
     )
     lane: Mapped[int | None] = mapped_column(Integer)
+    # Steht gerade auf `lane` und belegt sie (aufgerufen oder erfasst, noch nicht freigegeben).
+    on_lane: Mapped[bool] = mapped_column(Boolean, server_default=text("false"), default=False)
     # Zeitpunkt des letzten Aufrufs (Übergang zu `called`); leer, solange der Start wartet
     # (auch nach dem Zurückstellen). Bleibt nach Erfassung oder Abbruch als Angabe stehen.
     called_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

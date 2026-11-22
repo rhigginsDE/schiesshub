@@ -2,7 +2,8 @@
 
 Zahlen stehen mit Dezimalkomma. In der CSV-Datei steht ein normales Minuszeichen (`-`), damit
 Tabellenkalkulationen die Zahl erkennen; im PDF das typografische (`−`) wie in der App.
-Zeitpunkte speichert der Server in UTC; Listen zeigen sie in der Ortszeit (`LOCAL_TZ`).
+Zeitpunkte speichert der Server in UTC; Listen zeigen sie in der Ortszeit des Turniers
+(`settings.timezone`, über `Meta.tz`); ohne Angabe gilt `LOCAL_TZ` (Europe/Berlin).
 """
 
 import re
@@ -11,10 +12,11 @@ from datetime import date, datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
+from app.core.localtime import DEFAULT_TIMEZONE, zone
 from app.scoring.numbers import cs_to_seconds
 
-# Ortszeit für Uhrzeiten in Listen. Schiesshub hat (noch) keine Zeitzone je Turnier.
-LOCAL_TZ = ZoneInfo("Europe/Berlin")
+# Standard-Ortszeit, wenn das Turnier keine eigene Zeitzone hat.
+LOCAL_TZ: ZoneInfo = zone(DEFAULT_TIMEZONE)
 
 ABORT_LABELS: dict[str, str] = {
     "dns": "nicht angetreten",
@@ -50,18 +52,18 @@ def seconds(cs: int, *, typographic: bool = False) -> str:
     return number(cs_to_seconds(cs), typographic=typographic)
 
 
-def local(moment: datetime) -> datetime:
-    return moment.astimezone(LOCAL_TZ)
+def local(moment: datetime, tz: ZoneInfo | None = None) -> datetime:
+    return moment.astimezone(tz or LOCAL_TZ)
 
 
-def clock(moment: datetime) -> str:
+def clock(moment: datetime, tz: ZoneInfo | None = None) -> str:
     """„14:35“ in Ortszeit."""
-    return local(moment).strftime("%H:%M")
+    return local(moment, tz).strftime("%H:%M")
 
 
-def iso_local(moment: datetime) -> str:
+def iso_local(moment: datetime, tz: ZoneInfo | None = None) -> str:
     """„2027-03-06 14:35“ in Ortszeit (ISO-Datum, von Tabellenkalkulationen erkannt)."""
-    return local(moment).strftime("%Y-%m-%d %H:%M")
+    return local(moment, tz).strftime("%Y-%m-%d %H:%M")
 
 
 def date_de(day: date) -> str:
@@ -79,9 +81,9 @@ def date_range_de(first: date, last: date) -> str:
     return f"{date_de(first)}–{date_de(last)}"
 
 
-def moment_de(moment: datetime) -> str:
+def moment_de(moment: datetime, tz: ZoneInfo | None = None) -> str:
     """„06.03.2027, 14:35 Uhr“ in Ortszeit."""
-    return local(moment).strftime("%d.%m.%Y, %H:%M Uhr")
+    return local(moment, tz).strftime("%d.%m.%Y, %H:%M Uhr")
 
 
 _TRANSLIT = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "Ä": "Ae", "Ö": "Oe", "Ü": "Ue"})

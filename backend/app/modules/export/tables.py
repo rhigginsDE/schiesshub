@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 from app.modules.ergebnisse.schemas import RankingOut, RankingRow
 from app.modules.export.formatting import (
@@ -334,8 +335,8 @@ def _row_notes(row: WinnerRow, mark_provisional: bool) -> list[str]:
 
 def provisional_note(until: datetime, meta: Meta) -> str:
     """Hinweis über der Tabelle; das Datum nur, wenn der Tag nicht eindeutig ist."""
-    local_day = local(until).date()
-    when = f"{clock(until)} Uhr"
+    local_day = local(until, meta.tz).date()
+    when = f"{clock(until, meta.tz)} Uhr"
     if meta.date_from != meta.date_to or local_day != meta.date_from:
         when = f"{date_de(local_day)}, {when}"
     return f"Vorläufig – Einspruchsfrist läuft bis {when}."
@@ -435,7 +436,8 @@ def _status_cell(row: WinnerRow) -> str:
     return ROW_STATUS_LABELS.get(row.status, row.status)
 
 
-def winners_sheet(sections: Sequence[WinnerSection]) -> Sheet:
+def winners_sheet(sections: Sequence[WinnerSection], tz: ZoneInfo | None = None) -> Sheet:
+    """CSV der Siegerliste; Uhrzeiten in `tz` (Ortszeit des Turniers, Standard Europe/Berlin)."""
     sheet = Sheet(
         header=(
             "Kennziffer",
@@ -486,7 +488,7 @@ def winners_sheet(sections: Sequence[WinnerSection]) -> Sheet:
                         row.inner_tens,
                         "; ".join(parts) or None,
                         _status_cell(row),
-                        iso_local(row.provisional_until)
+                        iso_local(row.provisional_until, tz)
                         if row.status == "provisional" and row.provisional_until
                         else None,
                     )
@@ -551,9 +553,9 @@ def sort_starts(records: Iterable[StartRecord], sort: StartlistSort) -> list[Sta
 def _heat_text(record: StartRecord, meta: Meta) -> str:
     if record.heat_starts_at is None:
         return ""
-    when = clock(record.heat_starts_at)
+    when = clock(record.heat_starts_at, meta.tz)
     if meta.date_from != meta.date_to:
-        when = f"{local(record.heat_starts_at).strftime('%d.%m.')} {when}"
+        when = f"{local(record.heat_starts_at, meta.tz).strftime('%d.%m.')} {when}"
     return f"{record.heat_number} ({when})" if record.heat_number is not None else when
 
 
@@ -635,7 +637,9 @@ def startlist_report(meta: Meta, records: Sequence[StartRecord], sort: Startlist
     return Report(title="Startliste", meta=meta, sections=tuple(sections), empty_text=NO_STARTS)
 
 
-def startlist_sheet(records: Sequence[StartRecord], sort: StartlistSort) -> Sheet:
+def startlist_sheet(
+    records: Sequence[StartRecord], sort: StartlistSort, tz: ZoneInfo | None = None
+) -> Sheet:
     sheet = Sheet(
         header=(
             "Startnummer",
@@ -668,7 +672,7 @@ def startlist_sheet(records: Sequence[StartRecord], sort: StartlistSort) -> Shee
                 record.competition.range_name,
                 record.attempt,
                 record.heat_number,
-                iso_local(record.heat_starts_at) if record.heat_starts_at else None,
+                iso_local(record.heat_starts_at, tz) if record.heat_starts_at else None,
                 record.lane,
                 record.queue_position,
                 START_STATUS_LABELS.get(record.status, record.status),
@@ -697,7 +701,7 @@ def _ordered_series(record: ResultRecord) -> list[SeriesValue]:
     return [by_key[key] for key in keys]
 
 
-def results_sheet(records: Sequence[ResultRecord]) -> Sheet:
+def results_sheet(records: Sequence[ResultRecord], tz: ZoneInfo | None = None) -> Sheet:
     ordered = [_ordered_series(record) for record in records]
     width = max((len(series) for series in ordered), default=0)
     used = [
@@ -750,8 +754,8 @@ def results_sheet(records: Sequence[ResultRecord]) -> Sheet:
             ("ja" if record.complete else "nein") if record.has_result else None,
             record.tens,
             record.inner_tens,
-            iso_local(record.finalized_at) if record.finalized_at else None,
-            iso_local(record.provisional_until) if record.is_provisional else None,
+            iso_local(record.finalized_at, tz) if record.finalized_at else None,
+            iso_local(record.provisional_until, tz) if record.is_provisional else None,
             "ja" if record.needs_review else None,
             ", ".join(struck) or None,
             "; ".join(special) or None,

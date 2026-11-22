@@ -1,4 +1,8 @@
-"""Gemeinsame Datenbank-Bausteine des Moduls `starts`: Nachschlagen, Sperren, Bahnbelegung."""
+"""Gemeinsame Datenbank-Bausteine des Moduls `starts`: Nachschlagen, Sperren, Bahnbelegung.
+
+`ConflictError` ist der gemeinsame Baustein aus `app.core.errors` (409, wahlweise mit Feld:
+`ConflictError("Bahn 2 ist schon belegt.", field="lane")`).
+"""
 
 import uuid
 from dataclasses import dataclass
@@ -6,39 +10,26 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import ConflictError
 from app.modules.starts.models import Entry, Start
 from app.modules.turnier.models import Competition, Range, Tournament
-from app.modules.turnier.service import ConflictError, NotFoundError
+from app.modules.turnier.service import NotFoundError
 
 __all__ = [
     "ConflictError",
-    "FieldConflictError",
     "NotFoundError",
     "StartContext",
-    "called_entry_ids",
-    "called_on_range",
     "event_ids",
     "get_entry",
     "get_range",
     "get_start",
     "get_tournament",
+    "occupied_on_range",
+    "on_lane_entry_ids",
     "renumber_queue",
     "waiting_starts",
     "writable_tournament",
 ]
-
-
-class FieldConflictError(ConflictError):
-    """409, die sich auf ein Eingabefeld bezieht (z. B. Startnummer schon vergeben).
-
-    Die Router des Moduls antworten damit wie bei einem 422 zusätzlich mit `errors`:
-    `{"detail": "…", "errors": [{"field": "start_number", "message": "…"}]}`. Anderswo
-    gefangen, bleibt es ein gewöhnliches 409 mit `detail`.
-    """
-
-    def __init__(self, field: str, detail: str) -> None:
-        super().__init__(detail)
-        self.field = field
 
 
 def event_ids(**ids: uuid.UUID | None) -> dict[str, str | None]:
@@ -153,25 +144,22 @@ async def renumber_queue(session: AsyncSession, range_id: uuid.UUID) -> list[Sta
     return waiting
 
 
-async def called_on_range(session: AsyncSession, range_id: uuid.UUID) -> dict[int, Start]:
-    """Belegte Bahnen eines Stands: Bahn → aufgerufener Start, über alle Wettbewerbe."""
+async def occupied_on_range(session: AsyncSession, range_id: uuid.UUID) -> dict[int, Start]:
+    """Belegte Bahnen eines Stands: Bahn → Start auf ihr (aufgerufen oder erfasst, noch nicht
+    freigegeben), über alle Wettbewerbe des Stands."""
     rows = await session.scalars(
         select(Start)
         .join(Competition, Competition.id == Start.competition_id)
-        .where(
-            Competition.range_id == range_id,
-            Start.status == "called",
-            Start.lane.is_not(None),
-        )
+        .where(Competition.range_id == range_id, Start.on_lane)
     )
     return {start.lane: start for start in rows if start.lane is not None}
 
 
-async def called_entry_ids(session: AsyncSession, tournament_id: uuid.UUID) -> set[uuid.UUID]:
+async def on_lane_entry_ids(session: AsyncSession, tournament_id: uuid.UUID) -> set[uuid.UUID]:
     """Anmeldungen (also Personen), die im Turnier gerade auf einer Bahn stehen."""
     rows = await session.scalars(
         select(Start.entry_id)
         .join(Entry, Entry.id == Start.entry_id)
-        .where(Entry.tournament_id == tournament_id, Start.status == "called")
+        .where(Entry.tournament_id == tournament_id, Start.on_lane)
     )
     return set(rows)

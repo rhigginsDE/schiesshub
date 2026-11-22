@@ -25,6 +25,19 @@ async def health(session: SessionDep, response: Response) -> HealthOut:
 
 
 @router.get(
+    "/events/names",
+    summary="Bekannte Ereignisnamen",
+    description=(
+        "Alle fachlichen Ereignisnamen, die der Server senden kann (von den Modulen angemeldet "
+        "oder schon einmal gesendet), sortiert. `EventSource` hört nur auf genaue Namen; damit "
+        "lassen sich Muster wie `start.*` auflösen."
+    ),
+)
+async def event_names(hub: EventHubDep) -> list[str]:
+    return hub.known_names()
+
+
+@router.get(
     "/events",
     summary="Live-Ereignisse (Server-Sent Events)",
     description=(

@@ -1,4 +1,4 @@
-"""Reihenfolge am Stand: Verschieben, Aufrufen, Zurückstellen, „nächste aufrufen“.
+"""Reihenfolge am Stand: Verschieben, Aufrufen, Zurückstellen, „nächste aufrufen“, Bahn freigeben.
 
 Die Reihenfolge gehört zum Stand: Alle wartenden Starts der Wettbewerbe mit Planung `queue` auf
 einem Stand stehen in einer Liste (`queue_position`, lückenlos ab 1). Die Bahnbelegung teilt sie
@@ -12,15 +12,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import InputError
 from app.core.events import EventHub
 from app.core.security import Actor
+from app.modules.auth.audit import record_audit
 from app.modules.starts.common import (
     ConflictError,
-    FieldConflictError,
     StartContext,
-    called_entry_ids,
-    called_on_range,
     event_ids,
     get_range,
     get_start,
+    occupied_on_range,
+    on_lane_entry_ids,
     renumber_queue,
     waiting_starts,
     writable_tournament,
@@ -32,6 +32,7 @@ from app.modules.starts.schemas import MoveRequest
 from app.modules.turnier.models import Range
 
 EVENT_START_MOVED = "start.moved"
+EVENT_LANE_RELEASED = "start.lane_released"
 
 
 async def _context_on_range(
@@ -84,7 +85,7 @@ async def move(
 
 
 async def _check_entry_free(session: AsyncSession, tournament_id: uuid.UUID, entry: Entry) -> None:
-    if entry.id in await called_entry_ids(session, tournament_id):
+    if entry.id in await on_lane_entry_ids(session, tournament_id):
         raise ConflictError(
             f"Startnummer {entry.start_number} steht gerade schon auf einer Bahn. Eine Person "
             "kann nicht auf zwei Bahnen zugleich stehen."
@@ -105,7 +106,7 @@ async def call(
     start = context.start
     if start.status != "registered":
         raise ConflictError("Nur ein wartender Start lässt sich aufrufen.")
-    occupied = await called_on_range(session, range_.id)
+    occupied = await occupied_on_range(session, range_.id)
     if context.competition.planning == "schedule":
         if start.heat_id is None:
             raise ConflictError(
@@ -126,7 +127,7 @@ async def call(
         raise InputError.single("lane", f"Der Stand hat nur {range_.lane_count} Bahnen.")
     assert lane is not None
     if lane in occupied:
-        raise FieldConflictError("lane", f"Bahn {lane} ist schon belegt.")
+        raise ConflictError(f"Bahn {lane} ist schon belegt.", field="lane")
     await _check_entry_free(session, tournament_id, context.entry)
     start.lane = lane
     change = await transition(session, start, "called", actor)
@@ -175,13 +176,13 @@ async def call_next(
     """
     await writable_tournament(session, tournament_id)
     range_ = await get_range(session, tournament_id, range_id, lock=True)
-    occupied = await called_on_range(session, range_.id)
+    occupied = await occupied_on_range(session, range_.id)
     free = [lane for lane in range(1, range_.lane_count + 1) if lane not in occupied]
     waiting = await renumber_queue(session, range_.id)
     picks = pick_for_lanes(
         free,
         [Waiting(start_id=start.id, entry_id=start.entry_id) for start in waiting],
-        await called_entry_ids(session, tournament_id),
+        await on_lane_entry_ids(session, tournament_id),
     )
     by_id = {start.id: start for start in waiting}
     changes: list[StatusChange] = []
@@ -195,3 +196,58 @@ async def call_next(
     for start in called:
         await session.refresh(start)
     return called
+
+
+async def release_lane(
+    session: AsyncSession,
+    events: EventHub,
+    actor: Actor,
+    tournament_id: uuid.UUID,
+    start_id: uuid.UUID,
+) -> Start:
+    """Gibt die Bahn eines erfassten Starts frei, ohne den Status zu ändern.
+
+    Für den Fall, dass der Schütze fertig ist, das Ergebnis aber noch nicht abgeschlossen wird
+    (z. B. Trefferaufnahme dauert). Ein nur aufgerufener Start wird zurückgestellt, nicht
+    freigegeben.
+    """
+    context, range_ = await _context_on_range(session, tournament_id, start_id)
+    start = context.start
+    if not start.on_lane:
+        raise ConflictError("Der Start steht auf keiner Bahn.")
+    if start.status == "called":
+        raise ConflictError(
+            "Der Start ist nur aufgerufen und hat noch keine Eingabe. Um die Bahn frei zu "
+            "machen, bitte zurückstellen oder abbrechen."
+        )
+    lane = start.lane
+    start.on_lane = False
+    record_audit(
+        session,
+        actor,
+        "start.lane_released",
+        "start",
+        start.id,
+        {
+            "tournament_id": str(tournament_id),
+            "entry_id": str(context.entry.id),
+            "range_id": str(range_.id),
+            "lane": lane,
+        },
+    )
+    await session.commit()
+    events.publish(
+        EVENT_LANE_RELEASED,
+        {
+            **event_ids(
+                tournament_id=tournament_id,
+                entry_id=context.entry.id,
+                start_id=start.id,
+                competition_id=context.competition.id,
+                range_id=range_.id,
+            ),
+            "lane": lane,
+        },
+    )
+    await session.refresh(start)
+    return start

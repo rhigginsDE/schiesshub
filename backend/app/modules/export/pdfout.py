@@ -334,7 +334,9 @@ def _decorate(
     pdf.line(MARGIN_X, y + 4 * mm, width - MARGIN_X, y + 4 * mm)
     pdf.setFont(fonts.regular, 8.5)
     pdf.drawString(
-        MARGIN_X, y, f"Erstellt am {moment_de(meta.generated_at)} · erstellt mit Schiesshub"
+        MARGIN_X,
+        y,
+        f"Erstellt am {moment_de(meta.generated_at, meta.tz)} · erstellt mit Schiesshub",
     )
     pdf.drawRightString(width - MARGIN_X, y, f"Seite {page} von {total}")
     pdf.restoreState()
