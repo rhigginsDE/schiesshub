@@ -19,6 +19,7 @@ from app.core.security import Actor
 from app.modules.auth.audit import record_audit
 from app.modules.starts.common import (
     ConflictError,
+    FieldConflictError,
     NotFoundError,
     called_entry_ids,
     called_on_range,
@@ -105,15 +106,18 @@ def _check_no_overlap(
             continue
         for starts_at, ends_at in windows:
             if overlaps(heat.starts_at, heat.ends_at, starts_at, ends_at):
-                raise ConflictError(
+                raise FieldConflictError(
+                    "starts_at",
                     f"Der Durchgang überschneidet sich mit Durchgang {heat.number} auf diesem "
-                    "Stand."
+                    "Stand.",
                 )
 
 
 def _check_number_free(existing: Sequence[Heat], number: int, own_id: uuid.UUID | None) -> None:
     if any(heat.number == number and heat.id != own_id for heat in existing):
-        raise ConflictError(f"Einen Durchgang {number} gibt es auf diesem Stand schon.")
+        raise FieldConflictError(
+            "number", f"Einen Durchgang {number} gibt es auf diesem Stand schon."
+        )
 
 
 async def create_heat(
@@ -336,7 +340,9 @@ async def place(
     elif lane > range_.lane_count:
         raise InputError.single("lane", f"Der Stand hat nur {range_.lane_count} Bahnen.")
     elif lane in taken:
-        raise ConflictError(f"Bahn {lane} im Durchgang {heat.number} ist schon belegt.")
+        raise FieldConflictError(
+            "lane", f"Bahn {lane} im Durchgang {heat.number} ist schon belegt."
+        )
     await _check_person_free(
         session, entry.id, heat.starts_at, heat.ends_at, exclude_start=start.id
     )

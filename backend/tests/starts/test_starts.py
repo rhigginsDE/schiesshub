@@ -166,9 +166,11 @@ async def test_lifecycle_for_result_module(api: Api, queue_setup: Setup) -> None
     async with factory() as session:
         loaded = await lifecycle.load_start(session, start_id)
         with pytest.raises(HTTPException) as refused:
-            await lifecycle.transition(session, loaded, "captured", actor)
+            await lifecycle.transition(session, loaded, "final", actor)
     assert refused.value.status_code == 409
-    assert refused.value.detail == "Ein Start im Status „angemeldet“ kann nicht „erfasst“ werden."
+    assert refused.value.detail == (
+        "Ein Start im Status „angemeldet“ kann nicht „abgeschlossen“ werden."
+    )
 
     called = await api.ok("POST", f"/tournaments/{tid}/starts/{start['id']}/call", json={})
     assert called["lane"] == 1
@@ -202,3 +204,31 @@ async def test_lifecycle_for_result_module(api: Api, queue_setup: Setup) -> None
     assert detail == "Nur ein wartender Start lässt sich aufrufen."
     names = [event.name for event in api.drain()]
     assert "start.status_changed" in names
+
+
+async def test_capture_without_call_leaves_lane_empty(api: Api, queue_setup: Setup) -> None:
+    """`registered → captured`: nachträgliche Erfassung ohne Aufrufen (Reihenfolge)."""
+    tid = queue_setup.tid
+    first = (
+        await api.book(
+            tid, (await api.entry(tid, queue_setup.class_id))["id"], queue_setup.competition_id
+        )
+    )[0]
+    second = (
+        await api.book(
+            tid, (await api.entry(tid, queue_setup.class_id))["id"], queue_setup.competition_id
+        )
+    )[0]
+    factory = api.app.state.session_factory
+    async with factory() as session:
+        loaded = await lifecycle.load_start(session, uuid.UUID(first["id"]))
+        change = await lifecycle.transition(session, loaded, "captured", Actor())
+        await session.commit()
+    assert (change.previous, change.current) == ("registered", "captured")
+
+    entry_starts = await api.ok("GET", f"/tournaments/{tid}/startlist")
+    row = next(row for row in entry_starts if row["start_id"] == first["id"])
+    assert (row["status"], row["lane"], row["queue_position"]) == ("captured", None, None)
+    queue = await api.ok("GET", f"/tournaments/{tid}/ranges/{queue_setup.range_id}/queue")
+    assert [(s["start_id"], s["queue_position"]) for s in queue["waiting"]] == [(second["id"], 1)]
+    assert all(lane["start"] is None for lane in queue["lanes"])

@@ -7,8 +7,8 @@ nur ausgewählt, gruppiert und dargestellt. Personen erscheinen nur so, wie sie 
 
 - `scope=final`: abgeschlossene Ergebnisse und Abbrüche (nach `RankPolicy`: aufgegeben hinten,
   nicht angetreten und disqualifiziert nicht in der Liste).
-- `scope=live`: zusätzlich laufende Zwischenstände (Status `called`/`captured`), gekennzeichnet
-  als `running`; unvollständige stehen hinter den vollständigen.
+- `scope=live`: zusätzlich laufende Zwischenstände (Status `registered`/`called`/`captured` mit
+  erfasstem Stand), gekennzeichnet als `running`; unvollständige stehen hinter den vollständigen.
 - `include_provisional=false` lässt Ergebnisse in der Einspruchsfrist weg.
 - Mehrfachstart: `best` – der beste der berücksichtigten Starts; `first` – der erste Start der
   Person (fehlt dessen Ergebnis noch, erscheint sie nicht); `all` – jeder Start für sich.
@@ -98,7 +98,8 @@ def _include(
             return provisional or not is_provisional(current, now)
         case "aborted":
             return True
-        case "called" | "captured":
+        case "registered" | "called" | "captured":
+            # Laufend ist, wozu es schon einen Zwischenstand gibt, auch ohne Aufruf.
             return scope == "live" and current is not None
     return False
 
@@ -337,13 +338,20 @@ async def ranking_summary(session: AsyncSession, tournament_id: uuid.UUID) -> Ra
         )
     )
     counts: dict[uuid.UUID, StatusCounts] = defaultdict(StatusCounts)
-    for competition_id, status, number in await session.execute(
-        select(Start.competition_id, Start.status, func.count())
+    # Angemeldete Starts mit Zwischenstand laufen schon (nachträgliche Erfassung).
+    registered_running: dict[uuid.UUID, int] = defaultdict(int)
+    has_current = ResultCurrent.start_id.is_not(None)
+    for competition_id, status, with_current, number in await session.execute(
+        select(Start.competition_id, Start.status, has_current, func.count())
         .join(Competition, Competition.id == Start.competition_id)
+        .outerjoin(ResultCurrent, ResultCurrent.start_id == Start.id)
         .where(Competition.tournament_id == tournament_id)
-        .group_by(Start.competition_id, Start.status)
+        .group_by(Start.competition_id, Start.status, has_current)
     ):
-        setattr(counts[competition_id], status, number)
+        item = counts[competition_id]
+        setattr(item, status, getattr(item, status) + number)
+        if status == "registered" and with_current:
+            registered_running[competition_id] += number
     for competition in competitions:
         if await ensure_current(session, competition):
             await session.refresh(competition)
@@ -398,11 +406,21 @@ async def ranking_summary(session: AsyncSession, tournament_id: uuid.UUID) -> Ra
             for row in group.rows
             if row.place == 1
         ]
+        item = counts[competition.id]
+        early = registered_running[competition.id]
         summaries.append(
             CompetitionSummary(
                 competition_id=competition.id,
                 competition_name=competition.name,
-                counts=counts[competition.id],
+                counts=item,
+                starts_total=item.registered
+                + item.called
+                + item.captured
+                + item.final
+                + item.aborted,
+                starts_final=item.final,
+                starts_running=item.called + item.captured + early,
+                starts_waiting=item.registered - early,
                 needs_review=review.get(competition.id, 0),
                 provisional=provisional.get(competition.id, 0),
                 leaders=leaders,

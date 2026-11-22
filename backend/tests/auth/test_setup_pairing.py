@@ -18,7 +18,7 @@ from tests.auth.conftest import (
 
 
 async def test_status_before_setup(make_app: AppFactory) -> None:
-    async with make_app() as app, client_for(app) as client:
+    async with make_app(pin_min_length=6, max_failed_logins=3) as app, client_for(app) as client:
         response = await client.get(f"{API}/auth/status")
 
     assert response.status_code == 200
@@ -29,6 +29,9 @@ async def test_status_before_setup(make_app: AppFactory) -> None:
         "user": None,
         "role": None,
         "permissions": [],
+        "pin_min_length": 6,
+        "max_failed_logins": 3,
+        "lockout_minutes": 5.0,
     }
 
 

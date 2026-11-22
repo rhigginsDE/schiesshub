@@ -78,9 +78,66 @@ async def seed_roles(session: AsyncSession) -> None:
                 name=name,
                 permissions=list(entries),
                 is_system=name == permissions.ADMIN_ROLE_NAME,
+                starter_key=name,
+                customized=False,
             )
         )
     logger.info("Startrollen angelegt: %s", ", ".join(permissions.STARTER_ROLES))
+
+
+async def reconcile_roles(session: AsyncSession) -> None:
+    """Gleicht die Rollen beim Start an die aktuellen Berechtigungen an, ohne zu bestätigen.
+
+    1. Startrollen, deren Rechte nie von Hand geändert wurden (`customized` aus), bekommen die
+       aktuelle Zuordnung aus `permissions.STARTER_ROLES` (Audit `role.reconciled`).
+    2. Aus allen Rollen fallen Einträge, die es nicht mehr gibt (`permissions.obsolete_entries`),
+       Audit `role.permissions_removed`. Von Hand geänderte Rollen behalten alles andere.
+
+    Die Systemrolle hat immer alle Rechte und bleibt unberührt. Gelöschte Startrollen werden
+    nicht neu angelegt.
+    """
+    known = [item.permission for item in permissions.known_permissions()]
+    system = Actor()
+    for role in await session.scalars(select(Role).order_by(Role.name).with_for_update()):
+        if role.is_system:
+            continue
+        target = permissions.STARTER_ROLES.get(role.starter_key or "")
+        if target is not None and not role.customized and set(role.permissions) != set(target):
+            record_audit(
+                session,
+                system,
+                "role.reconciled",
+                "role",
+                role.id,
+                {
+                    "name": role.name,
+                    "starter_key": role.starter_key,
+                    "before": role.permissions,
+                    "after": list(target),
+                },
+            )
+            logger.info("Startrolle „%s“ an die aktuellen Rechte angeglichen.", role.name)
+            role.permissions = list(target)
+        removed = permissions.obsolete_entries(role.permissions, known)
+        if target is not None and not role.customized:
+            # Was die Zuordnung selbst führt, bleibt (sonst ginge es bei jedem Start hin und her);
+            # ein Test hält die Zuordnung frei von veralteten Einträgen.
+            removed = [entry for entry in removed if entry not in target]
+        if removed:
+            record_audit(
+                session,
+                system,
+                "role.permissions_removed",
+                "role",
+                role.id,
+                {"name": role.name, "removed": removed, "before": role.permissions},
+            )
+            logger.info(
+                "Veraltete Berechtigungen aus Rolle „%s“ entfernt: %s",
+                role.name,
+                ", ".join(removed),
+            )
+            role.permissions = [entry for entry in role.permissions if entry not in removed]
 
 
 async def remove_expired(session: AsyncSession) -> None:
@@ -99,6 +156,8 @@ async def on_startup(app: FastAPI) -> None:
     settings: AuthSettings = app.state.auth_settings
     async with app.state.session_factory() as session, session.begin():
         await seed_roles(session)
+        await session.flush()
+        await reconcile_roles(session)
         await remove_expired(session)
     if settings.enforced:
         set_permission_checker(check_permission)
@@ -208,6 +267,9 @@ async def get_status(
         user=UserBrief(id=identity.user.id, name=identity.user.name) if identity.user else None,
         role=RoleBrief(id=identity.role.id, name=identity.role.name) if identity.role else None,
         permissions=identity.permissions,
+        pin_min_length=settings.pin_min_length,
+        max_failed_logins=settings.max_failed_logins,
+        lockout_minutes=settings.lockout_minutes,
     )
 
 
@@ -532,6 +594,8 @@ async def _role_out(session: AsyncSession, role: Role) -> RoleOut:
         id=role.id,
         name=role.name,
         is_system=role.is_system,
+        starter_key=role.starter_key,
+        customized=role.customized,
         permissions=role.permissions,
         effective_permissions=permissions.expand(role.permissions, is_system=role.is_system),
         user_count=user_count or 0,
@@ -567,7 +631,12 @@ async def create_role(
     session: AsyncSession, actor: Actor, events: EventHub, body: RoleIn
 ) -> RoleOut:
     await _ensure_unique_role_name(session, body.name)
-    role = Role(id=uuid.uuid4(), name=body.name, permissions=_clean_permissions(body.permissions))
+    role = Role(
+        id=uuid.uuid4(),
+        name=body.name,
+        permissions=_clean_permissions(body.permissions),
+        customized=False,
+    )
     session.add(role)
     record_audit(
         session,
@@ -601,6 +670,8 @@ async def update_role(
                 )
             changes["permissions"] = {"before": role.permissions, "after": cleaned}
             role.permissions = cleaned
+            # Ab jetzt gleicht der Start die Rolle nicht mehr an die Startrollen an.
+            role.customized = True
     if changes:
         record_audit(session, actor, "role.updated", "role", role.id, changes)
         await session.commit()

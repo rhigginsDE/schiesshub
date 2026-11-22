@@ -26,8 +26,10 @@ STATUS_LABELS: dict[str, str] = {
 
 # Erlaubte Übergänge. `called → registered` ist „zurückstellen“, `final → captured` das
 # Wiederöffnen eines abgeschlossenen Ergebnisses durch das Ergebnis-Modul (mit Grund).
+# `registered → captured` ist die nachträgliche Erfassung ohne Aufrufen (kleine Vereine rufen
+# nicht auf); bei der Reihenfolge bleibt die Bahn dann leer.
 TRANSITIONS: Mapping[StartStatus, frozenset[StartStatus]] = {
-    "registered": frozenset({"called", "aborted"}),
+    "registered": frozenset({"called", "captured", "aborted"}),
     "called": frozenset({"registered", "captured", "aborted"}),
     "captured": frozenset({"final", "aborted"}),
     "final": frozenset({"captured"}),

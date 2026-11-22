@@ -62,6 +62,7 @@ async def station_rows(
             abort_reason=start.abort_reason,
             queue_position=start.queue_position,
             lane=start.lane,
+            called_at=start.called_at,
             heat_id=start.heat_id,
             heat_number=heat_number,
             heat_starts_at=heat_starts_at,

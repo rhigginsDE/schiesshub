@@ -3,6 +3,10 @@
 Öffentliche Schnittstelle für andere Module: `recompute_competition(session, competition_id,
 actor)` (rechnet alle Ergebnisse eines Wettbewerbs aus den Ereignissen neu, ohne zu bestätigen).
 Bei einer neuen Revision der Wertung läuft sie automatisch über `turnier.hooks`.
+
+Bei `starts.hooks` meldet sich das Modul zweimal an: als Ergebnisprüfer (Starts mit Ereignissen
+lassen sich nicht stornieren oder mit ihrer Anmeldung löschen) und als Abbruch-Handler (auch
+`POST …/starts/{id}/abort` schreibt das Ereignis `aborted`).
 """
 
 from fastapi import FastAPI
@@ -16,6 +20,8 @@ from app.modules.ergebnisse.router import (
     PERMISSION_READ,
     router,
 )
+from app.modules.ergebnisse.service import abort_from_starts, starts_with_events
+from app.modules.starts import hooks as start_hooks
 from app.modules.turnier.hooks import register_definition_changed, unregister_definition_changed
 
 __all__ = ["manifest", "recompute_competition"]
@@ -23,10 +29,14 @@ __all__ = ["manifest", "recompute_competition"]
 
 async def on_startup(app: FastAPI) -> None:
     register_definition_changed(on_definition_changed)
+    start_hooks.register_result_check(starts_with_events)
+    start_hooks.register_abort_handler(abort_from_starts)
 
 
 async def on_shutdown(app: FastAPI) -> None:
     unregister_definition_changed(on_definition_changed)
+    start_hooks.unregister_result_check(starts_with_events)
+    start_hooks.unregister_abort_handler(abort_from_starts)
 
 
 manifest = ModuleManifest(

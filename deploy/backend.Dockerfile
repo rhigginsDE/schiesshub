@@ -21,12 +21,14 @@ ARG PG_MAJOR
 # pg_dump/pg_restore für die Sicherung, aus dem offiziellen PGDG-Repository: Debian trixie selbst
 # liefert nur PostgreSQL 17, und ein älterer pg_dump verweigert den Abzug eines neueren Servers.
 # Der Schlüssel ist per Prüfsumme festgenagelt.
+# fonts-dejavu-core: freie TrueType-Schrift für die PDF-Listen (Modul `export`); die eingebauten
+# PDF-Schriften kennen Zeichen wie „ı“, „ł“ oder „č“ nicht.
 ADD --chmod=644 --checksum=sha256:0144068502a1eddd2a0280ede10ef607d1ec592ce819940991203941564e8e76 \
     https://www.postgresql.org/media/keys/ACCC4CF8.asc /usr/share/keyrings/pgdg.asc
 RUN echo "deb [signed-by=/usr/share/keyrings/pgdg.asc] https://apt.postgresql.org/pub/repos/apt trixie-pgdg main" \
         > /etc/apt/sources.list.d/pgdg.list \
     && apt-get update \
-    && apt-get install -y --no-install-recommends "postgresql-client-${PG_MAJOR}" \
+    && apt-get install -y --no-install-recommends "postgresql-client-${PG_MAJOR}" fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONUNBUFFERED=1 \

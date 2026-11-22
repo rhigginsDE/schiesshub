@@ -191,15 +191,27 @@ async def test_finalize_incomplete_is_rejected(api: Api, fallscheibe: Setup) -> 
     assert await start_status(api, setup, sid) == "captured"
 
 
-async def test_not_called_start_cannot_be_captured(api: Api, fallscheibe: Setup) -> None:
-    sid = await one_start(api, fallscheibe)
-    body = await api.fail(
-        "PUT",
-        f"{api.start_path(fallscheibe.tid, sid)}/raw",
-        409,
-        json={"raw": FALL_RAW, "base_seq": 0},
-    )
-    assert "aufgerufen" in body["detail"]
+async def test_not_called_start_is_captured_without_lane(api: Api, fallscheibe: Setup) -> None:
+    """Nachträgliche Erfassung ohne Aufrufen: angemeldet → erfasst, die Bahn bleibt leer."""
+    setup = fallscheibe
+    sid = await one_start(api, setup)
+    other = await one_start(api, setup)
+    state = await api.put_raw(setup.tid, sid, FALL_RAW, 0)
+    assert (state["status"], state["seq"]) == ("captured", 1)
+    status_events = [e.data for e in api.drain() if e.name == "start.status_changed"]
+    assert [(e["from"], e["to"]) for e in status_events] == [("registered", "captured")]
+
+    entry_rows = await api.ok("GET", f"/tournaments/{setup.tid}/startlist")
+    row = next(row for row in entry_rows if row["start_id"] == sid)
+    assert row["status"] == "captured"
+    assert row["lane"] is None
+    # Der Start hat die Reihenfolge verlassen, der andere rückt auf Platz 1.
+    queue = await api.ok("GET", f"/tournaments/{setup.tid}/ranges/{setup.range_id}/queue")
+    assert [item["start_id"] for item in queue["waiting"]] == [other]
+    assert all(lane["start"] is None for lane in queue["lanes"])
+
+    final = await api.finalize(setup.tid, sid, state["seq"])
+    assert final["status"] == "final"
 
 
 async def test_two_terminals_conflict_on_base_seq(api: Api, fallscheibe: Setup) -> None:

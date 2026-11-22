@@ -5,10 +5,11 @@ Alle schreibenden Anfragen brauchen den Header `X-Schiesshub-Request` (CSRF-Schu
 """
 
 from collections.abc import Awaitable, Callable
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 
 from app.core.db import SessionDep
 from app.core.events import EventHubDep
@@ -26,6 +27,7 @@ from app.modules.auth.identity import (
     set_cookie,
 )
 from app.modules.auth.schemas import (
+    AuditActionOut,
     AuditEntryOut,
     AuditPageOut,
     DeviceOut,
@@ -68,6 +70,24 @@ def authorized(permission: str) -> Callable[..., Awaitable[Actor]]:
         identity: IdentityDep, actor: Annotated[Actor, Depends(require(permission))]
     ) -> Actor:
         return actor if actor.device_id is not None else identity.actor()
+
+    return dependency
+
+
+def authorized_any(*permissions: str) -> Callable[..., Awaitable[Actor]]:
+    """Wie `authorized`, aber eine der Berechtigungen genügt (die erste passende gilt)."""
+
+    async def dependency(request: Request, identity: IdentityDep) -> Actor:
+        refused: HTTPException | None = None
+        for permission in permissions:
+            try:
+                actor = await require(permission)(request)
+            except HTTPException as exc:
+                refused = refused or exc
+                continue
+            return actor if actor.device_id is not None else identity.actor()
+        assert refused is not None
+        raise refused
 
     return dependency
 
@@ -249,10 +269,16 @@ async def delete_device(
 
 roles_router = APIRouter(prefix="/roles", tags=["roles"])
 RoleManager = Annotated[Actor, Depends(authorized("role.manage"))]
+# Die Rollenliste braucht auch, wer Personen verwaltet (Auswahl der Rolle).
+RoleReader = Annotated[Actor, Depends(authorized_any("role.manage", "user.manage"))]
 
 
-@roles_router.get("", summary="Rollen")
-async def list_roles(_actor: RoleManager, session: SessionDep) -> list[RoleOut]:
+@roles_router.get(
+    "",
+    summary="Rollen",
+    description="Lesen mit `role.manage` oder `user.manage`; ändern nur mit `role.manage`.",
+)
+async def list_roles(_actor: RoleReader, session: SessionDep) -> list[RoleOut]:
     return await service.list_roles(session)
 
 
@@ -328,20 +354,63 @@ async def reset_pin(
 audit_router = APIRouter(prefix="/audit", tags=["audit"])
 
 
-@audit_router.get("", summary="Audit-Protokoll, neueste zuerst")
+AuditReader = Annotated[Actor, Depends(authorized("system.manage"))]
+
+
+@audit_router.get(
+    "",
+    summary="Audit-Protokoll, neueste zuerst",
+    description=(
+        "Mit den heutigen Namen von Person und Gerät (gelöscht: null) und einem deutschen "
+        "Kurztext je Aktion. Filter: Zeitraum `since` (einschließlich) bis `until` "
+        "(ausschließlich), Person `user_id`, Gerät `device_id`, Aktion `action` als Name "
+        "(`role.updated`) oder Bereich (`role.*`)."
+    ),
+)
 async def list_audit(
-    _actor: Annotated[Actor, Depends(authorized("system.manage"))],
+    _actor: AuditReader,
     session: SessionDep,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    user_id: UUID | None = None,
+    device_id: UUID | None = None,
+    action: Annotated[str | None, Query(max_length=80)] = None,
 ) -> AuditPageOut:
-    total, entries = await audit.list_audit(session, limit, offset)
+    filters = audit.AuditFilter(
+        since=since, until=until, user_id=user_id, device_id=device_id, action=action
+    )
+    total, rows = await audit.list_audit(session, limit, offset, filters)
     return AuditPageOut(
-        items=[AuditEntryOut.model_validate(entry, from_attributes=True) for entry in entries],
+        items=[
+            AuditEntryOut(
+                id=row.entry.id,
+                at=row.entry.at,
+                user_id=row.entry.user_id,
+                user_name=row.user_name,
+                device_id=row.entry.device_id,
+                device_name=row.device_name,
+                action=row.entry.action,
+                action_text=audit.action_text(row.entry.action),
+                entity=row.entry.entity,
+                entity_id=row.entry.entity_id,
+                details=row.entry.details,
+            )
+            for row in rows
+        ],
         total=total,
         limit=limit,
         offset=offset,
     )
+
+
+@audit_router.get("/actions", summary="Aktionen mit Kurztext (für den Filter)")
+async def list_audit_actions(_actor: AuditReader, session: SessionDep) -> list[AuditActionOut]:
+    return [
+        AuditActionOut(action=action, action_text=text)
+        for action, text in await audit.known_actions(session)
+    ]
 
 
 for _sub in (auth_router, devices_router, roles_router, users_router, audit_router):

@@ -28,6 +28,11 @@ class Role(UUIDPrimaryKey, Timestamps, Base):
     permissions: Mapped[list[str]] = mapped_column(JSONB, default=list)
     # Systemrolle (Administrator): nicht löschbar, hat immer alle Rechte.
     is_system: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Startrolle, aus der die Rolle entstand (Schlüssel in `permissions.STARTER_ROLES`); leer
+    # bei selbst angelegten Rollen. Bleibt beim Umbenennen erhalten.
+    starter_key: Mapped[str | None] = mapped_column(String(NAME_LENGTH))
+    # Rechte von Hand geändert: Der Abgleich beim Start setzt sie dann nicht mehr zurück.
+    customized: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
 
 class UserAccount(UUIDPrimaryKey, Timestamps, Base):

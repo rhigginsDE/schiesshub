@@ -674,6 +674,7 @@ async def test_every_endpoint_asks_for_its_permission(api: httpx.AsyncClient, ap
         ("DELETE", f"/clubs/{other['id']}", {}, "club.edit"),
         ("GET", "/persons", {}, "person.read"),
         ("POST", "/persons", {"json": {"name": "Anna Bergmann"}}, "person.edit"),
+        ("POST", "/persons/check", {"json": {"name": "Anna Bergmann"}}, "person.read"),
         ("GET", "/persons/export.csv", {}, "person.export"),
         ("POST", "/persons/import", {"content": b"name\nX\n"}, "person.edit"),
         ("GET", f"/persons/{person['id']}", {}, "person.read"),
