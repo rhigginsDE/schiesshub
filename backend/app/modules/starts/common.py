@@ -12,6 +12,7 @@ from app.modules.turnier.service import ConflictError, NotFoundError
 
 __all__ = [
     "ConflictError",
+    "FieldConflictError",
     "NotFoundError",
     "StartContext",
     "called_entry_ids",
@@ -25,6 +26,19 @@ __all__ = [
     "waiting_starts",
     "writable_tournament",
 ]
+
+
+class FieldConflictError(ConflictError):
+    """409, die sich auf ein Eingabefeld bezieht (z. B. Startnummer schon vergeben).
+
+    Die Router des Moduls antworten damit wie bei einem 422 zusätzlich mit `errors`:
+    `{"detail": "…", "errors": [{"field": "start_number", "message": "…"}]}`. Anderswo
+    gefangen, bleibt es ein gewöhnliches 409 mit `detail`.
+    """
+
+    def __init__(self, field: str, detail: str) -> None:
+        super().__init__(detail)
+        self.field = field
 
 
 def event_ids(**ids: uuid.UUID | None) -> dict[str, str | None]:

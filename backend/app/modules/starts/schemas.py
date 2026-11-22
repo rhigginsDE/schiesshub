@@ -10,6 +10,7 @@ from uuid import UUID
 
 from pydantic import AfterValidator, AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
+from app.core.errors import FieldError
 from app.modules.starts.rules import AbortReason, StartStatus
 from app.modules.turnier.schemas import Id, PositiveInt, StrictModel
 
@@ -44,6 +45,13 @@ class EntryPersonOut(BaseModel):
     club: str | None
 
 
+class ConflictOut(BaseModel):
+    """HTTP 409. Bezieht sich der Konflikt auf ein Eingabefeld, nennt `errors` es (wie bei 422)."""
+
+    detail: str
+    errors: list[FieldError] | None = None
+
+
 class StartOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -57,6 +65,8 @@ class StartOut(BaseModel):
     queue_position: int | None
     heat_id: UUID | None
     lane: int | None
+    # Zeitpunkt des Aufrufs auf die Bahn („seit hh:mm“); leer, solange der Start wartet.
+    called_at: datetime | None
     created_at: datetime
     updated_at: datetime
 
@@ -181,6 +191,8 @@ class StationStartOut(BaseModel):
     abort_reason: AbortReason | None
     queue_position: int | None
     lane: int | None
+    # Zeitpunkt des Aufrufs auf die Bahn; leer, solange der Start wartet.
+    called_at: datetime | None
     heat_id: UUID | None
     heat_number: int | None
     heat_starts_at: datetime | None

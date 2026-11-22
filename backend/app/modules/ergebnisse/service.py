@@ -16,6 +16,7 @@ Zeitstempel und Sequenznummern vergibt nur der Server.
 """
 
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
@@ -390,17 +391,16 @@ async def set_raw(
         )
     if status == "aborted":
         raise ConflictError("Der Start ist abgebrochen; Rohwerte lassen sich nicht mehr erfassen.")
-    if status == "registered" and loaded.start.lane is None:
-        raise ConflictError(
-            "Der Start ist noch nicht aufgerufen. Bitte ihn zuerst auf eine Bahn aufrufen."
-        )
     check_raw(loaded, raw, partial=True)
 
     event = append(session, loaded, request, actor, "raw_set", {"raw": raw})
     store(session, loaded, raw, is_final=False, seq=event.seq)
-    if status == "registered":
+    if status == "registered" and loaded.start.lane is not None:
         # Zeitplan: Die Bahn steht fest, der Start ist damit aufgerufen.
         await move(session, loaded, "called", actor)
+    elif status == "registered":
+        # Nachträgliche Erfassung ohne Aufrufen (Reihenfolge): Die Bahn bleibt leer.
+        await move(session, loaded, "captured", actor)
     if loaded.start.status == "called":
         await move(session, loaded, "captured", actor)
     return await finish(session, events, loaded, event)
@@ -528,3 +528,29 @@ async def abort(
     # Vorhandene Rohwerte bleiben erhalten; der Stand gilt als offen.
     store(session, loaded, raw, is_final=False, seq=event.seq)
     return await finish(session, events, loaded, event)
+
+
+# --- Anmeldung bei `starts.hooks` ---------------------------------------------------------
+
+
+async def abort_from_starts(
+    session: AsyncSession,
+    events: EventHub,
+    actor: Actor,
+    tournament_id: uuid.UUID,
+    start_id: uuid.UUID,
+    abort_reason: AbortReason,
+) -> None:
+    """Abbruch-Handler: `POST …/starts/{id}/abort` führt zum selben Ergebnis wie
+    `POST …/starts/{id}/result/abort` (Ereignis `aborted` im Protokoll und Statuswechsel)."""
+    await abort(session, events, actor, tournament_id, start_id, abort_reason, None, None)
+
+
+async def starts_with_events(
+    session: AsyncSession, start_ids: Sequence[uuid.UUID]
+) -> set[uuid.UUID]:
+    """Ergebnisprüfer: Starts mit mindestens einem Ereignis im Protokoll."""
+    rows = await session.scalars(
+        select(ResultEvent.start_id).where(ResultEvent.start_id.in_(start_ids)).distinct()
+    )
+    return set(rows)

@@ -14,7 +14,9 @@ PERMISSION_PATTERN = re.compile(r"^(\*|[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*(\.\*)
 
 ADMIN_ROLE_NAME = "Administrator"
 
-# Startrollen. Werden beim ersten Start angelegt, danach frei änderbar (außer Administrator).
+# Startrollen. Werden in einer leeren Datenbank angelegt, danach frei änderbar (außer
+# Administrator). Solange niemand die Rechte einer Startrolle von Hand ändert, gleicht der Server
+# sie bei jedem Start an diese Zuordnung an (`service.reconcile_roles`).
 STARTER_ROLES: dict[str, tuple[str, ...]] = {
     ADMIN_ROLE_NAME: ("*",),
     "Turnierleitung": (
@@ -88,4 +90,27 @@ def expand(patterns: Iterable[str], *, is_system: bool = False) -> list[str]:
     pattern_list = ["*"] if is_system else list(patterns)
     return [
         item.permission for item in known_permissions() if grants(pattern_list, item.permission)
+    ]
+
+
+def _area(permission: str) -> str:
+    """Bereich einer Berechtigung: der erste Teil (`result` bei `result.capture`)."""
+    return permission.split(".", 1)[0]
+
+
+def obsolete_entries(entries: Iterable[str], known: Iterable[str]) -> list[str]:
+    """Einträge einer Rolle, die es nicht (mehr) gibt.
+
+    Das sind genaue Namen (kein Muster) aus einem Bereich, den ein Modul führt, die dieses Modul
+    aber nicht kennt, etwa `entry.create`, wenn `starts` nur `entry.read` und `entry.edit`
+    bringt. Muster (`entry.*`, `*`) und Namen aus Bereichen ohne Modul (etwa `display.read`,
+    bevor das Anzeige-Modul eingebunden ist) bleiben stehen: Sie greifen, sobald ein Modul sie
+    mitbringt.
+    """
+    known_set = set(known)
+    areas = {_area(permission) for permission in known_set}
+    return [
+        entry
+        for entry in entries
+        if "*" not in entry and entry not in known_set and _area(entry) in areas
     ]

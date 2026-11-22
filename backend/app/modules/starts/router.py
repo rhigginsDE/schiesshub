@@ -1,19 +1,26 @@
 """HTTP-Schnittstelle des Moduls `starts`: Anmeldung, Starts, Ablauf am Stand, Sichten."""
 
+from collections.abc import Callable, Coroutine
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+from fastapi.routing import APIRoute
 from pydantic import AwareDatetime
 
 from app.core.db import SessionDep
+from app.core.errors import FieldError
 from app.core.events import EventHubDep
 from app.core.security import Actor, require
 from app.modules.starts import queue, schedule, service, views
+from app.modules.starts.common import FieldConflictError
 from app.modules.starts.schemas import (
     AbortRequest,
     CallRequest,
+    ConflictOut,
     EntryCreate,
     EntryOut,
     EntryUpdate,
@@ -45,10 +52,42 @@ StartReader = Annotated[Actor, Depends(require(PERMISSION_START_READ))]
 StartEditor = Annotated[Actor, Depends(require(PERMISSION_START_EDIT))]
 Caller = Annotated[Actor, Depends(require(PERMISSION_START_CALL))]
 
-router = APIRouter(prefix="/tournaments/{tournament_id}", tags=["starts"])
+
+class FieldConflictRoute(APIRoute):
+    """Antwortet auf `FieldConflictError` mit 409 und `errors` (Form wie bei 422)."""
+
+    def get_route_handler(self) -> Callable[[Request], Coroutine[Any, Any, Response]]:
+        handler = super().get_route_handler()
+
+        async def route_handler(request: Request) -> Response:
+            try:
+                return await handler(request)
+            except FieldConflictError as exc:
+                body = ConflictOut(
+                    detail=str(exc.detail),
+                    errors=[FieldError(field=exc.field, message=str(exc.detail))],
+                )
+                return JSONResponse(
+                    status_code=status.HTTP_409_CONFLICT, content=jsonable_encoder(body)
+                )
+
+        return route_handler
+
+
+router = APIRouter(
+    prefix="/tournaments/{tournament_id}", tags=["starts"], route_class=FieldConflictRoute
+)
 
 NOT_FOUND = {status.HTTP_404_NOT_FOUND: {"description": "Nicht gefunden"}}
-CONFLICT = {status.HTTP_409_CONFLICT: {"description": "Im aktuellen Zustand nicht möglich"}}
+CONFLICT = {
+    status.HTTP_409_CONFLICT: {
+        "description": (
+            "Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer "
+            "schon vergeben), nennt `errors` das Feld."
+        ),
+        "model": ConflictOut,
+    }
+}
 WRITE = {**NOT_FOUND, **CONFLICT}
 
 ENTRIES = "/entries"
@@ -128,7 +167,10 @@ async def update_entry(
 @router.delete(
     ENTRY,
     summary="Anmeldung löschen",
-    description="Nur solange kein Start geschossen wurde oder gerade aufgerufen ist.",
+    description=(
+        "Nur solange kein Start geschossen wurde, gerade aufgerufen ist oder Einträge im "
+        "Ergebnisprotokoll hat (auch ein Abbruch „nicht angetreten“)."
+    ),
     status_code=status.HTTP_204_NO_CONTENT,
     responses=WRITE,
 )
@@ -186,7 +228,16 @@ async def cancel_start(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post(f"{START}/abort", summary="Start abbrechen (dns, dnf, dsq)", responses=WRITE)
+@router.post(
+    f"{START}/abort",
+    summary="Start abbrechen (dns, dnf, dsq)",
+    description=(
+        "Wechselt den Status zu „abgebrochen“. Ist das Modul `ergebnisse` aktiv, steht der "
+        "Abbruch wie bei `POST …/starts/{start_id}/result/abort` auch im Ergebnisprotokoll "
+        "(Ereignis `aborted`)."
+    ),
+    responses=WRITE,
+)
 async def abort_start(
     tournament_id: UUID,
     start_id: UUID,

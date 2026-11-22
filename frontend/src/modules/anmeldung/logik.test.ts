@@ -23,6 +23,7 @@ function start(teil: Partial<Start> = {}): Start {
   return {
     id: "s",
     entry_id: "e",
+    called_at: null,
     competition_id: "w1",
     attempt: 1,
     fee_cents: 800,

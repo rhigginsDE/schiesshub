@@ -4,6 +4,7 @@ import type { StationStart } from "../anmeldung/api";
 export function stationStart(teil: Partial<StationStart> & { start_id: string }): StationStart {
   return {
     entry_id: `e-${teil.start_id}`,
+    called_at: null,
     start_number: 1,
     display_name: "Markus Brandt",
     club: null,

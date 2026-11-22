@@ -150,9 +150,25 @@ def _club_out(club: Club, person_count: int) -> ClubOut:
     )
 
 
-async def list_clubs(session: AsyncSession) -> list[ClubOut]:
+async def list_clubs(session: AsyncSession, query: str | None = None) -> list[ClubOut]:
+    """Vereine nach Name; mit `query` nur Treffer in Name oder Kürzel.
+
+    Verglichen wird wie bei Personen ohne Groß-/Kleinschreibung und Umlaut-Schreibweise.
+    Treffer am Anfang von Name oder Kürzel stehen vorn.
+    """
     rows = await session.execute(select(Club, _club_count_query()).order_by(func.lower(Club.name)))
-    return [_club_out(club, count) for club, count in rows]
+    clubs = [(club, count) for club, count in rows]
+    needle = fold(query or "")
+    if needle:
+        ranked = []
+        for position, (club, count) in enumerate(clubs):
+            fields = [fold(club.name), fold(club.short or "")]
+            if any(field.startswith(needle) for field in fields):
+                ranked.append((0, position, club, count))
+            elif any(needle in field for field in fields):
+                ranked.append((1, position, club, count))
+        clubs = [(club, count) for _, _, club, count in sorted(ranked, key=lambda r: r[:2])]
+    return [_club_out(club, count) for club, count in clubs]
 
 
 async def get_club(session: AsyncSession, club_id: UUID) -> ClubOut:
@@ -316,6 +332,14 @@ async def list_persons(
 async def _require_club(session: AsyncSession, club_id: UUID | None) -> None:
     if club_id is not None and await session.get(Club, club_id) is None:
         raise InvalidReferenceError("Den angegebenen Verein gibt es nicht.")
+
+
+async def check_duplicates(
+    session: AsyncSession, index: PersonIndex, name: str, club_id: UUID | None
+) -> list[PersonOut]:
+    """Mögliche Dubletten, wie sie `create_person` ohne `force` meldet (ohne Fehlerstatus)."""
+    await _require_club(session, club_id)
+    return await _persons_by_ids(session, index.duplicates(clean_text(name), club_id))
 
 
 async def create_person(

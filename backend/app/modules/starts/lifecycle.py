@@ -9,7 +9,9 @@ Ablauf für ein anderes Modul (z. B. `ergebnisse` beim Erfassen und Abschließen
     lifecycle.publish_status(events, change)                        # erst nach dem Commit
 
 `transition` prüft die Übergangstabelle (`rules.TRANSITIONS`) und das Turnier (nicht
-abgeschlossen), committet aber nicht. Mit dem Wechsel weg von `called` wird die Bahn frei;
+abgeschlossen), committet aber nicht. `registered → captured` ist erlaubt (nachträgliche
+Erfassung ohne Aufrufen); bei der Reihenfolge bleibt `lane` dann leer, bei einem Durchgang
+bleibt die gebuchte Bahn stehen. Mit dem Wechsel weg von `called` wird die Bahn frei;
 `lane` bleibt als Angabe stehen, wo geschossen wurde. Ein Start der Reihenfolge, der aufgerufen,
 zurückgestellt oder abgebrochen wird, verlässt bzw. betritt die Warteschlange; die Plätze werden
 dabei lückenlos neu vergeben.
@@ -17,6 +19,7 @@ dabei lückenlos neu vergeben.
 
 import uuid
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -101,6 +104,10 @@ async def transition(
 
     start.status = to
     start.abort_reason = abort_reason
+    if to == "called":
+        start.called_at = datetime.now(UTC)
+    elif to == "registered":
+        start.called_at = None
     if to != "registered":
         start.queue_position = None
     elif start.heat_id is None:

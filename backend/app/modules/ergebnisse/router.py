@@ -124,8 +124,9 @@ async def get_form(
     summary="Rohwerte erfassen",
     description=(
         "Ersetzt den Rohwert-Stand eines offenen Starts (Zwischenstand erlaubt). Der Start wird "
-        "dabei „erfasst“. Antwort: neuer Stand mit Wertung und Rechenweg. Fehlerhafte Rohwerte: "
-        "422 mit Pfad und Meldung je Fehler."
+        "dabei „erfasst“, auch ohne vorheriges Aufrufen (die Bahn bleibt dann leer). Antwort: "
+        "neuer Stand mit Wertung und Rechenweg. Fehlerhafte Rohwerte: 422 mit Pfad und Meldung "
+        "je Fehler."
     ),
     responses=WRITE,
 )
@@ -243,9 +244,10 @@ async def correct(
     f"{START}/result/abort",
     summary="Start mit Ergebnis-Ereignis abbrechen (dns, dnf, dsq)",
     description=(
-        "Wie `POST …/starts/{start_id}/abort` des Moduls `starts`, schreibt aber zusätzlich ein "
-        "Ereignis `aborted` (mit optionalem Grund) ins Ergebnisprotokoll. Vorhandene Rohwerte "
-        "bleiben erhalten."
+        "Schreibt das Ereignis `aborted` (mit optionalem Grund) ins Ergebnisprotokoll und "
+        "wechselt den Status. `POST …/starts/{start_id}/abort` des Moduls `starts` führt zum "
+        "selben Ergebnis (ohne Grund, Antwort ist dort der Start). Vorhandene Rohwerte bleiben "
+        "erhalten."
     ),
     responses=WRITE,
 )

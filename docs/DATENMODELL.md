@@ -96,6 +96,19 @@ Felder mit `_enc` sind verschlüsselt (BYTEA, AES-GCM, siehe `app/core/crypto.py
 | `abort_reason` | `dns` (nicht angetreten), `dnf` (aufgegeben), `dsq` (disqualifiziert) |
 | `queue_position` | Platz in der Reihenfolge des Stands |
 | `heat_id`, `lane` | Durchgang (nur Zeitplan) und Bahn |
+| `called_at` | Zeitpunkt des letzten Aufrufs; leer, solange der Start wartet (auch nach dem Zurückstellen) |
+
+Erlaubte Statuswechsel:
+
+| von | nach |
+|---|---|
+| `registered` | `called` (aufrufen), `captured` (nachträglich erfassen ohne Aufruf), `aborted` |
+| `called` | `registered` (zurückstellen), `captured`, `aborted` |
+| `captured` | `final`, `aborted` |
+| `final` | `captured` (Wiederöffnen, verlangt einen Grund) |
+| `aborted` | – |
+
+`aborted` verlangt `abort_reason`. Eine Bahn ist belegt, solange ein Start mit Status `called` auf ihr steht (über alle Wettbewerbe des Stands); danach bleibt `lane` als Angabe stehen, wo geschossen wurde. Wird ein Start der Reihenfolge ohne Aufruf erfasst (`registered → captured`), bleibt `lane` leer. Ein Abbruch steht immer auch als Ereignis `aborted` im Ergebnisprotokoll, gleich über welchen Endpunkt er kam. Starts mit Ergebnis-Ereignissen lassen sich weder stornieren noch mit ihrer Anmeldung löschen.
 
 **`heat`**: `range_id`, `number`, `starts_at`, `ends_at`.
 
@@ -103,7 +116,7 @@ Felder mit `_enc` sind verschlüsselt (BYTEA, AES-GCM, siehe `app/core/crypto.py
 
 Ergebnisse werden nie überschrieben.
 
-**`result_event`** (nur Einfügen): `start_id`, `seq`, `type`, `payload` (JSONB), `reason`, `user_id`, `device_id`, `created_at`.
+**`result_event`** (nur Einfügen, ein Trigger weist UPDATE und DELETE ab): `start_id`, `seq` (fortlaufend je Start ab 1), `type`, `payload` (JSONB), `reason`, `user_id`, `device_id`, `idempotency_key` (vom Client, eindeutig je Start), `request_hash` (SHA-256 über Vorgang und Inhalt, erkennt Wiederholungen mit anderem Inhalt), `created_at`.
 
 | `type` | Bedeutung |
 |---|---|
@@ -113,7 +126,7 @@ Ergebnisse werden nie überschrieben.
 | `reopened` | Abschluss zurückgenommen, `reason` ist Pflicht |
 | `aborted` | Start abgebrochen |
 
-**`result_current`**: `start_id`, `raw` (JSONB), `computed` (JSONB), `score`, `rank_keys` (JSONB), `is_final`, `finalized_at`, `provisional_until`.
+**`result_current`**: `start_id`, `competition_id`, `raw` (JSONB), `computed` (JSONB), `score`, `rank_keys` (JSONB), `is_final`, `finalized_at`, `provisional_until`, `last_seq` (Nummer des letzten Ereignisses), `definition_revision` (Revision der Wertung, mit der gerechnet wurde), `needs_review` und `review_reason` (abgeschlossen, aber nach einer Änderung der Wertung unvollständig oder nicht wertbar).
 
 `result_current` wird in derselben Transaktion wie das Ereignis geschrieben und lässt sich jederzeit aus den Ereignissen neu aufbauen.
 
@@ -151,7 +164,7 @@ Ergebnisse werden nie überschrieben.
 
 ## Anmeldung und Rechte
 
-**`role`**: `name`, `permissions` (Liste), `is_system`. Fünf Rollen sind vorbelegt: Administrator, Turnierleitung, Kasse, Auswertung, Anzeige. Weitere lassen sich anlegen.
+**`role`**: `name`, `permissions` (Liste), `is_system`, `starter_key` (Startrolle, aus der die Rolle entstand), `customized` (Rechte von Hand geändert). Fünf Rollen sind vorbelegt: Administrator, Turnierleitung, Kasse, Auswertung, Anzeige. Weitere lassen sich anlegen. Beim Start bekommen Startrollen, die nie von Hand geändert wurden, die aktuelle Zuordnung; veraltete Berechtigungen (genaue Namen aus einem Bereich, den ein Modul führt, die es dort nicht mehr gibt) fallen aus allen Rollen. Beides steht im Audit-Protokoll.
 
 **`user_account`**: `name`, `pin_hash`, `role_id`, `active`.
 
@@ -159,7 +172,7 @@ Ergebnisse werden nie überschrieben.
 
 **`session`**: `device_id`, `user_id`, `expires_at`.
 
-Berechtigungen sind Texte wie `tournament.edit`, `entry.create`, `result.capture`, `result.correct`, `display.control`, `system.manage`. Jedes Modul bringt seine eigenen mit.
+Berechtigungen sind Texte wie `tournament.edit`, `entry.edit`, `result.capture`, `result.correct`, `display.control`, `system.manage`. Jedes Modul bringt seine eigenen mit.
 
 ## System
 

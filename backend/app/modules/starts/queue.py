@@ -14,6 +14,7 @@ from app.core.events import EventHub
 from app.core.security import Actor
 from app.modules.starts.common import (
     ConflictError,
+    FieldConflictError,
     StartContext,
     called_entry_ids,
     called_on_range,
@@ -125,7 +126,7 @@ async def call(
         raise InputError.single("lane", f"Der Stand hat nur {range_.lane_count} Bahnen.")
     assert lane is not None
     if lane in occupied:
-        raise ConflictError(f"Bahn {lane} ist schon belegt.")
+        raise FieldConflictError("lane", f"Bahn {lane} ist schon belegt.")
     await _check_entry_free(session, tournament_id, context.entry)
     start.lane = lane
     change = await transition(session, start, "called", actor)

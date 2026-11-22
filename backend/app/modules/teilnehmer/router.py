@@ -17,8 +17,10 @@ from app.modules.teilnehmer.schemas import (
     ClubMerge,
     ClubOut,
     ClubUpdate,
+    DuplicateCheckOut,
     DuplicateOut,
     ImportReportOut,
+    PersonCheck,
     PersonCreate,
     PersonOut,
     PersonUpdate,
@@ -56,9 +58,20 @@ def _http(exc: Exception) -> HTTPException:
 # --- Vereine -----------------------------------------------------------------
 
 
-@router.get("/clubs", summary="Vereine", dependencies=[Depends(require("person.read"))])
-async def list_clubs(session: SessionDep) -> list[ClubOut]:
-    return await service.list_clubs(session)
+@router.get(
+    "/clubs",
+    summary="Vereine",
+    description=(
+        "Ohne `q` alle Vereine nach Name. Mit `q` Suche in Name und Kürzel, ohne Groß-/"
+        "Kleinschreibung und Umlaut-Schreibweise; Treffer am Anfang stehen vorn."
+    ),
+    dependencies=[Depends(require("person.read"))],
+)
+async def list_clubs(
+    session: SessionDep,
+    q: Annotated[str | None, Query(max_length=200, description="Suchbegriff")] = None,
+) -> list[ClubOut]:
+    return await service.list_clubs(session, q)
 
 
 @router.post(
@@ -196,6 +209,27 @@ async def create_person(
         )
     except DomainErrors as exc:
         raise _http(exc) from exc
+
+
+@router.post(
+    "/persons/check",
+    summary="Vor dem Anlegen auf Dubletten prüfen",
+    description=(
+        "Dieselbe Prüfung wie `POST /persons`, aber ohne Fehlerstatus und ohne etwas anzulegen: "
+        "`duplicates` nennt Personen mit gleicher Schreibweise des Namens im selben Verein "
+        "(leer: keine Dublette). Unbekannter Verein: 422."
+    ),
+    responses=UNPROCESSABLE,
+    dependencies=[Depends(require("person.read"))],
+)
+async def check_person(
+    data: PersonCheck, session: SessionDep, index: IndexDep
+) -> DuplicateCheckOut:
+    try:
+        duplicates = await service.check_duplicates(session, index, data.name, data.club_id)
+    except DomainErrors as exc:
+        raise _http(exc) from exc
+    return DuplicateCheckOut(duplicates=duplicates)
 
 
 @router.get(

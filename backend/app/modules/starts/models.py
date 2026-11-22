@@ -112,3 +112,6 @@ class Start(UUIDPrimaryKey, Timestamps, Base):
         ForeignKey("heat.id", ondelete="SET NULL"), index=True
     )
     lane: Mapped[int | None] = mapped_column(Integer)
+    # Zeitpunkt des letzten Aufrufs (Übergang zu `called`); leer, solange der Start wartet
+    # (auch nach dem Zurückstellen). Bleibt nach Erfassung oder Abbruch als Angabe stehen.
+    called_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

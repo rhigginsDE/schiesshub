@@ -249,6 +249,14 @@ class CompetitionSummary(BaseModel):
     competition_id: UUID
     competition_name: str
     counts: StatusCounts
+    # Alle Starts (auch abgebrochene).
+    starts_total: int
+    # Abgeschlossen (auch in der Einspruchsfrist).
+    starts_final: int
+    # Laufend: aufgerufen, erfasst oder angemeldet mit Zwischenstand.
+    starts_running: int
+    # Wartend: angemeldet ohne Zwischenstand. Abgebrochene zählen nur in `starts_total`.
+    starts_waiting: int
     needs_review: int
     provisional: int
     # Führende je Wertungsgruppe (Platz 1, bei Gleichstand mehrere), aus der Rangliste

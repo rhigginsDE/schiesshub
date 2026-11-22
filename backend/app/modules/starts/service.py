@@ -17,9 +17,10 @@ from app.core.errors import InputError
 from app.core.events import EventHub
 from app.core.security import Actor
 from app.modules.auth.audit import record_audit
-from app.modules.starts import schedule
+from app.modules.starts import hooks, schedule
 from app.modules.starts.common import (
     ConflictError,
+    FieldConflictError,
     event_ids,
     get_entry,
     get_range,
@@ -161,7 +162,9 @@ async def _check_number_free(
         select(Entry.id).where(Entry.tournament_id == tournament_id, Entry.start_number == number)
     )
     if holder is not None and holder != own_id:
-        raise ConflictError(f"Die Startnummer {number} ist in diesem Turnier schon vergeben.")
+        raise FieldConflictError(
+            "start_number", f"Die Startnummer {number} ist in diesem Turnier schon vergeben."
+        )
 
 
 async def create_entry(
@@ -182,8 +185,9 @@ async def create_entry(
         )
     )
     if existing is not None:
-        raise ConflictError(
-            f"Diese Person ist in diesem Turnier schon angemeldet (Startnummer {existing})."
+        raise FieldConflictError(
+            "person_id",
+            f"Diese Person ist in diesem Turnier schon angemeldet (Startnummer {existing}).",
         )
     if data.start_number is not None:
         await _check_number_free(session, tournament_id, data.start_number, None)
@@ -259,9 +263,10 @@ async def update_entry(
         names = list(blocked)
         if names:
             listed = ", ".join(f"„{name}“" for name in names)
-            raise ConflictError(
+            raise FieldConflictError(
+                "class_id",
                 f"Die Klasse „{new_class.name}“ ist in {listed} nicht zugelassen, dort hat die "
-                "Anmeldung aber Starts. Bitte die Starts erst stornieren."
+                "Anmeldung aber Starts. Bitte die Starts erst stornieren.",
             )
     if "start_number" in changes:
         await _check_number_free(session, tournament_id, changes["start_number"], entry.id)
@@ -300,6 +305,11 @@ async def delete_entry(
         raise ConflictError(
             "Die Anmeldung hat Starts, die schon geschossen wurden oder gerade aufgerufen sind. "
             "Sie lässt sich deshalb nicht löschen."
+        )
+    if await hooks.starts_with_results(session, [start.id for start in starts]):
+        raise ConflictError(
+            "Zu Starts dieser Anmeldung gibt es Einträge im Ergebnisprotokoll (zum Beispiel "
+            "„nicht angetreten“). Die Anmeldung lässt sich deshalb nicht löschen."
         )
     ranges = await _queue_ranges(session, starts)
     record_audit(
@@ -366,8 +376,9 @@ async def book_starts(
         class_name = await session.scalar(
             select(TournamentClass.name).where(TournamentClass.id == entry.class_id)
         )
-        raise ConflictError(
-            f"Die Klasse „{class_name}“ ist im Wettbewerb „{competition.name}“ nicht zugelassen."
+        raise FieldConflictError(
+            "competition_id",
+            f"Die Klasse „{class_name}“ ist im Wettbewerb „{competition.name}“ nicht zugelassen.",
         )
     if data.heat_id is None and data.lane is not None:
         raise InputError.single(
@@ -391,7 +402,7 @@ async def book_starts(
     try:
         check_start_limit(competition.multi_start, competition.max_starts, booked, data.count)
     except RuleError as exc:
-        raise ConflictError(str(exc)) from exc
+        raise FieldConflictError("count", str(exc)) from exc
 
     in_queue = competition.planning == "queue" and competition.range_id is not None
     # Neue Starts kommen ans Ende der Reihenfolge ihres Stands.
@@ -465,6 +476,11 @@ async def cancel_start(
             "Stornieren geht nur, solange der Start noch nicht aufgerufen wurde. Danach lässt "
             "er sich nur noch abbrechen (dns, dnf, dsq)."
         )
+    if await hooks.starts_with_results(session, [start.id]):
+        raise ConflictError(
+            "Zu diesem Start gibt es schon Einträge im Ergebnisprotokoll. Er lässt sich "
+            "deshalb nicht stornieren, nur noch abbrechen (dns, dnf, dsq)."
+        )
     siblings = list(
         await session.scalars(
             select(Start)
@@ -518,7 +534,18 @@ async def abort_start(
     start_id: uuid.UUID,
     abort_reason: AbortReason,
 ) -> Start:
+    """Bricht einen Start ab.
+
+    Ist ein Abbruch-Handler angemeldet (Modul `ergebnisse`), übernimmt er den ganzen Vorgang;
+    der Abbruch steht dann auch im Ergebnisprotokoll. Sonst wechselt nur der Status.
+    """
     context = await get_start(session, tournament_id, start_id)
+    handler = hooks.abort_handler()
+    if handler is not None:
+        await handler(session, events, actor, tournament_id, start_id, abort_reason)
+        start = await session.get(Start, start_id, populate_existing=True)
+        assert start is not None
+        return start
     if context.competition.range_id is not None:
         # Wie alle Vorgänge an den Bahnen eines Stands nacheinander.
         await get_range(session, tournament_id, context.competition.range_id, lock=True)

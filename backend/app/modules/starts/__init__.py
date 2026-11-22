@@ -1,7 +1,8 @@
 """Modul `starts`: Anmeldung, Starts, Reihenfolge und Zeitplan am Stand.
 
 Öffentliche Schnittstelle für andere Module (z. B. `ergebnisse`) ist `lifecycle`:
-`load_start`, `transition`, `publish_status` (siehe dort).
+`load_start`, `transition`, `publish_status` (siehe dort). Über `hooks` melden sich Module an,
+die Ergebnis-Daten zu Starts führen (Lösch- und Stornoschutz) oder den Abbruch übernehmen.
 """
 
 from app.core.module import ModuleManifest

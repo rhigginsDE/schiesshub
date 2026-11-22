@@ -104,6 +104,18 @@ class PersonOut(BaseModel):
     updated_at: datetime
 
 
+class PersonCheck(_Input):
+    """Dublettenprüfung vor dem Anlegen: dieselben Regeln wie `POST /persons`."""
+
+    name: Name
+    club_id: UUID | None = None
+
+
+class DuplicateCheckOut(BaseModel):
+    # Personen mit gleicher Schreibweise des Namens im selben Verein; leer: keine Dublette.
+    duplicates: list[PersonOut]
+
+
 class DuplicateOut(BaseModel):
     """Antwort 409 beim Anlegen: ähnliche Personen im selben Verein."""
 

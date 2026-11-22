@@ -48,6 +48,12 @@ class StatusOut(BaseModel):
     # Rolle der angemeldeten Person, sonst die Standardrolle des Geräts.
     role: RoleBrief | None
     permissions: list[str]
+    # Für Formulare und Hinweise; nichts davon ist geheim.
+    pin_min_length: int
+    # Nach so vielen Fehlversuchen in Folge wird eine Person gesperrt …
+    max_failed_logins: int
+    # … für so viele Minuten.
+    lockout_minutes: float
 
 
 class SetupIn(StrictIn):
@@ -122,6 +128,10 @@ class RoleOut(BaseModel):
     id: UUID
     name: str
     is_system: bool
+    # Startrolle, aus der die Rolle entstand (z. B. „Kasse“), sonst null.
+    starter_key: str | None
+    # Rechte von Hand geändert; sonst gleicht der Server eine Startrolle beim Start an.
+    customized: bool
     # Gespeicherte Einträge, wie angelegt.
     permissions: list[str]
     # Bekannte Berechtigungen, die die Rolle tatsächlich gewährt (Muster ausgewertet).
@@ -170,11 +180,21 @@ class AuditEntryOut(BaseModel):
     id: UUID
     at: datetime
     user_id: UUID | None
+    # Name der Person bzw. des Geräts zum Zeitpunkt der Abfrage; null, wenn gelöscht oder leer.
+    user_name: str | None
     device_id: UUID | None
+    device_name: str | None
     action: str
+    # Lesbarer deutscher Kurztext zur Aktion; unbekannte Aktionen zeigen den technischen Namen.
+    action_text: str
     entity: str
     entity_id: str | None
     details: dict[str, Any]
+
+
+class AuditActionOut(BaseModel):
+    action: str
+    action_text: str
 
 
 class AuditPageOut(BaseModel):

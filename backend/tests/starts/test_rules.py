@@ -28,6 +28,7 @@ from app.modules.starts.rules import (
 
 ALLOWED = {
     ("registered", "called"),
+    ("registered", "captured"),
     ("registered", "aborted"),
     ("called", "registered"),
     ("called", "captured"),

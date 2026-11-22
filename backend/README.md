@@ -16,7 +16,7 @@ curl http://localhost:8010/api/v1/health
 | Was | Wo |
 |---|---|
 | API | <http://localhost:8010/api/v1> |
-| API-Dokumentation | <http://localhost:8010/api/v1/docs> |
+| API-Dokumentation | <http://localhost:8010/api/v1/docs> (nur mit `ENVIRONMENT=development`) |
 | OpenAPI-Beschreibung | <http://localhost:8010/api/v1/openapi.json> |
 | Live-Ereignisse (SSE) | <http://localhost:8010/api/v1/events> |
 | PostgreSQL | `127.0.0.1:5442`, Zugangsdaten aus `.env` |
@@ -36,7 +36,9 @@ docker compose exec backend ruff format .
 ```
 
 Die API-Tests laufen gegen eine echte PostgreSQL-Datenbank: dieselbe Instanz wie die Entwicklung,
-aber eine eigene Datenbank `<POSTGRES_DB>_test`, die bei jedem Lauf neu angelegt wird.
+aber eine eigene Datenbank `<POSTGRES_DB>_test`, die bei jedem Lauf neu angelegt wird. Laufen
+mehrere Testläufe gleichzeitig, bekommt jeder mit `TEST_DB_SUFFIX` eine eigene Datenbank:
+`docker compose exec -e TEST_DB_SUFFIX=_a backend pytest`.
 
 ## Migration anlegen
 
@@ -101,12 +103,24 @@ läuft deshalb mit einem Worker.
 
 | Variable | Bedeutung | Standard |
 |---|---|---|
+| `ENVIRONMENT` | `development` schaltet die API-Dokumentation unter `/api/v1/docs` ein (Swagger-UI lädt aus dem Internet); sonst gibt es nur `openapi.json` | `development` |
 | `DATABASE_URL` | `postgresql+asyncpg://…` | – (Pflicht) |
 | `CATALOG_DIR` | Verzeichnis des Katalogs | `/catalog` |
 | `CORS_ORIGINS` | erlaubte Browser-Herkünfte, mit Komma getrennt | `http://localhost:5180` |
 | `SSE_HEARTBEAT_SECONDS` | Abstand der Heartbeats | `15` |
 | `LOG_LEVEL` | Protokollstufe | `INFO` |
-| `RUN_MIGRATIONS` | `0` schaltet die Migrationen beim Start ab | `1` |
+| `DATA_DIR` | beständige Daten außerhalb der Datenbank: Schlüssel (`keys/`), lokale Sicherungen (`backups/`) | `/data` |
+| `BACKUP_USB_DIR` | Einhängepunkt des Sicherungs-Sticks | `/backup-usb` |
+| `BACKUP_USB_MARKER` | Marker-Datei, an der der Stick erkannt wird | `.schiesshub-backup` |
+| `AUTH_ENFORCED` | `true` schaltet die Berechtigungsprüfung ein; sonst sind alle Endpunkte offen | `false` |
+| `AUTH_PAIRING_CODE_MINUTES` | Gültigkeit eines Kopplungscodes in Minuten | `10` |
+| `AUTH_PIN_MIN_LENGTH` | Mindestlänge der PIN (nur Ziffern, 4 bis 12) | `4` |
+| `AUTH_MAX_FAILED_LOGINS` | Fehlversuche in Folge bis zur Sperre | `5` |
+| `AUTH_LOCKOUT_MINUTES` | Dauer der Sperre in Minuten | `5` |
+| `AUTH_SESSION_IDLE_HOURS` | Sitzung endet nach so vielen Stunden ohne Anfrage | `12` |
+| `AUTH_COOKIE_SECURE` | `auto` (Secure nur über HTTPS), `always` oder `never` | `auto` |
+| `RUN_MIGRATIONS` | `0` schaltet die Migrationen beim Start ab (Container-Einstieg) | `1` |
+| `TEST_DB_SUFFIX` | nur Tests: Zusatz am Namen der Testdatenbank, für parallele Läufe | – |
 
 ## Produktions-Image
 

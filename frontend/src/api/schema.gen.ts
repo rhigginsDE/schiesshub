@@ -510,7 +510,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Vereine */
+        /**
+         * Vereine
+         * @description Ohne `q` alle Vereine nach Name. Mit `q` Suche in Name und Kürzel, ohne Groß-/Kleinschreibung und Umlaut-Schreibweise; Treffer am Anfang stehen vorn.
+         */
         get: operations["teilnehmer_list_clubs"];
         put?: never;
         /** Verein anlegen */
@@ -578,6 +581,26 @@ export interface paths {
          * @description Gibt es im selben Verein schon eine Person mit gleicher Schreibweise des Namens (ohne Groß-/Kleinschreibung, Akzente und Umlaut-Schreibweise), kommt 409 mit den Kandidaten. Mit `force=true` wird trotzdem angelegt.
          */
         post: operations["teilnehmer_create_person"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/persons/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Vor dem Anlegen auf Dubletten prüfen
+         * @description Dieselbe Prüfung wie `POST /persons`, aber ohne Fehlerstatus und ohne etwas anzulegen: `duplicates` nennt Personen mit gleicher Schreibweise des Namens im selben Verein (leer: keine Dublette). Unbekannter Verein: 422.
+         */
+        post: operations["teilnehmer_check_person"];
         delete?: never;
         options?: never;
         head?: never;
@@ -683,7 +706,7 @@ export interface paths {
         post?: never;
         /**
          * Anmeldung löschen
-         * @description Nur solange kein Start geschossen wurde oder gerade aufgerufen ist.
+         * @description Nur solange kein Start geschossen wurde, gerade aufgerufen ist oder Einträge im Ergebnisprotokoll hat (auch ein Abbruch „nicht angetreten“).
          */
         delete: operations["starts_delete_entry"];
         options?: never;
@@ -738,7 +761,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Start abbrechen (dns, dnf, dsq) */
+        /**
+         * Start abbrechen (dns, dnf, dsq)
+         * @description Wechselt den Status zu „abgebrochen“. Ist das Modul `ergebnisse` aktiv, steht der Abbruch wie bei `POST …/starts/{start_id}/result/abort` auch im Ergebnisprotokoll (Ereignis `aborted`).
+         */
         post: operations["starts_abort_start"];
         delete?: never;
         options?: never;
@@ -1027,7 +1053,7 @@ export interface paths {
         get?: never;
         /**
          * Rohwerte erfassen
-         * @description Ersetzt den Rohwert-Stand eines offenen Starts (Zwischenstand erlaubt). Der Start wird dabei „erfasst“. Antwort: neuer Stand mit Wertung und Rechenweg. Fehlerhafte Rohwerte: 422 mit Pfad und Meldung je Fehler.
+         * @description Ersetzt den Rohwert-Stand eines offenen Starts (Zwischenstand erlaubt). Der Start wird dabei „erfasst“, auch ohne vorheriges Aufrufen (die Bahn bleibt dann leer). Antwort: neuer Stand mit Wertung und Rechenweg. Fehlerhafte Rohwerte: 422 mit Pfad und Meldung je Fehler.
          */
         put: operations["ergebnisse_put_raw"];
         post?: never;
@@ -1105,7 +1131,7 @@ export interface paths {
         put?: never;
         /**
          * Start mit Ergebnis-Ereignis abbrechen (dns, dnf, dsq)
-         * @description Wie `POST …/starts/{start_id}/abort` des Moduls `starts`, schreibt aber zusätzlich ein Ereignis `aborted` (mit optionalem Grund) ins Ergebnisprotokoll. Vorhandene Rohwerte bleiben erhalten.
+         * @description Schreibt das Ereignis `aborted` (mit optionalem Grund) ins Ergebnisprotokoll und wechselt den Status. `POST …/starts/{start_id}/abort` des Moduls `starts` führt zum selben Ergebnis (ohne Grund, Antwort ist dort der Start). Vorhandene Rohwerte bleiben erhalten.
          */
         post: operations["ergebnisse_abort"];
         delete?: never;
@@ -1392,7 +1418,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Rollen */
+        /**
+         * Rollen
+         * @description Lesen mit `role.manage` oder `user.manage`; ändern nur mit `role.manage`.
+         */
         get: operations["roles_list_roles"];
         put?: never;
         /** Rolle anlegen */
@@ -1481,8 +1510,28 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Audit-Protokoll, neueste zuerst */
+        /**
+         * Audit-Protokoll, neueste zuerst
+         * @description Mit den heutigen Namen von Person und Gerät (gelöscht: null) und einem deutschen Kurztext je Aktion. Filter: Zeitraum `since` (einschließlich) bis `until` (ausschließlich), Person `user_id`, Gerät `device_id`, Aktion `action` als Name (`role.updated`) oder Bereich (`role.*`).
+         */
         get: operations["audit_list_audit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Aktionen mit Kurztext (für den Filter) */
+        get: operations["audit_list_audit_actions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1639,6 +1688,290 @@ export interface paths {
         put?: never;
         /** Sicherung prüfen (entschlüsseln, Prüfsumme, Inhalt) – ohne Zurückspielen */
         post: operations["backup_verify_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/displays/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Anzeige dieses Geräts
+         * @description Die Anzeige, der das aufrufende Gerät zugewiesen ist.
+         */
+        get: operations["anzeige_get_mine"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/displays/mine/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Feed der Anzeige dieses Geräts
+         * @description Alles, was der Bildschirm zum Zeichnen braucht: Kopf, die aufgelösten Szenen in Reihenfolge (eine Szene kann mehrere Seiten ergeben, `part`/`parts`), übersprungene Szenen mit Grund, Laufzeile und Warnungen. Ist nichts zu zeigen, kommt eine Ruhe-Szene (`idle`). `version` steht auch im ETag; mit `If-None-Match` antwortet der Server 304, solange sich der Inhalt nicht ändert. Neu laden bei den Ereignissen aus `reload_on` und spätestens nach `poll_seconds`.
+         */
+        get: operations["anzeige_get_mine_feed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/displays": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Alle Anzeigen */
+        get: operations["anzeige_list_displays"];
+        put?: never;
+        /**
+         * Anzeige anlegen
+         * @description Ohne `config` mit den Standardszenen (Live-Wertung und Startliste).
+         */
+        post: operations["anzeige_create_display"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/displays/defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Standard-Anzeige anlegen
+         * @description Legt die „Hauptanzeige“ an, solange es keine Anzeige gibt (sonst 409).
+         */
+        post: operations["anzeige_create_defaults"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/displays/{display_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Anzeige */
+        get: operations["anzeige_get_display"];
+        put?: never;
+        post?: never;
+        /** Anzeige löschen */
+        delete: operations["anzeige_delete_display"];
+        options?: never;
+        head?: never;
+        /**
+         * Anzeige ändern (Name, Turnier, Reihenfolge)
+         * @description `tournament_id: null` heißt: automatisch das aktive Turnier.
+         */
+        patch: operations["anzeige_update_display"];
+        trace?: never;
+    };
+    "/api/v1/displays/{display_id}/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Inhalt der Anzeige setzen
+         * @description Ersetzt Szenen und Einstellungen vollständig.
+         */
+        put: operations["anzeige_put_config"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/displays/{display_id}/scenes/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Szenen neu ordnen
+         * @description `ids`: alle Szenen-IDs der Anzeige in der neuen Reihenfolge.
+         */
+        post: operations["anzeige_reorder_scenes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/displays/{display_id}/device": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Gerät zuweisen
+         * @description Das Gerät zeigt danach diese Anzeige (`GET /displays/mine`).
+         */
+        put: operations["anzeige_assign_device"];
+        post?: never;
+        /** Gerät lösen */
+        delete: operations["anzeige_release_device"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/displays/{display_id}/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Feed einer Anzeige
+         * @description Alles, was der Bildschirm zum Zeichnen braucht: Kopf, die aufgelösten Szenen in Reihenfolge (eine Szene kann mehrere Seiten ergeben, `part`/`parts`), übersprungene Szenen mit Grund, Laufzeile und Warnungen. Ist nichts zu zeigen, kommt eine Ruhe-Szene (`idle`). `version` steht auch im ETag; mit `If-None-Match` antwortet der Server 304, solange sich der Inhalt nicht ändert. Neu laden bei den Ereignissen aus `reload_on` und spätestens nach `poll_seconds`.
+         */
+        get: operations["anzeige_get_feed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/export/startlist.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Startliste als PDF
+         * @description Alle Starts, wahlweise eines Wettbewerbs (`competition_id`) oder Stands (`range_id`). `sort`: `competition` (je Wettbewerb in der Reihenfolge am Stand), `start_number` oder `range` (je Stand nach Uhrzeit und Bahn).
+         */
+        get: operations["export_startlist_pdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/export/startlist.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Startliste als CSV
+         * @description Alle Starts, wahlweise eines Wettbewerbs (`competition_id`) oder Stands (`range_id`). `sort`: `competition` (je Wettbewerb in der Reihenfolge am Stand), `start_number` oder `range` (je Stand nach Uhrzeit und Bahn). UTF-8 mit BOM, Trennzeichen `;`.
+         */
+        get: operations["export_startlist_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/export/winners.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Siegerliste als PDF
+         * @description Platzierungen aus der Rangliste (abgeschlossene Ergebnisse), je Wettbewerb und Klasse. Ohne `competition_id` alle Wettbewerbe mit Ergebnissen nacheinander. `top`: nur die ersten Plätze. `merged=true` legt Klassen zusammen. `include_provisional=false` lässt Ergebnisse in der Einspruchsfrist weg; sonst steht über dem Wettbewerb „vorläufig – Einspruchsfrist läuft bis …“. Ohne `top` stehen nicht angetretene und disqualifizierte Starts am Ende.
+         */
+        get: operations["export_winners_pdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/export/winners.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Siegerliste als CSV
+         * @description Platzierungen aus der Rangliste (abgeschlossene Ergebnisse), je Wettbewerb und Klasse. Ohne `competition_id` alle Wettbewerbe mit Ergebnissen nacheinander. `top`: nur die ersten Plätze. `merged=true` legt Klassen zusammen. `include_provisional=false` lässt Ergebnisse in der Einspruchsfrist weg; sonst steht über dem Wettbewerb „vorläufig – Einspruchsfrist läuft bis …“. Ohne `top` stehen nicht angetretene und disqualifizierte Starts am Ende. UTF-8 mit BOM, Trennzeichen `;`.
+         */
+        get: operations["export_winners_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/export/results.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Alle Ergebnisse als CSV (Rohexport)
+         * @description Je Start eine Zeile: Startnummer, Person, Klasse, Wettbewerb, Versuch, Status, Ergebnis und die Teilwerte je Serie in festen Spalten „Serie <n> Ringe/Zeit/Zeit mit Zuschlag/Stehend“ (Serien über alle Abschnitte fortlaufend nummeriert; nur Spalten, die vorkommen). Zeiten in Sekunden mit Dezimalkomma. UTF-8 mit BOM, Trennzeichen `;`.
+         */
+        get: operations["export_results_csv"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1807,6 +2140,13 @@ export interface components {
             /** Hand */
             hand?: ("beidhaendig" | "einhaendig" | "starke_hand" | "schwache_hand") | null;
         };
+        /** AuditActionOut */
+        AuditActionOut: {
+            /** Action */
+            action: string;
+            /** Action Text */
+            action_text: string;
+        };
         /** AuditEntryOut */
         AuditEntryOut: {
             /**
@@ -1821,10 +2161,16 @@ export interface components {
             at: string;
             /** User Id */
             user_id: string | null;
+            /** User Name */
+            user_name: string | null;
             /** Device Id */
             device_id: string | null;
+            /** Device Name */
+            device_name: string | null;
             /** Action */
             action: string;
+            /** Action Text */
+            action_text: string;
             /** Entity */
             entity: string;
             /** Entity Id */
@@ -2151,6 +2497,14 @@ export interface components {
             /** Competition Name */
             competition_name: string;
             counts: components["schemas"]["StatusCounts"];
+            /** Starts Total */
+            starts_total: number;
+            /** Starts Final */
+            starts_final: number;
+            /** Starts Running */
+            starts_running: number;
+            /** Starts Waiting */
+            starts_waiting: number;
             /** Needs Review */
             needs_review: number;
             /** Provisional */
@@ -2237,6 +2591,16 @@ export interface components {
             /** Warnings */
             warnings: components["schemas"]["Issue"][];
         };
+        /**
+         * ConflictOut
+         * @description HTTP 409. Bezieht sich der Konflikt auf ein Eingabefeld, nennt `errors` es (wie bei 422).
+         */
+        ConflictOut: {
+            /** Detail */
+            detail: string;
+            /** Errors */
+            errors?: components["schemas"]["FieldError"][] | null;
+        };
         /** CorrectRequest */
         CorrectRequest: {
             /** Raw */
@@ -2290,6 +2654,14 @@ export interface components {
             /** Section Id */
             section_id?: string | null;
         };
+        /** DeviceAssign */
+        DeviceAssign: {
+            /**
+             * Device Id
+             * Format: uuid
+             */
+            device_id: string;
+        };
         /** DeviceBrief */
         DeviceBrief: {
             /**
@@ -2333,6 +2705,86 @@ export interface components {
             default_role_id?: string | null;
             /** Blocked */
             blocked?: boolean | null;
+        };
+        /**
+         * DisplayConfig
+         * @description Alles, was eine Anzeige zeigt und wie. Standardwerte: `defaults.DEFAULT_CONFIG`.
+         */
+        DisplayConfig: {
+            /** Scenes */
+            scenes?: (components["schemas"]["LiveRankingScene"] | components["schemas"]["StartlistScene"] | components["schemas"]["WinnersScene"] | components["schemas"]["RangeScene"] | components["schemas"]["NoticeScene"])[];
+            /**
+             * Name Mode
+             * @default as_person
+             * @enum {string}
+             */
+            name_mode: "as_person" | "short";
+            /**
+             * Show Club
+             * @default as_person
+             */
+            show_club: boolean | "as_person";
+            /** Ticker */
+            ticker?: string | null;
+            /** Show Backup Warning */
+            show_backup_warning?: boolean | null;
+            /**
+             * Show Provisional Note
+             * @default true
+             */
+            show_provisional_note: boolean;
+            /**
+             * Theme
+             * @default dark
+             * @enum {string}
+             */
+            theme: "dark" | "light";
+        };
+        /** DisplayCreate */
+        DisplayCreate: {
+            /** Name */
+            name: string;
+            /** Tournament Id */
+            tournament_id?: string | null;
+            config?: components["schemas"]["DisplayConfig"] | null;
+            /** Sort */
+            sort?: number | null;
+        };
+        /** DisplayOut */
+        DisplayOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Tournament Id */
+            tournament_id: string | null;
+            /** Device Id */
+            device_id: string | null;
+            config: components["schemas"]["DisplayConfig"];
+            /** Sort */
+            sort: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** DisplayUpdate */
+        DisplayUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Tournament Id */
+            tournament_id?: string | null;
+            /** Sort */
+            sort?: number | null;
         };
         /** DisziplinDetailOut */
         DisziplinDetailOut: {
@@ -2551,6 +3003,11 @@ export interface components {
             /** Currency */
             currency: string;
         };
+        /** DuplicateCheckOut */
+        DuplicateCheckOut: {
+            /** Duplicates */
+            duplicates: components["schemas"]["PersonOut"][];
+        };
         /**
          * DuplicateOut
          * @description Antwort 409 beim Anlegen: ähnliche Personen im selben Verein.
@@ -2668,6 +3125,479 @@ export interface components {
             } | null;
             /** Changes */
             changes: components["schemas"]["RawChangeOut"][];
+        };
+        /** FeedHeader */
+        FeedHeader: {
+            /** Tournament Id */
+            tournament_id: string | null;
+            /** Title */
+            title: string;
+            /** Organizer */
+            organizer: string | null;
+            /** Date From */
+            date_from: string | null;
+            /** Date To */
+            date_to: string | null;
+            /** Tournament Status */
+            tournament_status: ("draft" | "active" | "closed") | null;
+            /**
+             * Tournament Mode
+             * @enum {string}
+             */
+            tournament_mode: "fixed" | "auto";
+        };
+        /**
+         * FeedIdleScene
+         * @description Ruhe-Szene, wenn keine Szene etwas zu zeigen hat.
+         */
+        FeedIdleScene: {
+            /** Scene Id */
+            scene_id: string;
+            /** Seconds */
+            seconds: number;
+            /** Title */
+            title: string;
+            /** Part */
+            part: number;
+            /** Parts */
+            parts: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "idle";
+            /** Heading */
+            heading: string;
+            /** Text */
+            text: string;
+        };
+        /** FeedLane */
+        FeedLane: {
+            /** Lane */
+            lane: number;
+            start: components["schemas"]["FeedPerson"] | null;
+        };
+        /** FeedLiveRankingScene */
+        FeedLiveRankingScene: {
+            /** Scene Id */
+            scene_id: string;
+            /** Seconds */
+            seconds: number;
+            /** Title */
+            title: string;
+            /** Part */
+            part: number;
+            /** Parts */
+            parts: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "live_ranking";
+            ranking: components["schemas"]["FeedRanking"];
+        };
+        /** FeedNextHeat */
+        FeedNextHeat: {
+            /** Number */
+            number: number;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+        };
+        /** FeedNoticeScene */
+        FeedNoticeScene: {
+            /** Scene Id */
+            scene_id: string;
+            /** Seconds */
+            seconds: number;
+            /** Title */
+            title: string;
+            /** Part */
+            part: number;
+            /** Parts */
+            parts: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "notice";
+            /** Heading */
+            heading: string;
+            /** Text */
+            text: string;
+        };
+        /** FeedOut */
+        FeedOut: {
+            /**
+             * Display Id
+             * Format: uuid
+             */
+            display_id: string;
+            /** Display Name */
+            display_name: string;
+            /** Version */
+            version: string;
+            /**
+             * Server Time
+             * Format: date-time
+             */
+            server_time: string;
+            /**
+             * Theme
+             * @enum {string}
+             */
+            theme: "dark" | "light";
+            header: components["schemas"]["FeedHeader"];
+            /** Scenes */
+            scenes: (components["schemas"]["FeedLiveRankingScene"] | components["schemas"]["FeedStartlistScene"] | components["schemas"]["FeedWinnersScene"] | components["schemas"]["FeedRangeScene"] | components["schemas"]["FeedNoticeScene"] | components["schemas"]["FeedIdleScene"])[];
+            /** Skipped */
+            skipped: components["schemas"]["FeedSkipped"][];
+            /** Ticker */
+            ticker: string | null;
+            /** Warnings */
+            warnings: components["schemas"]["FeedWarning"][];
+            /** Reload On */
+            reload_on: string[];
+            /** Poll Seconds */
+            poll_seconds: number;
+        };
+        /**
+         * FeedPerson
+         * @description Eine Person, wie sie auf dieser Anzeige erscheint. Ohne Namen: nur die Startnummer.
+         */
+        FeedPerson: {
+            /**
+             * Start Id
+             * Format: uuid
+             */
+            start_id: string;
+            /** Start Number */
+            start_number: number;
+            /** Display Name */
+            display_name: string | null;
+            /** Club */
+            club: string | null;
+            /** Class Short */
+            class_short: string;
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Competition Name */
+            competition_name: string;
+            /** Attempt */
+            attempt: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "registered" | "called" | "captured" | "final" | "aborted";
+            /** Lane */
+            lane: number | null;
+            /** Heat Number */
+            heat_number: number | null;
+            /** Heat Starts At */
+            heat_starts_at: string | null;
+        };
+        /** FeedPosition */
+        FeedPosition: {
+            /** Nr */
+            nr: number;
+            /** Distance M */
+            distance_m: number | null;
+            /** Stances */
+            stances: components["schemas"]["FeedStance"][];
+            /** Target */
+            target: number | null;
+            /** Text */
+            text: string;
+        };
+        /** FeedProcedure */
+        FeedProcedure: {
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Competition Name */
+            competition_name: string;
+            /** Catalog Code */
+            catalog_code: string | null;
+            /** Variant Name */
+            variant_name: string;
+            /** Description */
+            description: string | null;
+            /** Scoring */
+            scoring: string;
+            /** Notes */
+            notes: string[];
+            /** Deviates */
+            deviates: boolean;
+            /** Deviations */
+            deviations: string[];
+            /** Sections */
+            sections: components["schemas"]["FeedSection"][];
+        };
+        /** FeedRange */
+        FeedRange: {
+            /**
+             * Range Id
+             * Format: uuid
+             */
+            range_id: string;
+            /** Range Name */
+            range_name: string;
+            /** Lane Count */
+            lane_count: number;
+            /** Procedures */
+            procedures: components["schemas"]["FeedProcedure"][];
+            /** Lanes */
+            lanes: components["schemas"]["FeedLane"][];
+            next_heat: components["schemas"]["FeedNextHeat"] | null;
+            /** Next */
+            next: components["schemas"]["FeedPerson"][];
+        };
+        /** FeedRangeScene */
+        FeedRangeScene: {
+            /** Scene Id */
+            scene_id: string;
+            /** Seconds */
+            seconds: number;
+            /** Title */
+            title: string;
+            /** Part */
+            part: number;
+            /** Parts */
+            parts: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "range";
+            range: components["schemas"]["FeedRange"];
+        };
+        /** FeedRankGroup */
+        FeedRankGroup: {
+            /** Class Id */
+            class_id: string | null;
+            /** Class Name */
+            class_name: string | null;
+            /** Class Short */
+            class_short: string | null;
+            /** Rows */
+            rows: components["schemas"]["FeedRankRow"][];
+            /** More */
+            more: number;
+        };
+        /** FeedRankRow */
+        FeedRankRow: {
+            /** Place */
+            place: number | null;
+            /** Tied */
+            tied: boolean;
+            /**
+             * Group
+             * @enum {string}
+             */
+            group: "ranked" | "last" | "unranked";
+            /**
+             * Start Id
+             * Format: uuid
+             */
+            start_id: string;
+            /** Start Number */
+            start_number: number;
+            /** Attempt */
+            attempt: number;
+            /** Display Name */
+            display_name: string | null;
+            /** Club */
+            club: string | null;
+            /** Class Short */
+            class_short: string;
+            /** Score Text */
+            score_text: string | null;
+            /** Complete */
+            complete: boolean;
+            /** Series */
+            series: components["schemas"]["SeriesPart"][];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "provisional" | "final" | "running" | "aborted" | "review";
+            /** Running */
+            running: boolean;
+            /** Provisional */
+            provisional: boolean;
+            /** Abort Reason */
+            abort_reason: ("dns" | "dnf" | "dsq") | null;
+        };
+        /** FeedRanking */
+        FeedRanking: {
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Competition Name */
+            competition_name: string;
+            /** Direction */
+            direction: string | null;
+            /** Unit */
+            unit: string | null;
+            /** Combined */
+            combined: boolean;
+            /** Groups */
+            groups: components["schemas"]["FeedRankGroup"][];
+        };
+        /** FeedSection */
+        FeedSection: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Series Count */
+            series_count: number;
+            /** Counted Series */
+            counted_series: number | null;
+            /** Shots Per Series */
+            shots_per_series: number | null;
+            /** Time Per Series S */
+            time_per_series_s: number | null;
+            /** Target Time S */
+            target_time_s: number | null;
+            /** Time Measured */
+            time_measured: boolean;
+            /** Summary */
+            summary: string;
+            /** Deviations */
+            deviations: string[];
+            /** Series */
+            series: components["schemas"]["FeedSeriesStep"][];
+        };
+        /** FeedSeriesStep */
+        FeedSeriesStep: {
+            /** Number */
+            number: number;
+            /** Counted */
+            counted: boolean;
+            /** Shots */
+            shots: number | null;
+            /** Time S */
+            time_s: number | null;
+            /** Distance M */
+            distance_m: number | null;
+            position: components["schemas"]["FeedPosition"] | null;
+            /** Hit Review After */
+            hit_review_after: boolean;
+        };
+        /** FeedSkipped */
+        FeedSkipped: {
+            /** Scene Id */
+            scene_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "live_ranking" | "startlist" | "winners" | "range" | "notice";
+            /** Reason */
+            reason: string;
+            /** Competition Id */
+            competition_id?: string | null;
+        };
+        /** FeedStance */
+        FeedStance: {
+            /**
+             * Haltung
+             * @enum {string}
+             */
+            haltung: "stehend" | "kniend" | "liegend";
+            /** Hand */
+            hand: ("beidhaendig" | "einhaendig" | "starke_hand" | "schwache_hand") | null;
+            /** Text */
+            text: string;
+        };
+        /** FeedStartlist */
+        FeedStartlist: {
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Competition Name */
+            competition_name: string;
+            /** Range Id */
+            range_id: string | null;
+            /** Range Name */
+            range_name: string | null;
+            /** Starts */
+            starts: components["schemas"]["FeedPerson"][];
+            /** More */
+            more: number;
+        };
+        /** FeedStartlistScene */
+        FeedStartlistScene: {
+            /** Scene Id */
+            scene_id: string;
+            /** Seconds */
+            seconds: number;
+            /** Title */
+            title: string;
+            /** Part */
+            part: number;
+            /** Parts */
+            parts: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "startlist";
+            startlist: components["schemas"]["FeedStartlist"];
+        };
+        /** FeedWarning */
+        FeedWarning: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+        };
+        /** FeedWinnersScene */
+        FeedWinnersScene: {
+            /** Scene Id */
+            scene_id: string;
+            /** Seconds */
+            seconds: number;
+            /** Title */
+            title: string;
+            /** Part */
+            part: number;
+            /** Parts */
+            parts: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "winners";
+            ranking: components["schemas"]["FeedRanking"];
+        };
+        /**
+         * FieldError
+         * @description Ein Fehler für ein Formular: Pfad des Felds und deutscher Teilsatz.
+         */
+        FieldError: {
+            /** Field */
+            field: string | null;
+            /** Message */
+            message: string;
         };
         /** FieldSpec */
         FieldSpec: {
@@ -3027,6 +3957,40 @@ export interface components {
              */
             status: "provisional" | "final" | "running" | "aborted" | "review";
         };
+        /**
+         * LiveRankingScene
+         * @description Live-Wertung. Ohne `competition_ids`: alle Wettbewerbe mit Ergebnissen, nacheinander.
+         */
+        LiveRankingScene: {
+            /** Id */
+            id: string;
+            /**
+             * Seconds
+             * @default 20
+             */
+            seconds: number;
+            /** Title */
+            title?: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "live_ranking";
+            /** Competition Ids */
+            competition_ids?: string[];
+            /** Class Ids */
+            class_ids?: string[];
+            /**
+             * Rows
+             * @default 10
+             */
+            rows: number;
+            /**
+             * Show Running
+             * @default true
+             */
+            show_running: boolean;
+        };
         /** LoginIn */
         LoginIn: {
             /**
@@ -3052,6 +4016,33 @@ export interface components {
             heat: components["schemas"]["HeatOut"];
             /** Lane */
             lane: number;
+        };
+        /**
+         * NoticeScene
+         * @description Freier Hinweis, z. B. „Siegerehrung um 15:30 Uhr“.
+         */
+        NoticeScene: {
+            /** Id */
+            id: string;
+            /**
+             * Seconds
+             * @default 20
+             */
+            seconds: number;
+            /** Title */
+            title?: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "notice";
+            /** Heading */
+            heading: string;
+            /**
+             * Text
+             * @default
+             */
+            text: string;
         };
         /**
          * Order
@@ -3113,6 +4104,16 @@ export interface components {
             module: string;
             /** Module Title */
             module_title: string;
+        };
+        /**
+         * PersonCheck
+         * @description Dublettenprüfung vor dem Anlegen: dieselben Regeln wie `POST /persons`.
+         */
+        PersonCheck: {
+            /** Name */
+            name: string;
+            /** Club Id */
+            club_id?: string | null;
         };
         /** PersonCreate */
         PersonCreate: {
@@ -3287,6 +4288,41 @@ export interface components {
             lane_count: number;
             /** Sort */
             sort: number;
+        };
+        /**
+         * RangeScene
+         * @description Standanzeige für einen Stand: laufende Disziplin mit Ablauf, „Am Stand“, „Als Nächstes“.
+         */
+        RangeScene: {
+            /** Id */
+            id: string;
+            /**
+             * Seconds
+             * @default 20
+             */
+            seconds: number;
+            /** Title */
+            title?: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "range";
+            /**
+             * Range Id
+             * Format: uuid
+             */
+            range_id: string;
+            /**
+             * Next Count
+             * @default 4
+             */
+            next_count: number;
+            /**
+             * Show Procedure
+             * @default true
+             */
+            show_procedure: boolean;
         };
         /** RangeUpdate */
         RangeUpdate: {
@@ -3623,6 +4659,10 @@ export interface components {
             name: string;
             /** Is System */
             is_system: boolean;
+            /** Starter Key */
+            starter_key: string | null;
+            /** Customized */
+            customized: boolean;
             /** Permissions */
             permissions: string[];
             /** Effective Permissions */
@@ -3674,6 +4714,11 @@ export interface components {
             ok: boolean;
             /** Error */
             error: string | null;
+        };
+        /** SceneOrder */
+        SceneOrder: {
+            /** Ids */
+            ids: string[];
         };
         /** SectionForm */
         SectionForm: {
@@ -3908,6 +4953,8 @@ export interface components {
             heat_id: string | null;
             /** Lane */
             lane: number | null;
+            /** Called At */
+            called_at: string | null;
             /**
              * Created At
              * Format: date-time
@@ -3918,6 +4965,40 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /**
+         * StartlistScene
+         * @description Startliste je Wettbewerb. Ohne Filter: alle Wettbewerbe mit offenen Starts.
+         */
+        StartlistScene: {
+            /** Id */
+            id: string;
+            /**
+             * Seconds
+             * @default 20
+             */
+            seconds: number;
+            /** Title */
+            title?: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "startlist";
+            /** Competition Ids */
+            competition_ids?: string[];
+            /** Range Ids */
+            range_ids?: string[];
+            /**
+             * Rows
+             * @default 12
+             */
+            rows: number;
+            /**
+             * Include Finished
+             * @default false
+             */
+            include_finished: boolean;
         };
         /**
          * StationStartOut
@@ -3969,6 +5050,8 @@ export interface components {
             queue_position: number | null;
             /** Lane */
             lane: number | null;
+            /** Called At */
+            called_at: string | null;
             /** Heat Id */
             heat_id: string | null;
             /** Heat Number */
@@ -4038,6 +5121,12 @@ export interface components {
             role: components["schemas"]["RoleBrief"] | null;
             /** Permissions */
             permissions: string[];
+            /** Pin Min Length */
+            pin_min_length: number;
+            /** Max Failed Logins */
+            max_failed_logins: number;
+            /** Lockout Minutes */
+            lockout_minutes: number;
         };
         /** TournamentCreate */
         TournamentCreate: {
@@ -4421,14 +5510,38 @@ export interface components {
             unbeendete_serie?: "ringe_bis_dahin_zeit_letzter_schuss" | null;
         };
         /**
-         * FieldError
-         * @description Ein Fehler für ein Formular: Pfad des Felds und deutscher Teilsatz.
+         * WinnersScene
+         * @description Siegerliste: nur abgeschlossene Ergebnisse, die ersten `top` Plätze je Klasse.
          */
-        FieldError: {
-            /** Field */
-            field: string | null;
-            /** Message */
-            message: string;
+        WinnersScene: {
+            /** Id */
+            id: string;
+            /**
+             * Seconds
+             * @default 20
+             */
+            seconds: number;
+            /** Title */
+            title?: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "winners";
+            /** Competition Ids */
+            competition_ids?: string[];
+            /** Class Ids */
+            class_ids?: string[];
+            /**
+             * Top
+             * @default 3
+             */
+            top: number;
+            /**
+             * Include Provisional
+             * @default true
+             */
+            include_provisional: boolean;
         };
     };
     responses: never;
@@ -6089,7 +7202,10 @@ export interface operations {
     };
     teilnehmer_list_clubs: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Suchbegriff */
+                q?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6103,6 +7219,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClubOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -6401,6 +7526,37 @@ export interface operations {
             };
         };
     };
+    teilnehmer_check_person: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonCheck"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DuplicateCheckOut"];
+                };
+            };
+            /** @description Ungültige Eingabe */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     teilnehmer_export_persons: {
         parameters: {
             query?: never;
@@ -6664,12 +7820,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -6747,12 +7905,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -6797,12 +7957,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -6847,12 +8009,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -6891,12 +8055,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -6941,12 +8107,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -7030,12 +8198,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -7080,12 +8250,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -7130,12 +8302,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -7176,12 +8350,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -7265,12 +8441,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -7315,12 +8493,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -7360,12 +8540,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -7411,12 +8593,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -7458,12 +8642,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -7508,12 +8694,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -7554,12 +8742,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -7603,12 +8793,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -8820,6 +10012,11 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
+                since?: string | null;
+                until?: string | null;
+                user_id?: string | null;
+                device_id?: string | null;
+                action?: string | null;
             };
             header?: never;
             path?: never;
@@ -8843,6 +10040,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    audit_list_audit_actions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditActionOut"][];
                 };
             };
         };
@@ -9191,6 +10408,773 @@ export interface operations {
             };
             /** @description Im aktuellen Zustand nicht möglich */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    anzeige_get_mine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisplayOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    anzeige_get_mine_feed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedOut"];
+                };
+            };
+            /** @description Unverändert (If-None-Match passt zum ETag) */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    anzeige_list_displays: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisplayOut"][];
+                };
+            };
+        };
+    };
+    anzeige_create_display: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisplayCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisplayOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    anzeige_create_defaults: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisplayOut"];
+                };
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    anzeige_get_display: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                display_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisplayOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    anzeige_delete_display: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                display_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    anzeige_update_display: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                display_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisplayUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisplayOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    anzeige_put_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                display_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisplayConfig"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisplayOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    anzeige_reorder_scenes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                display_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SceneOrder"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisplayOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    anzeige_assign_device: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                display_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceAssign"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisplayOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    anzeige_release_device: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                display_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisplayOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    anzeige_get_feed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                display_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedOut"];
+                };
+            };
+            /** @description Unverändert (If-None-Match passt zum ETag) */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_startlist_pdf: {
+        parameters: {
+            query?: {
+                competition_id?: string | null;
+                range_id?: string | null;
+                /** @description `public` (Standard): nach Anzeige-Einstellung; `full`: voller Name. */
+                names?: "public" | "full";
+                sort?: "start_number" | "competition" | "range";
+            };
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            /** @description Berechtigung fehlt */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_startlist_csv: {
+        parameters: {
+            query?: {
+                competition_id?: string | null;
+                range_id?: string | null;
+                /** @description `public` (Standard): nach Anzeige-Einstellung; `full`: voller Name. */
+                names?: "public" | "full";
+                sort?: "start_number" | "competition" | "range";
+            };
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Berechtigung fehlt */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_winners_pdf: {
+        parameters: {
+            query?: {
+                competition_id?: string | null;
+                class_id?: string | null;
+                /** @description Nur die ersten Plätze (geteilte Plätze vollständig); leer = alle. */
+                top?: number | null;
+                merged?: boolean;
+                include_provisional?: boolean;
+                /** @description `public` (Standard): nach Anzeige-Einstellung; `full`: voller Name. */
+                names?: "public" | "full";
+            };
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            /** @description Berechtigung fehlt */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_winners_csv: {
+        parameters: {
+            query?: {
+                competition_id?: string | null;
+                class_id?: string | null;
+                /** @description Nur die ersten Plätze (geteilte Plätze vollständig); leer = alle. */
+                top?: number | null;
+                merged?: boolean;
+                include_provisional?: boolean;
+                /** @description `public` (Standard): nach Anzeige-Einstellung; `full`: voller Name. */
+                names?: "public" | "full";
+            };
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Berechtigung fehlt */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_results_csv: {
+        parameters: {
+            query?: {
+                competition_id?: string | null;
+                /** @description `public` (Standard): nach Anzeige-Einstellung; `full`: voller Name. */
+                names?: "public" | "full";
+            };
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Berechtigung fehlt */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
