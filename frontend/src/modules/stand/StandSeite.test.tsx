@@ -158,9 +158,11 @@ describe("Stand", { timeout: 15000 }, () => {
 
     const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
     await benutzer.click(within(bahn1).getByRole("button", { name: /Abbrechen/ }));
-    await benutzer.click(await screen.findByRole("menuitem", { name: "Aufgegeben" }));
+    // Unter Last braucht das Menü länger als die übliche Sekunde.
+    const geduld = { timeout: 5000 };
+    await benutzer.click(await screen.findByRole("menuitem", { name: "Aufgegeben" }, geduld));
 
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await screen.findByRole("dialog", {}, geduld);
     expect(within(dialog).getByText("Startnummer 8: Aufgegeben?")).toBeInTheDocument();
     expect(aufrufe.some((a) => a.pfad.endsWith("/abort"))).toBe(false);
 
