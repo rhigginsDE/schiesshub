@@ -12,6 +12,7 @@ from pydantic import AfterValidator, AwareDatetime, BaseModel, ConfigDict, Field
 
 # 409-Antwort: gemeinsamer Baustein, hier weiter erreichbar.
 from app.core.errors import ConflictOut as ConflictOut
+from app.core.errors import FieldError
 from app.modules.starts.rules import AbortReason, StartStatus
 from app.modules.turnier.schemas import Id, PositiveInt, StrictModel
 
@@ -98,6 +99,26 @@ class AbortRequest(StrictModel):
 class CallRequest(StrictModel):
     # Reihenfolge: ohne Angabe die erste freie Bahn. Zeitplan: die Bahn des Durchgangs.
     lane: PositiveInt | None = None
+    # Reihenfolge: auch auf eine Bahn, die ein bald beginnender Durchgang braucht (sonst 409
+    # mit `code: heat_imminent`). Ohne Bahnangabe wird zuerst eine Bahn genommen, die kein
+    # Durchgang braucht.
+    confirm_heat_conflict: bool = False
+
+
+class CallConflictOut(BaseModel):
+    """HTTP 409 beim Aufrufen. `code` nur bei `heat_imminent` (dann ohne `errors`)."""
+
+    detail: str
+    errors: list[FieldError] | None = None
+    code: Literal["heat_imminent"] | None = None
+
+
+class CallNextRequest(StrictModel):
+    # Nur diese Bahn füllen („Nächsten auf Bahn N“); ohne Angabe alle freien Bahnen.
+    lane: PositiveInt | None = None
+    # Auch Bahnen füllen, die ein bald beginnender Durchgang braucht. Ohne Bestätigung bleiben
+    # sie frei (Antwort: `held_lanes`); ist sonst keine Bahn frei, kommt 409 `heat_imminent`.
+    confirm_heat_conflict: bool = False
 
 
 class ReturnRequest(StrictModel):
@@ -185,6 +206,8 @@ class StationStartOut(BaseModel):
     class_short: str
     competition_id: UUID
     competition_name: str
+    # Kennziffer der Disziplin aus dem Katalog („1001“); null bei eigenem Wettbewerb.
+    competition_code: str | None = None
     range_id: UUID | None
     attempt: int
     status: StartStatus
@@ -210,6 +233,13 @@ class LaneProgressOut(BaseModel):
     series_total: int
     # Alle Rohwerte vollständig (bereit zum Abschließen).
     complete: bool
+    # Welcher Abschnitt das ist (ab 1) und wie viele der Ablauf hat („Abschnitt 2 von 2“);
+    # 0, solange es keine Abschnitte gibt.
+    section_number: int = 0
+    section_count: int = 0
+    # Über alle Abschnitte: vollständig erfasste Serien und Serien insgesamt („5 von 8 Serien“).
+    series_done_overall: int = 0
+    series_total_overall: int = 0
 
 
 class LaneOut(BaseModel):
@@ -220,12 +250,61 @@ class LaneOut(BaseModel):
     progress: LaneProgressOut | None = None
 
 
+class HeatReservationOut(BaseModel):
+    """Nächster Durchgang des Stands mit wartenden Starts und den Bahnen, die er braucht.
+
+    Solange `active` ist, hält der Stand `lanes` für ihn frei: Aufrufe aus der Reihenfolge auf
+    diese Bahnen brauchen `confirm_heat_conflict: true`.
+    """
+
+    heat_id: UUID
+    number: int
+    starts_at: datetime
+    ends_at: datetime
+    # Gebuchte Bahnen der wartenden Starts dieses Durchgangs.
+    lanes: list[int]
+    # Einstellung `heat_reserve_minutes` des Turniers; 0 = aus.
+    reserve_minutes: int
+    # Ab hier hält der Stand die Bahnen frei (`starts_at` − `reserve_minutes`); null bei 0.
+    reserved_from: datetime | None
+    # Hält die Bahnen gerade frei.
+    active: bool
+
+
 class QueueOut(BaseModel):
     range_id: UUID
     lane_count: int
     # Wartende Starts der Reihenfolge, nach `queue_position`.
     waiting: list[StationStartOut]
     lanes: list[LaneOut]
+    # Nächster Durchgang des Stands (Zeitplan), damit die Oberfläche vor dem Aufruf warnen kann.
+    upcoming_heat: HeatReservationOut | None = None
+
+
+class SkippedStartOut(BaseModel):
+    """Ein Start, der bei „Nächste aufrufen“ übersprungen wurde."""
+
+    start_id: UUID
+    entry_id: UUID
+    start_number: int
+    competition_id: UUID
+    queue_position: int | None
+    # on_lane: Die Person steht gerade auf einer Bahn (hier oder an einem anderen Stand) oder
+    # hat in diesem Aufruf eine bekommen.
+    reason: Literal["on_lane"]
+
+
+class CallNextOut(BaseModel):
+    # Die aufgerufenen Starts, in der Reihenfolge der Bahnen.
+    called: list[StartOut]
+    # Übersprungene Starts; sie behalten ihren Platz in der Reihenfolge.
+    skipped: list[SkippedStartOut]
+    # Freie Bahnen, die für den bald beginnenden Durchgang frei bleiben (ohne Bestätigung).
+    held_lanes: list[int]
+    # Der Durchgang, für den Bahnen freigehalten werden (wie in der Reihenfolge-Ansicht).
+    upcoming_heat: HeatReservationOut | None
+    # Hinweis für die Oberfläche (übersprungen, freigehalten); null, wenn es nichts zu sagen gibt.
+    message: str | None
 
 
 class RangeNowOut(BaseModel):
@@ -239,3 +318,5 @@ class RangeNowOut(BaseModel):
     next_heat_starts: list[StationStartOut]
     # Die nächsten Wartenden der Reihenfolge (höchstens so viele wie Bahnen).
     next_queue: list[StationStartOut]
+    # Wie in `QueueOut`.
+    upcoming_heat: HeatReservationOut | None = None

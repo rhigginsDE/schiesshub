@@ -27,7 +27,13 @@ ADMIN_NAME = "Anna Admin"
 ADMIN_PIN = "1234"
 
 AppFactory = Callable[..., AbstractAsyncContextManager[FastAPI]]
-PROBE_PERMISSIONS = ("tournament.read", "tournament.edit", "result.read", "result.correct")
+PROBE_PERMISSIONS = (
+    "tournament.read",
+    "tournament.edit",
+    "result.read",
+    "result.correct",
+    "display.read",
+)
 
 
 def add_probe_routes(app: FastAPI) -> None:

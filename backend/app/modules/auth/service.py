@@ -14,18 +14,20 @@ from fastapi import FastAPI
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import InputError
 from app.core.events import EventHub
 from app.core.security import Actor, reset_permission_checker, set_permission_checker
 from app.modules.auth import credentials, permissions
 from app.modules.auth.audit import record_audit
 from app.modules.auth.errors import (
+    LOGIN_FAILED,
     ConflictError,
     InvalidError,
     LockedError,
     NotFoundError,
     UnauthorizedError,
 )
-from app.modules.auth.identity import Identity, check_permission, now
+from app.modules.auth.identity import Identity, check_permission, now, unpaired
 from app.modules.auth.models import AuthSession, Device, PairingCode, Role, UserAccount
 from app.modules.auth.schemas import (
     DeviceBrief,
@@ -52,7 +54,6 @@ from app.modules.auth.settings import AuthSettings
 logger = logging.getLogger("schiesshub.auth")
 
 PAIR_PATH = "/pair?code={code}"
-NOT_PAIRED = "Dieses Gerät ist nicht gekoppelt. Bitte zuerst über einen QR-Code koppeln."
 WRONG_PIN = "Die Anmeldung ist fehlgeschlagen. Bitte Person und PIN prüfen."
 LAST_ADMIN = "Es muss immer mindestens ein aktiver Administrator bleiben."
 
@@ -210,6 +211,19 @@ async def _role_or_invalid(session: AsyncSession, role_id: uuid.UUID) -> Role:
     return role
 
 
+async def _device_role_or_invalid(session: AsyncSession, role_id: uuid.UUID) -> Role:
+    """Rolle, die ein Gerät ohne Anmeldung nutzen soll: ohne Verwaltungsrechte."""
+    role = await _role_or_invalid(session, role_id)
+    if permissions.grants_administration(role.permissions, is_system=role.is_system):
+        raise InputError.single(
+            "default_role_id",
+            f"Die Rolle „{role.name}“ enthält Verwaltungsrechte (Rollen, Personen, Geräte, "
+            "System oder Sicherung verwalten) und kann deshalb nicht ohne Anmeldung gelten. "
+            "Bitte eine Rolle ohne Verwaltungsrechte wählen, etwa „Anzeige“.",
+        )
+    return role
+
+
 async def _ensure_unique_user_name(
     session: AsyncSession, name: str, exclude: uuid.UUID | None = None
 ) -> None:
@@ -271,6 +285,7 @@ async def get_status(
         user=UserBrief(id=identity.user.id, name=identity.user.name) if identity.user else None,
         role=RoleBrief(id=identity.role.id, name=identity.role.name) if identity.role else None,
         permissions=identity.permissions,
+        device_revoked=identity.device_revoked,
         pin_min_length=settings.pin_min_length,
         max_failed_logins=settings.max_failed_logins,
         lockout_minutes=settings.lockout_minutes,
@@ -336,7 +351,7 @@ async def create_pairing_code(
 ) -> PairingCodeOut:
     """`minutes` weicht von der eingestellten Laufzeit ab, `via` landet im Audit-Eintrag."""
     if body.default_role_id is not None:
-        await _role_or_invalid(session, body.default_role_id)
+        await _device_role_or_invalid(session, body.default_role_id)
     code = credentials.new_pairing_code()
     pairing = PairingCode(
         id=uuid.uuid4(),
@@ -408,7 +423,7 @@ async def pair(session: AsyncSession, events: EventHub, body: PairIn) -> Issued:
 
 async def login_options(session: AsyncSession, identity: Identity) -> list[UserBrief]:
     if identity.device is None:
-        raise UnauthorizedError(NOT_PAIRED)
+        raise unpaired(identity)
     users = await session.scalars(
         select(UserAccount).where(UserAccount.active.is_(True)).order_by(UserAccount.name)
     )
@@ -424,7 +439,7 @@ async def login(
 ) -> Issued:
     device = identity.device
     if device is None:
-        raise UnauthorizedError(NOT_PAIRED)
+        raise unpaired(identity)
     user = await session.scalar(
         select(UserAccount)
         .where(UserAccount.id == body.user_id, UserAccount.active.is_(True))
@@ -435,11 +450,11 @@ async def login(
 
     if not await credentials.verify_pin(user.pin_hash if user else None, body.pin):
         if user is None:
-            raise UnauthorizedError(WRONG_PIN)
+            raise UnauthorizedError(WRONG_PIN, LOGIN_FAILED)
         await _register_failure(session, user, device, settings, events)
         if user.locked_until is not None:
             raise _locked_error(user.locked_until)
-        raise UnauthorizedError(WRONG_PIN)
+        raise UnauthorizedError(WRONG_PIN, LOGIN_FAILED)
 
     user.failed_login_count = 0
     user.locked_until = None
@@ -556,7 +571,7 @@ async def update_device(
         and body.default_role_id != device.default_role_id
     ):
         if body.default_role_id is not None:
-            await _role_or_invalid(session, body.default_role_id)
+            await _device_role_or_invalid(session, body.default_role_id)
         changes["default_role_id"] = _str(body.default_role_id)
         device.default_role_id = body.default_role_id
     if body.blocked is not None and body.blocked != device.blocked:
@@ -616,7 +631,10 @@ async def _role_out(session: AsyncSession, role: Role) -> RoleOut:
 def list_permissions() -> list[PermissionOut]:
     return [
         PermissionOut(
-            permission=item.permission, module=item.module, module_title=item.module_title
+            permission=item.permission,
+            module=item.module,
+            module_title=item.module_title,
+            requires=list(item.requires),
         )
         for item in permissions.known_permissions()
     ]

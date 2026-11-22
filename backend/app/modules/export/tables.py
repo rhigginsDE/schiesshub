@@ -38,6 +38,7 @@ from app.modules.export.formatting import (
     start_status_text,
 )
 from app.modules.export.records import (
+    TIME_MODELS,
     CompetitionInfo,
     Meta,
     PersonName,
@@ -45,11 +46,14 @@ from app.modules.export.records import (
     SeriesValue,
     StartlistSort,
     StartRecord,
+    TimedSection,
+    TimeScore,
     WinnerRow,
     WinnerSection,
     WinnerTable,
 )
-from app.scoring.numbers import cs_to_seconds
+from app.scoring import ComputedResult
+from app.scoring.numbers import cs_to_seconds, format_seconds_value
 
 Align = Literal["left", "right", "center"]
 Cell = str | int | Decimal | None
@@ -127,6 +131,117 @@ def person_for(
     return full_names.get(entry_id, PersonName(public_name, public_club))
 
 
+def name_text(person: PersonName, start_number: int) -> str:
+    """Name für die Liste; ohne Namensanzeige („nicht anzeigen“) wie auf dem Bildschirm
+    „Startnummer 5“ statt eines leeren Felds."""
+    return person.name or f"Startnummer {start_number}"
+
+
+# --- Rechenweg bei Wertung mit Zeit ------------------------------------------------------
+
+
+def time_score_of(computed: ComputedResult, competition: CompetitionInfo) -> TimeScore | None:
+    """Zeit, Sollzeit und Abzug aus der Wertung des Servers; None bei Modellen ohne Zeitabzug.
+
+    Hier wird nichts neu gerechnet: Abzüge und Zeiten stehen so in `computed`; nur bei
+    `ringe_minus_zeit` ergibt sich der Abzug als Ringe − Ergebnis.
+    """
+    if computed.model not in TIME_MODELS:
+        return None
+    if computed.model == "ringe_minus_zeit":
+        deduction = Decimal(computed.rings) - computed.score if computed.rings is not None else None
+        return TimeScore(
+            model=computed.model,
+            rings=computed.rings,
+            time_cs=computed.time_cs,
+            target_s=None,
+            deduction=deduction,
+            rounded=competition.time_rounding == "summe_abrunden",
+        )
+    targets = dict(competition.target_times)
+    timed = tuple(
+        TimedSection(
+            name=section.name,
+            time_cs=section.time_cs,
+            target_s=targets[section.id],
+            deduction=section.deduction,
+            floored=section.floored,
+            result=section.result,
+        )
+        for section in computed.sections
+        if section.id in targets
+    )
+    times = [section.time_cs for section in timed]
+    deductions = [section.deduction for section in timed]
+    return TimeScore(
+        model=computed.model,
+        rings=computed.rings,
+        time_cs=sum(t for t in times if t is not None) if timed and None not in times else None,
+        target_s=timed[0].target_s if len(timed) == 1 else None,
+        deduction=sum((d for d in deductions if d is not None), Decimal(0))
+        if timed and None not in deductions
+        else None,
+        sections=timed,
+    )
+
+
+NBSP = "\u00a0"
+
+
+def time_score_text(score: TimeScore) -> str:
+    """Kurzer Rechenweg für das PDF: „339 − 13 (93,40 s, Sollzeit 80 s)“ (Mehrdistanz) bzw.
+    „182 − 19 (19,87 s, abgerundet)“ (Speed). Das Ergebnis steht in seiner eigenen Spalte.
+
+    Geschützte Leerzeichen halten Zahl und Einheit („93,40 s“), „Sollzeit 80 s“ und „− 13“
+    zusammen; muss die Zelle umbrechen, dann nur zwischen diesen Teilen."""
+    rings = str(score.rings) if score.rings is not None else "–"
+    if score.model == "ringe_minus_zeit":
+        if score.time_cs is None or score.deduction is None:
+            return ""
+        time = f"{seconds(score.time_cs, typographic=True)}{NBSP}s"
+        if score.rounded:
+            deduction = number(score.deduction, typographic=True)
+            return f"{rings} −{NBSP}{deduction} ({time}, abgerundet)"
+        return f"{rings} −{NBSP}{time}"
+    parts = [rings]
+    for section in score.sections:
+        label = f"{section.name} " if len(score.sections) > 1 else ""
+        target = f"Sollzeit{NBSP}{format_seconds_value(section.target_s)}{NBSP}s"
+        if section.time_cs is None or section.deduction is None:
+            parts.append(f"({label}Zeit fehlt, {target})")
+            continue
+        parts.append(
+            f"−{NBSP}{number(section.deduction, typographic=True)} "
+            f"({label}{seconds(section.time_cs, typographic=True)}{NBSP}s, {target})"
+        )
+        if section.floored:
+            parts.append(f"→ {section.name} {number(section.result, typographic=True)}")
+    return " ".join(parts)
+
+
+def _time_cells(score: TimeScore | None) -> tuple[Cell, ...]:
+    """CSV-Spalten „Ringe vor Abzug“, „Gesamtzeit“, „Sollzeit“, „Abzug“."""
+    if score is None:
+        return (None, None, None, None)
+    return (
+        score.rings,
+        cs_to_seconds(score.time_cs) if score.time_cs is not None else None,
+        score.target_s,
+        score.deduction,
+    )
+
+
+TIME_HEADERS = ("Ringe vor Abzug", "Gesamtzeit", "Sollzeit", "Abzug")
+DEVIATION_LABEL = "Abweichend vom Katalog"
+
+
+def deviation_note(competition: CompetitionInfo) -> str | None:
+    """„Abweichend vom Katalog: Abschnitt Fallscheibe: 3 von 4 Serien gewertet“."""
+    if not competition.deviations:
+        return None
+    return f"{DEVIATION_LABEL}: {'; '.join(competition.deviations)}"
+
+
 # --- Siegerliste: Zuordnung --------------------------------------------------------------
 
 
@@ -146,7 +261,9 @@ def _series(row: RankingRow) -> tuple[SeriesValue, ...]:
     )
 
 
-def _winner_row(row: RankingRow, person: PersonName) -> WinnerRow:
+def _winner_row(
+    row: RankingRow, person: PersonName, time_score: TimeScore | None = None
+) -> WinnerRow:
     return WinnerRow(
         place=row.place,
         tied=row.tied,
@@ -166,6 +283,7 @@ def _winner_row(row: RankingRow, person: PersonName) -> WinnerRow:
         status=row.status,
         abort_reason=row.abort_reason,
         provisional_until=row.provisional_until,
+        time_score=time_score,
     )
 
 
@@ -175,6 +293,7 @@ def winner_tables(
     class_names: Mapping[uuid.UUID, str],
     top: int | None = None,
     full_names: Mapping[uuid.UUID, PersonName] | None = None,
+    time_scores: Mapping[uuid.UUID, TimeScore] | None = None,
 ) -> list[WinnerTable]:
     """Tabellen der Siegerliste eines Wettbewerbs aus seiner Rangliste.
 
@@ -182,11 +301,17 @@ def winner_tables(
       (Abgebrochene ohne Platz am Ende, je Teilnehmer einmal; ob sie dabei sind, entscheidet
       die Rangliste mit `include_aborted`).
     - `top`: nur Zeilen mit Platz bis `top` (bei geteiltem Platz alle Gleichen).
+    - `time_scores`: Rechenweg je Start (`start_id`) bei Wertung mit Zeit.
     """
     tables = []
+    scores = time_scores or {}
     for group in ranking.groups:
         rows = [
-            _winner_row(row, person_for(row.entry_id, row.display_name, row.club, full_names))
+            _winner_row(
+                row,
+                person_for(row.entry_id, row.display_name, row.club, full_names),
+                scores.get(row.start_id),
+            )
             for row in group.rows
         ]
         if top is not None:
@@ -341,6 +466,10 @@ def winners_report(meta: Meta, sections: Sequence[WinnerSection]) -> Report:
         with_attempt = competition.multi_start
         with_tens = competition.rings and any(row.tens is not None for row in all_rows)
         with_inner = competition.rings and any(row.inner_tens is not None for row in all_rows)
+        # Rechenweg nur bei Wertung mit Zeit (andere Modelle behalten ihr Layout).
+        with_time = competition.time_model and any(
+            row.time_score is not None and row.abort_reason is None for row in all_rows
+        )
         header_of = dict(zip(keys, headers, strict=True))
         result_title = f"Ergebnis ({section.unit})" if section.unit else "Ergebnis"
 
@@ -360,6 +489,8 @@ def winners_report(meta: Meta, sections: Sequence[WinnerSection]) -> Report:
         if with_attempt:
             columns.append(Column("Versuch", "right"))
         columns.append(Column(result_title, "right"))
+        if with_time:
+            columns.append(Column("Rechenweg", wrap=True))
         if with_tens:
             columns.append(Column("10er", "right"))
         if with_inner:
@@ -374,7 +505,11 @@ def winners_report(meta: Meta, sections: Sequence[WinnerSection]) -> Report:
             rows = []
             for row in table.rows:
                 by_key = {(value.section_id, value.number): value for value in row.series}
-                cells = [_place_text(row), str(row.start_number), row.person.name or ""]
+                cells = [
+                    _place_text(row),
+                    str(row.start_number),
+                    name_text(row.person, row.start_number),
+                ]
                 if with_club:
                     cells.append(row.person.club or "")
                 if with_class:
@@ -384,6 +519,12 @@ def winners_report(meta: Meta, sections: Sequence[WinnerSection]) -> Report:
                 # Abgebrochen: kein Ergebnis (ein Teilergebnis sähe wie eine Wertung aus).
                 shown = row.score if row.abort_reason is None else None
                 cells.append(number(shown, typographic=True) if shown is not None else "–")
+                if with_time:
+                    cells.append(
+                        time_score_text(row.time_score)
+                        if row.time_score is not None and shown is not None
+                        else ""
+                    )
                 if with_tens:
                     cells.append(str(row.tens) if row.tens is not None else "")
                 if with_inner:
@@ -400,10 +541,14 @@ def winners_report(meta: Meta, sections: Sequence[WinnerSection]) -> Report:
                     empty_text="Noch keine abgeschlossenen Ergebnisse.",
                 )
             )
+        deviation = deviation_note(competition)
         notes_text = (
-            (provisional_note(section.provisional_until, meta),)
-            if section.provisional_until is not None
-            else ()
+            *((deviation,) if deviation else ()),
+            *(
+                (provisional_note(section.provisional_until, meta),)
+                if section.provisional_until is not None
+                else ()
+            ),
         )
         subtitle = f"Stand: {competition.range_name}" if competition.range_name else None
         out.append(Section(competition.title, subtitle, notes_text, tuple(tables)))
@@ -434,6 +579,7 @@ def winners_sheet(sections: Sequence[WinnerSection], tz: ZoneInfo | None = None)
     Starts stehen ohne Platz und ohne Ergebnis da, mit dem Grund unter „Status“.
     """
     with_tens = any(section.competition.rings for section in sections)
+    with_time = any(section.competition.time_model for section in sections)
     sheet = Sheet(
         header=(
             "Kennziffer",
@@ -449,10 +595,12 @@ def winners_sheet(sections: Sequence[WinnerSection], tz: ZoneInfo | None = None)
             "Ergebnis",
             "Einheit",
             *(("Zehner", "Innenzehner") if with_tens else ()),
+            *(TIME_HEADERS if with_time else ()),
             "Teilwerte",
             "Status",
             "Vorläufig bis",
             "Serienstatus",
+            DEVIATION_LABEL,
         )
     )
     for section in sections:
@@ -471,6 +619,7 @@ def winners_sheet(sections: Sequence[WinnerSection], tz: ZoneInfo | None = None)
                     (row.tens, row.inner_tens) if competition.rings else (None, None)
                 )
                 ordered = [by_key[key] for key in keys if key in by_key]
+                times = _time_cells(row.time_score if score is not None else None)
                 sheet.rows.append(
                     (
                         competition.code,
@@ -479,19 +628,21 @@ def winners_sheet(sections: Sequence[WinnerSection], tz: ZoneInfo | None = None)
                         row.place,
                         "ja" if row.tied else "",
                         row.start_number,
-                        row.person.name,
+                        name_text(row.person, row.start_number),
                         row.person.club,
                         row.class_short,
                         row.attempt,
                         score,
                         section.unit if score is not None else None,
                         *(tens if with_tens else ()),
+                        *(times if with_time else ()),
                         "; ".join(parts) or None,
                         _status_cell(row),
                         iso_local(row.provisional_until, tz)
                         if row.status == "provisional" and row.provisional_until
                         else None,
                         _series_status_cell(ordered),
+                        "; ".join(competition.deviations) or None,
                     )
                 )
     return sheet
@@ -600,7 +751,7 @@ def _startlist_table(
             cells.append(_heat_text(record, meta))
         if with_lane:
             cells.append(str(record.lane) if record.lane is not None else "")
-        cells += [str(record.start_number), record.person.name or ""]
+        cells += [str(record.start_number), name_text(record.person, record.start_number)]
         if with_club:
             cells.append(record.person.club or "")
         cells.append(record.class_short)
@@ -674,7 +825,7 @@ def startlist_sheet(
         sheet.rows.append(
             (
                 record.start_number,
-                record.person.name,
+                name_text(record.person, record.start_number),
                 record.person.club,
                 record.class_short,
                 record.class_name,
@@ -723,6 +874,8 @@ def results_sheet(records: Sequence[ResultRecord], tz: ZoneInfo | None = None) -
     ]
     # Zehner nur, wenn ein Wettbewerb der Datei Ringe wertet.
     with_tens = any(record.start.competition.rings for record in records)
+    # Wertung mit Zeit: Gesamtzeit (auch die Abschnittszeit der Mehrdistanz), Sollzeit, Abzug.
+    with_time = any(record.start.competition.time_model for record in records)
     header = (
         "Startnummer",
         "Name",
@@ -737,6 +890,7 @@ def results_sheet(records: Sequence[ResultRecord], tz: ZoneInfo | None = None) -
         "Einheit",
         "Vollständig",
         *(("Zehner", "Innenzehner") if with_tens else ()),
+        *(TIME_HEADERS if with_time else ()),
         "Abgeschlossen am",
         "Vorläufig bis",
         "Prüfen",
@@ -751,7 +905,7 @@ def results_sheet(records: Sequence[ResultRecord], tz: ZoneInfo | None = None) -
         special = _series_status_notes(series)
         cells: list[Cell] = [
             start.start_number,
-            start.person.name,
+            name_text(start.person, start.start_number),
             start.person.club,
             start.class_short,
             start.competition.code,
@@ -763,6 +917,7 @@ def results_sheet(records: Sequence[ResultRecord], tz: ZoneInfo | None = None) -
             record.unit if record.has_result else None,
             ("ja" if record.complete else "nein") if record.has_result else None,
             *((record.tens, record.inner_tens) if with_tens else ()),
+            *(_time_cells(record.time_score) if with_time else ()),
             iso_local(record.finalized_at, tz) if record.finalized_at else None,
             iso_local(record.provisional_until, tz) if record.is_provisional else None,
             "ja" if record.needs_review else None,

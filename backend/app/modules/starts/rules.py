@@ -147,25 +147,44 @@ class Waiting:
     entry_id: UUID
 
 
-def pick_for_lanes(
+@dataclass(frozen=True, slots=True)
+class Distribution:
+    # (Start, Bahn) in der Reihenfolge der Vergabe.
+    picks: list[tuple[UUID, int]]
+    # Starts, die vor oder zwischen den Vergebenen standen, aber übersprungen wurden, weil ihre
+    # Person schon auf einer Bahn steht (oder in diesem Durchlauf eine bekommen hat).
+    skipped: list[UUID]
+
+
+def distribute_lanes(
     free_lanes: Sequence[int], waiting: Sequence[Waiting], busy_entries: Iterable[UUID]
-) -> list[tuple[UUID, int]]:
+) -> Distribution:
     """Verteilt die Wartenden der Reihe nach auf die freien Bahnen.
 
     Wer schon auf einer Bahn steht (oder in diesem Durchlauf eine bekommt), wird übersprungen
-    und bleibt an seinem Platz in der Reihenfolge.
+    und bleibt an seinem Platz in der Reihenfolge. Übersprungen zählt nur, wer drangekommen
+    wäre, solange noch eine Bahn frei war.
     """
     busy = set(busy_entries)
     lanes = list(free_lanes)
     picks: list[tuple[UUID, int]] = []
+    skipped: list[UUID] = []
     for candidate in waiting:
         if not lanes:
             break
         if candidate.entry_id in busy:
+            skipped.append(candidate.start_id)
             continue
         busy.add(candidate.entry_id)
         picks.append((candidate.start_id, lanes.pop(0)))
-    return picks
+    return Distribution(picks=picks, skipped=skipped)
+
+
+def pick_for_lanes(
+    free_lanes: Sequence[int], waiting: Sequence[Waiting], busy_entries: Iterable[UUID]
+) -> list[tuple[UUID, int]]:
+    """Nur die Vergabe aus `distribute_lanes`."""
+    return distribute_lanes(free_lanes, waiting, busy_entries).picks
 
 
 # --- Zeitplan ----------------------------------------------------------------
@@ -187,3 +206,36 @@ def overlaps(a_start: datetime, a_end: datetime, b_start: datetime, b_end: datet
 def first_free_lane(lane_count: int, taken: Iterable[int]) -> int | None:
     used = set(taken)
     return next((lane for lane in range(1, lane_count + 1) if lane not in used), None)
+
+
+# --- Zeitplan und Reihenfolge auf einem Stand --------------------------------
+
+# Schlüssel in `tournament.settings` (Modul `turnier`): So viele Minuten vor Beginn eines
+# Durchgangs hält der Stand dessen gebuchte Bahnen für ihn frei; Aufrufe aus der Reihenfolge
+# auf diese Bahnen brauchen dann eine Bestätigung. 0 = aus. Fehlt er (ältere Turniere), gilt
+# der Standard.
+HEAT_RESERVE_SETTING = "heat_reserve_minutes"
+DEFAULT_HEAT_RESERVE_MINUTES = 10
+
+
+def heat_reserve_minutes(settings: Mapping[str, Any]) -> int:
+    value = settings.get(HEAT_RESERVE_SETTING, DEFAULT_HEAT_RESERVE_MINUTES)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return DEFAULT_HEAT_RESERVE_MINUTES
+    return value
+
+
+def heat_is_reserving(starts_at: datetime, ends_at: datetime, now: datetime, minutes: int) -> bool:
+    """Ob ein Durchgang seine Bahnen jetzt freihält: Er beginnt innerhalb von `minutes`
+    Minuten oder hat schon begonnen und ist noch nicht vorbei. Mit 0 Minuten nie."""
+    if minutes <= 0:
+        return False
+    return starts_at - timedelta(minutes=minutes) <= now < ends_at
+
+
+def lane_list(lanes: Iterable[int]) -> str:
+    """„Bahn 3“, „Bahnen 1 und 3“, „Bahnen 1, 2 und 4“."""
+    numbers = [str(lane) for lane in sorted(set(lanes))]
+    if len(numbers) == 1:
+        return f"Bahn {numbers[0]}"
+    return f"Bahnen {', '.join(numbers[:-1])} und {numbers[-1]}"

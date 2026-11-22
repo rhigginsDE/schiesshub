@@ -36,10 +36,12 @@ ACTION_TEXTS: dict[str, str] = {
     "role.deleted": "Rolle gelöscht",
     "role.reconciled": "Startrolle an aktuelle Rechte angeglichen",
     "role.permissions_removed": "Veraltete Berechtigungen aus Rolle entfernt",
+    "role.migrated": "Rechte einer Rolle bei der Aktualisierung angepasst",
     "user.created": "Person mit Zugang angelegt",
     "user.updated": "Person mit Zugang geändert",
     "user.role_changed": "Rolle einer Person geändert",
     "user.pin_reset": "PIN zurückgesetzt",
+    "user.listed": "Personen mit Zugang aufgelistet",
     # Turnier
     "competition.definition_changed": "Wertung eines Wettbewerbs geändert",
     # Anmeldung und Starts
@@ -58,6 +60,14 @@ ACTION_TEXTS: dict[str, str] = {
     "heat.created": "Durchgang angelegt",
     "heat.updated": "Durchgang geändert",
     "heat.deleted": "Durchgang gelöscht",
+    # Anzeige
+    "display.created": "Anzeige angelegt",
+    "display.updated": "Anzeige geändert",
+    "display.config_changed": "Inhalt der Anzeige eingestellt",
+    "display.scenes_reordered": "Ansichten der Anzeige neu geordnet",
+    "display.device_assigned": "Gerät einer Anzeige zugewiesen",
+    "display.device_released": "Gerät von einer Anzeige gelöst",
+    "display.deleted": "Anzeige gelöscht",
     # Ergebnisse
     "result.finalized": "Ergebnis abgeschlossen",
     "result.corrected": "Ergebnis korrigiert",

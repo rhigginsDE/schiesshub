@@ -89,6 +89,18 @@ class WarningOut(BaseModel):
     since: datetime
 
 
+class BackupWarningOut(BaseModel):
+    """Was jedes gekoppelte Gerät über die Sicherung erfährt: nur die Warnung und wo sie gilt.
+
+    `warning.message_de` ist die allgemeine Fassung ohne Pfade, Dateinamen oder Größen;
+    Einzelheiten stehen in `GET /backup/status` (Recht „Sicherung ansehen“).
+    """
+
+    warning: WarningOut | None
+    warn_all_stations: bool
+    warn_on_display: bool
+
+
 class BackupStatusOut(BaseModel):
     usb: UsbStatusOut
     last_snapshot: RunOut | None

@@ -47,6 +47,29 @@ class HashingWriter:
         return self._hash.hexdigest()
 
 
+class HashingReader:
+    """Liest aus `source` und zählt Bytes und SHA-256 mit – Prüfsumme ohne zweiten Lesedurchgang."""
+
+    def __init__(self, source: BinaryIO) -> None:
+        self._source = source
+        self._hash = hashlib.sha256()
+        self.size = 0
+
+    def read(self, size: int = -1) -> bytes:
+        data = self._source.read(size)
+        self._hash.update(data)
+        self.size += len(data)
+        return data
+
+    def drain(self) -> None:
+        """Liest den Rest, damit die Prüfsumme die ganze Datei abdeckt."""
+        while self.read(_READ_SIZE):
+            pass
+
+    def hexdigest(self) -> str:
+        return self._hash.hexdigest()
+
+
 def atomic_write(path: Path, produce: Callable[[BinaryIO], None], *, mode: int = 0o644) -> None:
     """Schreibt `path` über `path.tmp`; bei einem Fehler bleibt nichts Halbes liegen."""
     tmp = path.with_name(path.name + TMP_SUFFIX)

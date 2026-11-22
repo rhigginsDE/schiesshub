@@ -65,7 +65,7 @@ async def test_startlist_csv_public_names(api: Api) -> None:
     assert [(r["Startnummer"], r["Name"], r["Verein"]) for r in rows] == [
         ("1", "D. Yılmaz", "SV Nord"),
         ("2", "Jürgen Maier", ""),
-        ("3", "", "SV Ost"),
+        ("3", "Startnummer 3", "SV Ost"),
     ]
     assert rows[0]["Kennziffer"] == "4401"
     assert rows[0]["Stand"] == "Stand 1"

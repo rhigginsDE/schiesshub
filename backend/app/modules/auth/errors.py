@@ -2,6 +2,14 @@
 
 from fastapi import HTTPException, status
 
+from app.core.errors import CodedError
+
+DEVICE_UNKNOWN = "device_unknown"
+DEVICE_REVOKED = "device_revoked"
+SESSION_EXPIRED = "session_expired"
+LOGIN_REQUIRED = "login_required"
+LOGIN_FAILED = "login_failed"
+
 
 class NotFoundError(HTTPException):
     def __init__(self, detail: str) -> None:
@@ -18,9 +26,18 @@ class InvalidError(HTTPException):
         super().__init__(status.HTTP_422_UNPROCESSABLE_CONTENT, detail)
 
 
-class UnauthorizedError(HTTPException):
-    def __init__(self, detail: str) -> None:
-        super().__init__(status.HTTP_401_UNAUTHORIZED, detail)
+class UnauthorizedError(CodedError):
+    """HTTP 401 mit `code`, damit die Oberfläche die Fälle unterscheiden kann:
+
+    - `device_unknown`: Gerät nie gekoppelt, entfernt oder Cookie fehlt
+    - `device_revoked`: Gerät gesperrt
+    - `session_expired`: Anmeldung abgelaufen oder beendet (z. B. nach PIN-Wechsel)
+    - `login_required`: Gerät gekoppelt, aber niemand angemeldet (und keine nutzbare Standardrolle)
+    - `login_failed`: Person oder PIN stimmt nicht
+    """
+
+    def __init__(self, detail: str, code: str) -> None:
+        super().__init__(status.HTTP_401_UNAUTHORIZED, detail, code)
 
 
 class ForbiddenError(HTTPException):

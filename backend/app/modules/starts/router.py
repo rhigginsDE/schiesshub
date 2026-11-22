@@ -13,6 +13,9 @@ from app.core.security import Actor, require
 from app.modules.starts import queue, schedule, service, views
 from app.modules.starts.schemas import (
     AbortRequest,
+    CallConflictOut,
+    CallNextOut,
+    CallNextRequest,
     CallRequest,
     ConflictOut,
     EntryCreate,
@@ -39,12 +42,14 @@ PERMISSION_ENTRY_EDIT = "entry.edit"
 PERMISSION_START_READ = "start.read"
 PERMISSION_START_EDIT = "start.edit"
 PERMISSION_START_CALL = "start.call"
+PERMISSION_START_ABORT = "start.abort"
 
 EntryReader = Annotated[Actor, Depends(require(PERMISSION_ENTRY_READ))]
 EntryEditor = Annotated[Actor, Depends(require(PERMISSION_ENTRY_EDIT))]
 StartReader = Annotated[Actor, Depends(require(PERMISSION_START_READ))]
 StartEditor = Annotated[Actor, Depends(require(PERMISSION_START_EDIT))]
 Caller = Annotated[Actor, Depends(require(PERMISSION_START_CALL))]
+Aborter = Annotated[Actor, Depends(require(PERMISSION_START_ABORT))]
 
 # Volle Namen in den Stand-Sichten (`names=full`): nur für das Personal am Stand.
 FULL_NAME_PERMISSIONS = (PERMISSION_START_CALL, "result.capture", PERMISSION_ENTRY_READ)
@@ -91,6 +96,18 @@ CONFLICT = {
     }
 }
 WRITE = {**NOT_FOUND, **CONFLICT}
+CALL_CONFLICT = {
+    status.HTTP_409_CONFLICT: {
+        "description": (
+            "Im aktuellen Zustand nicht möglich (`detail`, bei Feldbezug `errors`). Mit "
+            "`code: heat_imminent`: Der Aufruf aus der Reihenfolge würde eine Bahn belegen, die "
+            "ein bald beginnender Durchgang braucht (Uhrzeit und Bahnen im Text); nach Rückfrage "
+            "mit `confirm_heat_conflict: true` wiederholen."
+        ),
+        "model": CallConflictOut,
+    }
+}
+CALL_WRITE = {**NOT_FOUND, **CALL_CONFLICT}
 
 ENTRIES = "/entries"
 ENTRY = "/entries/{entry_id}"
@@ -234,9 +251,9 @@ async def cancel_start(
     f"{START}/abort",
     summary="Start abbrechen (dns, dnf, dsq)",
     description=(
-        "Wechselt den Status zu „abgebrochen“. Ist das Modul `ergebnisse` aktiv, steht der "
-        "Abbruch wie bei `POST …/starts/{start_id}/result/abort` auch im Ergebnisprotokoll "
-        "(Ereignis `aborted`)."
+        "Wechselt den Status zu „abgebrochen“ (Berechtigung `start.abort`). Ist das Modul "
+        "`ergebnisse` aktiv, steht der Abbruch wie bei `POST …/starts/{start_id}/result/abort` "
+        "auch im Ergebnisprotokoll (Ereignis `aborted`)."
     ),
     responses=WRITE,
 )
@@ -246,7 +263,7 @@ async def abort_start(
     data: AbortRequest,
     session: SessionDep,
     events: EventHubDep,
-    actor: Caller,
+    actor: Aborter,
 ) -> StartOut:
     return _start(
         await service.abort_start(
@@ -303,9 +320,12 @@ async def move_start(
     description=(
         "Reihenfolge: auf `lane` oder die erste freie Bahn. Zeitplan: auf die Bahn des "
         "Durchgangs. Eine Bahn trägt nur einen Start (aufgerufen oder erfasst, bis sie frei "
-        "wird), eine Person steht nur auf einer Bahn."
+        "wird), eine Person steht nur auf einer Bahn. Aus der Reihenfolge nicht ohne "
+        "`confirm_heat_conflict` auf eine Bahn, die ein Durchgang innerhalb von "
+        "`settings.heat_reserve_minutes` braucht (409 `heat_imminent`); ohne `lane` wird dann "
+        "zuerst eine Bahn genommen, die keiner braucht."
     ),
-    responses=WRITE,
+    responses=CALL_WRITE,
 )
 async def call_start(
     tournament_id: UUID,
@@ -315,8 +335,18 @@ async def call_start(
     actor: Caller,
     data: CallRequest | None = None,
 ) -> StartOut:
-    lane = data.lane if data is not None else None
-    return _start(await queue.call(session, events, actor, tournament_id, start_id, lane))
+    data = data or CallRequest()
+    return _start(
+        await queue.call(
+            session,
+            events,
+            actor,
+            tournament_id,
+            start_id,
+            data.lane,
+            confirm_heat_conflict=data.confirm_heat_conflict,
+        )
+    )
 
 
 @router.post(
@@ -366,12 +396,15 @@ async def release_lane(
     f"{RANGE}/call-next",
     summary="Nächste aufrufen",
     description=(
-        "Füllt alle freien Bahnen des Stands der Reihe nach aus der Reihenfolge. Belegt bleibt "
-        "eine Bahn auch mit einem erfassten Start, bis er abgeschlossen, abgebrochen oder die "
-        "Bahn freigegeben ist. Wer schon auf einer Bahn steht, wird übersprungen. Antwort: die "
-        "aufgerufenen Starts."
+        "Füllt alle freien Bahnen des Stands (mit `lane` nur diese: „Nächsten auf Bahn N“) der "
+        "Reihe nach aus der Reihenfolge. Belegt bleibt eine Bahn auch mit einem erfassten "
+        "Start, bis er abgeschlossen, abgebrochen oder die Bahn freigegeben ist. Wer gerade auf "
+        "einer Bahn steht (auch an einem anderen Stand), wird übersprungen (`skipped`) und "
+        "behält seinen Platz. Bahnen, die ein Durchgang innerhalb von "
+        "`settings.heat_reserve_minutes` braucht, bleiben ohne `confirm_heat_conflict` frei "
+        "(`held_lanes`); wäre nur auf ihnen jemand drangekommen, kommt 409 `heat_imminent`."
     ),
-    responses=WRITE,
+    responses=CALL_WRITE,
 )
 async def call_next(
     tournament_id: UUID,
@@ -379,9 +412,25 @@ async def call_next(
     session: SessionDep,
     events: EventHubDep,
     actor: Caller,
-) -> list[StartOut]:
-    starts = await queue.call_next(session, events, actor, tournament_id, range_id)
-    return [_start(start) for start in starts]
+    data: CallNextRequest | None = None,
+) -> CallNextOut:
+    data = data or CallNextRequest()
+    result = await queue.call_next(
+        session,
+        events,
+        actor,
+        tournament_id,
+        range_id,
+        data.lane,
+        confirm_heat_conflict=data.confirm_heat_conflict,
+    )
+    return CallNextOut(
+        called=[_start(start) for start in result.called],
+        skipped=result.skipped,
+        held_lanes=result.held_lanes,
+        upcoming_heat=result.upcoming_heat,
+        message=result.message,
+    )
 
 
 # --- Zeitplan ----------------------------------------------------------------

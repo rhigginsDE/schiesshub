@@ -31,6 +31,7 @@ async def test_create_with_defaults(api: Api) -> None:
         "default_changeover_minutes": 5,
         "default_capture_mode": "series",
         "first_start_number": 1,
+        "heat_reserve_minutes": 10,
         "display": {},
     }
     assert [event.name for event in api.drain()] == ["tournament.created"]

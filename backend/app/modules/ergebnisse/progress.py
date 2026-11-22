@@ -24,13 +24,24 @@ def progress_of(computed: Mapping[str, Any] | None) -> LaneProgressOut | None:
     complete = bool(computed.get("complete"))
     if not sections:
         return LaneProgressOut(section_id=None, series_done=0, series_total=0, complete=complete)
-    current = next((item for item in sections if not item.get("complete")), sections[-1])
-    series = [item for item in current.get("series") or [] if isinstance(item, Mapping)]
+    index = next((i for i, item in enumerate(sections) if not item.get("complete")), None)
+    index = len(sections) - 1 if index is None else index
+    current = sections[index]
+
+    def series_of(section: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+        return [item for item in section.get("series") or [] if isinstance(item, Mapping)]
+
+    every = [item for section in sections for item in series_of(section)]
+    series = series_of(current)
     return LaneProgressOut(
         section_id=str(current.get("id")) if current.get("id") is not None else None,
         series_done=sum(1 for item in series if item.get("complete")),
         series_total=len(series),
         complete=complete,
+        section_number=index + 1,
+        section_count=len(sections),
+        series_done_overall=sum(1 for item in every if item.get("complete")),
+        series_total_overall=len(every),
     )
 
 

@@ -7,6 +7,7 @@ kommen zusätzlich `full_name` und `full_club` dazu; die öffentlichen Felder bl
 """
 
 import uuid
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import ColumnElement, case, select
@@ -15,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.starts import hooks
 from app.modules.starts.common import get_range, get_tournament
 from app.modules.starts.models import Entry, Heat, Start
-from app.modules.starts.schedule import heat_outs
+from app.modules.starts.schedule import heat_outs, heat_reservation
 from app.modules.starts.schemas import LaneOut, QueueOut, RangeNowOut, StationStartOut
 from app.modules.teilnehmer.models import Club, Person
 from app.modules.teilnehmer.names import clean_text, display_name
@@ -37,6 +38,7 @@ async def station_rows(
             Club.name,
             TournamentClass.short,
             Competition.name,
+            Competition.catalog_code,
             Competition.range_id,
             Heat.number,
             Heat.starts_at,
@@ -63,6 +65,7 @@ async def station_rows(
             class_short=class_short,
             competition_id=start.competition_id,
             competition_name=competition_name,
+            competition_code=competition_code,
             range_id=range_id,
             attempt=start.attempt,
             status=start.status,
@@ -83,6 +86,7 @@ async def station_rows(
             club,
             class_short,
             competition_name,
+            competition_code,
             range_id,
             heat_number,
             heat_starts_at,
@@ -178,12 +182,15 @@ async def queue_view(
     *,
     full_names: bool = False,
 ) -> QueueOut:
+    tournament = await get_tournament(session, tournament_id)
     range_ = await get_range(session, tournament_id, range_id)
+    reservation = await heat_reservation(session, tournament, range_, datetime.now(UTC))
     return QueueOut(
         range_id=range_.id,
         lane_count=range_.lane_count,
         waiting=await _waiting(session, range_.id, full_names=full_names),
         lanes=await _lanes(session, range_, full_names=full_names),
+        upcoming_heat=reservation.upcoming,
     )
 
 
@@ -196,6 +203,7 @@ async def range_now(
 ) -> RangeNowOut:
     """„Am Stand“ (belegte Bahnen mit Start und Fortschritt) und „als Nächstes“ (Durchgang und
     Reihenfolge)."""
+    tournament = await get_tournament(session, tournament_id)
     range_ = await get_range(session, tournament_id, range_id)
     next_heat = await session.scalar(
         select(Heat)
@@ -223,4 +231,7 @@ async def range_now(
         next_heat=(await heat_outs(session, range_, [next_heat]))[0] if next_heat else None,
         next_heat_starts=heat_starts,
         next_queue=waiting[: range_.lane_count],
+        upcoming_heat=(
+            await heat_reservation(session, tournament, range_, datetime.now(UTC))
+        ).upcoming,
     )

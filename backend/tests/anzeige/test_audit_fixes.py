@@ -79,8 +79,10 @@ async def test_aborted_hidden_on_screen_unless_wanted(api: Api, setup: Setup) ->
     )
     live, winners = (await api.feed(listed))["scenes"]
     for scene in (live, winners):
-        assert [(r["start_id"], r["place"], r["abort_reason"]) for r in rows(scene)] == [
-            (done, 1, None),
+        # Abgebrochene stehen nie unter den Plätzen, sondern in `unplaced`.
+        assert [(r["start_id"], r["place"]) for r in rows(scene)] == [(done, 1)]
+        unplaced = [row for group in scene["ranking"]["groups"] for row in group["unplaced"]]
+        assert [(r["start_id"], r["place"], r["abort_reason"]) for r in unplaced] == [
             (gave_up, None, "dnf"),
             (nothing, None, "dnf"),
         ]

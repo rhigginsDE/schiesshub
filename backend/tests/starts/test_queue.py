@@ -106,21 +106,25 @@ async def test_call_next_fills_free_lanes_and_skips_busy_person(
     b1 = (await api.book(tid, ben["id"], queue_setup.competition_id))[0]
     call_next = f"/tournaments/{tid}/ranges/{queue_setup.range_id}/call-next"
 
-    called = await api.ok("POST", call_next)
-    # Annas zweiter Start wird übersprungen, Ben bekommt Bahn 2.
-    assert [(s["id"], s["lane"]) for s in called] == [(a1["id"], 1), (b1["id"], 2)]
+    result = await api.ok("POST", call_next)
+    # Annas zweiter Start wird übersprungen (und genannt), Ben bekommt Bahn 2.
+    assert [(s["id"], s["lane"]) for s in result["called"]] == [(a1["id"], 1), (b1["id"], 2)]
+    assert [(s["start_id"], s["start_number"]) for s in result["skipped"]] == [
+        (a2["id"], anna["start_number"])
+    ]
     queue = await _queue(api, queue_setup)
     assert [item["start_id"] for item in queue["waiting"]] == [a2["id"]]
     assert queue["waiting"][0]["queue_position"] == 1
     # Alle Bahnen belegt: nichts zu tun.
-    assert await api.ok("POST", call_next) == []
+    assert (await api.ok("POST", call_next))["called"] == []
 
     # Ben zurückstellen (hinten): Bahn 2 frei, aber Anna steht noch auf Bahn 1.
     await api.ok("POST", f"/tournaments/{tid}/starts/{b1['id']}/return", json={"position": "back"})
     queue = await _queue(api, queue_setup)
     assert [item["start_id"] for item in queue["waiting"]] == [a2["id"], b1["id"]]
-    called = await api.ok("POST", call_next)
-    assert [(s["id"], s["lane"]) for s in called] == [(b1["id"], 2)]
+    result = await api.ok("POST", call_next)
+    assert [(s["id"], s["lane"]) for s in result["called"]] == [(b1["id"], 2)]
+    assert [s["start_id"] for s in result["skipped"]] == [a2["id"]]
 
 
 async def test_return_to_front_or_back(api: Api, queue_setup: Setup) -> None:

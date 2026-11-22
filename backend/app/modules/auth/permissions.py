@@ -43,16 +43,45 @@ STARTER_ROLES: dict[str, tuple[str, ...]] = {
         "result.capture",
         "start.read",
         "start.call",
+        "start.abort",
         "entry.read",
         "tournament.read",
     ),
-    # Nur Lesen der Anzeige-Sichten.
-    "Anzeige": (
-        "display.read",
-        "start.read",
-        "result.read",
-        "tournament.read",
-    ),
+    # Nur der Bildschirm: Der Feed (`/displays/mine/feed`) bringt alles mit, was er zeigt.
+    "Anzeige": ("display.read",),
+}
+
+# Verwaltungsrechte. Eine Rolle, die eines davon gewährt (auch über `*` oder `bereich.*`), gilt
+# nie als Standardrolle eines Geräts: Ohne PIN darf niemand Rollen, Personen, Geräte, System oder
+# Sicherung verwalten.
+ADMINISTRATION_PERMISSIONS: tuple[str, ...] = (
+    "role.manage",
+    "user.manage",
+    "device.manage",
+    "system.manage",
+    "backup.manage",
+)
+
+# Was eine Berechtigung braucht, damit sie an ihrer Station etwas nützt: Die Seiten der Station
+# laden diese Daten zuerst. Ermittelt aus den `require(...)`-Prüfungen der Endpunkte, die die
+# Station aufruft; nur sichere Angaben. Beispiel: Der Stand (`start.call`) lädt Turniere
+# (`tournament.read`) und Reihenfolge/Startliste (`start.read`).
+REQUIRES: dict[str, tuple[str, ...]] = {
+    "tournament.edit": ("tournament.read",),
+    "tournament.reopen": ("tournament.read",),
+    "entry.read": ("tournament.read",),
+    "entry.edit": ("entry.read", "tournament.read"),
+    "start.read": ("tournament.read",),
+    "start.edit": ("start.read", "tournament.read"),
+    "start.call": ("start.read", "tournament.read"),
+    "start.abort": ("start.read", "tournament.read"),
+    "result.read": ("start.read", "tournament.read"),
+    "result.capture": ("result.read", "start.read", "tournament.read"),
+    "result.correct": ("result.read", "start.read", "tournament.read"),
+    "person.edit": ("person.read",),
+    "person.delete": ("person.read",),
+    "club.edit": ("person.read",),
+    "backup.manage": ("backup.read",),
 }
 
 
@@ -61,6 +90,8 @@ class KnownPermission:
     permission: str
     module: str
     module_title: str
+    # Berechtigungen, ohne die diese praktisch nichts nützt (nur bekannte).
+    requires: tuple[str, ...] = ()
 
 
 def matches(pattern: str, permission: str) -> bool:
@@ -78,11 +109,27 @@ def known_permissions() -> list[KnownPermission]:
     # Spät importiert: app.modules importiert dieses Modul.
     from app.modules import MODULES
 
-    seen: dict[str, KnownPermission] = {}
+    seen: dict[str, tuple[str, str]] = {}
     for module in MODULES:
         for permission in module.permissions:
-            seen.setdefault(permission, KnownPermission(permission, module.name, module.title))
-    return sorted(seen.values(), key=lambda item: item.permission)
+            seen.setdefault(permission, (module.name, module.title))
+    return [
+        KnownPermission(
+            permission,
+            name,
+            title,
+            tuple(item for item in REQUIRES.get(permission, ()) if item in seen),
+        )
+        for permission, (name, title) in sorted(seen.items())
+    ]
+
+
+def grants_administration(patterns: Iterable[str], *, is_system: bool = False) -> bool:
+    """Gewährt die Rolle ein Verwaltungsrecht (`ADMINISTRATION_PERMISSIONS`)?"""
+    pattern_list = list(patterns)
+    return is_system or any(
+        grants(pattern_list, permission) for permission in ADMINISTRATION_PERMISSIONS
+    )
 
 
 def expand(patterns: Iterable[str], *, is_system: bool = False) -> list[str]:

@@ -17,6 +17,7 @@ from app.modules.starts import (
 from app.modules.starts.router import (
     PERMISSION_ENTRY_EDIT,
     PERMISSION_ENTRY_READ,
+    PERMISSION_START_ABORT,
     PERMISSION_START_CALL,
     PERMISSION_START_EDIT,
     PERMISSION_START_READ,
@@ -49,6 +50,9 @@ manifest = ModuleManifest(
         PERMISSION_START_READ,
         PERMISSION_START_EDIT,
         PERMISSION_START_CALL,
+        # Abbrechen (nicht angetreten, aufgegeben, disqualifiziert): mehr als Aufrufen, daher
+        # eigens einstellbar.
+        PERMISSION_START_ABORT,
     ),
     on_startup=on_startup,
 )

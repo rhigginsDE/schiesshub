@@ -22,6 +22,11 @@ bei 422 zusätzlich in `errors`:
     {"detail": "Bahn 2 ist schon belegt.", "errors": [{"field": "lane", "message": "…"}]}
 
 Ohne Feld bleibt die Antwort ein gewöhnliches 409 mit `detail`.
+
+Muss die Oberfläche einen Fehler unterscheiden, ohne den Text zu lesen (etwa „Gerät gesperrt“
+gegen „Sitzung abgelaufen“, beides HTTP 401), meldet `CodedError` zusätzlich `code`:
+
+    {"detail": "Dieses Gerät wurde gesperrt. …", "code": "device_revoked"}
 """
 
 import re
@@ -263,6 +268,33 @@ def conflict_body(exc: ConflictError) -> dict[str, Any]:
     return body
 
 
+class CodedErrorOut(BaseModel):
+    """Fehler mit maschinenlesbarem Grund (`code`), z. B. HTTP 401 mit `device_revoked`."""
+
+    detail: str
+    code: str
+
+
+class CodedError(HTTPException):
+    """HTTP-Fehler, der neben `detail` einen festen `code` mitgibt, an dem die Oberfläche den Fall
+    unterscheidet (der Text darf sich ändern, der Code nicht)."""
+
+    def __init__(
+        self, status_code: int, detail: str, code: str, headers: dict[str, str] | None = None
+    ) -> None:
+        super().__init__(status_code, detail, headers=headers)
+        self.code = code
+
+
+async def _coded_handler(request: Request, exc: Exception) -> JSONResponse:
+    assert isinstance(exc, CodedError)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=CodedErrorOut(detail=str(exc.detail), code=exc.code).model_dump(),
+        headers=exc.headers,
+    )
+
+
 def validation_response(errors: Sequence[FieldError]) -> JSONResponse:
     return JSONResponse(status_code=422, content=jsonable_encoder(error_body(errors)))
 
@@ -291,6 +323,7 @@ def install_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(RequestValidationError, _request_validation_handler)
     app.add_exception_handler(InputError, _input_error_handler)
     app.add_exception_handler(ConflictError, _conflict_handler)
+    app.add_exception_handler(CodedError, _coded_handler)
 
     generate = app.openapi
 

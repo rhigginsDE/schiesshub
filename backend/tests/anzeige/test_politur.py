@@ -149,6 +149,10 @@ async def test_range_scene_shows_progress_and_current_series(api: Api) -> None:
         "series_done": 2,
         "series_total": 3,
         "complete": False,
+        "section_number": 1,
+        "section_count": 1,
+        "series_done_overall": 2,
+        "series_total_overall": 3,
     }
     assert data["procedures"][0]["current"][0] == {
         "lane": 1,

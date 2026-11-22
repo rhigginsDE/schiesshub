@@ -8,11 +8,12 @@ from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 
 from app.core.db import SessionDep
-from app.core.security import require
+from app.core.security import require, require_paired
 from app.modules.backup import service
 from app.modules.backup.schemas import (
     BackupSettings,
     BackupStatusOut,
+    BackupWarningOut,
     InitializeUsbIn,
     PassphraseIn,
     PassphraseOut,
@@ -23,6 +24,7 @@ from app.modules.backup.schemas import (
 
 router = APIRouter(prefix="/backup", tags=["backup"])
 
+PAIRED = [Depends(require_paired())]
 READ = [Depends(require("backup.read"))]
 MANAGE = [Depends(require("backup.manage"))]
 ERRORS = {
@@ -74,6 +76,21 @@ async def put_passphrase(backup: ServiceDep, body: PassphraseIn) -> PassphraseOu
 @router.get("/status", summary="Zustand von Sicherung und Stick", dependencies=READ)
 async def get_status(backup: ServiceDep) -> BackupStatusOut:
     return backup.status()
+
+
+@router.get(
+    "/warning",
+    summary="Warnung der Sicherung für alle Stationen",
+    description=(
+        "Für jedes gekoppelte Gerät lesbar, ohne bestimmtes Recht (auch die Standardrolle eines "
+        "Geräts ohne angemeldete Person). Liefert nur die aktuelle Warnung in allgemeiner "
+        "Fassung – ohne Pfade, Dateinamen oder Größen – und die Schalter, wo sie erscheinen "
+        "soll. Neu laden beim Ereignis `backup.status` (das dieselben Daten mitbringt)."
+    ),
+    dependencies=PAIRED,
+)
+async def get_warning(backup: ServiceDep) -> BackupWarningOut:
+    return backup.public_warning()
 
 
 @router.post("/run", summary="Jetzt sichern", dependencies=MANAGE)

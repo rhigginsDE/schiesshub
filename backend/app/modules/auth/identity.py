@@ -21,7 +21,14 @@ from app.core.db import SessionFactory
 from app.core.security import Actor
 from app.modules.auth import permissions
 from app.modules.auth.credentials import token_hash
-from app.modules.auth.errors import ForbiddenError, UnauthorizedError
+from app.modules.auth.errors import (
+    DEVICE_REVOKED,
+    DEVICE_UNKNOWN,
+    LOGIN_REQUIRED,
+    SESSION_EXPIRED,
+    ForbiddenError,
+    UnauthorizedError,
+)
 from app.modules.auth.models import AuthSession, Device, Role, UserAccount
 from app.modules.auth.settings import AuthSettings, get_auth_settings
 
@@ -94,6 +101,10 @@ class Identity:
     # Rolle der angemeldeten Person, sonst die Standardrolle des Geräts.
     role: Role | None = None
     permissions: list[str] = field(default_factory=list)
+    # Das Geräte-Token gehört zu einem gesperrten Gerät (`device` bleibt dann leer).
+    device_revoked: bool = False
+    # Ein Sitzungs-Token kam mit, gilt aber nicht (mehr): abgelaufen, abgemeldet, PIN geändert.
+    session_expired: bool = False
 
     def actor(self) -> Actor:
         return Actor(
@@ -135,11 +146,12 @@ async def resolve(
     if not device_token:
         return identity
     device = await session.scalar(
-        select(Device).where(
-            Device.token_hash == token_hash(device_token), Device.blocked.is_(False)
-        )
+        select(Device).where(Device.token_hash == token_hash(device_token))
     )
     if device is None:
+        return identity
+    if device.blocked:
+        identity.device_revoked = True
         return identity
     identity.device = device
     current = now()
@@ -160,9 +172,17 @@ async def resolve(
         ).first()
         if row is not None:
             identity.session, identity.user, identity.role = row
+        else:
+            identity.session_expired = True
 
     if identity.role is None and device.default_role_id is not None:
-        identity.role = await session.get(Role, device.default_role_id)
+        default_role = await session.get(Role, device.default_role_id)
+        # Verwaltungsrechte gibt es nie ohne PIN, auch wenn die Rolle früher so eingestellt wurde
+        # oder später Verwaltungsrechte bekam.
+        if default_role is not None and not permissions.grants_administration(
+            default_role.permissions, is_system=default_role.is_system
+        ):
+            identity.role = default_role
 
     if identity.role is not None:
         identity.permissions = permissions.expand(
@@ -186,6 +206,32 @@ async def resolve(
 
 # --- Prüfer ------------------------------------------------------------------
 
+DEVICE_UNKNOWN_TEXT = (
+    "Dieses Gerät ist nicht gekoppelt. Bitte das Gerät über einen QR-Code (neu) koppeln."
+)
+DEVICE_REVOKED_TEXT = (
+    "Dieses Gerät wurde gesperrt. Eine Person mit dem Recht, Geräte zu verwalten, kann es unter "
+    "System → Geräte wieder freigeben oder einen neuen QR-Code zum Koppeln erzeugen."
+)
+SESSION_EXPIRED_TEXT = "Die Anmeldung ist abgelaufen. Bitte erneut mit der PIN anmelden."
+LOGIN_REQUIRED_TEXT = "Bitte zuerst mit der PIN anmelden."
+
+
+def unpaired(identity: Identity) -> UnauthorizedError:
+    """401 für eine Anfrage ohne gültiges Gerät: gesperrt oder unbekannt."""
+    if identity.device_revoked:
+        return UnauthorizedError(DEVICE_REVOKED_TEXT, DEVICE_REVOKED)
+    return UnauthorizedError(DEVICE_UNKNOWN_TEXT, DEVICE_UNKNOWN)
+
+
+def unauthorized(identity: Identity) -> UnauthorizedError:
+    """401 für eine Anfrage, die weder ein gültiges Gerät noch eine Rolle hat."""
+    if identity.device is None:
+        return unpaired(identity)
+    if identity.session_expired:
+        return UnauthorizedError(SESSION_EXPIRED_TEXT, SESSION_EXPIRED)
+    return UnauthorizedError(LOGIN_REQUIRED_TEXT, LOGIN_REQUIRED)
+
 
 async def check_permission(request: Request, permission: str) -> Actor:
     """Echter Prüfer für `app.core.security.require`. Wird nur bei AUTH_ENFORCED registriert."""
@@ -194,13 +240,8 @@ async def check_permission(request: Request, permission: str) -> Actor:
     session_factory: SessionFactory = request.app.state.session_factory
     async with session_factory() as session:
         identity = await resolve_request(session, request, settings, touch=True)
-    if identity.device is None:
-        raise UnauthorizedError(
-            "Dieses Gerät ist nicht gekoppelt oder wurde gesperrt. "
-            "Bitte das Gerät über einen QR-Code neu koppeln."
-        )
-    if identity.role is None:
-        raise UnauthorizedError("Bitte zuerst mit der PIN anmelden.")
+    if identity.device is None or identity.role is None:
+        raise unauthorized(identity)
     if not identity.grants(permission):
         raise ForbiddenError(f"Dafür fehlt die Berechtigung „{permission}“.")
     actor = identity.actor()

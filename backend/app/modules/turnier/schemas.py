@@ -71,6 +71,10 @@ class TournamentSettings(StrictModel):
     default_capture_mode: CaptureMode = "series"
     # Erste Startnummer, die das Modul `starts` bei der Anmeldung vergibt.
     first_start_number: PositiveInt = 1
+    # Zeitplan und Reihenfolge auf einem Stand: So viele Minuten vor Beginn eines Durchgangs
+    # hält das Modul `starts` dessen gebuchte Bahnen frei; ein Aufruf aus der Reihenfolge auf
+    # diese Bahnen braucht dann eine Bestätigung. 0 = aus.
+    heat_reserve_minutes: NonNegativeInt = 10
     # Voreinstellungen für die Anzeige; Inhalt bestimmt das Modul `anzeige`.
     display: dict[str, Any] = {}
 
@@ -95,6 +99,7 @@ class TournamentSettingsUpdate(StrictModel):
     default_changeover_minutes: NonNegativeInt | None = None
     default_capture_mode: CaptureMode | None = None
     first_start_number: PositiveInt | None = None
+    heat_reserve_minutes: NonNegativeInt | None = None
     display: dict[str, Any] | None = None
 
 

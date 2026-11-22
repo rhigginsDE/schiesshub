@@ -40,7 +40,7 @@ async def test_captured_start_keeps_its_lane(api: Api, queue_setup: Setup) -> No
     setup = queue_setup
     first, second, third = [await _start(api, setup) for _ in range(3)]
     path = f"/tournaments/{setup.tid}"
-    called = await api.ok("POST", f"{path}/ranges/{setup.range_id}/call-next")
+    called = (await api.ok("POST", f"{path}/ranges/{setup.range_id}/call-next"))["called"]
     assert [item["id"] for item in called] == [first["id"], second["id"]]
     assert all(item["on_lane"] for item in called)
 
@@ -53,6 +53,10 @@ async def test_captured_start_keeps_its_lane(api: Api, queue_setup: Setup) -> No
         "series_done": 1,
         "series_total": 3,
         "complete": False,
+        "section_number": 1,
+        "section_count": 1,
+        "series_done_overall": 1,
+        "series_total_overall": 3,
     }
     assert queue["lanes"][1]["progress"] is None
     now = await _now(api, setup)
@@ -61,7 +65,7 @@ async def test_captured_start_keeps_its_lane(api: Api, queue_setup: Setup) -> No
     assert now["lanes"][0]["start"]["on_lane"] is True
 
     # Keine Bahn frei: „Nächste aufrufen“ ruft niemanden, ein Aufruf auf Bahn 1 scheitert.
-    assert await api.ok("POST", f"{path}/ranges/{setup.range_id}/call-next") == []
+    assert (await api.ok("POST", f"{path}/ranges/{setup.range_id}/call-next"))["called"] == []
     response = await api.client.post(f"/api/v1{path}/starts/{third['id']}/call", json={"lane": 1})
     assert response.status_code == 409
     assert response.json() == {
@@ -79,7 +83,7 @@ async def test_captured_start_keeps_its_lane(api: Api, queue_setup: Setup) -> No
     rows = await api.ok("GET", f"{path}/startlist")
     row = next(row for row in rows if row["start_id"] == first["id"])
     assert (row["status"], row["lane"], row["on_lane"]) == ("final", 1, False)
-    called = await api.ok("POST", f"{path}/ranges/{setup.range_id}/call-next")
+    called = (await api.ok("POST", f"{path}/ranges/{setup.range_id}/call-next"))["called"]
     assert [(item["id"], item["lane"]) for item in called] == [(third["id"], 1)]
 
 
@@ -130,7 +134,8 @@ async def test_capture_without_call_occupies_no_lane(api: Api, queue_setup: Setu
     queue = await _queue(api, setup)
     assert _occupied(queue) == {}
     assert [item["start_id"] for item in queue["waiting"]] == [waiting["id"]]
-    called = await api.ok("POST", f"/tournaments/{setup.tid}/ranges/{setup.range_id}/call-next")
+    path = f"/tournaments/{setup.tid}/ranges/{setup.range_id}/call-next"
+    called = (await api.ok("POST", path))["called"]
     assert [(item["id"], item["lane"]) for item in called] == [(waiting["id"], 1)]
 
 
@@ -144,7 +149,9 @@ async def test_person_on_lane_with_captured_start_is_skipped(api: Api, queue_set
     path = f"/tournaments/{setup.tid}"
     await api.ok("POST", f"{path}/starts/{first['id']}/call", json={})
     await _put_raw(api, setup, first["id"], _raw(40), 0)
-    assert await api.ok("POST", f"{path}/ranges/{setup.range_id}/call-next") == []
+    result = await api.ok("POST", f"{path}/ranges/{setup.range_id}/call-next")
+    assert result["called"] == []
+    assert [item["start_id"] for item in result["skipped"]] == [later["id"]]
     detail = await api.fail("POST", f"{path}/starts/{later['id']}/call", 409, json={})
     assert "steht gerade schon auf einer Bahn" in detail
 

@@ -250,10 +250,11 @@ def test_names_public_and_full() -> None:
     assert internal.rows[0].person == PersonName("Deniz Yılmaz", "SV Nord")
     report = tables.winners_report(META, [tables.winner_section(COMPETITION, "Ringe", [public])])
     table = report.sections[0].tables[0]
-    # Ohne Verein in der Liste keine Spalte „Verein“; ohne Namen bleibt die Startnummer.
+    # Ohne Verein in der Liste keine Spalte „Verein“; ohne Namen „Startnummer N“ (wie der
+    # Bildschirm).
     assert [c.title for c in table.columns][:3] == ["Platz", "Nr.", "Name"]
     assert "Verein" not in [c.title for c in table.columns]
-    assert table.rows[1].cells[:3] == ("2.", "2", "")
+    assert table.rows[1].cells[:3] == ("2.", "2", "Startnummer 2")
 
 
 def test_series_struck_and_provisional_note() -> None:

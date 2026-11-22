@@ -51,7 +51,8 @@ def _backup_info(request: Request) -> BackupInfo:
     backup = getattr(request.app.state, "backup", None)
     if backup is None:
         return BackupInfo()
-    warning = backup.status().warning
+    # Öffentlicher Bildschirm: allgemeine Fassung ohne Pfade und Dateinamen.
+    warning = backup.public_warning().warning
     return BackupInfo(
         warning_code=warning.code if warning is not None else None,
         warning_message=warning.message_de if warning is not None else None,

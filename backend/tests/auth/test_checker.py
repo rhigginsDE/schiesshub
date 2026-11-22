@@ -36,6 +36,7 @@ async def test_unpaired_device_gets_401(make_app: AppFactory) -> None:
 
     assert probe.status_code == roles.status_code == 401
     assert "nicht gekoppelt" in probe.json()["detail"]
+    assert probe.json()["code"] == roles.json()["code"] == "device_unknown"
     assert status.status_code == 200
     assert status.json()["auth_enforced"] is True
 
@@ -47,7 +48,10 @@ async def test_paired_device_without_login_gets_401(make_app: AppFactory) -> Non
         response = await tablet.get(f"{API}/probe/tournament.read")
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Bitte zuerst mit der PIN anmelden."
+    assert response.json() == {
+        "detail": "Bitte zuerst mit der PIN anmelden.",
+        "code": "login_required",
+    }
 
 
 async def test_missing_permission_gets_403_and_granted_returns_actor(
@@ -97,8 +101,9 @@ async def test_device_with_default_role_works_without_login(make_app: AppFactory
         display = await role_id(admin, "Anzeige")
         tv = await pair_new_device(app, admin, name="Anzeige", default_role_id=display)
         status = (await tv.get(f"{API}/auth/status")).json()
-        allowed = await tv.get(f"{API}/probe/result.read")
+        allowed = await tv.get(f"{API}/probe/display.read")
         denied = await tv.post(f"{API}/probe/tournament.edit")
+        not_needed = await tv.get(f"{API}/probe/result.read")
 
     assert status["device"]["default_role_id"] == display
     assert status["user"] is None
@@ -107,6 +112,9 @@ async def test_device_with_default_role_works_without_login(make_app: AppFactory
     assert allowed.json()["user_id"] is None
     assert allowed.json()["device_id"] == status["device"]["id"]
     assert denied.status_code == 403
+    # Die Anzeige braucht nur ihren Feed.
+    assert not_needed.status_code == 403
+    assert status["permissions"] == ["display.read"]
 
 
 async def test_blocked_device_gets_401(make_app: AppFactory) -> None:
@@ -121,3 +129,4 @@ async def test_blocked_device_gets_401(make_app: AppFactory) -> None:
 
     assert response.status_code == 401
     assert "gesperrt" in response.json()["detail"]
+    assert response.json()["code"] == "device_revoked"

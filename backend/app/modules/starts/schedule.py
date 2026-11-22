@@ -7,14 +7,18 @@ Stands überschneiden sich nicht, und eine Person steht nie in zwei Durchgängen
 
 import uuid
 from collections import defaultdict
-from collections.abc import Sequence
-from datetime import datetime
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
+from fastapi import status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import InputError
+from app.core.errors import CodedError, InputError
 from app.core.events import EventHub
+from app.core.localtime import zone_of
 from app.core.security import Actor
 from app.modules.auth.audit import record_audit
 from app.modules.starts.common import (
@@ -31,9 +35,22 @@ from app.modules.starts.common import (
 )
 from app.modules.starts.lifecycle import StatusChange, publish_status, transition
 from app.modules.starts.models import Entry, Heat, Start
-from app.modules.starts.rules import first_free_lane, heat_series, overlaps
-from app.modules.starts.schemas import HeatCreate, HeatOut, HeatSeries, HeatUpdate
-from app.modules.turnier.models import Competition, Range
+from app.modules.starts.rules import (
+    first_free_lane,
+    heat_is_reserving,
+    heat_reserve_minutes,
+    heat_series,
+    lane_list,
+    overlaps,
+)
+from app.modules.starts.schemas import (
+    HeatCreate,
+    HeatOut,
+    HeatReservationOut,
+    HeatSeries,
+    HeatUpdate,
+)
+from app.modules.turnier.models import Competition, Range, Tournament
 
 EVENT_HEAT_CREATED = "heat.created"
 EVENT_HEAT_UPDATED = "heat.updated"
@@ -519,6 +536,86 @@ async def next_slot(
         if lane is not None:
             return (await heat_outs(session, range_, [heat]))[0], lane
     return None
+
+
+# --- Freihalten für den nächsten Durchgang -----------------------------------
+
+
+HEAT_IMMINENT = "heat_imminent"
+
+
+@dataclass(frozen=True, slots=True)
+class Reservation:
+    """Was die Durchgänge eines Stands gerade von seinen Bahnen brauchen."""
+
+    # Nächster Durchgang mit wartenden Starts, der noch nicht vorbei ist (für die Sichten).
+    upcoming: HeatReservationOut | None
+    # Bahnen, die gerade für einen Durchgang freigehalten werden, mit dem frühesten davon.
+    held: dict[int, Heat]
+    tz: ZoneInfo
+
+    def conflict(self, lanes: Iterable[int], now: datetime) -> CodedError:
+        """409 `heat_imminent` für einen Aufruf aus der Reihenfolge auf `lanes`."""
+        wanted = sorted(set(lanes))
+        heat = min((self.held[lane] for lane in wanted), key=lambda item: item.starts_at)
+        clock = heat.starts_at.astimezone(self.tz).strftime("%H:%M")
+        when = f"beginnt um {clock} Uhr" if heat.starts_at > now else f"hat um {clock} Uhr begonnen"
+        return CodedError(
+            status.HTTP_409_CONFLICT,
+            f"Durchgang {heat.number} {when} und braucht {lane_list(wanted)}. Soll trotzdem "
+            "aus der Reihenfolge aufgerufen werden, bitte bestätigen.",
+            HEAT_IMMINENT,
+        )
+
+    def held_text(self, lanes: Iterable[int]) -> str:
+        wanted = sorted(set(lanes))
+        heat = min((self.held[lane] for lane in wanted), key=lambda item: item.starts_at)
+        clock = heat.starts_at.astimezone(self.tz).strftime("%H:%M")
+        verb = "bleibt" if len(wanted) == 1 else "bleiben"
+        return f"{lane_list(wanted)} {verb} für Durchgang {heat.number} ({clock} Uhr) frei."
+
+
+async def heat_reservation(
+    session: AsyncSession, tournament: Tournament, range_: Range, now: datetime
+) -> Reservation:
+    """Nächster Durchgang des Stands und die Bahnen, die gerade freigehalten werden.
+
+    Ein Durchgang hält die gebuchten Bahnen seiner wartenden Starts frei, sobald er innerhalb
+    von `heat_reserve_minutes` (Turnier-Einstellung) beginnt, bis er vorbei ist.
+    """
+    minutes = heat_reserve_minutes(tournament.settings or {})
+    tz = zone_of(tournament.settings)
+    rows = await session.execute(
+        select(Heat, Start.lane)
+        .join(Start, Start.heat_id == Heat.id)
+        .where(Heat.range_id == range_.id, Heat.ends_at > now, Start.status == "registered")
+        .order_by(Heat.starts_at, Heat.number, Start.lane)
+    )
+    lanes: dict[uuid.UUID, list[int]] = defaultdict(list)
+    heats: dict[uuid.UUID, Heat] = {}
+    for heat, lane in rows:
+        heats.setdefault(heat.id, heat)
+        if lane is not None:
+            lanes[heat.id].append(lane)
+    held: dict[int, Heat] = {}
+    for heat in heats.values():
+        if heat_is_reserving(heat.starts_at, heat.ends_at, now, minutes):
+            for lane in lanes[heat.id]:
+                held.setdefault(lane, heat)
+    upcoming = None
+    if heats:
+        heat = next(iter(heats.values()))
+        upcoming = HeatReservationOut(
+            heat_id=heat.id,
+            number=heat.number,
+            starts_at=heat.starts_at,
+            ends_at=heat.ends_at,
+            lanes=sorted(set(lanes[heat.id])),
+            reserve_minutes=minutes,
+            reserved_from=heat.starts_at - timedelta(minutes=minutes) if minutes else None,
+            active=heat_is_reserving(heat.starts_at, heat.ends_at, now, minutes),
+        )
+    return Reservation(upcoming=upcoming, held=held, tz=tz)
 
 
 # --- Aufruf eines Durchgangs -------------------------------------------------

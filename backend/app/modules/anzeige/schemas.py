@@ -262,7 +262,7 @@ class FeedRankRow(BaseModel):
     place: int | None
     tied: bool
     # ranked: regulär; last: unvollständig (live, hinten); unranked: ohne Platz (abgebrochen –
-    # dann mit `abort_reason` –, nur mit `show_aborted`).
+    # dann mit `abort_reason` – stehen sie in `FeedRankGroup.unplaced`).
     group: Literal["ranked", "last", "unranked"]
     start_id: UUID
     start_number: int
@@ -270,6 +270,8 @@ class FeedRankRow(BaseModel):
     display_name: str | None
     club: str | None
     class_short: str
+    # Ergebnis als Text. Abgebrochen: bei nicht angetreten (dns) immer null, bei aufgegeben
+    # oder disqualifiziert nur, wenn alle Rohwerte erfasst sind (sonst wäre es kein Ergebnis).
     score_text: str | None
     complete: bool
     series: list[SeriesPart]
@@ -285,9 +287,13 @@ class FeedRankGroup(BaseModel):
     # null bei gemeinsamer Wertung.
     class_name: str | None
     class_short: str | None
+    # Plätze (Siegerliste: bis `top`; Live-Wertung: auch unvollständige, höchstens `rows`).
     rows: list[FeedRankRow]
     # Zeilen, die wegen der Zeilenzahl nicht gezeigt werden.
     more: int
+    # Abgebrochene Starts ohne Platz (nur mit `show_aborted`), nie unter den Plätzen: mit
+    # `abort_reason` und dem anzeigbaren Namen wie bei Platzierten.
+    unplaced: list[FeedRankRow] = []
 
 
 class FeedRanking(BaseModel):
@@ -381,7 +387,10 @@ class FeedProcedureCurrent(BaseModel):
 class FeedProcedure(BaseModel):
     competition_id: UUID
     competition_name: str
+    # Veraltet: gleich `competition_code` (einheitlicher Name in allen Szenen).
     catalog_code: str | None
+    # Kennziffer aus dem Katalog („1201“); null bei eigenen Wettbewerben.
+    competition_code: str | None = None
     variant_name: str
     description: str | None
     # Wertung in Worten, z. B. „Ringe, höher ist besser“.
@@ -414,6 +423,66 @@ class FeedNextHeat(BaseModel):
     ends_at_local: str
 
 
+class FeedUpcomingBase(BaseModel):
+    """Ein Start unter „Als Nächstes“."""
+
+    start_id: UUID
+    start_number: int
+    display_name: str | None
+    club: str | None
+    class_short: str
+    attempt: int
+    # Steht die Person gerade auf einer Bahn (hier oder an einem anderen Stand)? Sie bleibt
+    # sichtbar, wird aber gekennzeichnet („steht gerade auf 15-m-Stand, Bahn 2“).
+    busy: bool = False
+    busy_range_id: UUID | None = None
+    busy_range_name: str | None = None
+    busy_lane: int | None = None
+
+
+class FeedUpcomingScheduled(FeedUpcomingBase):
+    # Durchgang, Uhrzeit und gebuchte Bahn dieses Starts.
+    heat_number: int
+    starts_at: datetime
+    starts_at_local: str
+    lane: int
+
+
+class FeedUpcomingQueued(FeedUpcomingBase):
+    # Platz in der Reihenfolge des Stands (ab 1, über alle Wettbewerbe des Stands).
+    position: int
+
+
+class FeedUpcomingBlock(BaseModel):
+    competition_id: UUID
+    competition_name: str
+    competition_code: str | None
+    # Starts, die wegen `next_count` nicht gezeigt werden.
+    more: int
+
+
+class FeedUpcomingSchedule(FeedUpcomingBlock):
+    """Nächster Durchgang des Stands: nur dessen wartende Starts dieses Wettbewerbs."""
+
+    kind: Literal["schedule"]
+    heat_number: int
+    starts_at: datetime
+    ends_at: datetime
+    starts_at_local: str
+    ends_at_local: str
+    entries: list[FeedUpcomingScheduled]
+
+
+class FeedUpcomingQueue(FeedUpcomingBlock):
+    """Die nächsten Wartenden dieses Wettbewerbs in der Reihenfolge des Stands."""
+
+    kind: Literal["queue"]
+    entries: list[FeedUpcomingQueued]
+
+
+FeedUpcoming = Annotated[FeedUpcomingSchedule | FeedUpcomingQueue, Field(discriminator="kind")]
+
+
 class FeedRange(BaseModel):
     range_id: UUID
     range_name: str
@@ -421,6 +490,11 @@ class FeedRange(BaseModel):
     # Laufende Disziplin(en): aus den Starts am Stand, sonst aus den nächsten Starts.
     procedures: list[FeedProcedure]
     lanes: list[FeedLane]
+    # „Als Nächstes“ je Wettbewerb: zuerst der nächste Durchgang (Zeitplan), dann die
+    # Reihenfolge; je Block höchstens `next_count` Starts.
+    upcoming: list[FeedUpcoming] = []
+    # Veraltet (durch `upcoming` ersetzt): nächster Durchgang und eine gemischte Liste aus
+    # Durchgang und Reihenfolge.
     next_heat: FeedNextHeat | None
     next: list[FeedPerson]
 

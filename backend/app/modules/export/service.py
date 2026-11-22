@@ -9,6 +9,7 @@ der Router).
 
 import uuid
 from collections.abc import Sequence
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,6 +28,7 @@ from app.modules.export.records import (
     ResultRecord,
     SeriesValue,
     StartRecord,
+    TimeScore,
     WinnerSection,
 )
 from app.modules.starts import views
@@ -36,7 +38,9 @@ from app.modules.starts.schemas import StationStartOut
 from app.modules.teilnehmer.models import Club, Person
 from app.modules.teilnehmer.names import clean_text
 from app.modules.turnier.models import Competition, Range, TournamentClass
+from app.modules.turnier.service import catalog_diff_of
 from app.scoring import ComputedResult, DefinitionError, load_definition
+from app.scoring.numbers import to_decimal
 
 
 async def meta(session: AsyncSession, tournament_id: uuid.UUID, names: NamesMode) -> Meta:
@@ -61,6 +65,33 @@ def _scores_rings(definition: dict | None) -> bool:
     return any(section.rings for section in defn.sections)
 
 
+def _scoring_of(definition: dict | None) -> tuple[str | None, str | None]:
+    """Wertungsmodell und `zeit_rundung` aus der Definition (None, wenn nicht lesbar)."""
+    scoring = (definition or {}).get("scoring") or {}
+    if not isinstance(scoring, dict):
+        return None, None
+    model, rounding = scoring.get("modell"), scoring.get("zeit_rundung")
+    return (
+        model if isinstance(model, str) else None,
+        rounding if isinstance(rounding, str) else None,
+    )
+
+
+def _target_times(definition: dict | None) -> tuple[tuple[str, Decimal], ...]:
+    """Sollzeit je Abschnitt (nur Abschnitte mit `sollzeit_s`)."""
+    variant = (definition or {}).get("variant") or {}
+    result = []
+    for section in variant.get("abschnitte") or []:
+        if not isinstance(section, dict) or not section.get("id"):
+            continue
+        try:
+            target = to_decimal(section.get("sollzeit_s"))
+        except ValueError:
+            continue
+        result.append((str(section["id"]), target))
+    return tuple(result)
+
+
 def _sections_of(definition: dict | None) -> tuple[tuple[str, str], ...]:
     variant = (definition or {}).get("variant") or {}
     return tuple(
@@ -71,8 +102,10 @@ def _sections_of(definition: dict | None) -> tuple[tuple[str, str], ...]:
 
 
 async def competitions(
-    session: AsyncSession, tournament_id: uuid.UUID
+    session: AsyncSession, tournament_id: uuid.UUID, *, deviations: bool = False
 ) -> dict[uuid.UUID, CompetitionInfo]:
+    """Wettbewerbe des Turniers; mit `deviations` auch die Abweichungen vom Katalog
+    (`turnier.service.catalog_diff_of`, dieselben Texte wie Editor, Ausschreibung, Anzeige)."""
     ranges = {
         item.id: item
         for item in await session.scalars(select(Range).where(Range.tournament_id == tournament_id))
@@ -84,6 +117,11 @@ async def competitions(
         .order_by(Competition.sort, Competition.name)
     ):
         range_ = ranges.get(competition.range_id) if competition.range_id else None
+        model, rounding = _scoring_of(competition.definition)
+        texts: tuple[str, ...] = ()
+        if deviations:
+            diff = await catalog_diff_of(session, competition)
+            texts = tuple(item.text for item in diff.differences) if diff.deviates else ()
         result[competition.id] = CompetitionInfo(
             id=competition.id,
             code=competition.catalog_code,
@@ -96,6 +134,10 @@ async def competitions(
             planning=competition.planning,
             sections=_sections_of(competition.definition),
             rings=_scores_rings(competition.definition),
+            model=model,
+            target_times=_target_times(competition.definition),
+            time_rounding=rounding,
+            deviations=texts,
         )
     return result
 
@@ -205,7 +247,7 @@ async def winners(
     if competition_id is not None:
         await competition_of(session, tournament_id, competition_id)
     await check_class(session, tournament_id, class_id)
-    competitions_ = await competitions(session, tournament_id)
+    competitions_ = await competitions(session, tournament_id, deviations=True)
     classes = await class_names(session, tournament_id)
     lookup = await _names(session, tournament_id, names)
     chosen: Sequence[uuid.UUID] = (
@@ -223,12 +265,43 @@ async def winners(
             merged=merged,
             include_aborted=include_aborted,
         )
-        found = tables.winner_tables(result, class_names=classes, top=top, full_names=lookup)
+        competition = competitions_[cid]
+        time_scores = (
+            await _time_scores(
+                session,
+                competition,
+                [row.start_id for group in result.groups for row in group.rows],
+            )
+            if competition.time_model
+            else None
+        )
+        found = tables.winner_tables(
+            result, class_names=classes, top=top, full_names=lookup, time_scores=time_scores
+        )
         if competition_id is None and not any(table.rows for table in found):
             # Über alle Wettbewerbe: solche ohne jedes Ergebnis weglassen.
             continue
-        sections.append(tables.winner_section(competitions_[cid], result.unit, found))
+        sections.append(tables.winner_section(competition, result.unit, found))
     return sections
+
+
+async def _time_scores(
+    session: AsyncSession, competition: CompetitionInfo, start_ids: Sequence[uuid.UUID]
+) -> dict[uuid.UUID, TimeScore]:
+    """Rechenweg (Zeit, Sollzeit, Abzug) je Start aus der gespeicherten Wertung; die Rangliste
+    hat sie schon nachgezogen (`ensure_current`)."""
+    if not start_ids:
+        return {}
+    result = {}
+    for current in await session.scalars(
+        select(ResultCurrent).where(ResultCurrent.start_id.in_(start_ids))
+    ):
+        if current.computed is None:
+            continue
+        score = tables.time_score_of(ComputedResult.model_validate(current.computed), competition)
+        if score is not None:
+            result[current.start_id] = score
+    return result
 
 
 def _series(computed: ComputedResult | None) -> tuple[SeriesValue, ...]:
@@ -296,6 +369,9 @@ async def results(
                 is_provisional=is_provisional(current, now),
                 needs_review=bool(current is not None and current.needs_review),
                 series=_series(computed),
+                time_score=tables.time_score_of(computed, start.competition)
+                if computed is not None
+                else None,
             )
         )
     return sorted(

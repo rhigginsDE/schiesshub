@@ -12,6 +12,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 
 from app.core.db import SessionDep
+from app.core.errors import CodedErrorOut
 from app.core.events import EventHubDep
 from app.core.security import Actor, require
 from app.modules.auth import audit, service
@@ -25,6 +26,7 @@ from app.modules.auth.identity import (
     resolve,
     resolve_request,
     set_cookie,
+    unpaired,
 )
 from app.modules.auth.schemas import (
     AuditActionOut,
@@ -171,7 +173,7 @@ async def pair(
 @auth_router.get(
     "/users",
     summary="Aktive Personen zur Auswahl bei der Anmeldung",
-    responses={401: {"description": "Gerät nicht gekoppelt"}},
+    responses={401: {"model": CodedErrorOut, "description": "Gerät nicht gekoppelt oder gesperrt"}},
 )
 async def login_options(session: SessionDep, identity: IdentityDep) -> list[UserBrief]:
     return await service.login_options(session, identity)
@@ -181,7 +183,10 @@ async def login_options(session: SessionDep, identity: IdentityDep) -> list[User
     "/login",
     summary="Mit PIN anmelden",
     responses={
-        401: {"description": "Gerät nicht gekoppelt oder PIN falsch"},
+        401: {
+            "model": CodedErrorOut,
+            "description": "Gerät nicht gekoppelt oder gesperrt, oder PIN falsch",
+        },
         429: {"description": "Zu viele Fehlversuche, vorübergehend gesperrt"},
     },
 )
@@ -208,10 +213,19 @@ async def logout(
     return response
 
 
-@auth_router.get("/permissions", summary="Alle bekannten Berechtigungen aller Module")
-async def list_permissions(
-    _actor: Annotated[Actor, Depends(authorized("role.manage"))],
-) -> list[PermissionOut]:
+@auth_router.get(
+    "/permissions",
+    summary="Alle bekannten Berechtigungen aller Module",
+    description=(
+        "Für jedes gekoppelte Gerät lesbar, auch ohne angemeldete Person: Die Namen sind nicht "
+        "geheim, die Oberfläche braucht sie, um Stationen freizugeben. `requires` nennt je "
+        "Berechtigung die, ohne die sie an ihrer Station praktisch nichts nützt."
+    ),
+    responses={401: {"model": CodedErrorOut, "description": "Gerät nicht gekoppelt oder gesperrt"}},
+)
+async def list_permissions(identity: IdentityDep, settings: SettingsDep) -> list[PermissionOut]:
+    if settings.enforced and identity.device is None:
+        raise unpaired(identity)
     return service.list_permissions()
 
 

@@ -20,6 +20,10 @@ from fastapi import FastAPI
 from sqlalchemy import make_url, text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
+# Die Tests dürfen nicht von der lokalen .env abhängen: Wer dort die Berechtigungsprüfung
+# einschaltet, bekäme sonst überall 401/403. Tests, die sie brauchen, schalten sie selbst ein.
+os.environ["AUTH_ENFORCED"] = "false"
+
 from app.core.config import Settings, get_settings
 from app.core.db import Base
 from app.main import create_app

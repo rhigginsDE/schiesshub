@@ -162,6 +162,7 @@ def build_procedure(competition: Competition, diff: CatalogDiffOut) -> FeedProce
         competition_id=competition.id,
         competition_name=competition.name,
         catalog_code=competition.catalog_code,
+        competition_code=competition.catalog_code,
         variant_name=definition.variant.name,
         description=definition.ablauf_beschreibung,
         scoring=f"{MODEL_TEXT[scoring.modell]}, {DIRECTION_TEXT[scoring.rangfolge]}",

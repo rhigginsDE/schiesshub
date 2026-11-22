@@ -48,6 +48,9 @@ class StatusOut(BaseModel):
     # Rolle der angemeldeten Person, sonst die Standardrolle des Geräts.
     role: RoleBrief | None
     permissions: list[str]
+    # Das Geräte-Cookie gehört zu einem gesperrten Gerät (`device` ist dann null). Die Oberfläche
+    # kann so „Dieses Gerät wurde gesperrt“ statt nur „Gerät koppeln“ zeigen.
+    device_revoked: bool = False
     # Für Formulare und Hinweise; nichts davon ist geheim.
     pin_min_length: int
     # Nach so vielen Fehlversuchen in Folge wird eine Person gesperrt …
@@ -146,6 +149,9 @@ class PermissionOut(BaseModel):
     permission: str
     module: str
     module_title: str
+    # Berechtigungen, ohne die diese an ihrer Station praktisch nichts nützt (die Seiten laden
+    # diese Daten zuerst), z. B. `start.call` → `start.read`, `tournament.read`. Nur bekannte.
+    requires: list[str] = []
 
 
 # --- Personen ----------------------------------------------------------------

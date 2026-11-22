@@ -29,6 +29,7 @@ async def test_status_before_setup(make_app: AppFactory) -> None:
         "user": None,
         "role": None,
         "permissions": [],
+        "device_revoked": False,
         "pin_min_length": 6,
         "max_failed_logins": 3,
         "lockout_minutes": 5.0,

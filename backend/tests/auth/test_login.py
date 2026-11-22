@@ -115,7 +115,10 @@ async def test_session_expires_after_inactivity(make_app: AppFactory, engine: As
     assert status["user"] is None
     assert status["device"]["name"] == "Kasse 1"
     assert protected.status_code == 401
-    assert protected.json()["detail"] == "Bitte zuerst mit der PIN anmelden."
+    assert protected.json() == {
+        "detail": "Die Anmeldung ist abgelaufen. Bitte erneut mit der PIN anmelden.",
+        "code": "session_expired",
+    }
 
 
 async def test_session_is_extended_by_activity(make_app: AppFactory, engine: AsyncEngine) -> None:

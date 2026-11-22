@@ -43,6 +43,7 @@ from app.modules.backup.schemas import (
     SETTINGS_KEY,
     BackupSettings,
     BackupStatusOut,
+    BackupWarningOut,
     JournalStatusOut,
     PassphraseOut,
     RunOut,
@@ -63,6 +64,16 @@ USB_ENCRYPTED_SUFFIX = ".shb"
 USB_PLAIN_SUFFIX = ".tar"
 # Reserve auf dem Stick zusätzlich zur Größe des letzten Abzugs.
 USB_RESERVE_BYTES = 1024 * 1024
+
+# Allgemeine Fassung der Warnungen, deren Text im Status Einzelheiten trägt (Fehlermeldungen mit
+# Pfaden). Diese Fassung sehen alle Geräte (`GET /backup/warning`, Ereignis `backup.status`).
+_PUBLIC_DETAIL = " Einzelheiten unter System → Sicherung."
+PUBLIC_MESSAGES: dict[str, str] = {
+    "snapshot_failed": "Die letzte Sicherung ist fehlgeschlagen." + _PUBLIC_DETAIL,
+    "usb_not_writable": "Der Sicherungs-Stick ist nicht beschreibbar.",
+    "usb_copy_failed": "Die letzte Kopie auf den Stick ist fehlgeschlagen." + _PUBLIC_DETAIL,
+    "journal_sync_failed": "Die Mitschrift kam nicht auf den Stick." + _PUBLIC_DETAIL,
+}
 
 
 class BackupError(Exception):
@@ -153,6 +164,11 @@ class BackupService:
         # als „Stick reagiert nicht“ erscheinen lassen.
         self._usb_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="backup-usb")
         self._probe_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="backup-probe")
+        # Prüfen liest nur. Es soll weder hinter einer langen Kopie warten noch, wenn der Stick
+        # beim Lesen hängt, die Kopien aufhalten.
+        self._verify_executor = ThreadPoolExecutor(
+            max_workers=1, thread_name_prefix="backup-verify"
+        )
         self._snapshot_lock = asyncio.Lock()
         self._usb_lock = asyncio.Lock()
         self._wake = asyncio.Event()
@@ -213,6 +229,7 @@ class BackupService:
             self._task.cancel()
         self._usb_executor.shutdown(wait=False, cancel_futures=True)
         self._probe_executor.shutdown(wait=False, cancel_futures=True)
+        self._verify_executor.shutdown(wait=False, cancel_futures=True)
 
     async def stop(self) -> None:
         """Wie `request_stop`, wartet aber, bis der Hintergrund-Task wirklich beendet ist."""
@@ -640,7 +657,9 @@ class BackupService:
         return None if run is None else RunOut.model_validate(run, from_attributes=True)
 
     def _announce(self, run: RunOut) -> None:
-        payload = {"run": run.model_dump(mode="json")}
+        # Ereignisse erreichen jedes verbundene Gerät: nur Kennung und Ergebnis, keine
+        # Dateinamen, Größen oder Fehlertexte (die stehen in `GET /backup/runs`).
+        payload = {"run": run.model_dump(mode="json", include={"id", "kind", "target", "ok"})}
         self.events.publish(EVENT_COMPLETED if run.ok else EVENT_FAILED, payload)
 
     def _current_warning(self) -> tuple[str, str] | None:
@@ -695,10 +714,24 @@ class BackupService:
             self.usb.writable,
             self._warning.code if self._warning else None,
             self.key is not None,
+            self.config.warn_all_stations,
+            self.config.warn_on_display,
         )
         if signature != self._published:
             self._published = signature
-            self.events.publish(EVENT_STATUS, self.status().model_dump(mode="json"))
+            # Hinweis zum Neuladen; der Inhalt ist das, was jedes Gerät sehen darf.
+            self.events.publish(EVENT_STATUS, self.public_warning().model_dump(mode="json"))
+
+    def public_warning(self) -> BackupWarningOut:
+        """Die aktuelle Warnung in allgemeiner Fassung plus die beiden Schalter."""
+        warning = self._warning
+        if warning is not None and warning.code in PUBLIC_MESSAGES:
+            warning = warning.model_copy(update={"message_de": PUBLIC_MESSAGES[warning.code]})
+        return BackupWarningOut(
+            warning=warning,
+            warn_all_stations=self.config.warn_all_stations,
+            warn_on_display=self.config.warn_on_display,
+        )
 
     def status(self) -> BackupStatusOut:
         return BackupStatusOut(
@@ -837,7 +870,12 @@ class BackupService:
         try:
             try:
                 size, checksum_ok, contents = await self._in_usb_thread(
-                    _open_backup, path, passphrase, work, limit_s=self.usb_copy_timeout_seconds
+                    _open_backup,
+                    path,
+                    passphrase,
+                    work,
+                    limit_s=self.usb_copy_timeout_seconds,
+                    executor=self._verify_executor,
                 )
             except FileNotFoundError:
                 raise NotFoundError("Diese Sicherung liegt nicht mehr auf dem Stick.") from None
@@ -906,19 +944,25 @@ def write_backup_file(
 def _open_backup(
     path: Path, passphrase: str | None, target_dir: Path | None
 ) -> tuple[int, bool, archive.ArchiveContents]:
-    """Prüfsumme der Datei und Inhalt des Archivs (verschlüsselt `.shb` oder `.tar`)."""
+    """Prüfsumme der Datei und Inhalt des Archivs (verschlüsselt `.shb` oder `.tar`).
+
+    Die Datei wird genau einmal gelesen; die Prüfsumme entsteht beim Entschlüsseln mit.
+    """
     expected = fsutil.read_checksum(path)
-    checksum_ok = expected is not None and fsutil.sha256_file(path) == expected
+    if path.suffix == USB_ENCRYPTED_SUFFIX and passphrase is None:
+        raise crypto.WrongPassphraseError()
     with path.open("rb") as file:
+        source = fsutil.HashingReader(file)
         if path.suffix == USB_ENCRYPTED_SUFFIX:
-            if passphrase is None:
-                raise crypto.WrongPassphraseError()
-            reader = crypto.DecryptingReader(file, passphrase=passphrase)
+            assert passphrase is not None
+            reader = crypto.DecryptingReader(source, passphrase=passphrase)  # type: ignore[arg-type]
             contents = archive.read_archive(reader, target_dir)
             reader.finish()
         else:
-            contents = archive.read_archive(file, target_dir)
-    return path.stat().st_size, checksum_ok, contents
+            contents = archive.read_archive(source, target_dir)
+        source.drain()
+    checksum_ok = expected is not None and source.hexdigest() == expected
+    return source.size, checksum_ok, contents
 
 
 async def _toc(dump: Path) -> tuple[int | None, str | None]:

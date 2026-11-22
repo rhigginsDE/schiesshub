@@ -223,6 +223,10 @@ def test_progress_of_computed() -> None:
         "series_done": 1,
         "series_total": 2,
         "complete": False,
+        "section_number": 2,
+        "section_count": 2,
+        "series_done_overall": 2,
+        "series_total_overall": 3,
     }
     computed["sections"][1]["complete"] = True
     computed["complete"] = True

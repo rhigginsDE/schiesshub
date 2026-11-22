@@ -458,7 +458,9 @@ async def test_scheduler_runs_and_stops(start_backup: StartBackup) -> None:
         async with asyncio.timeout(10):
             while True:
                 event = await events.get()
-                if event.name == "backup.status" and event.data["usb"]["present"]:
+                # Ohne Passwort folgt auf „Stick fehlt“ die Warnung „Passwort fehlt“.
+                warning = event.data["warning"] or {}
+                if event.name == "backup.status" and warning.get("code") != "usb_missing":
                     break
         task = backup_service._task
     assert task is not None
@@ -526,7 +528,7 @@ async def test_restore_into_fresh_database(
         assert (new_keys / "field.key").read_bytes() == b"feldschluessel"
         assert crypto.load_key(new_keys) == backup.service.key
 
-        # Zweiter Versuch: Ziel nicht leer, Schlüssel vorhanden -> Abbruch ohne Überschreiben.
+        # Zweiter Versuch: Ziel nicht leer -> Abbruch; die (gleichen) Schlüssel bleiben stehen.
         again = await asyncio.create_subprocess_exec(
             sys.executable,
             "-m",
@@ -542,7 +544,27 @@ async def test_restore_into_fresh_database(
         )
         _, stderr = await again.communicate()
         assert again.returncode == 1
-        assert "bereits Schlüssel" in stderr.decode()
+        assert "ist nicht leer" in stderr.decode()
+        assert (new_keys / "field.key").read_bytes() == b"feldschluessel"
+        # Abweichender Schlüssel im Ziel: Abbruch, bevor die Datenbank angefasst wird.
+        (new_keys / "field.key").write_bytes(b"anderer schluessel")
+        other = await asyncio.create_subprocess_exec(
+            sys.executable,
+            "-m",
+            "app.modules.backup.restore",
+            str(copy),
+            "--database-url",
+            target_url.render_as_string(hide_password=False),
+            "--data-dir",
+            str(tmp_path / "new-server"),
+            cwd=BACKEND_DIR,
+            env={**os.environ, "SCHIESSHUB_BACKUP_PASSPHRASE": PASSPHRASE},
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _, stderr = await other.communicate()
+        assert other.returncode == 1
+        assert "bereits andere Schlüssel" in stderr.decode()
+        assert (new_keys / "field.key").read_bytes() == b"anderer schluessel"
 
         wrong = await asyncio.create_subprocess_exec(
             sys.executable,

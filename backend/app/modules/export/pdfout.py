@@ -10,6 +10,7 @@
 """
 
 import io
+import re
 from collections.abc import Sequence
 from typing import Any
 from xml.sax.saxutils import escape
@@ -60,6 +61,8 @@ ZEBRA = colors.HexColor("#f4f4f4")
 MUTED = colors.HexColor("#666666")
 
 _ALIGN = {"left": TA_LEFT, "right": TA_RIGHT, "center": TA_CENTER}
+# Stellen, an denen eine Zelle umbrechen darf (nicht am geschützten Leerzeichen).
+_BREAKS = re.compile(r"[ \t\n]+")
 
 
 # --- Breiten -----------------------------------------------------------------------------
@@ -88,7 +91,9 @@ def _column_widths(
         )
         width += 2 * CELL_PAD_X + 1
         if column.wrap:
-            words = [word for cell in cells for word in cell.split()] + column.title.split()
+            # Nur an normalen Leerzeichen trennen (geschützte halten „93,40 s“ zusammen).
+            words = [word for cell in cells for word in _BREAKS.split(cell) if word]
+            words += column.title.split()
             longest = max((stringWidth(word, fonts.regular, size) for word in words), default=0)
             low = max(WRAP_MIN * size / BODY_SIZE, longest + 2 * CELL_PAD_X + 1)
             natural.append(max(low, min(width, WRAP_MAX)))
@@ -110,6 +115,11 @@ def _column_widths(
         ratio = (avail - needed) / flexible if flexible else 0
         for i in wrap:
             widths[i] = minimum[i] + (natural[i] - minimum[i]) * ratio
+    elif wrap and needed > avail:
+        # Passt auch knapp nicht: umbrechende Spalten so schmal wie möglich (nicht in voller
+        # Breite, sonst läuft die Tabelle rechts aus der Seite).
+        for i in wrap:
+            widths[i] = minimum[i]
     return widths, needed
 
 
@@ -272,9 +282,11 @@ def _section(
             continue
         size = BODY_SIZE
         widths, needed = _column_widths(table.columns, rows, fonts, size, avail)
-        if needed > avail:
-            size = max(MIN_SIZE, BODY_SIZE * avail / needed)
-            widths, _ = _column_widths(table.columns, rows, fonts, size, avail)
+        # Schrift verkleinern, bis die Tabelle passt (Innenabstände schrumpfen nicht mit,
+        # deshalb schrittweise), höchstens bis `MIN_SIZE`.
+        while needed > avail + 0.5 and size > MIN_SIZE:
+            size = max(MIN_SIZE, min(size - 0.1, size * avail / needed))
+            widths, needed = _column_widths(table.columns, rows, fonts, size, avail)
         block.extend(_table(table, widths, fonts, size))
         if len(table.rows) <= KEEP_ROWS:
             # Kurze Tabellen (eine Klasse mit wenigen Startern) nicht über zwei Seiten verteilen.

@@ -135,6 +135,35 @@ Ereignisse (SSE) erreichen offene Browser nicht, weil der Befehl in einem eigene
 die Oberfläche zeigt die Änderung nach dem nächsten Laden. Exit-Codes: `0` in Ordnung, `1` Fehler
 (Meldung auf stderr), `2` falscher Aufruf.
 
+## Sicherung und Wiederherstellung
+
+Das Modul `backup` macht regelmäßig Datenbank-Abzüge (Standard: alle 5 Minuten) nach
+`DATA_DIR/backups/snapshots`. Jedes Ergebnis-Ereignis kommt sofort in die Mitschrift
+(`DATA_DIR/backups/journal`). Beides geht verschlüsselt auf den Stick unter `BACKUP_USB_DIR`
+(erkannt an `BACKUP_USB_MARKER`). Eine Sicherung auf dem Stick (`.shb`) enthält den Abzug und das
+ganze Schlüsselverzeichnis `DATA_DIR/keys`, darunter den Namensschlüssel `field-keys.json`.
+
+Zurückspielen geht nur über die Konsole, immer in eine neue, leere Datenbank:
+
+```bash
+docker compose exec -e SCHIESSHUB_BACKUP_PASSPHRASE='…' backend \
+  python -m app.modules.backup.restore /backup-usb/snapshots/snapshot-<Zeit>Z.shb \
+    --database-name schiesshub_neu --create-database --data-dir /data \
+    --apply-journal /backup-usb/journal
+```
+
+`--apply-journal` trägt danach die Ergebnis-Ereignisse aus der Mitschrift nach, die im Abzug
+fehlen. Status und Wertung werden nachgezogen, nichts wird doppelt eingetragen. Ereignisse zu
+Starts, die erst nach der Sicherung gebucht wurden, werden übersprungen und mit Startnummer
+aufgelistet. Ablauf, Prüfung danach und was von Hand nachzutragen ist:
+[docs/WIEDERHERSTELLUNG.md](../docs/WIEDERHERSTELLUNG.md). `--help` nennt alle Schalter.
+Exit-Codes: `0` in Ordnung, `1` Fehler, `2` Sicherungspasswort falsch, `3` wiederhergestellt,
+aber nicht alles aus der Mitschrift nachgetragen.
+
+`GET /backup/warning` liefert jedem gekoppelten Gerät nur die aktuelle Warnung (ohne Pfade,
+Dateinamen oder Größen) und die Schalter `warn_all_stations`/`warn_on_display`. Den vollen Status
+liefert `GET /backup/status` (Recht `backup.read`).
+
 ## Einstellungen
 
 | Variable | Bedeutung | Standard |

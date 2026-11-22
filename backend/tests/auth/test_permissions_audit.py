@@ -40,6 +40,7 @@ FUTURE = ModuleManifest(
         "start.read",
         "start.edit",
         "start.call",
+        "start.abort",
         "result.capture",
         "result.read",
         "result.correct",
@@ -93,20 +94,20 @@ def test_wildcard_mapping_of_starter_roles() -> None:
         "result.capture",
         "start.read",
         "start.call",
+        "start.abort",
         "entry.read",
         "tournament.read",
     }
-    assert role_grants("Anzeige") == {
-        "display.read",
-        "start.read",
-        "result.read",
-        "tournament.read",
-    }
+    # Der Bildschirm lädt nur seinen Feed.
+    assert role_grants("Anzeige") == {"display.read"}
+    # Abbrechen dürfen, die heute aufrufen dürfen; die Kasse nicht.
+    assert "start.abort" not in role_grants("Kasse")
     turnier = role_grants("Turnierleitung")
     assert {
         "tournament.reopen",
         "entry.edit",
         "start.call",
+        "start.abort",
         "result.correct",
         "display.control",
         "export.read",
@@ -155,6 +156,7 @@ async def test_permissions_endpoint_lists_all_modules(make_app: AppFactory) -> N
         "permission": "role.manage",
         "module": "auth",
         "module_title": "Anmeldung und Rechte",
+        "requires": [],
     }
     assert by_name["zukunft.probe"]["module"] == "zukunft"
     assert "entry.edit" in roles["Kasse"]["effective_permissions"]

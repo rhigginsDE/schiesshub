@@ -51,6 +51,11 @@ from app.modules.anzeige.schemas import (
     FeedSkipped,
     FeedStartlist,
     FeedStartlistScene,
+    FeedUpcoming,
+    FeedUpcomingQueue,
+    FeedUpcomingQueued,
+    FeedUpcomingSchedule,
+    FeedUpcomingScheduled,
     FeedWarning,
     FeedWinnersScene,
     LiveRankingScene,
@@ -64,7 +69,7 @@ from app.modules.anzeige.service import config_of
 from app.modules.ergebnisse.ranking import competition_ranking
 from app.modules.ergebnisse.schemas import RankingOut, RankingRow
 from app.modules.ergebnisse.service import server_now
-from app.modules.starts.schemas import LaneOut, StationStartOut
+from app.modules.starts.schemas import LaneOut, RangeNowOut, StationStartOut
 from app.modules.starts.views import queue_view, range_now, startlist
 from app.modules.teilnehmer.names import abbreviate_name
 from app.modules.turnier.models import Competition, Range, Tournament
@@ -139,7 +144,7 @@ class Context:
             class_short=start.class_short,
             competition_id=start.competition_id,
             competition_name=start.competition_name,
-            competition_code=self.code(start.competition_id),
+            competition_code=start.competition_code or self.code(start.competition_id),
             attempt=start.attempt,
             status=start.status,
             abort_reason=start.abort_reason,
@@ -232,10 +237,26 @@ def _selected(
 # --- Ranglisten --------------------------------------------------------------
 
 
+def _aborted_score(row: RankingRow) -> tuple[str | None, list[Any]]:
+    """Ergebnistext und Serien eines Starts für den Bildschirm.
+
+    Nicht angetreten (dns): kein Wert, keine Serien – „0,00“ sähe aus wie ein Ergebnis.
+    Aufgegeben oder disqualifiziert: die erfassten Serien bleiben, ein Gesamtwert nur, wenn alle
+    Rohwerte erfasst sind; ein Teilergebnis wäre irreführend (bei „niedrigster Wert gewinnt“
+    sogar scheinbar das beste).
+    """
+    if row.abort_reason is None:
+        return row.score_text, list(row.series)
+    if row.abort_reason == "dns":
+        return None, []
+    return (row.score_text if row.complete else None), list(row.series)
+
+
 def _rank_row(context: Context, row: RankingRow) -> FeedRankRow:
     provisional = row.status == "provisional"
     if provisional:
         context.provisional = True
+    score_text, series = _aborted_score(row)
     return FeedRankRow(
         place=row.place,
         tied=row.tied,
@@ -246,9 +267,9 @@ def _rank_row(context: Context, row: RankingRow) -> FeedRankRow:
         display_name=context.name(row.display_name),
         club=context.club(row.display_name, row.club),
         class_short=row.class_short,
-        score_text=row.score_text,
+        score_text=score_text,
         complete=row.complete,
-        series=row.series,
+        series=series,
         status=row.status,
         running=row.status == "running",
         provisional=provisional,
@@ -268,9 +289,9 @@ def _ranking(
     """Zeilen der Rangliste (`ergebnisse.ranking.competition_ranking`) für den Bildschirm.
 
     Plätze und Abbrüche entscheidet allein die Rangliste; hier wird nur gekürzt: Siegerliste
-    bis Platz `limit`, Live-Wertung höchstens `limit` Zeilen. Abgebrochene (ohne Platz, am
-    Ende) kommen nur mit `show_aborted` aus der Rangliste und zählen nicht zu `limit`; andere
-    Zeilen ohne Platz (prüfen) erscheinen nie.
+    bis Platz `limit`, Live-Wertung höchstens `limit` Zeilen. Abgebrochene (ohne Platz) kommen
+    nur mit `show_aborted` aus der Rangliste, stehen in einer eigenen Liste `unplaced` (nie unter
+    den Plätzen) und zählen nicht zu `limit`; andere Zeilen ohne Platz (prüfen) erscheinen nie.
     """
     wanted = set(class_ids)
     groups = []
@@ -283,20 +304,21 @@ def _ranking(
                 continue
         aborted = [row for row in rows if row.abort_reason is not None] if show_aborted else []
         if winners:
-            placed = [
+            shown = [
                 row
                 for row in rows
-                if row.place is not None
+                if row.abort_reason is None
+                and row.place is not None
                 and row.place <= limit
                 and row.status in ("final", "provisional")
             ]
-            shown, more = placed + aborted, 0
+            more = 0
         else:
             # Ohne Platz und ohne Abbruchgrund (zu prüfen) gehört nicht auf die Anzeige.
-            listed = [row for row in rows if row.group != "unranked"]
-            shown = listed[:limit] + aborted
+            listed = [row for row in rows if row.group != "unranked" and row.abort_reason is None]
+            shown = listed[:limit]
             more = max(len(listed) - limit, 0)
-        if not shown:
+        if not shown and not aborted:
             continue
         groups.append(
             FeedRankGroup(
@@ -305,6 +327,7 @@ def _ranking(
                 class_short=group.class_short,
                 rows=[_rank_row(context, row) for row in shown],
                 more=more,
+                unplaced=[_rank_row(context, row) for row in aborted],
             )
         )
     return FeedRanking(
@@ -495,6 +518,103 @@ def _current_positions(
     return current
 
 
+async def _busy(context: Context) -> dict[uuid.UUID, StationStartOut]:
+    """Wer im Turnier gerade auf einer Bahn steht: Anmeldung → Start auf der Bahn."""
+    return {start.entry_id: start for start in await context.all_starts() if start.on_lane}
+
+
+def _upcoming_base(
+    context: Context, start: StationStartOut, busy: dict[uuid.UUID, StationStartOut]
+) -> dict[str, Any]:
+    on_lane = busy.get(start.entry_id)
+    busy_range = context.ranges.get(on_lane.range_id) if on_lane and on_lane.range_id else None
+    return {
+        "start_id": start.start_id,
+        "start_number": start.start_number,
+        "display_name": context.name(start.display_name),
+        "club": context.club(start.display_name, start.club),
+        "class_short": start.class_short,
+        "attempt": start.attempt,
+        "busy": on_lane is not None,
+        "busy_range_id": on_lane.range_id if on_lane else None,
+        "busy_range_name": busy_range.name if busy_range else None,
+        "busy_lane": on_lane.lane if on_lane else None,
+    }
+
+
+def _by_competition(
+    context: Context, starts: Sequence[StationStartOut]
+) -> list[tuple[Competition, list[StationStartOut]]]:
+    """Starts je Wettbewerb, Wettbewerbe in der Reihenfolge des Turniers."""
+    grouped: dict[uuid.UUID, list[StationStartOut]] = {}
+    for start in starts:
+        grouped.setdefault(start.competition_id, []).append(start)
+    return [
+        (competition, grouped[competition.id])
+        for competition in context.competitions
+        if competition.id in grouped
+    ]
+
+
+async def _upcoming(
+    context: Context,
+    now: RangeNowOut,
+    waiting: Sequence[StationStartOut],
+    count: int,
+) -> list[FeedUpcoming]:
+    """„Als Nächstes“ je Wettbewerb: der nächste Durchgang (nur dessen Starts), dann die
+    Reihenfolge. Wer gerade auf einer Bahn steht, bleibt sichtbar und ist gekennzeichnet."""
+    if count <= 0:
+        return []
+    busy = await _busy(context)
+    blocks: list[FeedUpcoming] = []
+    heat = now.next_heat
+    if heat is not None:
+        for competition, starts in _by_competition(context, now.next_heat_starts):
+            blocks.append(
+                FeedUpcomingSchedule(
+                    kind="schedule",
+                    competition_id=competition.id,
+                    competition_name=competition.name,
+                    competition_code=competition.catalog_code,
+                    more=max(len(starts) - count, 0),
+                    heat_number=heat.number,
+                    starts_at=heat.starts_at,
+                    ends_at=heat.ends_at,
+                    starts_at_local=local_iso(heat.starts_at, context.tz) or "",
+                    ends_at_local=local_iso(heat.ends_at, context.tz) or "",
+                    entries=[
+                        FeedUpcomingScheduled(
+                            **_upcoming_base(context, start, busy),
+                            heat_number=heat.number,
+                            starts_at=heat.starts_at,
+                            starts_at_local=local_iso(heat.starts_at, context.tz) or "",
+                            lane=start.lane or 0,
+                        )
+                        for start in starts[:count]
+                    ],
+                )
+            )
+    for competition, starts in _by_competition(context, waiting):
+        blocks.append(
+            FeedUpcomingQueue(
+                kind="queue",
+                competition_id=competition.id,
+                competition_name=competition.name,
+                competition_code=competition.catalog_code,
+                more=max(len(starts) - count, 0),
+                entries=[
+                    FeedUpcomingQueued(
+                        **_upcoming_base(context, start, busy),
+                        position=start.queue_position or 0,
+                    )
+                    for start in starts[:count]
+                ],
+            )
+        )
+    return blocks
+
+
 async def _range(context: Context, scene: RangeScene, pages: Pages) -> None:
     assert context.tournament is not None
     range_ = context.ranges.get(scene.range_id)
@@ -503,9 +623,10 @@ async def _range(context: Context, scene: RangeScene, pages: Pages) -> None:
         return
     now = await range_now(context.session, context.tournament.id, range_.id)
     upcoming = list(now.next_heat_starts)
+    all_waiting = (await queue_view(context.session, context.tournament.id, range_.id)).waiting
     waiting = now.next_queue
     if scene.next_count > len(upcoming) + len(waiting):
-        waiting = (await queue_view(context.session, context.tournament.id, range_.id)).waiting
+        waiting = all_waiting
     candidates = upcoming + list(waiting)
     upcoming = candidates[: scene.next_count]
     on_lanes = [lane.start for lane in now.lanes if lane.start is not None]
@@ -549,6 +670,7 @@ async def _range(context: Context, scene: RangeScene, pages: Pages) -> None:
                     )
                     for lane in now.lanes
                 ],
+                upcoming=await _upcoming(context, now, all_waiting, scene.next_count),
                 next_heat=(
                     FeedNextHeat(
                         number=now.next_heat.number,

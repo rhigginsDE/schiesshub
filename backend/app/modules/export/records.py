@@ -20,6 +20,8 @@ StartlistSort = Literal["start_number", "competition", "range"]
 # (unvollständig, nur live) oder ohne Platz (abgebrochen, unvollständig, prüfen).
 # „aborted“ gibt es nicht mehr; der Wert bleibt für ältere Aufrufer erlaubt.
 WinnerGroup = Literal["ranked", "last", "unranked", "aborted"]
+# Wertungsmodelle, die Zeit von den Ringen abziehen: Listen zeigen dafür den Rechenweg.
+TIME_MODELS = frozenset({"ringe_mit_zeitabzug", "ringe_minus_zeit"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,6 +51,19 @@ class CompetitionInfo:
     sections: tuple[tuple[str, str], ...] = ()
     # Wertet der Wettbewerb Ringe? Ohne Ringe (reine Zeitwertung) keine Spalten für Zehner.
     rings: bool = True
+    # Wertungsmodell der Definition („ringe_mit_zeitabzug“ …); None, wenn nicht lesbar.
+    model: str | None = None
+    # Sollzeit je Abschnitt in Sekunden (nur Abschnitte mit `sollzeit_s`): (id, Sekunden).
+    target_times: tuple[tuple[str, Decimal], ...] = ()
+    # `zeit_rundung` der Wertung („summe_abrunden“) oder None.
+    time_rounding: str | None = None
+    # Abweichungen vom Katalog als Text (`turnier.service.catalog_diff_of`); leer = keine.
+    deviations: tuple[str, ...] = ()
+
+    @property
+    def time_model(self) -> bool:
+        """Zieht die Wertung Zeit von den Ringen ab (Rechenweg in den Listen nötig)?"""
+        return self.model in TIME_MODELS
 
     @property
     def title(self) -> str:
@@ -96,6 +111,39 @@ class SeriesValue:
 
 
 @dataclass(frozen=True, slots=True)
+class TimedSection:
+    """Ein Abschnitt mit Sollzeit (Mehrdistanz-Parcours): Zeit, Sollzeit, Abzug."""
+
+    name: str
+    time_cs: int | None
+    target_s: Decimal
+    deduction: Decimal | None
+    # `min_teilergebnis` hat das Teilergebnis angehoben (Abzug wirkt nicht voll).
+    floored: bool
+    result: Decimal
+
+
+@dataclass(frozen=True, slots=True)
+class TimeScore:
+    """Rechenweg einer Wertung mit Zeit (`TIME_MODELS`), aus der Wertung des Servers.
+
+    - `ringe_mit_zeitabzug`: `time_cs` ist die Gesamtzeit der Abschnitte mit Sollzeit,
+      `deduction` der Ringabzug; `sections` je Abschnitt mit Sollzeit.
+    - `ringe_minus_zeit`: `time_cs` ist die Summe der Serienzeiten, `deduction` der Abzug
+      (Ringe − Ergebnis; mit `rounded` vorher auf volle Sekunden abgerundet).
+    """
+
+    model: str
+    rings: int | None
+    time_cs: int | None
+    # Sollzeit, wenn es genau einen Abschnitt mit Sollzeit gibt.
+    target_s: Decimal | None
+    deduction: Decimal | None
+    sections: tuple[TimedSection, ...] = ()
+    rounded: bool = False
+
+
+@dataclass(frozen=True, slots=True)
 class WinnerRow:
     place: int | None
     tied: bool
@@ -116,6 +164,8 @@ class WinnerRow:
     status: str
     abort_reason: str | None
     provisional_until: datetime | None
+    # Rechenweg bei Wertung mit Zeit; None bei anderen Modellen oder ohne Ergebnis.
+    time_score: TimeScore | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -152,3 +202,4 @@ class ResultRecord:
     is_provisional: bool
     needs_review: bool
     series: tuple[SeriesValue, ...] = field(default_factory=tuple)
+    time_score: TimeScore | None = None
