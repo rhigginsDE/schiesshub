@@ -149,6 +149,64 @@ export function hinzufuegen(
   );
 }
 
+/** Startrollen mit festem Satz in der Sprachdatei (`rollen.beschreibung.<schluessel>`). */
+const FESTE_ROLLEN = ["administrator", "turnierleitung", "kasse", "auswertung", "anzeige"];
+
+/** Was eine Standaufsicht braucht und höchstens hat, damit ihr fester Satz noch stimmt. */
+const STANDAUFSICHT_RECHTE = ["start.call", "start.abort", "start.read", "tournament.read"];
+
+/**
+ * Schlüssel des festen Satzes für eine Rolle, sonst `null` (dann gilt die Zusammenfassung aus den
+ * Rechten). Startrollen nur, solange niemand ihre Rechte geändert hat, auch nicht im Entwurf.
+ * „Standaufsicht“ ist keine Startrolle des Servers; der Satz gilt, wenn Name und Rechte passen.
+ */
+export function festeBeschreibung(
+  rolle: Pick<Rolle, "is_system" | "starter_key" | "customized" | "name">,
+  eintraege: readonly string[],
+  bekannte: readonly string[],
+  imEntwurfGeaendert: boolean,
+): string | null {
+  if (rolle.is_system) return "administrator";
+  if (imEntwurfGeaendert) return null;
+  const start = rolle.starter_key?.trim().toLowerCase();
+  if (start && !rolle.customized && FESTE_ROLLEN.includes(start)) return start;
+  if (rolle.name.trim().toLowerCase() === "standaufsicht") {
+    const hat = bekannte.filter((recht) => gewaehrt(eintraege, recht));
+    if (hat.includes("start.call") && hat.every((recht) => STANDAUFSICHT_RECHTE.includes(recht))) {
+      return "standaufsicht";
+    }
+  }
+  return null;
+}
+
+/** Ein Teil der Zusammenfassung: ein ganzer Bereich oder ein einzelnes Recht. */
+export type Zusammenfassungsteil =
+  | { art: "bereich"; titel: string }
+  | { art: "recht"; recht: string };
+
+/**
+ * Kurze Zusammenfassung der Rechte einer eigenen Rolle, nach Bereichen: Ist ein Bereich ganz
+ * erlaubt, steht er als Ganzes da. Sonst die einzelnen Rechte; „ansehen“ entfällt, wenn im selben
+ * Bereich mehr als Ansehen erlaubt ist (es versteht sich dann von selbst).
+ */
+export function zusammenfassen(
+  eintraege: readonly string[],
+  gruppen: readonly Berechtigungsgruppe[],
+): Zusammenfassungsteil[] {
+  const teile: Zusammenfassungsteil[] = [];
+  for (const gruppe of gruppen) {
+    const erlaubt = gruppe.berechtigungen.filter((recht) => gewaehrt(eintraege, recht));
+    if (erlaubt.length === 0) continue;
+    if (erlaubt.length === gruppe.berechtigungen.length && erlaubt.length > 1) {
+      teile.push({ art: "bereich", titel: gruppe.titel });
+      continue;
+    }
+    const handeln = erlaubt.filter((recht) => rechtTaetigkeit(recht) !== "read");
+    for (const recht of handeln.length > 0 ? handeln : erlaubt) teile.push({ art: "recht", recht });
+  }
+  return teile;
+}
+
 /**
  * Verwaltungsrechte wie im Server (`ADMINISTRATION_PERMISSIONS`): Eine Rolle, die eines davon
  * gewährt, taugt nicht als Standardrolle eines Geräts, weil dort niemand eine PIN eingibt.

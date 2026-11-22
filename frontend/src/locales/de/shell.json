@@ -41,7 +41,7 @@
     "laden": "Ablauf wird geladen",
     "einleitung_eigene": "Das sind die Schritte, die du an diesem Gerät übernimmst. Der markierte ist als Nächstes dran.",
     "keine_aufgabe_titel": "Dir ist noch keine Aufgabe zugeteilt",
-    "keine_aufgabe_text": "Deine Rolle erlaubt hier noch keine Station. Sprich die Turnierleitung an: Sie gibt deiner Rolle unter System → Personen & Rollen die nötigen Rechte.",
+    "keine_aufgabe_text": "Deine Rolle erlaubt hier noch keine Station. Sprich die Turnierleitung an: Sie gibt deiner Rolle unter System → Benutzer & Rollen die nötigen Rechte.",
     "zur_station": "{{titel}} öffnen"
   },
   "ablauf": {
@@ -115,24 +115,24 @@
   },
   "anmeldung": {
     "einrichtung_ausstehend": "Ersteinrichtung ausstehend",
-    "einrichtung_hinweis": "Noch hat niemand alle Rechte. Bitte die erste Person anlegen, bevor das Einloggen Pflicht wird.",
+    "einrichtung_hinweis": "Noch hat niemand alle Rechte. Bitte den ersten Benutzer anlegen, bevor das Einloggen Pflicht wird.",
     "koppeln": "Dieses Gerät koppeln",
     "anmelden": "Einloggen",
     "menue": "Eingeloggt: {{wer}}. Menü öffnen",
     "angemeldet_als": "{{name}} · {{rolle}}",
     "geraet_rolle": "Gerät {{name}} · {{rolle}}, niemand eingeloggt",
-    "person_wechseln": "Person wechseln",
+    "person_wechseln": "Benutzer wechseln",
     "abmelden": "Ausloggen",
     "abgemeldet": "Ausgeloggt",
     "abmelden_fehler": "Ausloggen hat nicht geklappt",
-    "koppeln_hinweis": "Nur nötig, wenn ihr mit Personen, PIN und Rollen arbeitet. Im offenen Betrieb geht alles auch ohne.",
+    "koppeln_hinweis": "Nur nötig, wenn ihr mit Benutzern, PIN und Rollen arbeitet. Im offenen Betrieb geht alles auch ohne.",
     "anmelden_hinweis": "Mit Namen und PIN einloggen, z. B. für Korrekturen oder die Verwaltung. Im offenen Betrieb geht alles auch ohne."
   },
   "berechtigung": {
     "fehlt_titel": "Dafür fehlt die Berechtigung",
-    "fehlt_text": "Deine Rolle erlaubt diese Aktion nicht. Bitte eine Person mit passender Rolle einloggen oder die Rolle unter System → Personen & Rollen erweitern lassen.",
+    "fehlt_text": "Deine Rolle erlaubt diese Aktion nicht. Bitte einen Benutzer mit passender Rolle einloggen oder die Rolle unter System → Benutzer & Rollen erweitern lassen.",
     "seite_titel": "„{{titel}}“ ist für deine Rolle nicht freigegeben",
-    "seite_text": "Dafür fehlt die Berechtigung. Eine andere Person einloggen oder die Rolle unter System → Personen & Rollen erweitern lassen."
+    "seite_text": "Dafür fehlt die Berechtigung. Einen anderen Benutzer einloggen oder die Rolle unter System → Benutzer & Rollen erweitern lassen."
   },
   "sicherung": {
     "chip_ok": "Sicherung {{zeit}}",
@@ -167,7 +167,7 @@
   },
   "fehler": {
     "nicht_angemeldet": "Bitte zuerst einloggen. Die Sitzung ist abgelaufen oder dieses Gerät ist nicht gekoppelt.",
-    "verboten": "Dafür fehlt die Berechtigung. Bitte eine Person mit passender Rolle einloggen.",
+    "verboten": "Dafür fehlt die Berechtigung. Bitte einen Benutzer mit passender Rolle einloggen.",
     "konflikt": "Das geht im aktuellen Zustand nicht. Bitte die Seite neu laden und erneut versuchen.",
     "gesperrt": "Zu viele Versuche. Bitte kurz warten und erneut versuchen."
   },

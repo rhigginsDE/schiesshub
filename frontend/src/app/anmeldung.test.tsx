@@ -299,7 +299,7 @@ describe("Abgewiesene Geräte (QA KLEIN 3)", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Eine Person mit Verwaltungsrecht kann es unter System → Geräte wieder freigeben oder neu koppeln.",
+        "Ein Benutzer mit Verwaltungsrecht kann es unter System → Geräte wieder freigeben oder neu koppeln.",
       ),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Kopplungscode")).toBeInTheDocument();

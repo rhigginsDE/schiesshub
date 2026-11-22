@@ -631,7 +631,7 @@
 
 .matrix th,
 .matrix td {
-  padding: 8px 10px;
+  padding: 8px 6px;
   border-bottom: 1px solid var(--sh-linie);
   text-align: center;
   vertical-align: middle;
@@ -670,7 +670,7 @@
   display: grid;
   justify-items: center;
   gap: 2px;
-  min-width: 96px;
+  min-width: 88px;
 }
 
 .rollenKopf small {

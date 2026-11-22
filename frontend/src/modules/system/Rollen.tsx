@@ -11,7 +11,15 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Lock, MoreVertical, Pencil, Plus, Trash2, TriangleAlert } from "lucide-react";
+import {
+  ChevronRight,
+  Lock,
+  MoreVertical,
+  Pencil,
+  Plus,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { berechtigungenAbfrage, rollenAbfrage, schluessel } from "../../api/abfragen";
@@ -30,6 +38,7 @@ import r from "./Rollen.module.css";
 import {
   type Berechtigungsgruppe,
   fehlendeVoraussetzungen,
+  festeBeschreibung,
   gleicheEintraege,
   gruppieren,
   hinzufuegen,
@@ -39,6 +48,7 @@ import {
   ueberMuster,
   umschalten,
   voraussetzungen,
+  zusammenfassen,
 } from "./rollenMatrix";
 import s from "./system.module.css";
 
@@ -87,6 +97,8 @@ export function RollenPanel() {
   const schmal = useMediaQuery("(max-width: 760px)");
   const [entwurf, setEntwurf] = useState<Record<string, string[]>>({});
   const [anlegen, setAnlegen] = useState(false);
+  // Die volle Matrix ist selten nötig: zugeklappt, bis jemand Rechte anpassen will.
+  const [erweitert, setErweitert] = useState(false);
 
   const gruppen = useMemo(() => gruppieren(berechtigungen.data ?? []), [berechtigungen.data]);
   const bekannte = useMemo(() => gruppen.flatMap((gruppe) => gruppe.berechtigungen), [gruppen]);
@@ -165,19 +177,11 @@ export function RollenPanel() {
         <h2 className="h-section" id="rollen-titel">
           {t("rollen.titel")}
         </h2>
-        <Button
-          variant="default"
-          leftSection={<Plus aria-hidden />}
-          onClick={() => setAnlegen(true)}
-          disabled={!rollen.data}
-        >
-          {t("rollen.anlegen")}
-        </Button>
       </div>
       <p className={s.einleitung}>{t("rollen.einleitung")}</p>
 
       {rollen.isPending || berechtigungen.isPending ? (
-        <Skeleton height={320} radius="md" />
+        <Skeleton height={240} radius="md" />
       ) : rollen.isError || berechtigungen.isError ? (
         <Fehlerzustand
           fehler={rollen.error ?? berechtigungen.error}
@@ -186,35 +190,71 @@ export function RollenPanel() {
             void berechtigungen.refetch();
           }}
         />
-      ) : gruppen.length === 0 ? (
-        <p className={s.hinweis}>{t("rollen.leer")}</p>
-      ) : schmal ? (
-        <RollenListe
-          rollen={rollen.data}
-          gruppen={gruppen}
-          eintraegeVon={eintraegeVon}
-          setzen={setzen}
-          braucht={braucht}
-        />
       ) : (
-        <RollenMatrix
-          rollen={rollen.data}
-          gruppen={gruppen}
-          eintraegeVon={eintraegeVon}
-          setzen={setzen}
-          braucht={braucht}
-          entwurf={entwurf}
-        />
-      )}
-
-      {rollen.data && (
-        <Luecken
-          rollen={rollen.data}
-          bekannte={bekannte}
-          braucht={braucht}
-          eintraegeVon={eintraegeVon}
-          ergaenzen={ergaenzen}
-        />
+        <>
+          <RollenKarten
+            rollen={rollen.data}
+            gruppen={gruppen}
+            bekannte={bekannte}
+            braucht={braucht}
+            eintraegeVon={eintraegeVon}
+            entwurf={entwurf}
+          />
+          <details
+            className={r.erweitert}
+            open={erweitert}
+            onToggle={(e) => setErweitert(e.currentTarget.open)}
+          >
+            <summary>
+              <ChevronRight className={r.erweitertPfeil} aria-hidden />
+              <span className={r.erweitertText}>
+                <strong>{t("rollen.erweitert")}</strong>
+                <span>{t("rollen.erweitert_text")}</span>
+              </span>
+            </summary>
+            <div className={r.erweitertInhalt}>
+              <div className={s.kopf}>
+                <p className={s.einleitung}>{t("rollen.erweitert_einleitung")}</p>
+                <Button
+                  variant="default"
+                  leftSection={<Plus aria-hidden />}
+                  onClick={() => setAnlegen(true)}
+                >
+                  {t("rollen.anlegen")}
+                </Button>
+              </div>
+              {gruppen.length === 0 ? (
+                <p className={s.hinweis}>{t("rollen.leer")}</p>
+              ) : schmal ? (
+                <RollenListe
+                  rollen={rollen.data}
+                  gruppen={gruppen}
+                  eintraegeVon={eintraegeVon}
+                  setzen={setzen}
+                  braucht={braucht}
+                />
+              ) : (
+                <div className={r.matrixBreit}>
+                  <RollenMatrix
+                    rollen={rollen.data}
+                    gruppen={gruppen}
+                    eintraegeVon={eintraegeVon}
+                    setzen={setzen}
+                    braucht={braucht}
+                    entwurf={entwurf}
+                  />
+                </div>
+              )}
+              <Luecken
+                rollen={rollen.data}
+                bekannte={bekannte}
+                braucht={braucht}
+                eintraegeVon={eintraegeVon}
+                ergaenzen={ergaenzen}
+              />
+            </div>
+          </details>
+        </>
       )}
 
       {geaendert.length > 0 && (
@@ -245,6 +285,89 @@ export function RollenPanel() {
       )}
       <EntwurfSchutz register={register} ort={t("rollen.ort")} />
     </section>
+  );
+}
+
+/** Höchstens so viele Teile in der Zusammenfassung einer eigenen Rolle, der Rest als „N weitere“. */
+const KARTE_HOECHSTENS = 5;
+
+/**
+ * Jede Rolle als Karte: Name, Zahl der Benutzer und ein Satz, was sie darf. Startrollen haben
+ * einen festen Satz; eigene Rollen eine kurze Zusammenfassung aus ihren Rechten.
+ */
+function RollenKarten({
+  rollen,
+  gruppen,
+  bekannte,
+  braucht,
+  eintraegeVon,
+  entwurf,
+}: {
+  rollen: Rolle[];
+  gruppen: Berechtigungsgruppe[];
+  bekannte: readonly string[];
+  braucht: ReadonlyMap<string, readonly string[]>;
+  eintraegeVon: (rolle: Rolle) => string[];
+  entwurf: Record<string, string[]>;
+}) {
+  const { t, i18n } = useTranslation("system");
+  const rechtName = useRechtName();
+  const liste = new Intl.ListFormat(i18n.language, { type: "conjunction" });
+
+  const satz = (rolle: Rolle, eintraege: string[], imEntwurf: boolean) => {
+    const fest = festeBeschreibung(rolle, eintraege, bekannte, imEntwurf);
+    if (fest) return t(`rollen.beschreibung.${fest}`);
+    const teile = zusammenfassen(eintraege, gruppen).map((teil) =>
+      teil.art === "bereich"
+        ? t("rollen.karte_bereich", { bereich: teil.titel })
+        : rechtName(teil.recht),
+    );
+    if (teile.length === 0) return t("rollen.karte_nichts");
+    const gezeigt = teile.slice(0, KARTE_HOECHSTENS);
+    const rest = teile.length - gezeigt.length;
+    if (rest > 0) {
+      gezeigt.push(t("rollen.karte_weitere", { count: rest, anzahl: formatZahl(rest) }));
+    }
+    return t("rollen.karte_darf", { liste: liste.format(gezeigt) });
+  };
+
+  return (
+    <ul className={r.karten} aria-label={t("rollen.karten")}>
+      {rollen.map((rolle) => {
+        const eintraege = eintraegeVon(rolle);
+        const neu = entwurf[rolle.id];
+        const imEntwurf = neu !== undefined && !gleicheEintraege(neu, rolle.permissions);
+        const fehlt = !rolle.is_system && luecke(eintraege, bekannte, braucht) !== null;
+        return (
+          <li key={rolle.id} className={r.karte} data-geaendert={imEntwurf || undefined}>
+            <div className={r.karteKopf}>
+              <h3 className={r.karteName}>
+                {rolle.is_system && (
+                  <Tooltip label={t("rollen.system")}>
+                    <Lock className={r.karteSymbol} aria-label={t("rollen.system")} />
+                  </Tooltip>
+                )}
+                {rolle.name}
+              </h3>
+              <span className={r.karteZahl}>
+                {t("rollen.personen", {
+                  count: rolle.user_count,
+                  anzahl: formatZahl(rolle.user_count),
+                })}
+              </span>
+            </div>
+            <p className={r.karteSatz}>{satz(rolle, eintraege, imEntwurf)}</p>
+            {imEntwurf && <p className={r.karteHinweis}>{t("rollen.karte_entwurf")}</p>}
+            {fehlt && (
+              <p className={r.karteWarnung}>
+                <TriangleAlert className={r.symbol} aria-hidden />
+                {t("rollen.karte_luecke")}
+              </p>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -594,7 +717,7 @@ function RollenKopf({ rolle }: { rolle: Rolle }) {
           </Menu>
         )}
       </span>
-      <small className="num">
+      <small>
         {t("rollen.personen", { count: rolle.user_count, anzahl: formatZahl(rolle.user_count) })}
       </small>
 

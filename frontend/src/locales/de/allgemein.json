@@ -28,7 +28,7 @@
     },
     "verboten": {
       "titel": "Dafür fehlt deiner Rolle ein Recht",
-      "text": "Diese Daten darf deine Rolle nicht ansehen. Die Turnierleitung kann das Recht unter System → Personen & Rollen ergänzen; welches fehlt, steht unten."
+      "text": "Diese Daten darf deine Rolle nicht ansehen. Die Turnierleitung kann das Recht unter System → Benutzer & Rollen ergänzen; welches fehlt, steht unten."
     },
     "konflikt": {
       "titel": "Das geht gerade nicht",

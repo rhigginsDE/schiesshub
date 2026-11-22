@@ -48,3 +48,161 @@
   flex: 1 1 260px;
   min-width: 0;
 }
+
+/* ---------- Rollen als Karten: Name, Zahl der Benutzer, ein Satz Klartext ---------- */
+.karten {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.karte {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-bg);
+}
+
+.karte[data-geaendert] {
+  border-color: var(--sh-akzent);
+}
+
+.karteKopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 12px;
+}
+
+.karteName {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font: 600 16px / 1.3 var(--sh-font-text);
+  overflow-wrap: anywhere;
+}
+
+.karteSymbol {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--sh-text-gedaempft);
+}
+
+.karteZahl {
+  font-size: var(--sh-fz-klein);
+  color: var(--sh-text-gedaempft);
+}
+
+.karteSatz {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.karteHinweis {
+  margin: 0;
+  font-size: var(--sh-fz-klein);
+  color: var(--sh-text-gedaempft);
+}
+
+.karteWarnung {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--sh-fz-klein);
+  color: var(--sh-warn);
+}
+
+.karteWarnung .symbol {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+}
+
+/* ---------- „Erweitert“: die volle Rechte-Matrix, zugeklappt ---------- */
+.erweitert {
+  min-width: 0;
+  margin-top: 16px;
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-m);
+}
+
+.erweitert > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 10px 16px;
+  cursor: pointer;
+  list-style: none;
+  border-radius: var(--sh-radius-m);
+}
+
+.erweitert > summary::-webkit-details-marker {
+  display: none;
+}
+
+.erweitert > summary:hover {
+  background: var(--sh-flaeche-2);
+}
+
+.erweitertPfeil {
+  flex: none;
+  color: var(--sh-text-gedaempft);
+  transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.erweitert[open] .erweitertPfeil {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .erweitertPfeil {
+    transition: none;
+  }
+}
+
+.erweitertText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.erweitertText strong {
+  font-weight: 600;
+}
+
+.erweitertText span {
+  font-size: var(--sh-fz-klein);
+  color: var(--sh-text-gedaempft);
+}
+
+.erweitertInhalt {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 4px 16px 16px;
+}
+
+/* Die Matrix nutzt die volle Breite des Abschnitts; ihr Rahmen fällt mit dem Rand zusammen. */
+.matrixBreit {
+  min-width: 0;
+  margin-inline: -17px;
+}
+
+@media (max-width: 760px) {
+  .erweitertInhalt {
+    padding: 4px 12px 12px;
+  }
+}

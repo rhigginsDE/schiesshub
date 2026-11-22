@@ -4,6 +4,7 @@ import { kopplungsAdresse } from "./Geraete";
 import { detailsText } from "./Protokoll";
 import {
   fehlendeVoraussetzungen,
+  festeBeschreibung,
   gleicheEintraege,
   gruppieren,
   hinzufuegen,
@@ -14,6 +15,7 @@ import {
   ueberMuster,
   umschalten,
   voraussetzungen,
+  zusammenfassen,
 } from "./rollenMatrix";
 
 const bekannte = ["person.delete", "person.edit", "person.read", "club.edit", "backup.read"];
@@ -207,5 +209,62 @@ describe("taugtAlsStandardrolle", () => {
     expect(taugtAlsStandardrolle({ is_system: false, permissions: ["backup.*"] })).toBe(false);
     expect(taugtAlsStandardrolle({ is_system: false, permissions: ["display.read"] })).toBe(true);
     expect(taugtAlsStandardrolle({ is_system: false, permissions: ["backup.read"] })).toBe(true);
+  });
+});
+
+describe("Rollen als Karten", () => {
+  const alle = ["start.abort", "start.call", "start.read", "tournament.read", "result.read"];
+  const rolle = (name: string, starter_key: string | null, customized = false) => ({
+    name,
+    starter_key,
+    customized,
+    is_system: false,
+  });
+
+  it("fester Satz für unveränderte Startrollen und den Administrator", () => {
+    expect(festeBeschreibung({ ...rolle("Admin", null), is_system: true }, [], alle, false)).toBe(
+      "administrator",
+    );
+    expect(festeBeschreibung(rolle("Kasse", "Kasse"), [], alle, false)).toBe("kasse");
+    // Umbenannt, aber unverändert: der Satz bleibt.
+    expect(festeBeschreibung(rolle("Kasse Halle", "Kasse"), [], alle, false)).toBe("kasse");
+  });
+
+  it("kein fester Satz, sobald die Rechte geändert sind, auch im Entwurf", () => {
+    expect(festeBeschreibung(rolle("Kasse", "Kasse", true), [], alle, false)).toBeNull();
+    expect(festeBeschreibung(rolle("Kasse", "Kasse"), [], alle, true)).toBeNull();
+  });
+
+  it("Standaufsicht nur, wenn die Rechte zum Satz passen", () => {
+    const stand = rolle("Standaufsicht", null, true);
+    expect(festeBeschreibung(stand, ["start.call", "start.read"], alle, false)).toBe(
+      "standaufsicht",
+    );
+    expect(festeBeschreibung(stand, ["start.*", "result.read"], alle, false)).toBeNull();
+    expect(festeBeschreibung(stand, ["start.read"], alle, false)).toBeNull();
+  });
+
+  it("fasst nach Bereichen zusammen, „ansehen“ nur, wenn sonst nichts erlaubt ist", () => {
+    const gruppen = [
+      {
+        modul: "starts",
+        titel: "Starts",
+        berechtigungen: ["start.abort", "start.call", "start.read"],
+      },
+      {
+        modul: "turnier",
+        titel: "Turnier",
+        berechtigungen: ["tournament.edit", "tournament.read"],
+      },
+      { modul: "teilnehmer", titel: "Teilnehmer", berechtigungen: ["person.edit", "person.read"] },
+    ];
+    expect(
+      zusammenfassen(["start.call", "start.read", "tournament.read", "person.*"], gruppen),
+    ).toEqual([
+      { art: "recht", recht: "start.call" },
+      { art: "recht", recht: "tournament.read" },
+      { art: "bereich", titel: "Teilnehmer" },
+    ]);
+    expect(zusammenfassen([], gruppen)).toEqual([]);
   });
 });
