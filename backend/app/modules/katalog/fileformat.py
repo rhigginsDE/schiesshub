@@ -4,6 +4,7 @@ Die Modelle sind bewusst streng: unbekannte Felder sind Fehler, Typen werden nic
 (eine Kennziffer muss Text sein). Feldnamen entsprechen den deutschen Schlüsseln der Dateien.
 """
 
+import itertools
 from datetime import date
 from typing import Annotated, Literal, Self
 
@@ -222,11 +223,12 @@ class Abschnitt(StrictModel):
             )
         if self.trefferaufnahme_nach is not None:
             werte = self.trefferaufnahme_nach
-            if any(a >= b for a, b in zip(werte, werte[1:], strict=False)):
+            if any(a >= b for a, b in itertools.pairwise(werte)):
                 raise ValueError("trefferaufnahme_nach muss aufsteigend sein, ohne Wiederholung")
             if werte and werte[-1] > self.serien:
                 raise ValueError(
-                    f"trefferaufnahme_nach nennt Serie {werte[-1]}, es gibt nur {self.serien} Serien"
+                    f"trefferaufnahme_nach nennt Serie {werte[-1]}, "
+                    f"es gibt nur {self.serien} Serien"
                 )
         return self
 

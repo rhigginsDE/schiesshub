@@ -1,0 +1,530 @@
+/* Ablauf am Stand. Seiten-Layout: nur die Seite scrollt, kein Bereich hat einen eigenen Scrollbalken. */
+.seite,
+.ablauf {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+
+/* ---------- Kopf ---------- */
+.kopf {
+  gap: 12px;
+}
+
+.kopfZeile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  min-width: 0;
+}
+
+.titel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.symbol {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text-weich);
+  font-size: 20px;
+}
+
+.standSelect {
+  min-width: 220px;
+}
+
+/* ---------- Stand wählen ---------- */
+.standAuswahl {
+  max-width: 880px;
+}
+
+.standListe {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.standKnopf {
+  width: 100%;
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-bg);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.standKnopf:hover {
+  border-color: var(--sh-linie-stark);
+  background: var(--sh-flaeche-2);
+}
+
+.standKnopf > span {
+  display: grid;
+  gap: 2px;
+}
+
+.standKnopf strong {
+  font-size: 17px;
+}
+
+.pfeil {
+  color: var(--sh-text-gedaempft);
+}
+
+/* ---------- Hauptaktion ---------- */
+.haupt {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  justify-content: flex-end;
+}
+
+.hauptZeit {
+  margin-left: 10px;
+  opacity: 0.85;
+}
+
+/* ---------- Bahnkacheln ---------- */
+.bahnen {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+/* Wenige Bahnen: Kacheln füllen die Breite, statt links zu kleben. */
+.bahnen[data-anzahl="1"],
+.bahnen[data-anzahl="2"],
+.bahnen[data-anzahl="3"],
+.bahnen[data-anzahl="4"] {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.bahn {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 200px;
+  padding: 16px;
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-bg);
+  min-width: 0;
+}
+
+.bahn[data-belegt="ja"] {
+  border-color: var(--sh-akzent);
+  border-left-width: 4px;
+}
+
+.bahn[data-belegt="nein"] {
+  border-style: dashed;
+}
+
+.bahnKopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bahnTitel {
+  font: italic 700 20px / 1.2 var(--sh-font-display);
+}
+
+.bahnStart {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+}
+
+.bahnNummer {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.bahnWer {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bahnWer strong {
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+
+[data-ohne-name] {
+  font-style: italic;
+  font-weight: 500;
+  color: var(--sh-text-gedaempft);
+}
+
+.bahnWas {
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
+}
+
+.bahnZeit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.bahnAktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.bahnFrei {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  min-height: 110px;
+}
+
+.gefahr {
+  color: var(--sh-krit);
+}
+
+/* ---------- Unterer Teil: Reihenfolge und Durchgänge ---------- */
+.unten {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+  min-width: 0;
+}
+
+@media (min-width: 1400px) {
+  .unten[data-beide] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/* ---------- Als Nächstes ---------- */
+.warteliste {
+  display: grid;
+}
+
+.warteZeile {
+  display: grid;
+  grid-template-columns: 28px 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--sh-linie);
+  min-width: 0;
+}
+
+.warteZeile:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.wartePlatz {
+  color: var(--sh-text-gedaempft);
+  font-size: 14px;
+  text-align: right;
+}
+
+.warteNummer {
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  padding: 4px 6px;
+  border-radius: var(--sh-radius-s);
+  background: var(--sh-flaeche-2);
+}
+
+.warteWer {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  min-width: 0;
+}
+
+.warteWer > span {
+  font-size: 13px;
+}
+
+.warteAktionen {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+/* ---------- Durchgänge ---------- */
+.zeitplan {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.abschnittWerkzeug {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+}
+
+.durchgaenge {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.unten[data-beide] .durchgaenge {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.durchgang {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-bg);
+  min-width: 0;
+}
+
+.durchgangKopf {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.durchgangTitel {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.durchgangTitel .gedaempft {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.durchgangAktionen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.durchgangBahnen,
+.ohnePlatzListe {
+  display: grid;
+  gap: 6px;
+}
+
+.platz {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 48px;
+  padding: 4px 0 4px 10px;
+  border-left: 3px solid var(--sh-linie);
+}
+
+.platz:not([data-frei]) {
+  border-left-color: var(--sh-akzent);
+}
+
+.platz[data-frei] {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+
+.platzBahn {
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
+.platzWer {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.platzWer strong {
+  overflow-wrap: anywhere;
+}
+
+.platzWer > span {
+  font-size: 13px;
+}
+
+.ohnePlatz {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+/* ---------- Dialoge ---------- */
+.dialog {
+  display: grid;
+  gap: 14px;
+}
+
+.dialogZeile {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+.dialogKnoepfe {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ---------- Startliste ---------- */
+.filter {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 320px));
+  gap: 12px;
+}
+
+.tabelle {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tabelle th {
+  text-align: left;
+  font: 600 11px / 1.2 var(--sh-font-text);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sh-text-gedaempft);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--sh-linie);
+}
+
+.tabelle td {
+  padding: 10px;
+  border-bottom: 1px solid var(--sh-linie);
+  vertical-align: middle;
+}
+
+.tabelle .rechts {
+  text-align: right;
+}
+
+.zelleNr {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.nameInhalt {
+  display: grid;
+  gap: 1px;
+}
+
+/* Schmal: jede Zeile wird eine Karte, damit nichts seitlich scrollt. */
+@media (max-width: 900px) {
+  .tabelle thead {
+    display: none;
+  }
+
+  .tabelle,
+  .tabelle tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  .tabelle tr {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 4px 12px;
+    padding: 12px;
+    border: 1px solid var(--sh-linie);
+    border-radius: var(--sh-radius-m);
+    background: var(--sh-bg);
+  }
+
+  .tabelle td {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr);
+    justify-items: start;
+    gap: 8px;
+    grid-column: 1 / -1;
+    padding: 0;
+    border: 0;
+    text-align: left;
+  }
+
+  .tabelle td::before {
+    content: attr(data-label);
+    font: 600 11px / 1.6 var(--sh-font-text);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sh-text-gedaempft);
+  }
+
+  .tabelle .rechts {
+    text-align: left;
+  }
+
+  .tabelle td.zelleNr,
+  .tabelle td.zelleName {
+    grid-column: auto;
+    grid-template-columns: none;
+  }
+
+  .tabelle td.zelleNr::before,
+  .tabelle td.zelleName::before {
+    content: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .warteZeile {
+    grid-template-columns: 24px 52px minmax(0, 1fr);
+  }
+
+  .warteAktionen {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .bahnNummer {
+    font-size: 38px;
+  }
+
+  .standSelect {
+    min-width: 0;
+    width: 100%;
+  }
+}

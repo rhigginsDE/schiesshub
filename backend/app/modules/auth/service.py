@@ -95,7 +95,7 @@ async def remove_expired(session: AsyncSession) -> None:
 
 async def on_startup(app: FastAPI) -> None:
     if not hasattr(app.state, "auth_settings"):
-        app.state.auth_settings = AuthSettings()
+        app.state.auth_settings = AuthSettings.from_settings(app.state.settings)
     settings: AuthSettings = app.state.auth_settings
     async with app.state.session_factory() as session, session.begin():
         await seed_roles(session)

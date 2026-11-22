@@ -28,6 +28,7 @@ async def test_create_with_defaults(api: Api) -> None:
         "default_multi_start_rule": "best",
         "default_changeover_minutes": 5,
         "default_capture_mode": "series",
+        "first_start_number": 1,
         "display": {},
     }
     assert [event.name for event in api.drain()] == ["tournament.created"]
@@ -117,8 +118,11 @@ async def test_unknown_settings_key_is_rejected(api: Api) -> None:
 
     assert create.status_code == 422
     assert update.status_code == 422
-    assert create.json()["detail"][0]["loc"] == ["body", "settings", "startgeld"]
-    assert update.json()["detail"][0]["loc"] == ["body", "settings", "farbe"]
+    assert create.json() == {
+        "detail": "Unbekanntes Feld ‚settings.startgeld‘.",
+        "errors": [{"field": "settings.startgeld", "message": "unbekanntes Feld"}],
+    }
+    assert update.json()["errors"] == [{"field": "settings.farbe", "message": "unbekanntes Feld"}]
 
 
 @pytest.mark.parametrize(

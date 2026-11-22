@@ -3,6 +3,7 @@ import { UserPlus } from "lucide-react";
 import type { ModulManifest } from "../../app/modul";
 import { rootRoute } from "../../app/rootRoute";
 import { AnmeldungSeite } from "./AnmeldungSeite";
+import { startsEreignisse } from "./api";
 
 export const ANMELDUNG_ID = "anmeldung";
 const PFAD = "/anmeldung";
@@ -19,4 +20,5 @@ export const anmeldung: ModulManifest = {
   navigation: { art: "station", pfad: PFAD, icon: UserPlus, reihenfolge: 10 },
   berechtigung: "anmeldung.nutzen",
   routen: [route],
+  ereignisse: startsEreignisse,
 };

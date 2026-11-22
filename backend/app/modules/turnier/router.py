@@ -3,13 +3,16 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, Path, Request, Response, status
 
 from app.core.db import SessionDep
 from app.core.events import EventHubDep
 from app.core.security import Actor, require
-from app.modules.turnier import service
+from app.modules.turnier import announcement, service
 from app.modules.turnier.schemas import (
+    Announcement,
+    AnnouncementDocument,
+    CatalogDiffOut,
     ClassCreate,
     ClassImport,
     ClassOut,
@@ -22,6 +25,7 @@ from app.modules.turnier.schemas import (
     RangeCreate,
     RangeOut,
     RangeUpdate,
+    RevisionOut,
     StatusChange,
     TournamentCreate,
     TournamentOut,
@@ -48,6 +52,7 @@ TOURNAMENT = "/{tournament_id}"
 RANGES = "/{tournament_id}/ranges"
 CLASSES = "/{tournament_id}/classes"
 COMPETITIONS = "/{tournament_id}/competitions"
+COMPETITION = "/{tournament_id}/competitions/{competition_id}"
 
 
 def _competition(item: object) -> CompetitionOut:
@@ -141,6 +146,48 @@ async def get_overview(tournament_id: UUID, session: SessionDep, _: Reader) -> T
             "competitions": [_competition(item) for item in competitions],
         }
     )
+
+
+# --- Ausschreibung ------------------------------------------------------------
+
+
+@router.get(f"{TOURNAMENT}/announcement", summary="Ausschreibung", responses=NOT_FOUND)
+async def get_announcement(tournament_id: UUID, session: SessionDep, _: Reader) -> Announcement:
+    return await announcement.get_announcement(session, tournament_id)
+
+
+@router.put(
+    f"{TOURNAMENT}/announcement",
+    summary="Ausschreibung speichern",
+    description=(
+        "Ersetzt die Ausschreibung als Ganzes. Auch im laufenden Turnier änderbar, nicht mehr "
+        "nach dem Abschluss. Texte sind reiner Text (Absätze mit Leerzeilen), kein HTML."
+    ),
+    responses=WRITE,
+)
+async def put_announcement(
+    tournament_id: UUID,
+    data: Announcement,
+    session: SessionDep,
+    events: EventHubDep,
+    _: Editor,
+) -> Announcement:
+    return await announcement.put_announcement(session, events, tournament_id, data)
+
+
+@router.get(
+    f"{TOURNAMENT}/announcement/document",
+    summary="Ausschreibung zum Drucken",
+    description=(
+        "Sichtbare Bausteine in ihrer Reihenfolge; automatische Bausteine bringen die aktuellen "
+        "Turnierdaten mit. Enthält keine Teilnehmerdaten."
+    ),
+    responses=NOT_FOUND,
+)
+async def get_announcement_document(
+    tournament_id: UUID, session: SessionDep, _: Reader
+) -> AnnouncementDocument:
+    return await announcement.build_document(session, tournament_id)
 
 
 # --- Stand -------------------------------------------------------------------
@@ -316,9 +363,11 @@ async def create_competition(
     data: CompetitionCreate,
     session: SessionDep,
     events: EventHubDep,
-    _: Editor,
+    actor: Editor,
 ) -> CompetitionOut:
-    return _competition(await service.create_competition(session, events, tournament_id, data))
+    return _competition(
+        await service.create_competition(session, events, tournament_id, data, actor)
+    )
 
 
 @router.put(
@@ -349,6 +398,13 @@ async def get_competition(
 @router.patch(
     f"{COMPETITIONS}/{{competition_id}}",
     summary="Wettbewerb ändern",
+    description=(
+        "Änderungen an den wertungsrelevanten Feldern (`definition`, `capture_mode`, "
+        "`multi_start`, `max_starts`, `multi_start_rule`, `combined_ranking`) legen eine neue "
+        "Revision an und melden `competition.definition_changed`. Sie sind auch im laufenden "
+        "Turnier erlaubt, verlangen dann aber `reason`. `definition` wird als Ganzes ersetzt; "
+        "ein weggelassenes optionales Feld ist danach entfernt."
+    ),
     responses=WRITE,
     **COMPETITION_RESPONSE,
 )
@@ -358,10 +414,12 @@ async def update_competition(
     data: CompetitionUpdate,
     session: SessionDep,
     events: EventHubDep,
-    _: Editor,
+    actor: Editor,
 ) -> CompetitionOut:
     return _competition(
-        await service.update_competition(session, events, tournament_id, competition_id, data)
+        await service.update_competition(
+            session, events, tournament_id, competition_id, data, actor
+        )
     )
 
 
@@ -376,13 +434,62 @@ async def reset_definition(
     competition_id: UUID,
     session: SessionDep,
     events: EventHubDep,
-    _: Editor,
+    actor: Editor,
     data: DefinitionReset | None = None,
 ) -> CompetitionOut:
-    variant_id = data.variant_id if data is not None else None
+    data = data or DefinitionReset()
     return _competition(
-        await service.reset_definition(session, events, tournament_id, competition_id, variant_id)
+        await service.reset_definition(
+            session, events, tournament_id, competition_id, data.variant_id, actor, data.reason
+        )
     )
+
+
+@router.get(
+    f"{COMPETITION}/revisions",
+    summary="Revisionen der Wertung",
+    description="Alle Stände der wertungsrelevanten Felder, die älteste zuerst.",
+    responses=NOT_FOUND,
+    **COMPETITION_RESPONSE,
+)
+async def list_revisions(
+    tournament_id: UUID, competition_id: UUID, session: SessionDep, _: Reader
+) -> list[RevisionOut]:
+    items = await service.list_revisions(session, tournament_id, competition_id)
+    return [RevisionOut.model_validate(item) for item in items]
+
+
+@router.get(
+    f"{COMPETITION}/revisions/{{revision}}",
+    summary="Eine Revision der Wertung",
+    responses=NOT_FOUND,
+    **COMPETITION_RESPONSE,
+)
+async def get_revision(
+    tournament_id: UUID,
+    competition_id: UUID,
+    revision: Annotated[int, Path(ge=1)],
+    session: SessionDep,
+    _: Reader,
+) -> RevisionOut:
+    item = await service.get_revision(session, tournament_id, competition_id, revision)
+    return RevisionOut.model_validate(item)
+
+
+@router.get(
+    f"{COMPETITION}/catalog-diff",
+    summary="Abweichungen vom Katalog",
+    description=(
+        "Vergleicht die aktuelle Definition mit der Katalog-Variante, aus der sie stammt "
+        "(aktueller Katalogstand). `deviates` kennzeichnet „abweichend vom Sporthandbuch“. "
+        "Ohne Katalogherkunft ist die Liste leer."
+    ),
+    responses=NOT_FOUND,
+)
+async def get_catalog_diff(
+    tournament_id: UUID, competition_id: UUID, session: SessionDep, _: Reader
+) -> CatalogDiffOut:
+    return await service.get_catalog_diff(session, tournament_id, competition_id)
 
 
 @router.delete(

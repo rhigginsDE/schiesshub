@@ -1,0 +1,486 @@
+"""HTTP-Schnittstelle des Moduls `starts`: Anmeldung, Starts, Ablauf am Stand, Sichten."""
+
+from datetime import UTC, datetime
+from typing import Annotated
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Query, Response, status
+from pydantic import AwareDatetime
+
+from app.core.db import SessionDep
+from app.core.events import EventHubDep
+from app.core.security import Actor, require
+from app.modules.starts import queue, schedule, service, views
+from app.modules.starts.schemas import (
+    AbortRequest,
+    CallRequest,
+    EntryCreate,
+    EntryOut,
+    EntryUpdate,
+    HeatCreate,
+    HeatOut,
+    HeatSeries,
+    HeatUpdate,
+    MoveRequest,
+    NextSlotOut,
+    QueueOut,
+    RangeNowOut,
+    ReturnRequest,
+    SlotRequest,
+    StartBooking,
+    StartOut,
+    StationStartOut,
+)
+from app.modules.teilnehmer.router import IndexDep
+
+PERMISSION_ENTRY_READ = "entry.read"
+PERMISSION_ENTRY_EDIT = "entry.edit"
+PERMISSION_START_READ = "start.read"
+PERMISSION_START_EDIT = "start.edit"
+PERMISSION_START_CALL = "start.call"
+
+EntryReader = Annotated[Actor, Depends(require(PERMISSION_ENTRY_READ))]
+EntryEditor = Annotated[Actor, Depends(require(PERMISSION_ENTRY_EDIT))]
+StartReader = Annotated[Actor, Depends(require(PERMISSION_START_READ))]
+StartEditor = Annotated[Actor, Depends(require(PERMISSION_START_EDIT))]
+Caller = Annotated[Actor, Depends(require(PERMISSION_START_CALL))]
+
+router = APIRouter(prefix="/tournaments/{tournament_id}", tags=["starts"])
+
+NOT_FOUND = {status.HTTP_404_NOT_FOUND: {"description": "Nicht gefunden"}}
+CONFLICT = {status.HTTP_409_CONFLICT: {"description": "Im aktuellen Zustand nicht möglich"}}
+WRITE = {**NOT_FOUND, **CONFLICT}
+
+ENTRIES = "/entries"
+ENTRY = "/entries/{entry_id}"
+START = "/starts/{start_id}"
+RANGE = "/ranges/{range_id}"
+HEATS = "/ranges/{range_id}/heats"
+HEAT = "/ranges/{range_id}/heats/{heat_id}"
+
+
+def _start(item: object) -> StartOut:
+    return StartOut.model_validate(item)
+
+
+# --- Anmeldung ---------------------------------------------------------------
+
+
+@router.get(
+    ENTRIES,
+    summary="Anmeldungen",
+    description=(
+        "Nach Startnummer sortiert. Mit `q`: Treffer der Startnummer (genau) zuerst, dann "
+        "Treffer in Name, Mitgliedsnummer oder Verein."
+    ),
+    responses=NOT_FOUND,
+)
+async def list_entries(
+    tournament_id: UUID,
+    session: SessionDep,
+    index: IndexDep,
+    _: EntryReader,
+    q: Annotated[str | None, Query(max_length=200)] = None,
+    class_id: UUID | None = None,
+) -> list[EntryOut]:
+    return await service.list_entries(session, index, tournament_id, q, class_id)
+
+
+@router.post(
+    ENTRIES,
+    summary="Person anmelden",
+    description=(
+        "Ohne `start_number` vergibt der Server die nächste freie Nummer ab "
+        "`settings.first_start_number` des Turniers."
+    ),
+    status_code=status.HTTP_201_CREATED,
+    responses=WRITE,
+)
+async def create_entry(
+    tournament_id: UUID,
+    data: EntryCreate,
+    session: SessionDep,
+    events: EventHubDep,
+    actor: EntryEditor,
+) -> EntryOut:
+    return await service.create_entry(session, events, actor, tournament_id, data)
+
+
+@router.get(ENTRY, summary="Anmeldung mit Starts und Summe", responses=NOT_FOUND)
+async def get_entry(
+    tournament_id: UUID, entry_id: UUID, session: SessionDep, _: EntryReader
+) -> EntryOut:
+    return await service.get_entry_out(session, tournament_id, entry_id)
+
+
+@router.patch(ENTRY, summary="Anmeldung ändern (Klasse, Startnummer)", responses=WRITE)
+async def update_entry(
+    tournament_id: UUID,
+    entry_id: UUID,
+    data: EntryUpdate,
+    session: SessionDep,
+    events: EventHubDep,
+    actor: EntryEditor,
+) -> EntryOut:
+    return await service.update_entry(session, events, actor, tournament_id, entry_id, data)
+
+
+@router.delete(
+    ENTRY,
+    summary="Anmeldung löschen",
+    description="Nur solange kein Start geschossen wurde oder gerade aufgerufen ist.",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=WRITE,
+)
+async def delete_entry(
+    tournament_id: UUID,
+    entry_id: UUID,
+    session: SessionDep,
+    events: EventHubDep,
+    actor: EntryEditor,
+) -> Response:
+    await service.delete_entry(session, events, actor, tournament_id, entry_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# --- Starts ------------------------------------------------------------------
+
+
+@router.post(
+    f"{ENTRY}/starts",
+    summary="Starts buchen",
+    description=(
+        "Bucht `count` Starts im Wettbewerb. Der Betrag (`fee_first_cents` für den ersten Start "
+        "der Person im Wettbewerb, sonst `fee_repeat_cents`) wird am Start festgeschrieben. Bei "
+        "Zeitplan optional gleich mit `heat_id` (und `lane`)."
+    ),
+    status_code=status.HTTP_201_CREATED,
+    responses=WRITE,
+)
+async def book_starts(
+    tournament_id: UUID,
+    entry_id: UUID,
+    data: StartBooking,
+    session: SessionDep,
+    events: EventHubDep,
+    actor: StartEditor,
+) -> list[StartOut]:
+    starts = await service.book_starts(session, events, actor, tournament_id, entry_id, data)
+    return [_start(start) for start in starts]
+
+
+@router.delete(
+    START,
+    summary="Start stornieren (nur angemeldet)",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=WRITE,
+)
+async def cancel_start(
+    tournament_id: UUID,
+    start_id: UUID,
+    session: SessionDep,
+    events: EventHubDep,
+    actor: StartEditor,
+) -> Response:
+    await service.cancel_start(session, events, actor, tournament_id, start_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(f"{START}/abort", summary="Start abbrechen (dns, dnf, dsq)", responses=WRITE)
+async def abort_start(
+    tournament_id: UUID,
+    start_id: UUID,
+    data: AbortRequest,
+    session: SessionDep,
+    events: EventHubDep,
+    actor: Caller,
+) -> StartOut:
+    return _start(
+        await service.abort_start(
+            session, events, actor, tournament_id, start_id, data.abort_reason
+        )
+    )
+
+
+# --- Reihenfolge -------------------------------------------------------------
+
+
+@router.get(
+    f"{RANGE}/queue",
+    summary="Reihenfolge eines Stands",
+    description="Wartende Starts in ihrer Reihenfolge und die aufgerufenen Starts je Bahn.",
+    responses=NOT_FOUND,
+)
+async def get_queue(
+    tournament_id: UUID, range_id: UUID, session: SessionDep, _: StartReader
+) -> QueueOut:
+    return await views.queue_view(session, tournament_id, range_id)
+
+
+@router.post(
+    f"{START}/move",
+    summary="Start in der Reihenfolge verschieben",
+    responses=WRITE,
+)
+async def move_start(
+    tournament_id: UUID,
+    start_id: UUID,
+    data: MoveRequest,
+    session: SessionDep,
+    events: EventHubDep,
+    _: Caller,
+) -> QueueOut:
+    range_id = await queue.move(session, events, tournament_id, start_id, data)
+    return await views.queue_view(session, tournament_id, range_id)
+
+
+@router.post(
+    f"{START}/call",
+    summary="Start aufrufen",
+    description=(
+        "Reihenfolge: auf `lane` oder die erste freie Bahn. Zeitplan: auf die Bahn des "
+        "Durchgangs. Eine Bahn trägt nur einen aufgerufenen Start, eine Person steht nur auf "
+        "einer Bahn."
+    ),
+    responses=WRITE,
+)
+async def call_start(
+    tournament_id: UUID,
+    start_id: UUID,
+    session: SessionDep,
+    events: EventHubDep,
+    actor: Caller,
+    data: CallRequest | None = None,
+) -> StartOut:
+    lane = data.lane if data is not None else None
+    return _start(await queue.call(session, events, actor, tournament_id, start_id, lane))
+
+
+@router.post(
+    f"{START}/return",
+    summary="Aufgerufenen Start zurückstellen",
+    description=(
+        "Die Bahn wird frei. Bei der Reihenfolge kommt der Start vorn (`front`) oder hinten "
+        "(`back`) wieder in die Warteschlange; im Zeitplan behält er seinen Platz."
+    ),
+    responses=WRITE,
+)
+async def return_start(
+    tournament_id: UUID,
+    start_id: UUID,
+    session: SessionDep,
+    events: EventHubDep,
+    actor: Caller,
+    data: ReturnRequest | None = None,
+) -> StartOut:
+    position = (data or ReturnRequest()).position
+    return _start(
+        await queue.return_start(session, events, actor, tournament_id, start_id, position)
+    )
+
+
+@router.post(
+    f"{RANGE}/call-next",
+    summary="Nächste aufrufen",
+    description=(
+        "Füllt alle freien Bahnen des Stands der Reihe nach aus der Reihenfolge. Wer schon auf "
+        "einer Bahn steht, wird übersprungen. Antwort: die aufgerufenen Starts."
+    ),
+    responses=WRITE,
+)
+async def call_next(
+    tournament_id: UUID,
+    range_id: UUID,
+    session: SessionDep,
+    events: EventHubDep,
+    actor: Caller,
+) -> list[StartOut]:
+    starts = await queue.call_next(session, events, actor, tournament_id, range_id)
+    return [_start(start) for start in starts]
+
+
+# --- Zeitplan ----------------------------------------------------------------
+
+
+@router.get(HEATS, summary="Durchgänge eines Stands", responses=NOT_FOUND)
+async def list_heats(
+    tournament_id: UUID, range_id: UUID, session: SessionDep, _: StartReader
+) -> list[HeatOut]:
+    return await schedule.list_heats(session, tournament_id, range_id)
+
+
+@router.post(
+    HEATS, summary="Durchgang anlegen", status_code=status.HTTP_201_CREATED, responses=WRITE
+)
+async def create_heat(
+    tournament_id: UUID,
+    range_id: UUID,
+    data: HeatCreate,
+    session: SessionDep,
+    events: EventHubDep,
+    _: StartEditor,
+) -> HeatOut:
+    return await schedule.create_heat(session, events, tournament_id, range_id, data)
+
+
+@router.post(
+    f"{HEATS}/series",
+    summary="Durchgänge als Serie anlegen",
+    description=(
+        "`count` Durchgänge ab `starts_at`, lückenlos hintereinander, je `heat_minutes` des "
+        "Wettbewerbs lang (die Wechselzeit ist darin enthalten)."
+    ),
+    status_code=status.HTTP_201_CREATED,
+    responses=WRITE,
+)
+async def create_series(
+    tournament_id: UUID,
+    range_id: UUID,
+    data: HeatSeries,
+    session: SessionDep,
+    events: EventHubDep,
+    _: StartEditor,
+) -> list[HeatOut]:
+    return await schedule.create_series(session, events, tournament_id, range_id, data)
+
+
+@router.patch(HEAT, summary="Durchgang ändern", responses=WRITE)
+async def update_heat(
+    tournament_id: UUID,
+    range_id: UUID,
+    heat_id: UUID,
+    data: HeatUpdate,
+    session: SessionDep,
+    events: EventHubDep,
+    _: StartEditor,
+) -> HeatOut:
+    return await schedule.update_heat(session, events, tournament_id, range_id, heat_id, data)
+
+
+@router.delete(
+    HEAT,
+    summary="Durchgang löschen (nur ohne Starts)",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=WRITE,
+)
+async def delete_heat(
+    tournament_id: UUID,
+    range_id: UUID,
+    heat_id: UUID,
+    session: SessionDep,
+    events: EventHubDep,
+    actor: StartEditor,
+) -> Response:
+    await schedule.delete_heat(session, events, actor, tournament_id, range_id, heat_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    f"{HEAT}/call",
+    summary="Durchgang aufrufen",
+    description="Ruft alle wartenden Starts des Durchgangs auf ihre Bahnen – alle oder keinen.",
+    responses=WRITE,
+)
+async def call_heat(
+    tournament_id: UUID,
+    range_id: UUID,
+    heat_id: UUID,
+    session: SessionDep,
+    events: EventHubDep,
+    actor: Caller,
+) -> list[StartOut]:
+    starts = await schedule.call_heat(session, events, actor, tournament_id, range_id, heat_id)
+    return [_start(start) for start in starts]
+
+
+@router.put(
+    f"{START}/slot", summary="Start einem Durchgang und einer Bahn zuweisen", responses=WRITE
+)
+async def assign_slot(
+    tournament_id: UUID,
+    start_id: UUID,
+    data: SlotRequest,
+    session: SessionDep,
+    events: EventHubDep,
+    _: StartEditor,
+) -> StartOut:
+    return _start(
+        await schedule.assign_slot(
+            session, events, tournament_id, start_id, data.heat_id, data.lane
+        )
+    )
+
+
+@router.delete(f"{START}/slot", summary="Start aus dem Durchgang nehmen", responses=WRITE)
+async def clear_slot(
+    tournament_id: UUID,
+    start_id: UUID,
+    session: SessionDep,
+    events: EventHubDep,
+    _: StartEditor,
+) -> StartOut:
+    return _start(await schedule.clear_slot(session, events, tournament_id, start_id))
+
+
+@router.get(
+    "/competitions/{competition_id}/next-slot",
+    summary="Nächster freier Platz (Vorschlag)",
+    description=(
+        "Frühester Durchgang ab `after` (Standard: jetzt) mit freier Bahn auf dem Stand des "
+        "Wettbewerbs. Mit `entry_id` ohne Überschneidung mit den übrigen Durchgängen der Person. "
+        "`null`, wenn es keinen freien Platz gibt."
+    ),
+    responses=WRITE,
+)
+async def next_slot(
+    tournament_id: UUID,
+    competition_id: UUID,
+    session: SessionDep,
+    _: StartReader,
+    entry_id: UUID | None = None,
+    after: AwareDatetime | None = None,
+) -> NextSlotOut | None:
+    found = await schedule.next_slot(
+        session, tournament_id, competition_id, entry_id, after or datetime.now(UTC)
+    )
+    if found is None:
+        return None
+    heat, lane = found
+    return NextSlotOut(heat=heat, lane=lane)
+
+
+# --- Sichten -----------------------------------------------------------------
+
+
+@router.get(
+    "/startlist",
+    summary="Startliste",
+    description=(
+        "Alle Starts, wahlweise eines Wettbewerbs oder Stands. Namen nur nach der "
+        "Anzeige-Einstellung der Person, der Verein nur mit `show_club`."
+    ),
+    responses=NOT_FOUND,
+)
+async def get_startlist(
+    tournament_id: UUID,
+    session: SessionDep,
+    _: StartReader,
+    competition_id: UUID | None = None,
+    range_id: UUID | None = None,
+) -> list[StationStartOut]:
+    return await views.startlist(session, tournament_id, competition_id, range_id)
+
+
+@router.get(
+    f"{RANGE}/now",
+    summary="Am Stand und als Nächstes",
+    description=(
+        "Aufgerufene Starts je Bahn, der nächste Durchgang mit seinen Starts und die nächsten "
+        "Wartenden der Reihenfolge. Namen nur nach der Anzeige-Einstellung der Person."
+    ),
+    responses=NOT_FOUND,
+)
+async def get_range_now(
+    tournament_id: UUID, range_id: UUID, session: SessionDep, _: StartReader
+) -> RangeNowOut:
+    return await views.range_now(session, tournament_id, range_id)

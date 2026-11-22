@@ -1,4 +1,6 @@
-.seite {
+/* ---------- Seite ---------- */
+.seite,
+.seiteFluss {
   display: grid;
   gap: 16px;
   align-content: start;
@@ -6,8 +8,11 @@
 }
 
 .kopf {
-  gap: 12px;
-  padding: 24px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  min-width: 0;
 }
 
 .titel {
@@ -19,38 +24,688 @@
 .symbol {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--sh-radius-m);
   background: var(--sh-flaeche-2);
   color: var(--sh-text-weich);
-  font-size: 20px;
-}
-
-.zweck {
-  font-size: 17px;
-  max-width: 60ch;
-}
-
-.hinweis {
-  display: flex;
-  align-items: center;
-  gap: 8px 12px;
-  flex-wrap: wrap;
-  font-size: 14px;
+  font-size: 18px;
 }
 
 .bereiche {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.spalten {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 16px;
+  align-items: start;
+  min-width: 0;
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.suchPanel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.bestaetigt {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border-color: var(--sh-akzent);
+  background: var(--sh-akzent-flaeche);
+  padding: 14px 16px;
+}
+
+.bestaetigtSymbol {
+  font-size: 26px;
+  color: var(--sh-akzent-text);
+}
+
+.bestaetigtText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bestaetigtText strong {
+  font-size: 16px;
+}
+
+.bestaetigtText b {
+  font-size: 17px;
+}
+
+/* Treffer über die Startnummer, über der Personenliste */
+.nummernTreffer {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--sh-akzent);
+  border-radius: var(--sh-radius-s);
+  background: var(--sh-akzent-flaeche);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nummer {
+  display: grid;
+  place-items: center;
+  min-width: 48px;
+  height: 40px;
+  padding: 0 8px;
+  border-radius: var(--sh-radius-s);
+  background: var(--sh-flaeche-2);
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.nummernText {
+  display: grid;
+  min-width: 0;
+}
+
+.nummernText span {
+  font-size: 13px;
+}
+
+/* ---------- Formular ---------- */
+.formular {
+  gap: 18px;
+}
+
+.formKopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.person {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px 16px;
+  align-items: center;
+  padding: 14px 16px;
+}
+
+.nr {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  padding: 10px 14px;
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-flaeche-2);
+  min-width: 84px;
+}
+
+.nr b {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.wer {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.wer strong {
+  font: italic 700 22px / 1.15 var(--sh-font-display);
+  overflow-wrap: anywhere;
+}
+
+.fakten {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  font-size: 14px;
+  color: var(--sh-text-weich);
+}
+
+.fakten > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.felder {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 200px);
+  gap: 12px 16px;
+  align-items: start;
+}
+
+.nummernFeld {
+  min-width: 0;
+}
+
+/* ---------- Starts buchen ---------- */
+.buchen {
   display: grid;
   gap: 10px;
 }
 
-.bereiche h2 {
-  padding-left: 4px;
+.zeilen {
+  display: grid;
 }
 
-@media (max-width: 640px) {
-  .kopf {
-    padding: 18px;
+.zeile {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto minmax(120px, auto);
+  gap: 8px 16px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--sh-linie);
+}
+
+.zeile:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.kz {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--sh-text-weich);
+}
+
+.zeileName {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.zeileName strong {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.zeileName > span {
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
+.sperre {
+  color: var(--sh-warn);
+  font-size: 13px;
+}
+
+.menge {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+}
+
+.menge small,
+.preis small {
+  font-size: 12px;
+  color: var(--sh-text-gedaempft);
+  white-space: nowrap;
+}
+
+.preis {
+  display: grid;
+  gap: 2px;
+  text-align: right;
+}
+
+.preis b {
+  font-size: 16px;
+}
+
+.platz {
+  grid-column: 2 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  font-size: 14px;
+}
+
+.zeileFehler {
+  grid-column: 2 / -1;
+}
+
+/* ---------- Summe ---------- */
+.kasse {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px 24px;
+  align-items: end;
+  padding-top: 16px;
+  border-top: 1px solid var(--sh-linie);
+}
+
+.summe {
+  display: grid;
+  gap: 4px;
+}
+
+.summe b {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.summe span:last-child {
+  font-size: 13px;
+}
+
+.aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px 16px;
+}
+
+.tasten {
+  font-size: 12px;
+  color: var(--sh-text-gedaempft);
+}
+
+.tasten kbd {
+  font: 700 11px / 1 var(--sh-font-mono);
+  border: 1px solid var(--sh-linie);
+  border-radius: 4px;
+  padding: 3px 5px;
+}
+
+.teilweise {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--sh-warn);
+  font-size: 14px;
+}
+
+/* ---------- Gebuchte Starts ---------- */
+.gebucht {
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--sh-linie);
+}
+
+.startListe {
+  display: grid;
+}
+
+.startZeile {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto auto auto;
+  gap: 6px 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--sh-linie);
+}
+
+.startZeile:first-child {
+  border-top: 0;
+}
+
+.startText {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.startText strong {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.startText > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.startPreis {
+  text-align: right;
+}
+
+.stornoKnopf {
+  min-height: 40px;
+}
+
+.loeschenZeile {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.gefahr {
+  color: var(--sh-krit);
+}
+
+/* ---------- Platz wählen ---------- */
+.platzWahl {
+  display: grid;
+  gap: 12px;
+}
+
+.durchgaenge {
+  display: grid;
+  gap: 8px;
+}
+
+.durchgang {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 16px;
+  padding: 8px 0;
+  border-top: 1px solid var(--sh-linie);
+}
+
+.durchgang:first-child {
+  border-top: 0;
+}
+
+.durchgangZeit {
+  display: grid;
+}
+
+.durchgangZeit b {
+  font-size: 17px;
+}
+
+.durchgangZeit span {
+  font-size: 13px;
+}
+
+.bahnKnoepfe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bahnKnoepfe button {
+  min-width: 48px;
+}
+
+/* ---------- Rechts: Angemeldet ---------- */
+.rechts {
+  min-width: 0;
+}
+
+.kennzahlen {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.kennzahlen div {
+  display: grid;
+  gap: 4px;
+  padding: 0 14px;
+  border-left: 1px solid var(--sh-linie);
+  min-width: 0;
+}
+
+.kennzahlen div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.kennzahlen dd {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.listeInhalt {
+  min-height: 0;
+  /* Platz für den Fokusrahmen */
+  padding: 2px;
+  margin: -2px;
+}
+
+.skelett {
+  display: grid;
+  gap: 8px;
+}
+
+.anmeldungen {
+  display: grid;
+}
+
+.anmeldungZeile {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--sh-radius-s);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.anmeldungZeile:hover {
+  background: var(--sh-flaeche-2);
+}
+
+.anmeldungZeile[aria-current="true"] {
+  background: var(--sh-flaeche-2);
+  box-shadow: inset 3px 0 0 var(--sh-akzent);
+}
+
+.anmeldungText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.anmeldungText strong {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.anmeldungText > span {
+  font-size: 13px;
+}
+
+.startChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.anmeldungBetrag {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+/* ---------- Zustände der Zeilen (nach den Grundregeln, wegen der Spezifität) ---------- */
+.zeile:not([data-neu]) .preis b {
+  color: var(--sh-text-gedaempft);
+}
+
+.zeile[data-gesperrt] .kz,
+.zeile[data-gesperrt] .zeileName strong {
+  color: var(--sh-text-gedaempft);
+}
+
+/* ---------- Fenster-Layout (siehe frontend/README.md) ---------- */
+@media (min-width: 1101px) and (min-height: 560px) {
+  .seite {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .spalten {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+  }
+
+  .links {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sh-linie) transparent;
+    border-radius: var(--sh-radius-l);
+  }
+
+  .seite[data-auswahl="zu"] .links {
+    overflow: hidden;
+  }
+
+  .seite[data-auswahl="zu"] .suchPanel {
+    flex: 1 1 auto;
+  }
+
+  .seite[data-auswahl="zu"] .suchPanel > :last-child {
+    flex: 1 1 auto;
+  }
+
+  .rechts {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .listeInhalt {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sh-linie) transparent;
+  }
+}
+
+@media (max-width: 1100px) {
+  .spalten {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .zeile {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+  }
+
+  .preis {
+    grid-column: 2 / -1;
+    text-align: left;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .menge {
+    grid-row: span 1;
+  }
+
+  .platz,
+  .zeileFehler {
+    grid-column: 1 / -1;
+  }
+
+  .felder {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kasse {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .aktionen {
+    justify-content: stretch;
+  }
+
+  .aktionen button {
+    flex: 1 1 100%;
+  }
+
+  .tasten {
+    display: none;
+  }
+
+  .startZeile {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+  }
+
+  .startStatus {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  .startPreis {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .stornoKnopf {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .bereiche {
+    margin-left: 0;
+  }
+
+  .bestaetigt {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .bestaetigt > button {
+    grid-column: 2;
+    justify-self: end;
+    grid-row: 1;
+  }
+}
+
+@media (max-width: 420px) {
+  .kennzahlen {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 0;
+  }
+
+  .kennzahlen div:nth-child(3) {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .durchgang {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -35,18 +35,22 @@ FUTURE = ModuleManifest(
         "person.delete",
         "person.export",
         "club.edit",
-        "entry.create",
-        "entry.cancel",
+        "entry.read",
+        "entry.edit",
         "start.read",
+        "start.edit",
         "start.call",
         "result.capture",
         "result.read",
         "result.correct",
+        "display.read",
         "display.control",
         "export.read",
         "backup.read",
         "backup.manage",
         "role.manage",
+        # Gibt es in keinem echten Modul.
+        "zukunft.probe",
     ),
 )
 
@@ -60,37 +64,72 @@ def role_grants(role: str) -> set[str]:
     return set(permissions.expand(permissions.STARTER_ROLES[role]))
 
 
-@pytest.mark.usefixtures("future_modules")
+@pytest.fixture
+def fixed_catalogue(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Nur die Berechtigungen aus FUTURE: Die Zuordnung wird unabhängig davon geprüft, welche
+    Module es gerade gibt."""
+    monkeypatch.setattr(app.modules, "MODULES", [FUTURE])
+
+
+@pytest.mark.usefixtures("fixed_catalogue")
 def test_wildcard_mapping_of_starter_roles() -> None:
-    every = {item.permission for item in permissions.known_permissions()}
+    every = set(FUTURE.permissions)
 
     assert role_grants("Administrator") == every
     assert role_grants("Kasse") == {
+        "entry.read",
+        "entry.edit",
+        "start.read",
+        "start.edit",
         "person.read",
         "person.edit",
         "person.delete",
         "person.export",
-        "entry.create",
-        "entry.cancel",
-        "start.read",
-        "start.call",
         "club.edit",
         "tournament.read",
-        "export.read",
     }
     assert role_grants("Auswertung") == {
-        "result.capture",
         "result.read",
+        "result.capture",
         "start.read",
         "start.call",
-        "person.read",
+        "entry.read",
         "tournament.read",
-        "export.read",
     }
-    assert role_grants("Anzeige") == {"tournament.read", "start.read", "result.read"}
+    assert role_grants("Anzeige") == {
+        "display.read",
+        "start.read",
+        "result.read",
+        "tournament.read",
+    }
     turnier = role_grants("Turnierleitung")
-    assert {"tournament.reopen", "result.correct", "display.control", "backup.read"} <= turnier
-    assert not turnier & {"backup.manage", "role.manage", "user.manage", "system.manage"}
+    assert {
+        "tournament.reopen",
+        "entry.edit",
+        "start.call",
+        "result.correct",
+        "display.control",
+        "export.read",
+        "backup.read",
+    } <= turnier
+    assert not turnier & {"backup.manage", "role.manage"}
+
+
+def test_starter_roles_name_only_real_permissions() -> None:
+    """Ein genauer Eintrag (kein Muster) muss existieren, sobald sein Bereich existiert.
+
+    Fängt Tippfehler und veraltete Namen ab (z. B. `entry.create`), bricht aber nicht, wenn ein
+    Modul neue Berechtigungen mitbringt oder ein Bereich (noch) fehlt.
+    """
+    known = {item.permission for item in permissions.known_permissions()}
+    areas = {permission.split(".")[0] for permission in known}
+    for role, entries in permissions.STARTER_ROLES.items():
+        for entry in entries:
+            assert permissions.PERMISSION_PATTERN.match(entry), (role, entry)
+            if entry == "*" or entry.endswith(".*"):
+                continue
+            if entry.split(".")[0] in areas:
+                assert entry in known, f"{role}: {entry} gibt es nicht"
 
 
 def test_pattern_matching() -> None:
@@ -117,8 +156,8 @@ async def test_permissions_endpoint_lists_all_modules(make_app: AppFactory) -> N
         "module": "auth",
         "module_title": "Anmeldung und Rechte",
     }
-    assert by_name["result.correct"]["module"] == "zukunft"
-    assert "entry.create" in roles["Kasse"]["effective_permissions"]
+    assert by_name["zukunft.probe"]["module"] == "zukunft"
+    assert "entry.edit" in roles["Kasse"]["effective_permissions"]
     assert roles["Kasse"]["permissions"] == list(permissions.STARTER_ROLES["Kasse"])
     assert set(roles["Administrator"]["effective_permissions"]) == set(names)
 

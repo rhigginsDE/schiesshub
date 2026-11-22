@@ -6,12 +6,12 @@
 import { queryOptions } from "@tanstack/react-query";
 import {
   ApiFehler,
-  type ApiFehlerArt,
   apiDatei,
   apiGet,
+  apiGetMitKopf,
   apiSenden,
-  apiUrl,
   type Datei,
+  zahlAusKopf,
 } from "../../api/client";
 import type { components } from "../../api/schema.gen";
 
@@ -46,53 +46,15 @@ export interface Trefferliste {
   gesamt: number;
 }
 
-// Wie in api/client.ts; dort ist die Zuordnung nicht exportiert.
-function artAusStatus(status: number): ApiFehlerArt {
-  if (status === 401) return "nicht_angemeldet";
-  if (status === 403) return "verboten";
-  if (status === 404) return "nicht_gefunden";
-  if (status === 409) return "konflikt";
-  if (status === 429) return "gesperrt";
-  if (status === 502 || status === 503 || status === 504) return "netzwerk";
-  if (status >= 500) return "server";
-  return "anfrage";
-}
-
-/**
- * `GET /persons` mit Gesamtzahl aus dem Header `X-Total-Count`. `apiGet` liefert keine Header,
- * deshalb hier ein eigener kleiner Abruf auf Basis von `apiUrl`.
- */
+/** `GET /persons` mit Gesamtzahl aus dem Header `X-Total-Count`. */
 export async function personenSuchen(q: string, signal?: AbortSignal): Promise<Trefferliste> {
-  const pfad = "/persons";
-  let antwort: Response;
-  try {
-    antwort = await fetch(apiUrl(pfad, { q: q.trim(), limit: TREFFER_LIMIT }), {
-      headers: { Accept: "application/json" },
-      signal,
-    });
-  } catch (fehler) {
-    if (fehler instanceof DOMException && fehler.name === "AbortError") throw fehler;
-    throw new ApiFehler("netzwerk", pfad);
-  }
-  if (!antwort.ok) {
-    let detail: string | undefined;
-    try {
-      const inhalt = (await antwort.json()) as { detail?: unknown };
-      detail = typeof inhalt.detail === "string" ? inhalt.detail : undefined;
-    } catch {
-      detail = undefined;
-    }
-    throw new ApiFehler(artAusStatus(antwort.status), pfad, antwort.status, detail);
-  }
-  let personen: Person[];
-  try {
-    personen = (await antwort.json()) as Person[];
-  } catch {
-    throw new ApiFehler("format", pfad, antwort.status);
-  }
-  const kopf = antwort.headers.get("X-Total-Count");
-  const gesamt = kopf !== null && /^\d+$/.test(kopf) ? Number(kopf) : personen.length;
-  return { personen, gesamt };
+  // `still`: wie bisher meldet die Suche 401/403 nicht an die App-Shell; sie zeigt den Fehler selbst.
+  const { daten, kopf } = await apiGetMitKopf<Person[]>("/persons", {
+    parameter: { q: q.trim(), limit: TREFFER_LIMIT },
+    signal,
+    still: true,
+  });
+  return { personen: daten, gesamt: zahlAusKopf(kopf, "X-Total-Count") ?? daten.length };
 }
 
 export const personenAbfrage = (q: string) =>

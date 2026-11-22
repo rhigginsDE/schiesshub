@@ -67,6 +67,7 @@ async def test_from_catalog_precision_is_scheduled(api: Api) -> None:
             "federation": "bds",
             "code": "1001",
             "group": "kw-25m-praezision",
+            "variant_id": "standard",
             "catalog_stand": "2026-06-30",
         },
         "variant": PRAEZISION_VARIANT,
@@ -331,7 +332,15 @@ async def test_update_fields(api: Api) -> None:
     assert body["heat_minutes"] == 20
     assert body["fee_first_cents"] == 700
     assert (await api.client.get(url)).json() == body
-    assert [e.name for e in api.drain()] == ["competition.updated"]
+    # max_starts ist wertungsrelevant: neue Revision.
+    assert body["definition_revision"] == 2
+    assert [(e.name, e.data) for e in api.drain()] == [
+        ("competition.updated", {"tournament_id": tid, "competition_id": competition["id"]}),
+        (
+            "competition.definition_changed",
+            {"tournament_id": tid, "competition_id": competition["id"], "revision": 2},
+        ),
+    ]
 
     cleared = await api.client.patch(url, json={"range_id": None, "planning": "queue"})
     assert cleared.json()["range_id"] is None
@@ -387,6 +396,15 @@ async def test_reset_definition(api: Api) -> None:
     assert response.json()["definition"] == competition["definition"]
     # Nur die Definition wird zurückgesetzt.
     assert response.json()["heat_minutes"] == 30
+    assert response.json()["definition_revision"] == 3
+    assert [e.name for e in api.drain()] == [
+        "competition.updated",
+        "competition.definition_changed",
+    ]
+
+    # Ein zweites Zurücksetzen ändert nichts und legt keine Revision an.
+    again = await api.client.post(f"{url}/reset-definition")
+    assert again.json()["definition_revision"] == 3
     assert [e.name for e in api.drain()] == ["competition.updated"]
 
 

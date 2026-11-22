@@ -24,12 +24,13 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI
-from sqlalchemy import event, select
+from sqlalchemy import select
 
 from app import __version__
 from app.core.config import Settings
 from app.core.db import SessionFactory
 from app.core.events import EventHub
+from app.core.settings_store import get_setting, put_setting
 from app.modules.backup import archive, crypto, fsutil, journal, pgtools, usb
 from app.modules.backup.models import (
     KIND_JOURNAL,
@@ -49,7 +50,6 @@ from app.modules.backup.schemas import (
     VerifyOut,
     WarningOut,
 )
-from app.modules.backup.settings_store import get_setting, put_setting
 
 logger = logging.getLogger("schiesshub.backup")
 
@@ -213,6 +213,14 @@ class BackupService:
             self._task.cancel()
         self._usb_executor.shutdown(wait=False, cancel_futures=True)
         self._probe_executor.shutdown(wait=False, cancel_futures=True)
+
+    async def stop(self) -> None:
+        """Wie `request_stop`, wartet aber, bis der Hintergrund-Task wirklich beendet ist."""
+        task = self._task
+        self.request_stop()
+        if task is not None:
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
 
     def wake(self) -> None:
         self._wake.set()
@@ -938,7 +946,11 @@ def _rotate(directory: Path, suffix: str, keep: int) -> None:
 async def on_startup(app: FastAPI) -> None:
     service = BackupService(app.state.settings, app.state.session_factory, app.state.events)
     app.state.backup = service
-    # Der Kern kennt noch keinen Shutdown-Hook für Module. Die Anwendung gibt ihre Engine beim
-    # Beenden frei; daran hängt sich die Sicherung, um ihren Hintergrund-Task zu beenden.
-    event.listen(app.state.engine.sync_engine, "engine_disposed", lambda _: service.request_stop())
     await service.start()
+
+
+async def on_shutdown(app: FastAPI) -> None:
+    """Beendet den Hintergrund-Task, bevor der Kern die Datenbankverbindung schließt."""
+    service: BackupService | None = getattr(app.state, "backup", None)
+    if service is not None:
+        await service.stop()

@@ -25,6 +25,13 @@ export type ApiFehlerArt =
   | "server"
   | "format";
 
+/** Fehler eines einzelnen Eingabefelds, wie ihn der Server meldet. */
+export interface FeldFehler {
+  /** Feldpfad mit Punkten, z. B. `settings.currency` oder `definition.variant.abschnitte.0.serien`; leer = ganze Anfrage */
+  feld: string;
+  meldung: string;
+}
+
 export class ApiFehler extends Error {
   readonly art: ApiFehlerArt;
   readonly pfad: string;
@@ -33,6 +40,11 @@ export class ApiFehler extends Error {
   readonly detail?: string;
   /** Sekunden bis zum nächsten sinnvollen Versuch (Header `Retry-After`, z. B. bei 429). */
   readonly wiederholenNachSekunden?: number;
+  /**
+   * Feldgenaue Meldungen aus der Server-Antwort (`errors: [{field, message}]`, sonst die
+   * Standardliste von FastAPI in `detail`). Leer, wenn der Server keine geliefert hat.
+   */
+  readonly felder: readonly FeldFehler[];
 
   constructor(
     art: ApiFehlerArt,
@@ -40,6 +52,7 @@ export class ApiFehler extends Error {
     status?: number,
     detail?: string,
     wiederholenNachSekunden?: number,
+    felder: readonly FeldFehler[] = [],
   ) {
     super(
       `API-Fehler (${art}${status ? ` ${status}` : ""}) bei ${pfad}${detail ? `: ${detail}` : ""}`,
@@ -50,6 +63,7 @@ export class ApiFehler extends Error {
     this.status = status;
     this.detail = detail;
     this.wiederholenNachSekunden = wiederholenNachSekunden;
+    this.felder = felder;
   }
 }
 
@@ -88,13 +102,15 @@ function sekundenAus(antwort: Response): number | undefined {
 }
 
 async function fehlerAus(antwort: Response, pfad: string, optionen: AnfrageOptionen) {
+  const { detail, felder } = await inhaltAus(antwort);
   return melden(
     new ApiFehler(
       artAusStatus(antwort.status),
       pfad,
       antwort.status,
-      await detailAus(antwort),
+      detail,
       sekundenAus(antwort),
+      felder,
     ),
     optionen,
   );
@@ -122,7 +138,8 @@ export function apiUrl(pfad: string, parameter?: AbfrageParameter): string {
   return `${API_BASIS}${pfad}${anhang ? `?${anhang}` : ""}`;
 }
 
-function artAusStatus(status: number): ApiFehlerArt {
+/** Fehlerart zu einem HTTP-Status. */
+export function artAusStatus(status: number): ApiFehlerArt {
   if (status === 401) return "nicht_angemeldet";
   if (status === 403) return "verboten";
   if (status === 404) return "nicht_gefunden";
@@ -133,20 +150,62 @@ function artAusStatus(status: number): ApiFehlerArt {
   return "anfrage";
 }
 
-async function detailAus(antwort: Response): Promise<string | undefined> {
-  try {
-    const inhalt: unknown = await antwort.json();
-    if (inhalt && typeof inhalt === "object" && "detail" in inhalt) {
-      const { detail } = inhalt as { detail: unknown };
-      return typeof detail === "string" ? detail : JSON.stringify(detail);
-    }
-  } catch {
-    // Antwort ohne JSON-Inhalt: kein Detail
-  }
-  return undefined;
+/** Pfad aus FastAPI-`loc` ohne das führende `body`. */
+function pfadAusLoc(loc: unknown): string {
+  if (!Array.isArray(loc)) return "";
+  const teile = loc.map(String);
+  if (teile[0] === "body") teile.shift();
+  return teile.join(".");
 }
 
-export async function apiGet<T>(pfad: string, optionen: AnfrageOptionen = {}): Promise<T> {
+/**
+ * Feldfehler aus einer Fehlerantwort: bevorzugt `errors: [{field, message}]` (deutsch, siehe
+ * `backend/app/core/errors.py`), sonst die Standardliste von FastAPI in `detail` (`loc`, `msg`).
+ * `field` wie `abschnitte[0].serien` wird zu `abschnitte.0.serien`.
+ */
+export function feldFehlerAus(inhalt: unknown): FeldFehler[] {
+  if (!inhalt || typeof inhalt !== "object") return [];
+  const { detail, errors } = inhalt as { detail?: unknown; errors?: unknown };
+  const felder: FeldFehler[] = [];
+  if (Array.isArray(errors)) {
+    for (const eintrag of errors) {
+      if (!eintrag || typeof eintrag !== "object") continue;
+      const { field, message } = eintrag as { field?: unknown; message?: unknown };
+      if (typeof message !== "string") continue;
+      felder.push({
+        feld: typeof field === "string" ? field.replace(/\[(\d+)\]/g, ".$1") : "",
+        meldung: message,
+      });
+    }
+  } else if (Array.isArray(detail)) {
+    for (const eintrag of detail) {
+      if (!eintrag || typeof eintrag !== "object") continue;
+      const { loc, msg } = eintrag as { loc?: unknown; msg?: unknown };
+      if (typeof msg !== "string") continue;
+      felder.push({ feld: pfadAusLoc(loc), meldung: msg });
+    }
+  }
+  return felder;
+}
+
+async function inhaltAus(
+  antwort: Response,
+): Promise<{ detail: string | undefined; felder: FeldFehler[] }> {
+  try {
+    const inhalt: unknown = await antwort.json();
+    let detail: string | undefined;
+    if (inhalt && typeof inhalt === "object" && "detail" in inhalt) {
+      const wert = (inhalt as { detail: unknown }).detail;
+      detail = typeof wert === "string" ? wert : JSON.stringify(wert);
+    }
+    return { detail, felder: feldFehlerAus(inhalt) };
+  } catch {
+    // Antwort ohne JSON-Inhalt: kein Detail
+    return { detail: undefined, felder: [] };
+  }
+}
+
+async function abrufen(pfad: string, optionen: AnfrageOptionen): Promise<Response> {
   let antwort: Response;
   try {
     antwort = await fetch(apiUrl(pfad, optionen.parameter), {
@@ -161,12 +220,41 @@ export async function apiGet<T>(pfad: string, optionen: AnfrageOptionen = {}): P
   if (!antwort.ok && !optionen.auchBeiStatus?.includes(antwort.status)) {
     throw await fehlerAus(antwort, pfad, optionen);
   }
+  return antwort;
+}
 
+async function jsonAus<T>(antwort: Response, pfad: string): Promise<T> {
   try {
     return (await antwort.json()) as T;
   } catch {
     throw new ApiFehler("format", pfad, antwort.status);
   }
+}
+
+export async function apiGet<T>(pfad: string, optionen: AnfrageOptionen = {}): Promise<T> {
+  const antwort = await abrufen(pfad, optionen);
+  return jsonAus<T>(antwort, pfad);
+}
+
+export interface AntwortMitKopf<T> {
+  daten: T;
+  /** Kopfzeilen der Antwort, z. B. `X-Total-Count` */
+  kopf: Headers;
+}
+
+/** Wie `apiGet`, liefert zusätzlich die Kopfzeilen der Antwort (z. B. `X-Total-Count`). */
+export async function apiGetMitKopf<T>(
+  pfad: string,
+  optionen: AnfrageOptionen = {},
+): Promise<AntwortMitKopf<T>> {
+  const antwort = await abrufen(pfad, optionen);
+  return { daten: await jsonAus<T>(antwort, pfad), kopf: antwort.headers };
+}
+
+/** Ganze Zahl aus einer Kopfzeile wie `X-Total-Count`; fehlt sie oder ist sie unlesbar: `undefined`. */
+export function zahlAusKopf(kopf: Headers, name: string): number | undefined {
+  const wert = kopf.get(name);
+  return wert !== null && /^\d+$/.test(wert) ? Number(wert) : undefined;
 }
 
 export type Schreibmethode = "POST" | "PUT" | "PATCH" | "DELETE";

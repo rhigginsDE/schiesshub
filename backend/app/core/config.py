@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -25,6 +26,26 @@ class Settings(BaseSettings):
     # Hier ist der Sicherungs-Stick eingehängt. Vorhanden ist er nur mit Marker-Datei.
     backup_usb_dir: Path = Path("/backup-usb")
     backup_usb_marker: str = ".schiesshub-backup"
+
+    # --- Anmeldung und Rechte (Modul `auth`) ---
+    # Echten Berechtigungsprüfer registrieren; sonst sind alle Endpunkte offen.
+    auth_enforced: bool = False
+    # Gültigkeit eines Kopplungscodes.
+    auth_pairing_code_minutes: float = Field(default=10, gt=0)
+    # Mindestlänge der PIN (nur Ziffern).
+    auth_pin_min_length: int = Field(default=4, ge=4, le=12)
+    # Nach so vielen Fehlversuchen in Folge wird die Person gesperrt …
+    auth_max_failed_logins: int = Field(default=5, ge=1)
+    # … für so viele Minuten.
+    auth_lockout_minutes: float = Field(default=5, gt=0)
+    # Eine Sitzung endet nach so vielen Stunden ohne Anfrage.
+    auth_session_idle_hours: float = Field(default=12, gt=0)
+    # `auto`: Secure nur, wenn die Anfrage über HTTPS kam (Entwicklung läuft über http://localhost).
+    auth_cookie_secure: Literal["auto", "always", "never"] = "auto"
+
+    @property
+    def is_development(self) -> bool:
+        return self.environment == "development"
 
     @property
     def cors_origin_list(self) -> list[str]:

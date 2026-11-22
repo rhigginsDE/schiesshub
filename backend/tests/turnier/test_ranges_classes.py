@@ -55,7 +55,10 @@ async def test_lane_count_must_be_at_least_one(api: Api) -> None:
     )
 
     assert create.status_code == 422
-    assert create.json()["detail"][0]["loc"] == ["body", "lane_count"]
+    assert create.json() == {
+        "detail": "Feld ‚lane_count‘: muss mindestens 1 sein.",
+        "errors": [{"field": "lane_count", "message": "muss mindestens 1 sein"}],
+    }
     assert update.status_code == 422
 
 

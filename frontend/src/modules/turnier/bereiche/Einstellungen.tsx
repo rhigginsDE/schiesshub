@@ -14,7 +14,8 @@ import type {
 import { useEntwurf } from "../useEntwurf";
 import { BereichKopf, Speicherleiste } from "./Bausteine";
 
-export type EinstellungsWerte = Omit<TurnierEinstellungen, "display"> & ZusatzEinstellungen;
+export type EinstellungsWerte = Omit<TurnierEinstellungen, "display" | "first_start_number"> &
+  ZusatzEinstellungen;
 
 const FELDER = [
   "protest_minutes",

@@ -17,23 +17,12 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, ValidationError
 
+from app.core.errors import describe_error, format_location
 from app.modules.katalog.fileformat import GruppenDatei, KatalogDatei, KlassenDatei
 
 HEAD_FILE = "katalog.yaml"
 CLASSES_FILE = "klassen.yaml"
 GROUPS_DIR = "gruppen"
-
-_MESSAGES = {
-    "extra_forbidden": "unbekanntes Feld",
-    "missing": "Pflichtfeld fehlt",
-    "string_type": "muss Text sein (in Anführungszeichen setzen)",
-    "int_type": "muss eine ganze Zahl sein",
-    "bool_type": "muss true oder false sein",
-    "list_type": "muss eine Liste sein",
-    "dict_type": "muss eine Zuordnung (Schlüssel: Wert) sein",
-    "model_type": "muss eine Zuordnung (Schlüssel: Wert) sein",
-    "string_too_short": "darf nicht leer sein",
-}
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,22 +93,6 @@ class _UniqueKeyLoader(yaml.SafeLoader):
         return super().construct_mapping(node, deep)
 
 
-def _format_path(loc: tuple[int | str, ...]) -> str:
-    path = ""
-    for part in loc:
-        if isinstance(part, int):
-            path += f"[{part}]"
-        else:
-            path += f".{part}" if path else str(part)
-    return path
-
-
-def _message(error: dict[str, Any]) -> str:
-    if error["type"] == "value_error":
-        return str(error["ctx"]["error"]) if "ctx" in error else error["msg"]
-    return _MESSAGES.get(error["type"], error["msg"])
-
-
 class _FederationReader:
     """Liest und prüft das Verzeichnis eines Verbands und sammelt dabei alle Fehler."""
 
@@ -152,7 +125,7 @@ class _FederationReader:
             return model.model_validate(raw)
         except ValidationError as exc:
             for error in exc.errors():
-                self._error(path, _format_path(error["loc"]) or None, _message(error))
+                self._error(path, format_location(error["loc"]) or None, describe_error(error))
             return None
 
     def read(self) -> FederationCatalog | None:

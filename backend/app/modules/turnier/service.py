@@ -3,6 +3,11 @@
 Nach jeder Änderung geht ein Ereignis an die Clients (`<bereich>.<was>`, Nutzlast: betroffene IDs),
 damit sie die Daten neu laden. Ein abgeschlossenes Turnier lässt sich erst nach dem Wiederöffnen
 ändern.
+
+Wertungsrelevante Felder eines Wettbewerbs (`SCORING_FIELDS`) sind versioniert: Jede Änderung legt
+eine `CompetitionRevision` an, schreibt einen Audit-Eintrag und meldet
+`competition.definition_changed`, damit vorhandene Ergebnisse neu berechnet werden. Das geht auch
+im laufenden Turnier, dann aber nur mit Grund.
 """
 
 import uuid
@@ -12,21 +17,35 @@ from typing import Any
 from fastapi import HTTPException, status
 from pydantic import ValidationError
 from sqlalchemy import func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import InputError, translate_errors
 from app.core.events import EventHub
+from app.core.security import Actor
+from app.modules.auth.audit import record_audit
 from app.modules.katalog import service as katalog_service
 from app.modules.katalog.fileformat import Variante
 from app.modules.katalog.models import Federation
-from app.modules.turnier.models import Competition, Range, Tournament, TournamentClass
+from app.modules.turnier import catalog_diff, hooks
+from app.modules.turnier.announcement_outline import default_announcement
+from app.modules.turnier.models import (
+    Competition,
+    CompetitionRevision,
+    Range,
+    Tournament,
+    TournamentClass,
+)
 from app.modules.turnier.planning import derive_planning
 from app.modules.turnier.schemas import (
+    CatalogDiffOut,
     ClassCreate,
     ClassUpdate,
     CompetitionCreate,
     CompetitionDefinition,
     CompetitionUpdate,
     DefinitionSource,
+    DeviationOut,
     RangeCreate,
     RangeUpdate,
     TournamentCreate,
@@ -47,6 +66,16 @@ TEMPLATE_SETTINGS: dict[str, dict[str, Any]] = {
 STATUS_FLOW: tuple[TournamentStatus, ...] = ("draft", "active", "closed")
 STATUS_LABELS = {"draft": "Entwurf", "active": "aktiv", "closed": "abgeschlossen"}
 
+# Felder, die das Ergebnis beeinflussen. Eine Änderung daran ergibt eine neue Revision.
+SCORING_FIELDS = (
+    "definition",
+    "capture_mode",
+    "multi_start",
+    "max_starts",
+    "multi_start_rule",
+    "combined_ranking",
+)
+
 
 # --- Fehler ------------------------------------------------------------------
 
@@ -66,25 +95,41 @@ class InvalidError(HTTPException):
         super().__init__(status.HTTP_422_UNPROCESSABLE_CONTENT, detail)
 
 
-def _describe(exc: ValidationError) -> str:
-    messages = []
-    for error in exc.errors():
-        if error["type"] == "value_error" and "ctx" in error:
-            messages.append(str(error["ctx"]["error"]))
-        else:
-            where = ".".join(str(part) for part in error["loc"])
-            messages.append(f"{where}: {error['msg']}" if where else error["msg"])
-    return " ".join(messages)
+def _invalid_input(exc: ValidationError, prefix: str) -> InputError:
+    """Schemafehler beim Zusammenführen, mit Pfad ab der Wurzel der Anfrage."""
+    errors = translate_errors([{**error, "loc": (prefix, *error["loc"])} for error in exc.errors()])
+    return InputError(errors)
 
 
-def _reject_nulls(changes: dict[str, Any], nullable: set[str]) -> None:
+def _reject_nulls(changes: dict[str, Any], nullable: set[str], prefix: str = "") -> None:
     for key, value in changes.items():
         if value is None and key not in nullable:
-            raise InvalidError(f"Das Feld „{key}“ darf nicht leer sein.")
+            raise InputError.single(f"{prefix}{key}", f"Das Feld „{key}“ darf nicht leer sein.")
 
 
 def _ids(**ids: uuid.UUID) -> dict[str, str]:
     return {key: str(value) for key, value in ids.items()}
+
+
+async def _check_deletable(
+    session: AsyncSession, target: hooks.DeletionTarget, item_id: uuid.UUID
+) -> None:
+    """Fragt die Löschprüfer anderer Module (z. B. `starts`)."""
+    if reasons := await hooks.deletion_blockers(session, target, item_id):
+        raise ConflictError(" ".join(reasons))
+
+
+async def _delete(session: AsyncSession, item: object, what: str) -> None:
+    """Löscht und bestätigt. Verweist noch etwas darauf, gibt es 409 statt eines Serverfehlers."""
+    await session.delete(item)
+    try:
+        await session.commit()
+    except IntegrityError as exc:
+        await session.rollback()
+        raise ConflictError(
+            f"{what} kann nicht gelöscht werden, weil noch Daten darauf verweisen "
+            "(zum Beispiel Anmeldungen oder Starts)."
+        ) from exc
 
 
 # --- Gemeinsame Bausteine ----------------------------------------------------
@@ -97,7 +142,8 @@ async def get_tournament(session: AsyncSession, tournament_id: uuid.UUID) -> Tou
     return tournament
 
 
-async def _editable_tournament(session: AsyncSession, tournament_id: uuid.UUID) -> Tournament:
+async def editable_tournament(session: AsyncSession, tournament_id: uuid.UUID) -> Tournament:
+    """Das Turnier, sofern es noch geändert werden darf (nicht abgeschlossen)."""
     tournament = await get_tournament(session, tournament_id)
     if tournament.status == "closed":
         raise ConflictError(
@@ -156,11 +202,11 @@ async def _reorder[T: (Range, TournamentClass, Competition)](
 
 def _merge_settings(base: dict[str, Any], changes: TournamentSettingsUpdate | None) -> dict:
     values = changes.model_dump(exclude_unset=True) if changes is not None else {}
-    _reject_nulls(values, nullable={"protest_minutes"})
+    _reject_nulls(values, nullable={"protest_minutes"}, prefix="settings.")
     try:
         return TournamentSettings.model_validate({**base, **values}).model_dump(mode="json")
     except ValidationError as exc:
-        raise InvalidError(_describe(exc)) from exc
+        raise _invalid_input(exc, "settings") from exc
 
 
 def template_settings(template: str) -> dict[str, Any]:
@@ -189,6 +235,7 @@ async def create_tournament(
         status="draft",
         template=data.template,
         settings=_merge_settings(template_settings(data.template), data.settings),
+        announcement=default_announcement(data.template).model_dump(mode="json"),
     )
     session.add(tournament)
     await session.commit()
@@ -200,7 +247,7 @@ async def create_tournament(
 async def update_tournament(
     session: AsyncSession, events: EventHub, tournament_id: uuid.UUID, data: TournamentUpdate
 ) -> Tournament:
-    tournament = await _editable_tournament(session, tournament_id)
+    tournament = await editable_tournament(session, tournament_id)
     changes = data.model_dump(exclude_unset=True, exclude={"settings"})
     _reject_nulls(changes, nullable={"organizer"})
     for key, value in changes.items():
@@ -209,7 +256,7 @@ async def update_tournament(
         raise InvalidError("Das Enddatum liegt vor dem Anfangsdatum.")
     if "settings" in data.model_fields_set:
         if data.settings is None:
-            raise InvalidError("Das Feld „settings“ darf nicht leer sein.")
+            raise InputError.single("settings", "Das Feld „settings“ darf nicht leer sein.")
         tournament.settings = _merge_settings(tournament.settings, data.settings)
     await session.commit()
     await session.refresh(tournament)
@@ -258,9 +305,9 @@ async def delete_tournament(
             "Nur ein Turnier im Entwurf lässt sich löschen. Dieses Turnier ist "
             f"„{STATUS_LABELS[tournament.status]}“."
         )
+    await _check_deletable(session, "tournament", tournament_id)
     # Stände, Klassen und Wettbewerbe löscht die Datenbank mit (ON DELETE CASCADE).
-    await session.delete(tournament)
-    await session.commit()
+    await _delete(session, tournament, "Das Turnier")
     events.publish("tournament.deleted", _ids(tournament_id=tournament_id))
 
 
@@ -281,7 +328,7 @@ async def get_range(session: AsyncSession, tournament_id: uuid.UUID, range_id: u
 async def create_range(
     session: AsyncSession, events: EventHub, tournament_id: uuid.UUID, data: RangeCreate
 ) -> Range:
-    await _editable_tournament(session, tournament_id)
+    await editable_tournament(session, tournament_id)
     sort = data.sort if data.sort is not None else await _next_sort(session, Range, tournament_id)
     item = Range(tournament_id=tournament_id, name=data.name, lane_count=data.lane_count, sort=sort)
     session.add(item)
@@ -297,7 +344,7 @@ async def update_range(
     range_id: uuid.UUID,
     data: RangeUpdate,
 ) -> Range:
-    await _editable_tournament(session, tournament_id)
+    await editable_tournament(session, tournament_id)
     item = await get_range(session, tournament_id, range_id)
     changes = data.model_dump(exclude_unset=True)
     _reject_nulls(changes, nullable=set())
@@ -311,18 +358,18 @@ async def update_range(
 async def delete_range(
     session: AsyncSession, events: EventHub, tournament_id: uuid.UUID, range_id: uuid.UUID
 ) -> None:
-    await _editable_tournament(session, tournament_id)
+    await editable_tournament(session, tournament_id)
     item = await get_range(session, tournament_id, range_id)
+    await _check_deletable(session, "range", range_id)
     # Wettbewerbe auf diesem Stand verlieren die Zuordnung (ON DELETE SET NULL).
-    await session.delete(item)
-    await session.commit()
+    await _delete(session, item, RANGE)
     events.publish("range.deleted", _ids(tournament_id=tournament_id, range_id=range_id))
 
 
 async def reorder_ranges(
     session: AsyncSession, events: EventHub, tournament_id: uuid.UUID, ids: list[uuid.UUID]
 ) -> list[Range]:
-    await _editable_tournament(session, tournament_id)
+    await editable_tournament(session, tournament_id)
     items = await _reorder(session, Range, tournament_id, ids)
     events.publish("range.reordered", _ids(tournament_id=tournament_id))
     return items
@@ -389,7 +436,7 @@ async def _check_merge_target(
 async def create_class(
     session: AsyncSession, events: EventHub, tournament_id: uuid.UUID, data: ClassCreate
 ) -> TournamentClass:
-    await _editable_tournament(session, tournament_id)
+    await editable_tournament(session, tournament_id)
     await _check_code_free(session, tournament_id, data.code)
     if data.merge_into_id is not None:
         await _check_merge_target(session, tournament_id, None, data.merge_into_id)
@@ -419,7 +466,7 @@ async def update_class(
     class_id: uuid.UUID,
     data: ClassUpdate,
 ) -> TournamentClass:
-    await _editable_tournament(session, tournament_id)
+    await editable_tournament(session, tournament_id)
     item = await get_class(session, tournament_id, class_id)
     changes = data.model_dump(exclude_unset=True)
     _reject_nulls(changes, nullable={"merge_into_id"})
@@ -437,27 +484,27 @@ async def update_class(
 async def delete_class(
     session: AsyncSession, events: EventHub, tournament_id: uuid.UUID, class_id: uuid.UUID
 ) -> None:
-    await _editable_tournament(session, tournament_id)
+    await editable_tournament(session, tournament_id)
     item = await get_class(session, tournament_id, class_id)
+    await _check_deletable(session, "class", class_id)
     # Verweise anderer Klassen löscht die Datenbank (ON DELETE SET NULL); die Zulassung in den
     # Wettbewerben ist eine Liste und wird hier bereinigt.
     await session.execute(
         update(Competition)
         .where(
             Competition.tournament_id == tournament_id,
-            Competition.class_ids.any(class_id),
+            Competition.class_ids.contains([class_id]),
         )
         .values(class_ids=func.array_remove(Competition.class_ids, class_id))
     )
-    await session.delete(item)
-    await session.commit()
+    await _delete(session, item, CLASS)
     events.publish("class.deleted", _ids(tournament_id=tournament_id, class_id=class_id))
 
 
 async def reorder_classes(
     session: AsyncSession, events: EventHub, tournament_id: uuid.UUID, ids: list[uuid.UUID]
 ) -> list[TournamentClass]:
-    await _editable_tournament(session, tournament_id)
+    await editable_tournament(session, tournament_id)
     items = await _reorder(session, TournamentClass, tournament_id, ids)
     events.publish("class.reordered", _ids(tournament_id=tournament_id))
     return items
@@ -471,7 +518,7 @@ async def import_classes(
     Die Zusammenlegung wird übernommen, wenn der Katalog genau eine Zielklasse nennt und sie nicht
     vom Alter abhängt. Bei mehreren möglichen Zielen entscheidet die Turnierleitung.
     """
-    await _editable_tournament(session, tournament_id)
+    await editable_tournament(session, tournament_id)
     try:
         catalog_classes = await katalog_service.list_classes(session, federation)
     except katalog_service.NotFoundError as exc:
@@ -536,14 +583,16 @@ async def _catalog_definition(
     catalog_stand = await session.scalar(
         select(Federation.rulebook_date).where(Federation.key == federation)
     )
+    variant = _pick_variant(discipline.ablauf.varianten, variant_id, code)
     definition = CompetitionDefinition(
         source=DefinitionSource(
             federation=federation,
             code=code,
             group=discipline.gruppe_id,
+            variant_id=variant.id,
             catalog_stand=catalog_stand,
         ),
-        variant=_pick_variant(discipline.ablauf.varianten, variant_id, code),
+        variant=variant,
         scoring=discipline.wertung,
         ablauf_beschreibung=discipline.ablauf.beschreibung,
     )
@@ -595,10 +644,121 @@ async def get_competition(
     return await _get_child(session, Competition, tournament_id, competition_id, COMPETITION)
 
 
+# --- Revisionen ----------------------------------------------------------------
+
+REASON_REQUIRED = (
+    "Das Turnier läuft bereits. Für eine Änderung an der Wertung bitte einen Grund angeben."
+)
+
+
+def _scoring_state(item: Competition) -> dict[str, Any]:
+    return {field: getattr(item, field) for field in SCORING_FIELDS}
+
+
+def _add_revision(
+    session: AsyncSession, item: Competition, actor: Actor, reason: str | None
+) -> CompetitionRevision:
+    revision = CompetitionRevision(
+        competition_id=item.id,
+        revision=item.definition_revision,
+        changed_by=actor.user_id,
+        device_id=actor.device_id,
+        reason=reason,
+        **_scoring_state(item),
+    )
+    session.add(revision)
+    return revision
+
+
+async def _record_scoring_change(
+    session: AsyncSession,
+    tournament: Tournament,
+    item: Competition,
+    actor: Actor,
+    before: dict[str, Any],
+    reason: str | None,
+) -> int | None:
+    """Legt eine neue Revision an, wenn sich wertungsrelevante Felder geändert haben.
+
+    Liefert die neue Revisionsnummer oder None, wenn sich nichts geändert hat. Im laufenden
+    Turnier ist ein Grund Pflicht; jede Änderung kommt ins Audit-Protokoll.
+    """
+    after = _scoring_state(item)
+    changed = [field for field in SCORING_FIELDS if before[field] != after[field]]
+    if not changed:
+        return None
+    reason = (reason or "").strip() or None
+    if tournament.status == "active" and reason is None:
+        raise InputError.single("reason", REASON_REQUIRED)
+    item.definition_revision += 1
+    _add_revision(session, item, actor, reason)
+    record_audit(
+        session,
+        actor,
+        "competition.definition_changed",
+        "competition",
+        item.id,
+        {
+            "tournament_id": str(tournament.id),
+            "revision": item.definition_revision,
+            "fields": changed,
+            "reason": reason,
+            "tournament_status": tournament.status,
+        },
+    )
+    # Andere Module (Ergebnisse) rechnen in derselben Transaktion nach.
+    await session.flush()
+    await hooks.notify_definition_changed(session, item.id, item.definition_revision, actor)
+    return item.definition_revision
+
+
+def _publish_change(
+    events: EventHub, tournament_id: uuid.UUID, item: Competition, revision: int | None
+) -> None:
+    ids = _ids(tournament_id=tournament_id, competition_id=item.id)
+    events.publish("competition.updated", ids)
+    if revision is not None:
+        events.publish("competition.definition_changed", {**ids, "revision": revision})
+
+
+async def list_revisions(
+    session: AsyncSession, tournament_id: uuid.UUID, competition_id: uuid.UUID
+) -> list[CompetitionRevision]:
+    await get_competition(session, tournament_id, competition_id)
+    rows = await session.scalars(
+        select(CompetitionRevision)
+        .where(CompetitionRevision.competition_id == competition_id)
+        .order_by(CompetitionRevision.revision)
+    )
+    return list(rows)
+
+
+async def get_revision(
+    session: AsyncSession, tournament_id: uuid.UUID, competition_id: uuid.UUID, revision: int
+) -> CompetitionRevision:
+    await get_competition(session, tournament_id, competition_id)
+    item = await session.scalar(
+        select(CompetitionRevision).where(
+            CompetitionRevision.competition_id == competition_id,
+            CompetitionRevision.revision == revision,
+        )
+    )
+    if item is None:
+        raise NotFoundError(f"Die Revision {revision} gibt es für diesen Wettbewerb nicht.")
+    return item
+
+
+# --- Anlegen, Ändern, Zurücksetzen ---------------------------------------------
+
+
 async def create_competition(
-    session: AsyncSession, events: EventHub, tournament_id: uuid.UUID, data: CompetitionCreate
+    session: AsyncSession,
+    events: EventHub,
+    tournament_id: uuid.UUID,
+    data: CompetitionCreate,
+    actor: Actor,
 ) -> Competition:
-    tournament = await _editable_tournament(session, tournament_id)
+    tournament = await editable_tournament(session, tournament_id)
     defaults = TournamentSettings.model_validate(tournament.settings)
 
     if data.definition is not None:
@@ -625,6 +785,7 @@ async def create_competition(
     derived = derive_planning(definition.variant, changeover)
 
     item = Competition(
+        id=uuid.uuid4(),
         tournament_id=tournament_id,
         range_id=data.range_id,
         sort=(
@@ -655,9 +816,13 @@ async def create_competition(
         planning=data.planning or derived.planning,
         heat_minutes=data.heat_minutes if data.heat_minutes is not None else derived.heat_minutes,
         changeover_minutes=changeover,
+        definition_revision=1,
     )
     await _check_competition(session, tournament_id, item)
     session.add(item)
+    # Erst den Wettbewerb schreiben, dann seine erste Revision (Fremdschlüssel).
+    await session.flush()
+    _add_revision(session, item, actor, reason=None)
     await session.commit()
     events.publish("competition.created", _ids(tournament_id=tournament_id, competition_id=item.id))
     return item
@@ -669,10 +834,12 @@ async def update_competition(
     tournament_id: uuid.UUID,
     competition_id: uuid.UUID,
     data: CompetitionUpdate,
+    actor: Actor,
 ) -> Competition:
-    await _editable_tournament(session, tournament_id)
+    tournament = await editable_tournament(session, tournament_id)
     item = await get_competition(session, tournament_id, competition_id)
-    changes = data.model_dump(exclude_unset=True, exclude={"definition"})
+    before = _scoring_state(item)
+    changes = data.model_dump(exclude_unset=True, exclude={"definition", "reason"})
     _reject_nulls(changes, nullable={"range_id", "heat_minutes"})
     # Wer den Mehrfachstart abschaltet, meint genau einen Start.
     if changes.get("multi_start") is False and "max_starts" not in changes:
@@ -682,15 +849,16 @@ async def update_competition(
 
     if "definition" in data.model_fields_set:
         if data.definition is None:
-            raise InvalidError("Das Feld „definition“ darf nicht leer sein.")
+            raise InputError.single("definition", "Das Feld „definition“ darf nicht leer sein.")
         stored_source = CompetitionDefinition.model_validate(item.definition).source
         definition = data.definition
         if definition.source is None:
             definition = definition.model_copy(update={"source": stored_source})
         elif definition.source != stored_source:
-            raise InvalidError(
+            raise InputError.single(
+                "definition.source",
                 "Die Herkunft (source) einer Definition lässt sich nicht ändern; "
-                "das Feld weglassen oder unverändert mitschicken."
+                "das Feld weglassen oder unverändert mitschicken.",
             )
         item.definition = _store(definition)
 
@@ -698,8 +866,11 @@ async def update_competition(
     # Fehler der Datenbank.
     with session.no_autoflush:
         await _check_competition(session, tournament_id, item)
+        revision = await _record_scoring_change(
+            session, tournament, item, actor, before, data.reason
+        )
     await session.commit()
-    events.publish("competition.updated", _ids(tournament_id=tournament_id, competition_id=item.id))
+    _publish_change(events, tournament_id, item, revision)
     return item
 
 
@@ -709,32 +880,90 @@ async def reset_definition(
     tournament_id: uuid.UUID,
     competition_id: uuid.UUID,
     variant_id: str | None,
+    actor: Actor,
+    reason: str | None = None,
 ) -> Competition:
     """Holt Variante und Wertung neu aus dem aktuellen Katalog; übrige Felder bleiben."""
-    await _editable_tournament(session, tournament_id)
+    tournament = await editable_tournament(session, tournament_id)
     item = await get_competition(session, tournament_id, competition_id)
     if item.catalog_federation is None or item.catalog_code is None:
         raise ConflictError(
             "Dieser Wettbewerb stammt nicht aus dem Katalog und hat deshalb keinen Katalogwert."
         )
     if variant_id is None:
-        variant_id = CompetitionDefinition.model_validate(item.definition).variant.id
+        variant_id = _source_variant_id(CompetitionDefinition.model_validate(item.definition))
     definition, _ = await _catalog_definition(
         session, item.catalog_federation, item.catalog_code, variant_id
     )
+    before = _scoring_state(item)
     item.definition = _store(definition)
+    revision = await _record_scoring_change(session, tournament, item, actor, before, reason)
     await session.commit()
-    events.publish("competition.updated", _ids(tournament_id=tournament_id, competition_id=item.id))
+    _publish_change(events, tournament_id, item, revision)
     return item
+
+
+# --- Vergleich mit dem Katalog ---------------------------------------------------
+
+
+def _source_variant_id(definition: CompetitionDefinition) -> str:
+    """Die Katalog-Variante, aus der die Definition stammt."""
+    if definition.source is not None and definition.source.variant_id is not None:
+        return definition.source.variant_id
+    return definition.variant.id
+
+
+async def get_catalog_diff(
+    session: AsyncSession, tournament_id: uuid.UUID, competition_id: uuid.UUID
+) -> CatalogDiffOut:
+    """Abweichungen der aktuellen Definition vom aktuellen Katalog; leer ohne Katalogherkunft."""
+    return await catalog_diff_of(
+        session, await get_competition(session, tournament_id, competition_id)
+    )
+
+
+async def catalog_diff_of(session: AsyncSession, item: Competition) -> CatalogDiffOut:
+    if item.catalog_federation is None or item.catalog_code is None:
+        return CatalogDiffOut(deviates=False)
+    definition = CompetitionDefinition.model_validate(item.definition)
+    variant_id = _source_variant_id(definition)
+    origin = {"federation": item.catalog_federation, "code": item.catalog_code}
+    try:
+        catalog, _ = await _catalog_definition(
+            session, item.catalog_federation, item.catalog_code, variant_id
+        )
+    except InvalidError:
+        # Disziplin oder Variante gibt es im Katalog nicht mehr: kein Vergleich möglich.
+        return CatalogDiffOut(deviates=False, variant_id=variant_id, **origin)
+    deviations = catalog_diff.compare(
+        catalog.variant, catalog.scoring, definition.variant, definition.scoring
+    )
+    return CatalogDiffOut(
+        deviates=bool(deviations),
+        variant_id=variant_id,
+        catalog_stand=catalog.source.catalog_stand if catalog.source else None,
+        catalog_available=True,
+        differences=[
+            DeviationOut(
+                path=deviation.path,
+                catalog_value=deviation.catalog_value,
+                tournament_value=deviation.tournament_value,
+                text=deviation.text,
+                section_id=deviation.section_id,
+            )
+            for deviation in deviations
+        ],
+        **origin,
+    )
 
 
 async def delete_competition(
     session: AsyncSession, events: EventHub, tournament_id: uuid.UUID, competition_id: uuid.UUID
 ) -> None:
-    await _editable_tournament(session, tournament_id)
+    await editable_tournament(session, tournament_id)
     item = await get_competition(session, tournament_id, competition_id)
-    await session.delete(item)
-    await session.commit()
+    await _check_deletable(session, "competition", competition_id)
+    await _delete(session, item, COMPETITION)
     events.publish(
         "competition.deleted", _ids(tournament_id=tournament_id, competition_id=competition_id)
     )
@@ -743,7 +972,7 @@ async def delete_competition(
 async def reorder_competitions(
     session: AsyncSession, events: EventHub, tournament_id: uuid.UUID, ids: list[uuid.UUID]
 ) -> list[Competition]:
-    await _editable_tournament(session, tournament_id)
+    await editable_tournament(session, tournament_id)
     items = await _reorder(session, Competition, tournament_id, ids)
     events.publish("competition.reordered", _ids(tournament_id=tournament_id))
     return items

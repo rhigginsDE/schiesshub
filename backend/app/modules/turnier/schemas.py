@@ -4,6 +4,7 @@ Eingaben sind streng: unbekannte Felder sind Fehler, Typen werden nicht umgewand
 in `definition` stammen aus dem Katalog und behalten dessen deutsche Schreibweise.
 """
 
+import re
 from datetime import date, datetime
 from typing import Annotated, Any, Literal, Self
 from uuid import UUID
@@ -22,6 +23,8 @@ NonNegativeInt = Annotated[int, Field(ge=0)]
 PositiveInt = Annotated[int, Field(ge=1)]
 Sort = Annotated[int, Field(ge=0)]
 Currency = Annotated[str, Field(pattern=r"^[A-Z]{3}$")]
+# Grund einer Änderung; Pflicht für Änderungen an der Wertung, sobald das Turnier läuft.
+Reason = Annotated[str, Field(min_length=1, max_length=500)]
 
 TournamentStatus = Literal["draft", "active", "closed"]
 Template = Literal["open", "club_championship", "custom"]
@@ -58,6 +61,8 @@ class TournamentSettings(StrictModel):
     # Wechselzeit (Scheibenwechsel, Trefferaufnahme) je Durchgang bei Zeitplan.
     default_changeover_minutes: NonNegativeInt = 5
     default_capture_mode: CaptureMode = "series"
+    # Erste Startnummer, die das Modul `starts` bei der Anmeldung vergibt.
+    first_start_number: PositiveInt = 1
     # Voreinstellungen für die Anzeige; Inhalt bestimmt das Modul `anzeige`.
     display: dict[str, Any] = {}
 
@@ -79,6 +84,7 @@ class TournamentSettingsUpdate(StrictModel):
     default_multi_start_rule: MultiStartRule | None = None
     default_changeover_minutes: NonNegativeInt | None = None
     default_capture_mode: CaptureMode | None = None
+    first_start_number: PositiveInt | None = None
     display: dict[str, Any] | None = None
 
 
@@ -200,6 +206,8 @@ class DefinitionSource(StrictModel):
     federation: Annotated[str, Field(min_length=1)]
     code: Annotated[str, Field(min_length=1)]
     group: Annotated[str, Field(min_length=1)]
+    # Kopierte Ablauf-Variante; fehlt bei älteren Kopien (dann gilt `variant.id`).
+    variant_id: Annotated[str, Field(min_length=1)] | None = None
     # Stand des Regelwerks laut Katalog zum Zeitpunkt der Kopie.
     catalog_stand: IsoDate
 
@@ -284,11 +292,16 @@ class CompetitionCreate(CompetitionSettings):
 class CompetitionUpdate(CompetitionSettings):
     # Ersetzt die Definition. `source` darf fehlen (bleibt dann erhalten), aber nicht abweichen.
     definition: CompetitionDefinition | None = None
+    # Grund für Änderungen an der Wertung (Definition, Erfassungsart, Mehrfachstart, gemeinsame
+    # Wertung). Pflicht, sobald das Turnier läuft; sonst optional. Landet in der Revision.
+    reason: Reason | None = None
 
 
 class DefinitionReset(StrictModel):
     # Ohne Angabe die Variante der aktuellen Definition.
     variant_id: Annotated[str, Field(min_length=1)] | None = None
+    # Wie bei `CompetitionUpdate.reason`.
+    reason: Reason | None = None
 
 
 class CompetitionOut(BaseModel):
@@ -313,6 +326,55 @@ class CompetitionOut(BaseModel):
     planning: Planning
     heat_minutes: int | None
     changeover_minutes: int
+    # Aktuelle Revision der wertungsrelevanten Felder (siehe `…/revisions`).
+    definition_revision: int
+
+
+class RevisionOut(BaseModel):
+    """Stand der wertungsrelevanten Felder eines Wettbewerbs nach einer Änderung."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    competition_id: UUID
+    revision: int
+    definition: CompetitionDefinition
+    capture_mode: CaptureMode
+    multi_start: bool
+    max_starts: int
+    multi_start_rule: MultiStartRule
+    combined_ranking: bool
+    # Benutzer und Gerät der Änderung; leer, solange ohne Anmeldung gearbeitet wird.
+    changed_by: UUID | None
+    device_id: UUID | None
+    reason: str | None
+    created_at: datetime
+
+
+class DeviationOut(BaseModel):
+    """Eine Abweichung vom Katalog. Werte im Format der Definition, `null` = nicht gesetzt."""
+
+    path: str
+    catalog_value: Any
+    tournament_value: Any
+    text: str
+    # Abschnitt, auf den sich die Abweichung bezieht.
+    section_id: str | None = None
+
+
+class CatalogDiffOut(BaseModel):
+    """Vergleich der aktuellen Definition mit der Katalog-Variante, aus der sie stammt."""
+
+    # Mindestens eine Abweichung („abweichend vom Sporthandbuch“).
+    deviates: bool
+    # Herkunft; alles leer bei eigenen Wettbewerben ohne Katalog.
+    federation: str | None = None
+    code: str | None = None
+    variant_id: str | None = None
+    # Stand des Regelwerks, mit dem verglichen wurde (aktueller Katalog).
+    catalog_stand: date | None = None
+    # false: Die Disziplin oder Variante gibt es im aktuellen Katalog nicht (mehr).
+    catalog_available: bool = False
+    differences: list[DeviationOut] = []
 
 
 # --- Übersicht ---------------------------------------------------------------
@@ -322,3 +384,157 @@ class TournamentOverview(TournamentOut):
     ranges: list[RangeOut]
     classes: list[ClassOut]
     competitions: list[CompetitionOut]
+
+
+# --- Ausschreibung -------------------------------------------------------------
+
+AUTO_BLOCK_KINDS = ("competitions", "classes", "fees", "dates", "ranges")
+BlockKind = Literal["text", "competitions", "classes", "fees", "dates", "ranges"]
+BlockId = Annotated[str, Field(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$", min_length=1, max_length=60)]
+FactText = Annotated[str, Field(max_length=1000)]
+# Reiner Text: Absätze mit Leerzeilen, Zeilenumbrüche erlaubt, kein HTML.
+BodyText = Annotated[str, Field(max_length=10000)]
+_HTML = re.compile(r"<\s*/?\s*[a-zA-Z!]")
+
+
+class AnnouncementFacts(StrictModel):
+    """Eckdaten der Ausschreibung, alles freiwillig."""
+
+    venue: FactText | None = None
+    address: FactText | None = None
+    registration_deadline: IsoDate | None = None
+    registration_info: FactText | None = None
+    contact_name: FactText | None = None
+    contact_info: FactText | None = None
+
+
+class AnnouncementBlock(StrictModel):
+    """Ein Abschnitt. `text`: Freitext in `body`. Sonst ein automatischer Baustein, dessen Inhalt
+    aus den Turnierdaten kommt; `body` ist dann ein optionaler Zusatztext."""
+
+    id: BlockId
+    kind: BlockKind
+    heading: Annotated[str, Field(max_length=200)] = ""
+    body: BodyText = ""
+    visible: bool = True
+
+    @model_validator(mode="after")
+    def _plain_text(self) -> Self:
+        if _HTML.search(self.body) or _HTML.search(self.heading):
+            raise ValueError(
+                "Der Text darf kein HTML enthalten; Absätze einfach mit einer Leerzeile trennen."
+            )
+        return self
+
+
+class Announcement(StrictModel):
+    """Ausschreibung eines Turniers. Ohne `title` zeigt das Frontend „Ausschreibung <Name>“."""
+
+    title: Annotated[str, Field(min_length=1, max_length=200)] | None = None
+    facts: AnnouncementFacts = AnnouncementFacts()
+    blocks: Annotated[list[AnnouncementBlock], Field(max_length=60)] = []
+
+    @model_validator(mode="after")
+    def _check_blocks(self) -> Self:
+        ids = [block.id for block in self.blocks]
+        if duplicates := sorted({i for i in ids if ids.count(i) > 1}):
+            raise ValueError(f"Baustein-ID mehrfach vergeben: {', '.join(duplicates)}.")
+        kinds = [block.kind for block in self.blocks if block.kind != "text"]
+        if duplicates := sorted({k for k in kinds if kinds.count(k) > 1}):
+            raise ValueError(
+                f"Jeder automatische Baustein darf nur einmal vorkommen: {', '.join(duplicates)}."
+            )
+        return self
+
+
+class DocumentTournament(BaseModel):
+    id: UUID
+    name: str
+    organizer: str | None
+    date_from: date
+    date_to: date
+    status: TournamentStatus
+    currency: str
+
+
+class DocumentSection(BaseModel):
+    """Ein Abschnitt des Ablaufs in Kurzform."""
+
+    name: str
+    serien: int
+    schuss_je_serie: int | None
+    # Nur die ersten N Serien zählen; null = alle.
+    serien_gewertet: int | None
+    # „Präzision: 2 Serien à 10 Schuss, je 300 s“
+    summary: str
+
+
+class DocumentCompetition(BaseModel):
+    id: UUID
+    name: str
+    catalog_federation: str | None
+    catalog_code: str | None
+    group: str | None
+    range_name: str | None
+    # Ablauf-Beschreibung aus dem Katalog (gilt für die Katalogfassung).
+    procedure: str | None
+    sections: list[DocumentSection]
+    multi_start: bool
+    max_starts: int
+    multi_start_rule: MultiStartRule
+    # „Bestes Ergebnis zählt (bis zu 3 Starts)“
+    multi_start_text: str
+    deviates_from_catalog: bool
+    deviations: list[str]
+
+
+class DocumentClass(BaseModel):
+    name: str
+    short: str
+
+
+class DocumentFee(BaseModel):
+    competition_id: UUID
+    name: str
+    fee_first_cents: int
+    # Nachkauf (jeder weitere Start); null ohne Mehrfachstart.
+    fee_repeat_cents: int | None
+
+
+class DocumentFees(BaseModel):
+    currency: str
+    items: list[DocumentFee]
+
+
+class DocumentDates(BaseModel):
+    date_from: date
+    date_to: date
+    registration_deadline: date | None
+
+
+class DocumentRange(BaseModel):
+    name: str
+    lane_count: int
+
+
+class DocumentBlock(BaseModel):
+    """Sichtbarer Baustein. Genau das Feld zur Art (`kind`) ist gefüllt, bei `text` keines."""
+
+    id: str
+    kind: BlockKind
+    heading: str
+    body: str
+    competitions: list[DocumentCompetition] | None = None
+    classes: list[DocumentClass] | None = None
+    fees: DocumentFees | None = None
+    dates: DocumentDates | None = None
+    ranges: list[DocumentRange] | None = None
+
+
+class AnnouncementDocument(BaseModel):
+    """Fertig zusammengesetzte Ausschreibung zum Drucken. Ohne Personendaten."""
+
+    title: str
+    tournament: DocumentTournament
+    facts: AnnouncementFacts
+    blocks: list[DocumentBlock]
