@@ -218,7 +218,7 @@
 }
 
 .wer b {
-  font: 600 3.2cqmin / 1.15 var(--sh-font-text);
+  font: 600 3.6cqmin / 1.15 var(--sh-font-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -296,7 +296,7 @@
 .szeneRangliste {
   --platz-breite: 10cqmin;
   --serie-breite: 9cqmin;
-  --gesamt-breite: 18cqmin;
+  --gesamt-breite: 22cqmin;
   height: 100%;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
@@ -323,13 +323,12 @@
 }
 
 .rang {
-  height: 7.2cqmin;
+  height: 8cqmin;
   display: grid;
   grid-template-columns: var(--spalten);
   column-gap: 1.8cqmin;
   align-items: center;
-  padding: 0 2cqmin;
-  border-left: 0.6cqmin solid transparent;
+  padding: 0 2cqmin 0 2.6cqmin;
   border-radius: 1.2cqmin;
   background: var(--sh-flaeche);
 }
@@ -364,7 +363,7 @@
   align-items: baseline;
   justify-content: flex-end;
   gap: 0.8cqmin;
-  font: 700 4.4cqmin / 1 var(--sh-font-mono);
+  font: 700 4.8cqmin / 1 var(--sh-font-mono);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -374,9 +373,8 @@
   color: var(--sh-text-gedaempft);
 }
 
-/* Gold nur für Platz 1 */
+/* Gold nur für Platz 1: Fläche und Platzziffer, kein Randstreifen */
 .rang[data-erster] {
-  border-left-color: var(--sh-gold);
   background: var(--sh-gold-flaeche);
 }
 
@@ -400,7 +398,7 @@
 }
 
 .klassenKopf {
-  height: 7.2cqmin;
+  height: 8cqmin;
   display: flex;
   align-items: flex-end;
   gap: 1.4cqmin;
@@ -415,8 +413,13 @@
   color: var(--sh-text-gedaempft);
 }
 
+.klassenKopf small {
+  font: 500 1.9cqmin / 1 var(--sh-font-text);
+  color: var(--sh-text-gedaempft);
+}
+
 .mehr {
-  height: 7.2cqmin;
+  height: 8cqmin;
   display: flex;
   align-items: center;
   padding: 0 2.6cqmin;
@@ -443,7 +446,7 @@
 }
 
 .startZeile {
-  height: 7cqmin;
+  height: 8cqmin;
   display: grid;
   grid-template-columns: 8cqmin minmax(0, 1fr) auto;
   align-items: center;
@@ -509,7 +512,7 @@
 }
 
 .klassenSieger {
-  --skala: 0.74;
+  --skala: 0.8;
   min-width: 0;
   min-height: 0;
   display: grid;
@@ -562,21 +565,32 @@
   text-align: center;
 }
 
+/* Stelle (data-rang) bestimmt die Spalte, der Platz (data-stufe) die Höhe: geteilte Erste
+   stehen beide oben. */
 .stufe[data-rang="1"] {
   grid-column: 2;
   grid-row: 1;
-  --h: 34cqmin;
 }
 
 .stufe[data-rang="2"] {
   grid-column: 1;
   grid-row: 1;
-  --h: 25cqmin;
 }
 
 .stufe[data-rang="3"] {
   grid-column: 3;
   grid-row: 1;
+}
+
+.stufe[data-stufe="1"] {
+  --h: 34cqmin;
+}
+
+.stufe[data-stufe="2"] {
+  --h: 25cqmin;
+}
+
+.stufe[data-stufe="3"] {
   --h: 19cqmin;
 }
 
@@ -593,15 +607,15 @@
   line-clamp: 2;
   overflow: hidden;
   overflow-wrap: anywhere;
-  font: 600 calc(3.2cqmin * var(--skala)) / 1.15 var(--sh-font-text);
+  font: 600 calc(3.6cqmin * var(--skala)) / 1.15 var(--sh-font-text);
 }
 
-.stufe[data-rang="1"] .stufeNameText {
-  font-size: calc(3.8cqmin * var(--skala));
+.stufe[data-stufe="1"] .stufeNameText {
+  font-size: calc(4.2cqmin * var(--skala));
 }
 
 .stufeName span {
-  font-size: calc(1.9cqmin * var(--skala));
+  font-size: calc(2.2cqmin * var(--skala));
   color: var(--sh-text-gedaempft);
   white-space: nowrap;
   overflow: hidden;
@@ -649,11 +663,11 @@
   color: var(--sh-gold);
 }
 
-.stufe[data-rang="1"] .sockelPlatz {
+.stufe[data-stufe="1"] .sockelPlatz {
   font-size: calc(9cqmin * var(--skala));
 }
 
-.stufe[data-rang="1"] .sockelWert {
+.stufe[data-stufe="1"] .sockelWert {
   font-size: calc(6.6cqmin * var(--skala));
 }
 
@@ -1093,6 +1107,13 @@
   }
 }
 
+.fussRechts {
+  display: flex;
+  align-items: center;
+  gap: 2cqmin;
+  min-width: 0;
+}
+
 .getrennt {
   position: absolute;
   top: 0.8cqmin;
@@ -1108,6 +1129,12 @@
   color: var(--sh-krit);
   font: 600 1.8cqmin / 1.2 var(--sh-font-text);
   white-space: nowrap;
+}
+
+.getrennt[data-im-fuss] {
+  position: static;
+  transform: none;
+  font-size: 2cqmin;
 }
 
 .schirmLeer {
@@ -1159,7 +1186,7 @@
 
   .szeneRangliste {
     --platz-breite: 9cqmin;
-    --gesamt-breite: 16cqmin;
+    --gesamt-breite: 19cqmin;
   }
 
   .startListe {

@@ -5,6 +5,7 @@ import {
   alsPosition,
   gesamtTeile,
   podestReihenfolge,
+  podestStufe,
   ranglistenEintraege,
   ranglistenSeiten,
   serienAnzahl,
@@ -21,6 +22,7 @@ import {
   teilTakt,
   zeilenProSeite,
 } from "./rotation";
+import { startlistenZeilen } from "./schirm/Startliste";
 import { beispielFeed, rangliste } from "./testdaten";
 import {
   type Entwurf,
@@ -170,6 +172,34 @@ describe("Formatierung", () => {
     const enger = ranglistenSeiten(ranglistenEintraege(rangliste()), 6);
     expect(enger[0]?.at(-1)?.art).toBe("mehr");
     expect(enger[1]?.[0]?.art).toBe("klasse");
+  });
+
+  it("wiederholt den Klassenkopf, wenn eine Klasse auf der nächsten Seite weitergeht", () => {
+    const seiten = ranglistenSeiten(ranglistenEintraege(rangliste()), 3);
+    expect(seiten.map((seite) => seite.map((e) => e.art))).toEqual([
+      ["klasse", "zeile", "zeile"],
+      ["klasse", "zeile", "mehr"],
+      ["klasse", "zeile"],
+    ]);
+    const weiter = seiten[1]?.[0];
+    expect(weiter?.art === "klasse" && weiter.fortsetzung).toBe(true);
+    expect(seiten[2]?.[0]?.art === "klasse" && seiten[2][0].fortsetzung).toBeFalsy();
+    const schluessel = seiten.flat().map((e) => e.schluessel);
+    expect(new Set(schluessel).size).toBe(schluessel.length);
+  });
+
+  it("Podesthöhe nach dem Platz: geteilte Erste stehen beide oben", () => {
+    expect(podestStufe(1, 2)).toBe(1);
+    expect(podestStufe(2, 3)).toBe(2);
+    expect(podestStufe(5, 3)).toBe(3);
+    expect(podestStufe(null, 2)).toBe(2);
+  });
+
+  it("verteilt eine kurze Startliste gleichmäßig auf die Spalten", () => {
+    expect(startlistenZeilen(8, 2, 7)).toBe(4);
+    expect(startlistenZeilen(8, 2, 30)).toBe(8);
+    expect(startlistenZeilen(8, 1, 3)).toBe(3);
+    expect(startlistenZeilen(null, 2, 7)).toBeNull();
   });
 
   it("ordnet das Podest 2 – 1 – 3", () => {

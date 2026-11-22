@@ -6,7 +6,7 @@ import { theme } from "../../theme";
 import { SchirmAnsicht } from "./schirm/Schirm";
 import type { FeedQuelle, FeedZustand } from "./schirm/useFeed";
 import { beispielFeed, szenen } from "./testdaten";
-import type { Feed } from "./typen";
+import type { Feed, SzeneVon } from "./typen";
 
 const QUELLE: FeedQuelle = { art: "anzeige", id: "a1" };
 
@@ -54,6 +54,9 @@ describe("Bildschirm", () => {
     expect(within(sieger).getByText("Schützenklasse")).toBeVisible();
     expect(within(sieger).getByText("Clara Probe")).toBeVisible();
     expect(sieger.querySelectorAll('[data-rang="1"]')).toHaveLength(2);
+    // Zwei geteilte Zweite stehen gleich hoch, auch wenn einer rechts (an Stelle 3) steht.
+    expect(sieger.querySelectorAll('[data-stufe="2"]')).toHaveLength(2);
+    expect(sieger.querySelectorAll('[data-stufe="3"]')).toHaveLength(0);
   });
 
   it("Startliste: Durchgang, Bahn, Status, weitere", () => {
@@ -86,6 +89,13 @@ describe("Bildschirm", () => {
     unmount();
     zeige(beispielFeed({ scenes: [szenen.idle] }));
     expect(screen.getByText("Gleich geht es los")).toBeVisible();
+  });
+
+  it("Ruhe wiederholt den Turniernamen nicht als Unterzeile", () => {
+    const ruhe = szenen.idle as SzeneVon<"idle">;
+    zeige(beispielFeed({ scenes: [{ ...ruhe, heading: "Herbstpokal 2026" }] }));
+    const region = screen.getByRole("region", { name: szenen.idle.title });
+    expect(within(region).getAllByText("Herbstpokal 2026")).toHaveLength(1);
   });
 
   it("zeigt Warnungen und den Hinweis „vorläufig“ nur, wenn der Feed sie liefert", () => {
@@ -126,6 +136,8 @@ describe("Bildschirm", () => {
     zeige(beispielFeed(), { getrenntSeit: new Date("2026-11-22T12:40:00Z") });
     expect(screen.getByText("Anna Beispiel")).toBeVisible();
     expect(screen.getByRole("status")).toHaveTextContent(/Verbindung unterbrochen seit \d\d:\d\d/);
+    // Die Marke steht im Fuß und überdeckt den Turniernamen nicht.
+    expect(screen.getByRole("status").closest("footer")).not.toBeNull();
   });
 
   it("sagt bei fehlender Zuweisung, was zu tun ist", () => {

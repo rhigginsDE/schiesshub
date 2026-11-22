@@ -8,7 +8,7 @@
   "aktionen": "Aktionen",
   "leer": {
     "titel": "Start wählen",
-    "text": "Links eine Bahn antippen oder eine Startnummer suchen. Auch nur angemeldete Starts lassen sich erfassen."
+    "text": "Hier trägst du die Ergebnisse je Start ein und schließt sie ab. Tipp links eine Bahn an oder such eine Startnummer."
   },
   "auswahl": {
     "titel": "Startauswahl",
@@ -30,7 +30,11 @@
     "durchgang": "Durchgang {{nummer}}, {{zeit}}",
     "platz": "Platz {{platz}}",
     "versuch": "{{nr}}. Start",
-    "bahn_kurz": "Bahn"
+    "bahn_kurz": "Bahn",
+    "am_stand_leer": "Noch niemand aufgerufen.",
+    "am_stand_leer_text": "Schützen rufst du am Stand auf. Wartende kannst du auch direkt erfassen.",
+    "zum_stand": "Am Stand aufrufen",
+    "klasse": "Klasse {{klasse}}"
   },
   "stand": {
     "beschriftung": "Stand",
@@ -47,7 +51,9 @@
     "oeffnen": "Öffnen",
     "treffer_one": "{{count}} Treffer",
     "treffer_other": "{{count}} Treffer",
-    "keine": "Kein passender Start."
+    "keine": "Kein passender Start.",
+    "mehrere_one": "{{count}} Start passt.",
+    "mehrere_other": "{{count}} Starts passen. Wähl den richtigen: Wettbewerb und Startnummer mit dem Startzettel vergleichen."
   },
   "filter": {
     "nur_offene": "Nur offene Starts"
@@ -80,7 +86,8 @@
       "absteigend": "höchster Wert gewinnt",
       "aufsteigend": "niedrigster Wert gewinnt"
     },
-    "startnummer_kurz": "Startnummer"
+    "startnummer_kurz": "Startnummer",
+    "klasse": "Klasse"
   },
   "art": {
     "titel": "Erfassungsart",
@@ -111,7 +118,8 @@
     "leer": "leer",
     "entfaellt": "entfällt",
     "freiwillig": "freiwillig",
-    "bereich": "{{min}} bis {{max}}"
+    "bereich": "{{min}} bis {{max}}",
+    "leer_wert": "leer"
   },
   "schuss": {
     "reihe": "Schüsse {{serie}}",
@@ -119,14 +127,21 @@
   },
   "tasten": {
     "titel": "Ziffernfeld",
-    "kein_feld": "Feld antippen",
+    "kein_feld": "Kein Feld aktiv. Feld antippen.",
     "schuss": "Schuss {{nr}}",
     "innenzehner": "Innenzehner",
     "fehler": "Fehler",
     "korrektur": "Korrektur",
     "komma": "Komma",
     "weiter": "Weiter",
-    "tastatur": "Tastatur: Ziffern tippen, Enter = weiter, Rück = löschen, x = Innenzehner."
+    "tastatur": "Tastatur: Ziffern tippen, Enter = weiter, Rück = im Feld löschen, Pfeil links = zurück.",
+    "aktiv": "Aktives Feld",
+    "tastatur_x": "Tastatur: Ziffern tippen, x = Innenzehner, Enter = weiter, Rück = löschen, Pfeil links = zurück.",
+    "abgelehnt": {
+      "zu_gross": "Höchstens {{max}}.",
+      "leer": "Das Feld ist leer. Ein anderes Feld erreichst du durch Antippen.",
+      "unpassend": "Diese Taste passt hier nicht."
+    }
   },
   "gesamt": {
     "titel": "Gesamt",
@@ -155,15 +170,15 @@
     "gesamtzeiten_other": "noch {{count}} Gesamtzeiten"
   },
   "senden": {
-    "gespeichert": "gespeichert",
-    "laeuft": "wird gespeichert …",
-    "netzfehler_one": "Noch nicht gespeichert. Keine Verbindung, neuer Versuch läuft.",
-    "netzfehler_other": "Noch nicht gespeichert. Keine Verbindung, {{count}}. Versuch läuft.",
-    "jetzt": "Jetzt senden",
+    "gespeichert": "Gespeichert",
+    "laeuft": "Speichert …",
+    "netzfehler_one": "Nicht gespeichert – keine Verbindung. Neuer Versuch läuft.",
+    "netzfehler_other": "Nicht gespeichert – keine Verbindung. {{count}}. Versuch läuft.",
+    "jetzt": "Erneut versuchen",
     "abgelehnt": "Nicht gespeichert",
-    "abgelehnt_kurz": "Nicht gespeichert: Eingabe prüfen.",
-    "konflikt_kurz": "Nicht gespeichert: bitte oben entscheiden.",
-    "erneut": "Erneut senden"
+    "abgelehnt_kurz": "Nicht gespeichert – Eingabe prüfen.",
+    "konflikt_kurz": "Nicht gespeichert – bitte oben entscheiden.",
+    "erneut": "Erneut versuchen"
   },
   "fremd": {
     "titel": "Auf einem anderen Gerät geändert",
@@ -179,18 +194,31 @@
   },
   "abschluss": {
     "knopf": "Ergebnis abschließen",
-    "bereit": "Alles erfasst. Bitte prüfen und abschließen.",
-    "warten": "Erst abschließbar, wenn alles erfasst ist.",
-    "titel": "Ergebnis abschließen?",
-    "text": "Danach geht eine Änderung nur noch als Korrektur mit Grund.",
+    "bereit": "Alles erfasst und gespeichert. Jetzt prüfen und abschließen.",
+    "warten": "Erst abschließbar, wenn alles erfasst und gespeichert ist.",
+    "titel": "Ergebnis prüfen",
+    "text": "So steht das Ergebnis beim Server. Vergleich es mit dem Startzettel, dann abschließen.",
     "bestaetigen": "Abschließen",
     "erledigt": "{{wer}}: abgeschlossen",
-    "ist": "Abgeschlossen: {{ergebnis}}"
+    "ist": "Abgeschlossen: {{ergebnis}}",
+    "danach": "Danach geht eine Änderung nur noch als Korrektur mit Grund.",
+    "laedt": "Stand des Servers wird geladen …",
+    "abweichung": "Beim Server steht etwas anderes als in deiner Eingabe. Geh zurück zur Eingabe und warte, bis „Gespeichert“ erscheint.",
+    "unvollstaendig": "Der Server meldet das Ergebnis noch als unvollständig.",
+    "schon_erledigt": "Dieser Start ist beim Server schon abgeschlossen oder abgebrochen.",
+    "nicht_bereit": "Noch nicht alles gespeichert. Warte auf „Gespeichert“.",
+    "zurueck": "Zurück zur Eingabe",
+    "erneut": "Erneut laden",
+    "warnungen": "Bitte prüfen",
+    "plausibel": "Ich habe diese Werte mit dem Startzettel verglichen. Sie stimmen.",
+    "ergebnis": "Ergebnis",
+    "fehlt": "Fehlt:",
+    "fehlt_ort": "{{ort}}: {{felder}}"
   },
   "abbruch": {
     "knopf": "Start abbrechen",
     "titel": "Start abbrechen?",
-    "text": "{{wer}}: Der Start wird nicht gewertet. Erfasste Werte bleiben im Verlauf.",
+    "text": "{{wer}}: Der Start wird als abgebrochen vermerkt. Erfasste Werte bleiben im Verlauf. Wie ein abgebrochener Start in der Wertung erscheint, legt die Wertung des Servers fest.",
     "art": "Grund",
     "grund": "Bemerkung (freiwillig)",
     "bestaetigen": "Start abbrechen",
@@ -210,16 +238,19 @@
   "korrektur": {
     "knopf": "Korrigieren",
     "modus": "Korrektur",
-    "modus_text": "Werte ändern und mit Grund speichern. Die Summen rechnet der Server danach neu.",
+    "modus_text": "Werte ändern und mit Grund speichern. Das neue Ergebnis rechnet der Server beim Speichern.",
     "speichern": "Korrektur speichern",
     "hinweis": "Speichern verlangt einen Grund.",
     "unveraendert": "Noch nichts geändert.",
     "verwerfen": "Korrektur verwerfen",
-    "erst_danach": "Neuer Stand nach dem Speichern",
+    "erst_danach": "Neues Ergebnis nach dem Speichern",
     "titel": "Korrektur speichern?",
-    "text": "{{wer}}: Das Ergebnis bleibt abgeschlossen; die Einspruchsfrist beginnt neu.",
+    "text": "{{wer}}: Das Ergebnis bleibt abgeschlossen. Die Änderung steht mit deinem Grund im Verlauf.",
     "bestaetigen": "Korrektur speichern",
-    "erledigt": "Korrektur gespeichert"
+    "erledigt": "Korrektur gespeichert",
+    "aenderungen": "Geändert (alt → neu)",
+    "server_rechnet": "Das neue Ergebnis rechnet der Server beim Speichern; es erscheint danach oben unter „Gesamt“.",
+    "alt_neu": "{{vorher}} → {{nachher}}"
   },
   "oeffnen": {
     "knopf": "Wieder öffnen",
@@ -234,7 +265,7 @@
   "dialog": {
     "abbrechen": "Zurück",
     "grund": "Grund",
-    "grund_hilfe": "Pflicht. Steht im Verlauf, z. B. „Schuss 7 falsch abgelesen“."
+    "grund_hilfe": "Pflicht. Steht im Verlauf, z. B. „Wert falsch abgelesen“."
   },
   "wechsel": {
     "titel": "Eingabe noch nicht gespeichert",
@@ -251,5 +282,20 @@
     "grund": "Grund: {{grund}}",
     "weitere_one": "und {{count}} weitere Änderung",
     "weitere_other": "und {{count}} weitere Änderungen"
+  },
+  "wettbewerbe": {
+    "titel": "Stand der Wettbewerbe",
+    "zaehler": "{{fertig}} von {{gesamt}} erledigt",
+    "abgebrochen_one": "davon {{count}} abgebrochen",
+    "abgebrochen_other": "davon {{count}} abgebrochen",
+    "zu_pruefen_one": "{{count}} zu prüfen",
+    "zu_pruefen_other": "{{count}} zu prüfen",
+    "offen": "Offen:",
+    "alle": "Alle Starts erledigt.",
+    "start_oeffnen": "Start {{nr}} öffnen: {{name}}"
+  },
+  "wiederhergestellt": {
+    "titel": "Eingabe zurückgeholt",
+    "text": "Werte, die der Server noch nicht bestätigt hatte, sind wieder da und werden gespeichert."
   }
 }

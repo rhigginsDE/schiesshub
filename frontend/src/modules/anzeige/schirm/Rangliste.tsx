@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   gesamtTeile,
   podestReihenfolge,
+  podestStufe,
   type RanglistenEintrag,
   ranglistenEintraege,
   ranglistenSeiten,
@@ -126,6 +127,7 @@ function Eintrag({
         {eintrag.gruppe.class_name && eintrag.gruppe.class_short && (
           <span className="num">{eintrag.gruppe.class_short}</span>
         )}
+        {eintrag.fortsetzung && <small>{t("schirm.fortsetzung")}</small>}
       </div>
     );
   }
@@ -155,7 +157,6 @@ export function LiveWertung({ szene, takt }: { szene: SzeneVon<"live_ranking">; 
   return (
     <section className={s.szeneRangliste} aria-label={szene.title} style={stil}>
       <AbschnittKopf
-        kicker={szene.title}
         titel={rangliste.competition_name}
         meta={
           <>
@@ -203,7 +204,12 @@ function PodestStufe({
   const name = useName();
   const teile = gesamtTeile(zeile.score_text, einheit);
   return (
-    <div className={s.stufe} data-rang={rang} data-erster={zeile.place === 1 || undefined}>
+    <div
+      className={s.stufe}
+      data-rang={rang}
+      data-stufe={podestStufe(zeile.place, rang)}
+      data-erster={zeile.place === 1 || undefined}
+    >
       <div className={s.stufeName}>
         <b className={s.stufeNameText}>{name(zeile)}</b>
         {zeile.club && <span>{zeile.club}</span>}
@@ -305,7 +311,6 @@ export function Siegerliste({ szene, takt }: { szene: SzeneVon<"winners">; takt:
   return (
     <section className={s.szeneSieger} aria-label={szene.title}>
       <AbschnittKopf
-        kicker={szene.title}
         titel={rangliste.competition_name}
         meta={
           <>

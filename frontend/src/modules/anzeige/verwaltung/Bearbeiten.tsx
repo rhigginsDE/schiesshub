@@ -9,12 +9,13 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, ExternalLink, Info, Save, Undo2 } from "lucide-react";
+import { Check, Copy, ExternalLink, Info, Save, TriangleAlert, Undo2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { geraeteAbfrage } from "../../../api/abfragen";
 import { ApiFehler, type FeldFehler } from "../../../api/client";
 import { Chip } from "../../../components/Chip";
+import { ExportKnoepfe } from "../../../components/ExportKnoepfe";
 import { useFehlerText } from "../../../components/FehlerHinweis";
 import { zeigeMeldung } from "../../../components/Meldungen";
 import { bestimmeTurnier } from "../../../components/useAktivesTurnier";
@@ -180,6 +181,13 @@ export function Bearbeiten({ anzeige, anzeigen, turniere, onGeaendert }: Bearbei
           onAendern={(aenderung) => setEntwurf((alt) => ({ ...alt, ...aenderung }))}
         />
 
+        <SzenenEditor
+          szenen={konfig.scenes ?? []}
+          uebersicht={uebersicht.data}
+          felder={felder}
+          onAendern={(szenen) => setzeKonfig({ scenes: szenen })}
+        />
+
         <section className={`panel ${s.feldgruppe}`} aria-labelledby="darstellung-titel">
           <h3 className="h-section" id="darstellung-titel">
             {t("darstellung.titel")}
@@ -187,6 +195,7 @@ export function Bearbeiten({ anzeige, anzeigen, turniere, onGeaendert }: Bearbei
           <div className={s.zweispaltig}>
             <Select
               label={t("darstellung.namen")}
+              description={t("darstellung.namen_hilfe")}
               data={[
                 { value: "as_person", label: t("darstellung.namen_person") },
                 { value: "short", label: t("darstellung.namen_kurz") },
@@ -264,16 +273,16 @@ export function Bearbeiten({ anzeige, anzeigen, turniere, onGeaendert }: Bearbei
             error={fehlerZu(felder, "ticker")}
           />
         </section>
-
-        <SzenenEditor
-          szenen={konfig.scenes ?? []}
-          uebersicht={uebersicht.data}
-          felder={felder}
-          onAendern={(szenen) => setzeKonfig({ scenes: szenen })}
-        />
       </div>
       <div className={s.spalte}>
         <Vorschau anzeige={anzeige} geaendert={geaendert} />
+        {optionenTurnier && (
+          <ExportKnoepfe
+            turnierId={optionenTurnier}
+            uebersicht={uebersicht.data}
+            darstellung="abschnitt"
+          />
+        )}
       </div>
     </>
   );
@@ -353,11 +362,12 @@ function TurnierUndGeraet({
             (!entwurf.tournament_id ? t("turnier.wahl_fehlt") : undefined)
           }
         />
+      ) : automatischName ? (
+        <p className={s.hilfe}>{t("turnier.auto_hilfe", { name: automatischName })}</p>
       ) : (
-        <p className={s.hilfe}>
-          {automatischName
-            ? t("turnier.auto_hilfe", { name: automatischName })
-            : t("turnier.auto_keins")}
+        <p className={s.warnHinweis} role="alert">
+          <TriangleAlert aria-hidden />
+          {t("turnier.auto_keins")}
         </p>
       )}
 
@@ -468,8 +478,16 @@ function Vorschau({ anzeige, geaendert }: { anzeige: Anzeige; geaendert: boolean
           </ul>
         </div>
       )}
+      <div className={s.anleitung}>
+        <h4 className="h-label">{t("vorschau.anleitung_titel")}</h4>
+        <ol>
+          <li>{t("vorschau.anleitung_1")}</li>
+          <li>{t("vorschau.anleitung_2")}</li>
+          <li>{t("vorschau.anleitung_3")}</li>
+        </ol>
+      </div>
       <Adresse pfad={schirmPfad(anzeige.id)} label={t("vorschau.adresse")} />
-      <Adresse pfad={schirmPfad()} label={t("vorschau.adresse_geraet")} />
+      {anzeige.device_id && <Adresse pfad={schirmPfad()} label={t("vorschau.adresse_geraet")} />}
     </section>
   );
 }

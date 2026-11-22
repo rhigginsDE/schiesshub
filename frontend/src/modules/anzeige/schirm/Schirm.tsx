@@ -146,14 +146,15 @@ function SchirmInhalt({ feed, getrenntSeit }: { feed: Feed; getrenntSeit: Date |
   const { szene, index, takt } = useRotation(feed.scenes);
   const warnungen = feed.warnings.filter((warnung) => warnung.code !== "provisional");
   const vorlaeufig = feed.warnings.find((warnung) => warnung.code === "provisional");
-  const titel =
-    szene.parts > 1
-      ? t("schirm.szene_teil", { titel: szene.title, teil: szene.part, teile: szene.parts })
-      : szene.title;
+  const titelVon = (eintrag: FeedSzene) =>
+    eintrag.parts > 1
+      ? t("schirm.szene_teil", { titel: eintrag.title, teil: eintrag.part, teile: eintrag.parts })
+      : eintrag.title;
+  const naechste = feed.scenes.length > 1 ? feed.scenes[(index + 1) % feed.scenes.length] : null;
 
   return (
     <div className={s.schirm} data-ticker={feed.ticker ? "" : undefined}>
-      <Kopf kopf={feed.header} szene={titel} />
+      <Kopf kopf={feed.header} szene={titelVon(szene)} />
       {warnungen.length > 0 && (
         <div className={s.warnungen} role="alert">
           {warnungen.map((warnung) => (
@@ -173,13 +174,11 @@ function SchirmInhalt({ feed, getrenntSeit }: { feed: Feed; getrenntSeit: Date |
         index={index}
         anzahl={feed.scenes.length}
         takt={takt}
-        naechste={
-          feed.scenes.length > 1 ? feed.scenes[(index + 1) % feed.scenes.length]?.title : undefined
-        }
+        naechste={naechste ? titelVon(naechste) : undefined}
         vorlaeufig={vorlaeufig?.message}
+        getrenntSeit={getrenntSeit}
       />
       {feed.ticker && <Laufzeile text={feed.ticker} />}
-      {getrenntSeit && <GetrenntMarke seit={getrenntSeit} />}
     </div>
   );
 }
@@ -206,7 +205,9 @@ function SzenenInhalt({ szene, kopf, takt }: { szene: FeedSzene; kopf: FeedKopf;
         <section className={s.szeneText} data-ruhe="" aria-label={szene.title}>
           <img src="/icons/app-icon.svg" alt="" className={s.ruheLogo} />
           <h2 className={s.hinweisTitel}>{kopf.title}</h2>
-          <p className={s.ruheUeberschrift}>{szene.heading}</p>
+          {szene.heading && szene.heading !== kopf.title && (
+            <p className={s.ruheUeberschrift}>{szene.heading}</p>
+          )}
           {szene.text && <p className={s.hinweisText}>{szene.text}</p>}
         </section>
       );
@@ -257,17 +258,19 @@ function Fuss({
   takt,
   naechste,
   vorlaeufig,
+  getrenntSeit,
 }: {
   index: number;
   anzahl: number;
   takt: Takt;
   naechste?: string;
   vorlaeufig?: string;
+  getrenntSeit: Date | null;
 }) {
   const { t } = useTranslation("anzeige");
   const { jetzt } = useSchirm();
   const rotiert = anzahl > 1;
-  if (!rotiert && !vorlaeufig) return <footer className={s.fuss} data-leer="" />;
+  if (!rotiert && !vorlaeufig && !getrenntSeit) return <footer className={s.fuss} data-leer="" />;
   return (
     <footer className={s.fuss}>
       {rotiert ? (
@@ -296,7 +299,10 @@ function Fuss({
       ) : (
         <span />
       )}
-      {vorlaeufig && <span className={s.vorlaeufigHinweis}>{vorlaeufig}</span>}
+      <span className={s.fussRechts}>
+        {vorlaeufig && <span className={s.vorlaeufigHinweis}>{vorlaeufig}</span>}
+        {getrenntSeit && <GetrenntMarke seit={getrenntSeit} imFuss />}
+      </span>
     </footer>
   );
 }
@@ -314,11 +320,12 @@ function Laufzeile({ text }: { text: string }) {
   );
 }
 
-function GetrenntMarke({ seit }: { seit: Date }) {
+/** Ohne Verbindung: im Fuß rechts (überdeckt nichts); ohne Feed oben in der Mitte. */
+function GetrenntMarke({ seit, imFuss = false }: { seit: Date; imFuss?: boolean }) {
   const { t } = useTranslation("anzeige");
   const { sprache, versatzMs } = useSchirm();
   return (
-    <p className={s.getrennt} role="status">
+    <p className={s.getrennt} data-im-fuss={imFuss || undefined} role="status">
       <Unplug aria-hidden />
       {t("schirm.getrennt", { zeit: formatUhrzeit(new Date(seit.getTime() + versatzMs), sprache) })}
     </p>

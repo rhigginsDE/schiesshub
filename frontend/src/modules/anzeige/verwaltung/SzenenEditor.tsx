@@ -155,7 +155,7 @@ function SzeneKarte({
         <span className={`num ${s.szeneNr}`}>{index + 1}</span>
         <span className={s.szeneArt}>
           <Icon aria-hidden />
-          {art} <span className={`num ${s.szeneId}`}>{szene.id}</span>
+          {art}
         </span>
         <ReihenfolgeKnoepfe
           index={index}

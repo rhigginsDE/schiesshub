@@ -3,20 +3,23 @@ import { useTranslation } from "react-i18next";
 import type { FeedPerson, FeedZeile } from "../typen";
 import s from "./schirm.module.css";
 
-/** Kopf eines Szenen-Abschnitts: kleine Überschrift, Titel, rechts Zusatz. */
+/**
+ * Kopf eines Szenen-Abschnitts: Titel, rechts Zusatz. Die kleine Beschriftung darüber nur, wo sie
+ * etwas sagt, das nicht schon im Kopf des Bildschirms steht (z. B. „Am Stand“).
+ */
 export function AbschnittKopf({
   kicker,
   titel,
   meta,
 }: {
-  kicker: string;
+  kicker?: string;
   titel: ReactNode;
   meta?: ReactNode;
 }) {
   return (
     <header className={s.abschnittKopf}>
       <div className={s.abschnittTitel}>
-        <span className={s.kicker}>{kicker}</span>
+        {kicker && <span className={s.kicker}>{kicker}</span>}
         <h2>{titel}</h2>
       </div>
       {meta && <div className={s.meta}>{meta}</div>}

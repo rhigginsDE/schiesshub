@@ -82,7 +82,8 @@
       "anzeige_nicht_angemeldet": "Dieser Bildschirm ist nicht gekoppelt – in System → Geräte koppeln.",
       "anzeige_verboten": "Diesem Gerät fehlt das Recht, Anzeigen zu zeigen – in System → Geräte die Rolle „Anzeige“ geben.",
       "hinweis": "Der Bildschirm prüft von selbst weiter und zeigt die Anzeige, sobald es passt."
-    }
+    },
+    "fortsetzung": "Fortsetzung"
   },
   "liste": {
     "titel": "Anzeigen",
@@ -91,8 +92,8 @@
     "name": "Name",
     "turnier_auto": "Turnier automatisch",
     "turnier_fest": "Festes Turnier",
-    "szenen_one": "{{count}} Szene",
-    "szenen_other": "{{count}} Szenen",
+    "szenen_one": "{{count}} Ansicht",
+    "szenen_other": "{{count}} Ansichten",
     "mit_geraet": "Bildschirm zugewiesen",
     "nach_oben": "Nach oben",
     "nach_unten": "Nach unten",
@@ -109,17 +110,17 @@
   },
   "leer": {
     "titel": "Noch keine Anzeige",
-    "text": "Eine Anzeige legt fest, was ein Bildschirm im Schützenhaus zeigt. Die Standard-Anzeige zeigt Live-Wertung und Startliste.",
+    "text": "Eine Anzeige legt fest, was ein Bildschirm im Schützenhaus zeigt. Die Standard-Anzeige zeigt Live-Wertung und Startliste; du kannst sie danach anpassen.",
     "standard": "Standard anlegen"
   },
   "ohne_recht": {
     "titel": "Anzeigen einstellen ist hier nicht erlaubt",
-    "text": "Dieses Gerät darf Anzeigen zeigen, aber nicht einstellen. Zum Einstellen mit einer Rolle anmelden, die Anzeigen steuern darf (z. B. Turnierleitung).",
+    "text": "Dieses Gerät darf Anzeigen zeigen, aber nicht einstellen. Melde dich zum Einstellen mit einer Rolle an, die Anzeigen steuern darf (z. B. Turnierleitung).",
     "schirm": "Bildschirm dieses Geräts öffnen"
   },
   "bearbeiten": {
     "leiste": "Speichern und Verwerfen",
-    "ungespeichert": "Ungespeicherte Änderungen",
+    "ungespeichert": "Nicht gespeichert",
     "verwerfen": "Verwerfen",
     "gespeichert": "Anzeige gespeichert",
     "fehler_titel": "Nicht gespeichert:",
@@ -134,14 +135,14 @@
     "wahl": "Turnier",
     "wahl_platzhalter": "Turnier wählen",
     "wahl_fehlt": "Bitte ein Turnier wählen.",
-    "auto_hilfe": "Zeigt das einzige aktive Turnier, zurzeit „{{name}}“. Die Auswahlfelder der Szenen beziehen sich darauf.",
-    "auto_keins": "Zeigt das einzige aktive Turnier. Zurzeit ist keins (oder mehr als eins) aktiv; der Bildschirm zeigt dann einen ruhigen Hinweis."
+    "auto_hilfe": "Zeigt das einzige laufende Turnier, zurzeit „{{name}}“.",
+    "auto_keins": "Zurzeit laufen mehrere Turniere (oder keins). So zeigt der Bildschirm nur einen Hinweis. Wähle „Festes Turnier“ und dann das Turnier."
   },
   "geraet": {
-    "titel": "Bildschirm",
+    "titel": "Gekoppeltes Gerät (wahlweise)",
     "wahl": "Gerät",
     "keins": "Kein Gerät",
-    "hilfe": "Das Gerät öffnet die Adresse für den zugewiesenen Bildschirm (siehe Vorschau) und zeigt dann diese Anzeige.",
+    "hilfe": "Nur nötig, wenn der Fernseher an einem eigenen, in System → Geräte gekoppelten Gerät hängt. Dieses Gerät zeigt dann immer diese Anzeige.",
     "gesperrt": "gesperrt",
     "zeigt": "zeigt „{{name}}“",
     "unbekannt": "Unbekanntes Gerät",
@@ -151,36 +152,37 @@
   "darstellung": {
     "titel": "Darstellung",
     "namen": "Namen",
-    "namen_person": "Wie bei der Person eingestellt",
+    "namen_person": "Wie bei der Person",
     "namen_kurz": "Alle abgekürzt",
     "verein": "Verein",
-    "verein_person": "Wie bei der Person eingestellt",
+    "verein_person": "Wie bei der Person",
     "verein_nie": "Nie zeigen",
     "thema": "Farben",
     "dunkel": "Dunkel",
     "hell": "Hell",
     "sicherung": "Warnung der Sicherung",
     "sicherung_hilfe": "Erscheint nur, wenn die Sicherung eine Warnung meldet (z. B. Stick fehlt).",
-    "sicherung_standard": "Wie in der Sicherung eingestellt",
+    "sicherung_standard": "Wie in der Sicherung",
     "sicherung_ja": "Auf dieser Anzeige zeigen",
     "sicherung_nein": "Nie zeigen",
     "vorlaeufig": "Hinweis „Ergebnisse vorläufig“",
     "vorlaeufig_hilfe": "Solange gezeigte Ergebnisse in der Einspruchsfrist sind.",
     "laufzeile": "Laufzeile",
-    "laufzeile_hilfe": "Läuft am unteren Rand durch; leer = keine."
+    "laufzeile_hilfe": "Läuft am unteren Rand durch; leer = keine.",
+    "namen_hilfe": "Jede Person wählt bei der Anmeldung, ob ihr Name voll oder abgekürzt erscheint."
   },
   "szenen": {
-    "titel": "Szenen",
-    "hinzufuegen": "Szene hinzufügen",
-    "hilfe": "Der Bildschirm zeigt die Szenen nacheinander, jede so lange wie eingestellt. Szenen ohne Inhalt (z. B. noch keine Ergebnisse) überspringt er; lange Listen blättert er innerhalb der Dauer um.",
-    "leer": "Keine Szene – der Bildschirm zeigt dann nur den Turniernamen."
+    "titel": "Was der Bildschirm zeigt",
+    "hinzufuegen": "Ansicht hinzufügen",
+    "hilfe": "Der Bildschirm zeigt die Ansichten nacheinander, jede so lange wie eingestellt. Ansichten ohne Inhalt (z. B. noch keine Ergebnisse) überspringt er; lange Listen blättert er um.",
+    "leer": "Noch keine Ansicht – der Bildschirm zeigt dann nur den Turniernamen. Füge mit „Ansicht hinzufügen“ z. B. die Live-Wertung hinzu."
   },
   "szene": {
     "hoch": "{{art}} ({{nr}}) nach oben",
     "runter": "{{art}} ({{nr}}) nach unten",
     "loeschen": "{{art}} ({{nr}}) entfernen",
     "ueberschrift": "Überschrift",
-    "ueberschrift_hilfe": "Leer = passende Überschrift vom Server",
+    "ueberschrift_hilfe": "Leer = Name der Ansicht, z. B. „Live-Wertung“",
     "dauer": "Dauer",
     "dauer_hilfe": "5 bis 600 Sekunden",
     "unbekannt": "Nicht in diesem Turnier",
@@ -218,18 +220,22 @@
     "titel": "Vorschau",
     "oeffnen": "Anzeige öffnen",
     "gespeicherter_stand": "Die Vorschau zeigt den gespeicherten Stand. Nach dem Speichern erscheinen die Änderungen hier und auf dem Bildschirm.",
-    "hilfe": "So sieht der Bildschirm gerade aus. Er lädt bei jeder Änderung von selbst neu.",
+    "hilfe": "So sieht der Bildschirm gerade aus. Er aktualisiert sich von selbst.",
     "uebersprungen": "Gerade übersprungen",
-    "adresse": "Adresse dieser Anzeige",
-    "adresse_geraet": "Adresse für den zugewiesenen Bildschirm",
+    "adresse": "Adresse für den Fernseher",
+    "adresse_geraet": "Adresse für ein gekoppeltes Gerät",
     "kopieren": "Adresse kopieren",
-    "kopiert": "Kopiert"
+    "kopiert": "Kopiert",
+    "anleitung_titel": "So kommt die Anzeige auf den Fernseher",
+    "anleitung_1": "Am Rechner, an dem der Fernseher hängt, Schiesshub öffnen und hier „Anzeige öffnen“ klicken – oder die Adresse unten eintippen.",
+    "anleitung_2": "Doppelklick auf das Bild oder Taste F schaltet auf Vollbild.",
+    "anleitung_3": "Der Bildschirm wechselt die Ansichten von selbst. Was du hier speicherst, erscheint dort nach wenigen Sekunden."
   },
   "export": {
-    "knopf": "Exportieren",
-    "titel": "Listen exportieren",
-    "einleitung": "Startliste und Siegerliste als PDF zum Aushängen oder als CSV für die Tabellenkalkulation, dazu alle Ergebnisse als Rohdaten.",
-    "dialog_titel": "Listen exportieren",
+    "knopf": "Listen drucken",
+    "titel": "Listen drucken und speichern",
+    "einleitung": "Startliste und Siegerliste als PDF zum Ausdrucken und Aushängen oder als Tabelle (CSV) für die Tabellenkalkulation, dazu alle Ergebnisse als Rohdaten.",
+    "dialog_titel": "Startliste und Siegerliste",
     "namen": "Namen",
     "namen_oeffentlich": "Wie von der Person gewählt",
     "namen_voll": "Volle Namen (intern)",
@@ -251,8 +257,8 @@
     "vorlaeufig": "Vorläufige einschließen",
     "vorlaeufig_hilfe": "Ergebnisse in der Einspruchsfrist, gekennzeichnet",
     "format": {
-      "pdf": "PDF",
-      "csv": "CSV"
+      "pdf": "PDF zum Drucken",
+      "csv": "Tabelle (CSV)"
     },
     "startlist": {
       "titel": "Startliste",
@@ -275,6 +281,7 @@
     "leer_titel": "Die Datei ist leer",
     "leer_text": "{{name}} enthält noch keine Einträge – dafür gibt es noch keine Starts oder Ergebnisse.",
     "fehler_verboten": "Für diesen Export fehlt die Berechtigung.",
-    "fehler_nicht_gefunden": "Turnier, Wettbewerb oder Klasse wurde nicht gefunden."
+    "fehler_nicht_gefunden": "Turnier, Wettbewerb oder Klasse wurde nicht gefunden.",
+    "gespeichert_text": "{{name}} – öffne die Datei aus dem Download-Ordner, um sie zu drucken."
   }
 }

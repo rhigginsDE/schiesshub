@@ -149,7 +149,11 @@ function ExportDialog({
       zeigeMeldung(
         leer
           ? { ton: "warn", titel: t("export.leer_titel"), text: t("export.leer_text", { name }) }
-          : { ton: "erfolg", titel: t("export.gespeichert"), text: name },
+          : {
+              ton: "erfolg",
+              titel: t("export.gespeichert"),
+              text: t("export.gespeichert_text", { name }),
+            },
       ),
     onError: (grund, auftrag) => {
       let text = fehlerText(grund);

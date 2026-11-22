@@ -23,6 +23,19 @@ export function usePlatzText(): (person: FeedPerson) => string {
   };
 }
 
+/**
+ * Zeilen je Spalte: so viele, wie hineinpassen; passt die Seite locker, gleichmäßig auf die Spalten
+ * verteilt (7 Starts in 2 Spalten: 4 und 3 statt 7 links und rechts nichts).
+ */
+export function startlistenZeilen(
+  passen: number | null,
+  spalten: number,
+  anzahl: number,
+): number | null {
+  if (passen === null) return null;
+  return Math.max(1, Math.min(passen, Math.ceil(anzahl / Math.max(1, spalten))));
+}
+
 /** Startliste je Wettbewerb; lange Listen in Spalten und seitenweise. */
 export function StartlistenSzene({ szene, takt }: { szene: SzeneVon<"startlist">; takt: Takt }) {
   const { t } = useTranslation("anzeige");
@@ -30,11 +43,12 @@ export function StartlistenSzene({ szene, takt }: { szene: SzeneVon<"startlist">
   const platzText = usePlatzText();
   const liste = szene.startlist;
   const seiten = useSeiten(liste.starts, takt);
+  const zeilen = startlistenZeilen(seiten.zeilen, seiten.spalten, seiten.eintraege.length);
   // Gemessen: spaltenweise füllen (erst links nach unten, dann rechts), wie man Listen liest.
   const stil =
-    seiten.zeilen !== null
+    zeilen !== null
       ? ({
-          gridTemplateRows: `repeat(${seiten.zeilen}, max-content)`,
+          gridTemplateRows: `repeat(${zeilen}, max-content)`,
           gridAutoFlow: "column",
         } as CSSProperties)
       : undefined;
@@ -42,7 +56,6 @@ export function StartlistenSzene({ szene, takt }: { szene: SzeneVon<"startlist">
   return (
     <section className={s.szeneStartliste} aria-label={szene.title}>
       <AbschnittKopf
-        kicker={szene.title}
         titel={liste.competition_name}
         meta={
           <>

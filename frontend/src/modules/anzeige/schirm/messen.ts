@@ -74,6 +74,8 @@ export interface Seiten<T> {
   seiten: number;
   /** Zeilen je Spalte (für `grid-template-rows` bei spaltenweisem Fluss); `null` = ungemessen */
   zeilen: number | null;
+  /** Spalten des Rasters (1 ohne Raster) */
+  spalten: number;
 }
 
 /**
@@ -127,5 +129,6 @@ export function useSeiten<T>(
     seite,
     seiten: seitenListe.length,
     zeilen: mass.zeilen,
+    spalten: mass.spalten,
   };
 }

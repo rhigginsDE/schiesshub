@@ -47,7 +47,7 @@ export function serienBreite(rangliste: FeedRangliste, sprache: string): number 
 
 /** Passen die Serienspalten neben Platz, Name und Gesamt? Sonst stehen nur diese da. */
 export function serienPassen(anzahl: number, breite: number, hochkant: boolean): boolean {
-  const platz = hochkant ? 44 : 100;
+  const platz = hochkant ? 44 : 96;
   return anzahl * (breite + 1.8) <= platz;
 }
 
@@ -71,7 +71,7 @@ export function gesamtTeile(text: string | null, einheit: string | null): Gesamt
 
 /** Eintrag einer Ranglisten-Seite: Kopf einer Klasse, Zeile oder „weitere“. */
 export type RanglistenEintrag =
-  | { art: "klasse"; schluessel: string; gruppe: FeedGruppe }
+  | { art: "klasse"; schluessel: string; gruppe: FeedGruppe; fortsetzung?: boolean }
   | { art: "zeile"; schluessel: string; zeile: FeedZeile }
   | { art: "mehr"; schluessel: string; anzahl: number };
 
@@ -99,7 +99,8 @@ export function ranglistenEintraege(rangliste: FeedRangliste): RanglistenEintrag
 
 /**
  * Seiten aus Ranglisten-Einträgen: Ein Klassenkopf steht nie allein unten auf einer Seite,
- * sondern rutscht mit seiner ersten Zeile auf die nächste.
+ * sondern rutscht mit seiner ersten Zeile auf die nächste. Geht eine Klasse auf der nächsten Seite
+ * weiter, steht ihr Kopf dort noch einmal (als Fortsetzung), damit man die Klasse erkennt.
  */
 export function ranglistenSeiten(
   eintraege: readonly RanglistenEintrag[],
@@ -108,12 +109,17 @@ export function ranglistenSeiten(
   if (proSeite === null || proSeite <= 1 || eintraege.length <= proSeite) return [[...eintraege]];
   const seiten: RanglistenEintrag[][] = [];
   let seite: RanglistenEintrag[] = [];
+  let kopf: Extract<RanglistenEintrag, { art: "klasse" }> | null = null;
   for (const eintrag of eintraege) {
+    if (eintrag.art === "klasse") kopf = eintrag;
     const voll = seite.length >= proSeite;
     const kopfZuletzt = eintrag.art === "klasse" && seite.length === proSeite - 1;
     if (voll || kopfZuletzt) {
       seiten.push(seite);
       seite = [];
+      if (eintrag.art !== "klasse" && kopf) {
+        seite.push({ ...kopf, schluessel: `${kopf.schluessel}-weiter`, fortsetzung: true });
+      }
     }
     seite.push(eintrag);
   }
@@ -142,6 +148,15 @@ export function hatPositionen(abschnitt: FeedAbschnitt): boolean {
 /** Serien, nach denen Trefferaufnahme ist (1-basiert, wie `PositionsAblauf` sie erwartet). */
 export function trefferaufnahmeNach(abschnitt: FeedAbschnitt): number[] {
   return abschnitt.series.filter((serie) => serie.hit_review_after).map((serie) => serie.number);
+}
+
+/**
+ * Höhe der Podeststufe nach dem Platz, nicht nach der Stelle: Zwei geteilte Erste stehen beide
+ * oben. Ohne Platz zählt die Stelle (1 bis 3).
+ */
+export function podestStufe(platz: number | null, stelle: number): 1 | 2 | 3 {
+  const wert = platz ?? stelle;
+  return wert <= 1 ? 1 : wert === 2 ? 2 : 3;
 }
 
 /** Podest-Reihenfolge der ersten drei: Zweiter links, Erster in der Mitte, Dritter rechts. */
