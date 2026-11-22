@@ -29,9 +29,11 @@ from app.modules.starts.rules import AbortReason
 from app.modules.starts.schemas import LaneProgressOut
 
 ResultCheck = Callable[[AsyncSession, Sequence[uuid.UUID]], Awaitable[set[uuid.UUID]]]
-# (session, events, actor, tournament_id, start_id, abort_reason); committet selbst.
+# (session, events, actor, tournament_id, start_id, abort_reason, note); committet selbst.
+# `note` ist die optionale Bemerkung zum Abbruch (bis 500 Zeichen) oder None.
 AbortHandler = Callable[
-    [AsyncSession, EventHub, Actor, uuid.UUID, uuid.UUID, AbortReason], Awaitable[None]
+    [AsyncSession, EventHub, Actor, uuid.UUID, uuid.UUID, AbortReason, str | None],
+    Awaitable[None],
 ]
 
 ProgressProvider = Callable[

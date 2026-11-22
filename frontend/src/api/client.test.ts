@@ -62,6 +62,22 @@ describe("apiSenden", () => {
     expect(api.detail).toBe("Bahn 2 ist schon belegt.");
     expect(api.felder).toEqual([{ feld: "lane", meldung: "Bahn 2 ist schon belegt." }]);
     expect(api.inhalt).toEqual(inhalt);
+    expect(api.code).toBeUndefined();
+  });
+
+  it("liest den maschinenlesbaren Grund `code`", async () => {
+    fetchMit(
+      antwort(409, { detail: "Gleich beginnt ein Durchgang.", code: "heat_imminent" }),
+      antwort(401, { detail: "Gerät gesperrt.", code: "device_revoked" }),
+    );
+    const konflikt = (await apiSenden("POST", "/x", {}).catch((f: unknown) => f)) as ApiFehler;
+    expect(konflikt.code).toBe("heat_imminent");
+    expect(konflikt.detail).toBe("Gleich beginnt ein Durchgang.");
+    const abgewiesen = (await apiSenden("POST", "/x", {}, { still: true }).catch(
+      (f: unknown) => f,
+    )) as ApiFehler;
+    expect(abgewiesen.art).toBe("nicht_angemeldet");
+    expect(abgewiesen.code).toBe("device_revoked");
   });
 
   it("meldet 401 nicht an die App-Shell, wenn die Anfrage still ist", async () => {

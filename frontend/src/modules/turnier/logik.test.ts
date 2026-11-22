@@ -7,6 +7,7 @@ import type { AusschreibungDokument } from "./ausschreibung/typen";
 import {
   type EinstellungsWerte,
   einstellungsAenderung,
+  pruefeEinstellungen,
   zeitzonenAuswahl,
 } from "./bereiche/Einstellungen";
 import { kennungAus, klasseAusWerten } from "./bereiche/Klassen";
@@ -201,6 +202,25 @@ describe("Formulare des Turniers", () => {
         basis,
       ),
     ).toEqual({ timezone: "Europe/Vienna", protest_restart_on_correction: false });
+  });
+
+  it("Bahnen freihalten: nur geändert senden, 0 ist erlaubt, negativ nicht", () => {
+    const basis = {
+      ...(beispielTurnier().settings as EinstellungsWerte),
+      heat_reserve_minutes: 10,
+    };
+    const t = (schluessel: string) => schluessel;
+    expect(einstellungsAenderung(basis, basis)).toEqual({});
+    expect(einstellungsAenderung({ ...basis, heat_reserve_minutes: 0 }, basis)).toEqual({
+      heat_reserve_minutes: 0,
+    });
+    expect(pruefeEinstellungen({ ...basis, heat_reserve_minutes: 0 }, t)).toEqual({});
+    expect(pruefeEinstellungen({ ...basis, heat_reserve_minutes: -1 }, t)).toEqual({
+      heat_reserve_minutes: "pruefung.nicht_negativ",
+    });
+    expect(pruefeEinstellungen({ ...basis, heat_reserve_minutes: Number.NaN }, t)).toHaveProperty(
+      "heat_reserve_minutes",
+    );
   });
 
   it("bietet übliche Zeitzonen an und behält einen gespeicherten Wert außerhalb der Liste", () => {

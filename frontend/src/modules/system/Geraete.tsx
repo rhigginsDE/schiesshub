@@ -14,7 +14,7 @@ import {
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { geraeteAbfrage, rollenAbfrage, schluessel } from "../../api/abfragen";
-import { apiSenden } from "../../api/client";
+import { ApiFehler, apiSenden } from "../../api/client";
 import type { Geraet, Kopplungscode, Rolle } from "../../api/typenSystem";
 import { useDarf } from "../../app/berechtigungen";
 import { Bestaetigung } from "../../components/Bestaetigung";
@@ -97,6 +97,15 @@ function rollenAuswahl(
   ];
 }
 
+/**
+ * Meldung des Servers zur Standardrolle (422 mit Feld `default_role_id`, z. B. eine Rolle mit
+ * Verwaltungsrechten), damit sie am Auswahlfeld steht statt irgendwo darüber.
+ */
+export function rollenFeldFehler(fehler: unknown): string | undefined {
+  if (!(fehler instanceof ApiFehler)) return undefined;
+  return fehler.felder.find((eintrag) => eintrag.feld === "default_role_id")?.meldung;
+}
+
 function GeraetZeile({ geraet, rollen }: { geraet: Geraet; rollen: Rolle[] | undefined }) {
   const { t, i18n } = useTranslation("system");
   const queryClient = useQueryClient();
@@ -115,7 +124,10 @@ function GeraetZeile({ geraet, rollen }: { geraet: Geraet; rollen: Rolle[] | und
       zeigeMeldung({ ton: "erfolg", titel: t("geraete.geaendert") });
     },
     onError: (fehler) => {
-      if (!frage) zeigeMeldung({ ton: "krit", titel: geraet.name, text: fehlerText(fehler) });
+      // Ein Fehler zur Rolle steht am Auswahlfeld; alles andere als Meldung.
+      if (!frage && !rollenFeldFehler(fehler)) {
+        zeigeMeldung({ ton: "krit", titel: geraet.name, text: fehlerText(fehler) });
+      }
     },
   });
   const loeschen = useMutation({
@@ -177,6 +189,7 @@ function GeraetZeile({ geraet, rollen }: { geraet: Geraet; rollen: Rolle[] | und
         )}
         value={geraet.default_role_id ?? OHNE_ROLLE}
         placeholder={rolleBekannt ? undefined : t("geraete.rolle_unbekannt")}
+        error={frage ? undefined : rollenFeldFehler(aendern.error)}
         disabled={!rollen || aendern.isPending}
         allowDeselect={false}
         onChange={(wert) => {
@@ -414,14 +427,20 @@ function KoppelDialog({
           <Select
             size="md"
             label={t("geraete.code_rolle")}
+            description={t("geraete.rolle_hinweis")}
+            inputWrapperOrder={["label", "input", "description", "error"]}
             data={rollenAuswahl(rollen, t("geraete.rolle_keine"), t("geraete.rolle_nur_mit_pin"))}
             value={rolle}
             allowDeselect={false}
             disabled={!rollen}
-            onChange={(wert) => setRolle(wert ?? OHNE_ROLLE)}
+            error={rollenFeldFehler(erzeugen.error)}
+            onChange={(wert) => {
+              setRolle(wert ?? OHNE_ROLLE);
+              if (erzeugen.isError) erzeugen.reset();
+            }}
             comboboxProps={{ withinPortal: true }}
           />
-          <FehlerHinweis fehler={erzeugen.error} />
+          {!rollenFeldFehler(erzeugen.error) && <FehlerHinweis fehler={erzeugen.error} />}
           <div className={s.aktionen}>
             <Button
               type="submit"

@@ -361,12 +361,7 @@ async def release_lane(
         "start.lane_released",
         "start",
         start.id,
-        {
-            "tournament_id": str(tournament_id),
-            "entry_id": str(context.entry.id),
-            "range_id": str(range_.id),
-            "lane": lane,
-        },
+        context.audit_details(range_id=str(range_.id), lane=lane),
     )
     await session.commit()
     events.publish(

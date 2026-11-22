@@ -30,6 +30,8 @@ export interface DetailsHilfen {
   /** Cent als Betrag, z. B. `800` → „8,00 €“ */
   geld: (cent: number) => string;
   jaNein: (wert: boolean) => string;
+  /** Zeitpunkt in Klartext, z. B. Beginn eines Durchgangs; ohne Angabe bleibt der ISO-Text. */
+  zeit?: (iso: string) => string;
 }
 
 const ROH: DetailsHilfen = {
@@ -43,6 +45,8 @@ const ROH: DetailsHilfen = {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Nur solche Werte sind Fachbegriffe des Servers (`dns`, `called`), alles andere bleibt, wie es ist. */
 const CODE = /^[a-z][a-z_.*]*$/;
+/** Zeitpunkt, wie der Server ihn schreibt (`2026-11-22T04:15:00+00:00`). */
+const ZEITPUNKT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 /** Interne Zähler ohne Aussage für Menschen (laufende Nummer eines Ereignisses). */
 const AUSGEBLENDET: ReadonlySet<string> = new Set(["seq"]);
 
@@ -73,6 +77,7 @@ function wertText(wert: unknown, h: DetailsHilfen, geld: boolean): string | null
   if (typeof wert === "number") return geld ? h.geld(wert) : String(wert);
   if (typeof wert === "string") {
     if (UUID.test(wert)) return h.name(wert) ?? null;
+    if (ZEITPUNKT.test(wert)) return h.zeit ? h.zeit(wert) : wert;
     return CODE.test(wert) ? h.wert(wert) : wert;
   }
   if (Array.isArray(wert)) {
@@ -150,6 +155,7 @@ export function ProtokollBereich({
     geld: (cent) =>
       t("protokoll.euro", { betrag: formatZahl(cent / 100, { nachkommastellen: 2 }, sprache) }),
     jaNein: (wert) => (wert ? t("allgemein.ja") : t("allgemein.nein")),
+    zeit: (iso) => formatZeitpunkt(iso, sprache),
   };
 
   const wer = (eintrag: AuditEintrag) => {

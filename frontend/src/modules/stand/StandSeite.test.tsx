@@ -2,8 +2,13 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RechteProvider } from "../../app/berechtigungen";
-import { meldungenLeeren } from "../../components/Meldungen";
-import { renderAnsicht, serverAttrappe, type TestAntwort } from "../teilnehmer/testhilfe";
+import { Meldungen, meldungenLeeren } from "../../components/Meldungen";
+import {
+  type Aufruf,
+  renderAnsicht,
+  serverAttrappe,
+  type TestAntwort,
+} from "../teilnehmer/testhilfe";
 import type { TurnierUebersicht } from "../turnier/typen";
 import { StandSeite } from "./StandSeite";
 import { stationStart } from "./testdaten";
@@ -79,6 +84,7 @@ const wartend = stationStart({
   display_name: "Markus Brandt",
   competition_id: W_Q,
   competition_name: "Selbstladeflinte",
+  competition_code: "4401",
   queue_position: 1,
 });
 const aufgerufen = stationStart({
@@ -88,6 +94,7 @@ const aufgerufen = stationStart({
   display_name: null,
   competition_id: W_Q,
   competition_name: "Selbstladeflinte",
+  competition_code: "4401",
   status: "called",
   lane: 1,
   // Ortszeit 09:05 – die Kachel zeigt die Aufrufzeit des Servers, nicht die des Browsers.
@@ -96,7 +103,7 @@ const aufgerufen = stationStart({
 
 function routen(
   planungen: ("queue" | "schedule")[],
-  extra: Record<string, TestAntwort | ((a: never) => TestAntwort)> = {},
+  extra: Record<string, TestAntwort | ((a: Aufruf) => TestAntwort)> = {},
 ) {
   return serverAttrappe({
     "GET /tournaments": { inhalt: [turnier] },
@@ -118,6 +125,16 @@ function routen(
   });
 }
 
+/** Stand samt Meldungen am Bildschirmrand (die App-Shell zeigt sie sonst). */
+function StandMitMeldungen() {
+  return (
+    <>
+      <StandSeite suche={{}} onSuche={() => {}} />
+      <Meldungen />
+    </>
+  );
+}
+
 beforeEach(() => {
   localStorage.clear();
 });
@@ -131,10 +148,18 @@ afterEach(() => {
 describe("Stand", { timeout: 15000 }, () => {
   it("zeigt die Bahnen und ruft mit dem einen Hauptknopf die Nächsten auf", async () => {
     const aufrufe = routen(["queue"], {
-      [`POST /tournaments/${T}/ranges/${R}/call-next`]: { inhalt: [] },
+      [`POST /tournaments/${T}/ranges/${R}/call-next`]: {
+        inhalt: {
+          called: [{ id: "s-1" }],
+          skipped: [],
+          held_lanes: [],
+          upcoming_heat: null,
+          message: null,
+        },
+      },
     });
     const benutzer = userEvent.setup();
-    renderAnsicht(() => <StandSeite suche={{}} onSuche={() => {}} />);
+    renderAnsicht(() => <StandMitMeldungen />);
 
     const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
     expect(within(bahn1).getByText("Name nicht angezeigt")).toBeInTheDocument();
@@ -144,7 +169,121 @@ describe("Stand", { timeout: 15000 }, () => {
     expect(screen.getByText("Markus Brandt")).toBeInTheDocument();
 
     await benutzer.click(screen.getByRole("button", { name: /Nächste aufrufen/ }));
-    expect(aufrufe.some((a) => a.methode === "POST" && a.pfad.endsWith("/call-next"))).toBe(true);
+    const aufruf = aufrufe.find((a) => a.methode === "POST" && a.pfad.endsWith("/call-next"));
+    expect(aufruf).toBeDefined();
+    expect(aufruf?.inhalt).toBeUndefined();
+    expect(await screen.findByText("1 Start aufgerufen")).toBeInTheDocument();
+  });
+
+  it("QA G-11: zeigt den Text des Servers zu Übersprungenen und freigehaltenen Bahnen", async () => {
+    routen(["queue"], {
+      [`POST /tournaments/${T}/ranges/${R}/call-next`]: {
+        inhalt: {
+          called: [],
+          skipped: [
+            {
+              start_id: "s-1",
+              entry_id: "e-s-1",
+              start_number: 7,
+              competition_id: W_Q,
+              queue_position: 1,
+              reason: "on_lane",
+            },
+          ],
+          held_lanes: [2],
+          upcoming_heat: null,
+          message: "Startnummer 7 steht gerade auf einer Bahn. Bahn 2 bleibt für Durchgang 2 frei.",
+        },
+      },
+    });
+    const benutzer = userEvent.setup();
+    renderAnsicht(() => <StandMitMeldungen />);
+
+    await benutzer.click(await screen.findByRole("button", { name: /Nächste aufrufen/ }));
+    expect(await screen.findByText("Niemand aufgerufen")).toBeInTheDocument();
+    expect(screen.getByText(/Bahn 2 bleibt für Durchgang 2 frei/)).toBeInTheDocument();
+  });
+
+  it("QA G-11: „Nächsten auf Bahn 2“ ruft über call-next mit Bahn auf", async () => {
+    const aufrufe = routen(["queue"], {
+      [`POST /tournaments/${T}/ranges/${R}/call-next`]: {
+        inhalt: { called: [], skipped: [], held_lanes: [], upcoming_heat: null, message: null },
+      },
+    });
+    const benutzer = userEvent.setup();
+    renderAnsicht(() => <StandSeite suche={{}} onSuche={() => {}} />);
+
+    const bahn2 = await screen.findByRole("listitem", { name: "Bahn 2" });
+    await benutzer.click(within(bahn2).getByRole("button", { name: "Nächsten auf Bahn 2" }));
+    const aufruf = aufrufe.find((a) => a.pfad.endsWith("/call-next"));
+    expect(aufruf?.inhalt).toEqual({ lane: 2 });
+    expect(aufrufe.some((a) => a.pfad.endsWith("/call") && a.methode === "POST")).toBe(false);
+  });
+
+  it("QA G-11: fragt bei bald beginnendem Durchgang zurück und wiederholt mit Bestätigung", async () => {
+    const aufrufe = routen(["queue"], {
+      [`POST /tournaments/${T}/ranges/${R}/call-next`]: (aufruf) =>
+        (aufruf.inhalt as { confirm_heat_conflict?: boolean } | undefined)?.confirm_heat_conflict
+          ? {
+              inhalt: {
+                called: [{ id: "s-1" }],
+                skipped: [],
+                held_lanes: [],
+                upcoming_heat: null,
+                message: null,
+              },
+            }
+          : {
+              status: 409,
+              inhalt: {
+                detail: "Durchgang 2 beginnt um 05:15 und braucht Bahn 2.",
+                code: "heat_imminent",
+              },
+            },
+    });
+    const benutzer = userEvent.setup();
+    renderAnsicht(() => <StandMitMeldungen />);
+
+    await benutzer.click(await screen.findByRole("button", { name: /Nächste aufrufen/ }));
+    const dialog = await screen.findByRole("dialog", {}, { timeout: 5000 });
+    expect(
+      within(dialog).getByText("Durchgang 2 beginnt um 05:15 und braucht Bahn 2."),
+    ).toBeInTheDocument();
+    await benutzer.click(within(dialog).getByRole("button", { name: "Trotzdem aufrufen" }));
+
+    const gesendet = aufrufe.filter((a) => a.pfad.endsWith("/call-next")).map((a) => a.inhalt);
+    expect(gesendet).toEqual([undefined, { confirm_heat_conflict: true }]);
+    expect(await screen.findByText("1 Start aufgerufen")).toBeInTheDocument();
+  });
+
+  it("QA G-11: zeigt ruhig, dass ein Durchgang bald Bahnen braucht", async () => {
+    routen(["queue"], {
+      [`GET /tournaments/${T}/ranges/${R}/queue?names=full`]: {
+        inhalt: {
+          range_id: R,
+          lane_count: 2,
+          waiting: [wartend],
+          lanes: [
+            { lane: 1, start: null },
+            { lane: 2, start: null },
+          ],
+          upcoming_heat: {
+            heat_id: "h-2",
+            number: 2,
+            starts_at: new Date(2026, 10, 22, 5, 15).toISOString(),
+            ends_at: new Date(2026, 10, 22, 5, 30).toISOString(),
+            lanes: [2],
+            reserve_minutes: 10,
+            reserved_from: new Date(2026, 10, 22, 5, 5).toISOString(),
+            active: false,
+          },
+        },
+      },
+    });
+    renderAnsicht(() => <StandSeite suche={{}} onSuche={() => {}} />);
+    expect(
+      await screen.findByText("Durchgang 2 um 05:15 braucht Bahn 2 – wird ab 05:05 freigehalten"),
+    ).toBeInTheDocument();
   });
 
   it("bricht einen Start erst nach Rückfrage ab", async () => {
@@ -232,7 +371,16 @@ describe("Stand", { timeout: 15000 }, () => {
             {
               lane: 1,
               start: inErfassung,
-              progress: { section_id: null, series_done: 2, series_total: 4, complete: false },
+              progress: {
+                section_id: null,
+                series_done: 2,
+                series_total: 4,
+                complete: false,
+                section_number: 1,
+                section_count: 1,
+                series_done_overall: 2,
+                series_total_overall: 4,
+              },
             },
             { lane: 2, start: null, progress: null },
           ],
@@ -253,7 +401,7 @@ describe("Stand", { timeout: 15000 }, () => {
     expect(within(bahn1).queryByRole("button", { name: /Zurückstellen/ })).toBeNull();
 
     await benutzer.click(within(bahn1).getByRole("button", { name: /Bahn freigeben/ }));
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await screen.findByRole("dialog", {}, { timeout: 5000 });
     expect(within(dialog).getByText("Bahn 1 freigeben?")).toBeInTheDocument();
     expect(aufrufe.some((a) => a.pfad.endsWith("/release-lane"))).toBe(false);
     await benutzer.click(within(dialog).getByRole("button", { name: "Bahn freigeben" }));
@@ -279,9 +427,13 @@ describe("Stand", { timeout: 15000 }, () => {
       screen.getByRole("button", { name: /Weitere Aktionen für Startnummer 7/ }),
     );
     await benutzer.click(
-      await screen.findByRole("menuitem", { name: "Disqualifiziert", hidden: true }),
+      await screen.findByRole(
+        "menuitem",
+        { name: "Disqualifiziert", hidden: true },
+        { timeout: 5000 },
+      ),
     );
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await screen.findByRole("dialog", {}, { timeout: 5000 });
     expect(
       within(dialog).getByText("Startnummer 7 · Markus Brandt: Disqualifiziert?"),
     ).toBeInTheDocument();
@@ -331,13 +483,17 @@ describe("Stand", { timeout: 15000 }, () => {
     expect(await screen.findByText("Durchgang 1")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Durchgänge anlegen" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Aktionen für Durchgang 1" })).toBeNull();
-    // Aufrufen und (Übergang: mit start.call) Abbrechen bleiben, Umsetzen fehlt.
+    // Aufrufen bleibt; Abbrechen braucht start.abort, Umsetzen start.edit.
     await benutzer.click(screen.getByRole("button", { name: "Aktionen für Startnummer 9" }));
-    expect(await screen.findByRole("menuitem", { name: "Einzeln aufrufen" })).toBeInTheDocument();
-    // Mantine blendet das Menü ein; während der Einblendung gelten die Einträge als verborgen.
     expect(
-      screen.getByRole("menuitem", { name: "Nicht angetreten", hidden: true }),
+      await screen.findByRole(
+        "menuitem",
+        { name: "Einzeln aufrufen", hidden: true },
+        { timeout: 5000 },
+      ),
     ).toBeInTheDocument();
+    // Mantine blendet das Menü ein; während der Einblendung gelten die Einträge als verborgen.
+    expect(screen.queryByRole("menuitem", { name: "Nicht angetreten", hidden: true })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: "Umsetzen", hidden: true })).toBeNull();
     expect(
       screen.queryByRole("menuitem", { name: "Aus dem Durchgang nehmen", hidden: true }),
@@ -427,7 +583,7 @@ describe("Stand", { timeout: 15000 }, () => {
 
     expect(await screen.findByText("Gerade wartet niemand auf diesem Stand.")).toBeInTheDocument();
     await benutzer.click(screen.getByRole("button", { name: "Durchgänge anlegen" }));
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await screen.findByRole("dialog", {}, { timeout: 5000 });
     const anzahl = within(dialog).getByRole("textbox", { name: "Anzahl" });
     await benutzer.clear(anzahl);
     await benutzer.type(anzahl, "3");

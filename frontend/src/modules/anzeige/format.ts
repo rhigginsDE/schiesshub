@@ -5,6 +5,8 @@ import type {
   FeedAbschnitt,
   FeedBahn,
   FeedGruppe,
+  FeedNaechsteBlock,
+  FeedNaechsterEintrag,
   FeedPosition,
   FeedRangliste,
   FeedSerie,
@@ -75,12 +77,24 @@ export function gesamtTeile(text: string | null, einheit: string | null): Gesamt
 export type RanglistenEintrag =
   | { art: "klasse"; schluessel: string; gruppe: FeedGruppe; fortsetzung?: boolean }
   | { art: "zeile"; schluessel: string; zeile: FeedZeile }
-  | { art: "mehr"; schluessel: string; anzahl: number };
+  | { art: "mehr"; schluessel: string; anzahl: number }
+  | {
+      art: "ohne_kopf";
+      schluessel: string;
+      gruppe: FeedGruppe;
+      /** Klasse mitnennen (mehrere Gruppen) */
+      mitKlasse: boolean;
+      fortsetzung?: boolean;
+    }
+  | { art: "ohne"; schluessel: string; zeile: FeedZeile };
+
+type Kopf = Extract<RanglistenEintrag, { art: "klasse" | "ohne_kopf" }>;
 
 /**
  * Macht aus den Wertungsgruppen eine flache Liste gleich hoher Einträge, damit sie sich nach der
  * verfügbaren Höhe in Seiten teilen lässt. Klassenköpfe nur, wenn es mehrere Gruppen gibt oder
- * die Gruppe einen Namen hat.
+ * die Gruppe einen Namen hat. Abgebrochene (`unplaced`) stehen je Gruppe in einem eigenen Block
+ * „Ohne Platzierung“ hinter den Plätzen, nie dazwischen.
  */
 export function ranglistenEintraege(rangliste: FeedRangliste): RanglistenEintrag[] {
   const eintraege: RanglistenEintrag[] = [];
@@ -90,43 +104,104 @@ export function ranglistenEintraege(rangliste: FeedRangliste): RanglistenEintrag
     if (mitKopf && (gruppe.class_name || gruppe.class_short)) {
       eintraege.push({ art: "klasse", schluessel: `k-${id}`, gruppe });
     }
-    for (const zeile of mitAbgebrochenenAmEnde(gruppe.rows)) {
+    for (const zeile of gruppe.rows) {
       eintraege.push({ art: "zeile", schluessel: `z-${zeile.start_id}`, zeile });
     }
     if (gruppe.more > 0)
       eintraege.push({ art: "mehr", schluessel: `m-${id}`, anzahl: gruppe.more });
+    const ohne = gruppe.unplaced;
+    if (ohne.length > 0) {
+      eintraege.push({ art: "ohne_kopf", schluessel: `o-${id}`, gruppe, mitKlasse: mitKopf });
+      for (const zeile of ohne) {
+        eintraege.push({ art: "ohne", schluessel: `u-${zeile.start_id}`, zeile });
+      }
+    }
   });
   return eintraege;
 }
 
 /**
- * Seiten aus Ranglisten-Einträgen: Ein Klassenkopf steht nie allein unten auf einer Seite,
- * sondern rutscht mit seiner ersten Zeile auf die nächste. Geht eine Klasse auf der nächsten Seite
- * weiter, steht ihr Kopf dort noch einmal (als Fortsetzung), damit man die Klasse erkennt.
+ * Seiten aus Ranglisten-Einträgen: Ein Kopf (Klasse, „Ohne Platzierung“) steht nie allein unten
+ * auf einer Seite, sondern rutscht mit seiner ersten Zeile auf die nächste. Geht der Block auf der
+ * nächsten Seite weiter, steht sein Kopf dort noch einmal (als Fortsetzung).
  */
 export function ranglistenSeiten(
   eintraege: readonly RanglistenEintrag[],
   proSeite: number | null,
 ): RanglistenEintrag[][] {
+  return seitenMitKoepfen(
+    eintraege,
+    proSeite,
+    (eintrag): eintrag is Kopf => eintrag.art === "klasse" || eintrag.art === "ohne_kopf",
+    (kopf) => ({ ...kopf, schluessel: `${kopf.schluessel}-weiter`, fortsetzung: true }),
+  );
+}
+
+/**
+ * Teilt eine Liste mit Köpfen in Seiten: Ein Kopf steht nie allein unten auf einer Seite, und
+ * geht sein Block auf der nächsten Seite weiter, steht dort `fortsetzung(kopf)` noch einmal.
+ */
+export function seitenMitKoepfen<T, K extends T>(
+  eintraege: readonly T[],
+  proSeite: number | null,
+  istKopf: (eintrag: T) => eintrag is K,
+  fortsetzung: (kopf: K) => T,
+): T[][] {
   if (proSeite === null || proSeite <= 1 || eintraege.length <= proSeite) return [[...eintraege]];
-  const seiten: RanglistenEintrag[][] = [];
-  let seite: RanglistenEintrag[] = [];
-  let kopf: Extract<RanglistenEintrag, { art: "klasse" }> | null = null;
+  const seiten: T[][] = [];
+  let seite: T[] = [];
+  let kopf: K | null = null;
   for (const eintrag of eintraege) {
-    if (eintrag.art === "klasse") kopf = eintrag;
+    const neuerKopf = istKopf(eintrag);
+    if (neuerKopf) kopf = eintrag;
     const voll = seite.length >= proSeite;
-    const kopfZuletzt = eintrag.art === "klasse" && seite.length === proSeite - 1;
+    const kopfZuletzt = neuerKopf && seite.length === proSeite - 1;
     if (voll || kopfZuletzt) {
       seiten.push(seite);
       seite = [];
-      if (eintrag.art !== "klasse" && kopf) {
-        seite.push({ ...kopf, schluessel: `${kopf.schluessel}-weiter`, fortsetzung: true });
-      }
+      if (!neuerKopf && kopf) seite.push(fortsetzung(kopf));
     }
     seite.push(eintrag);
   }
   if (seite.length > 0) seiten.push(seite);
   return seiten;
+}
+
+/** Eintrag der Liste „Als Nächstes“: Kopf eines Wettbewerbs, Person oder „weitere“. */
+export type NaechsteEintrag =
+  | { art: "kopf"; schluessel: string; block: FeedNaechsteBlock; fortsetzung?: boolean }
+  | { art: "person"; schluessel: string; block: FeedNaechsteBlock; eintrag: FeedNaechsterEintrag }
+  | { art: "mehr"; schluessel: string; anzahl: number };
+
+/** „Als Nächstes“ als flache Liste gleich hoher Zeilen: je Wettbewerb ein Kopf, dann die Personen. */
+export function naechsteEintraege(bloecke: readonly FeedNaechsteBlock[]): NaechsteEintrag[] {
+  const eintraege: NaechsteEintrag[] = [];
+  bloecke.forEach((block, nr) => {
+    const id = `${block.competition_id}-${block.kind}-${nr}`;
+    eintraege.push({ art: "kopf", schluessel: `k-${id}`, block });
+    for (const eintrag of block.entries) {
+      eintraege.push({ art: "person", schluessel: `p-${id}-${eintrag.start_id}`, block, eintrag });
+    }
+    if (block.more > 0) eintraege.push({ art: "mehr", schluessel: `m-${id}`, anzahl: block.more });
+  });
+  return eintraege;
+}
+
+export function naechsteSeiten(
+  eintraege: readonly NaechsteEintrag[],
+  proSeite: number | null,
+): NaechsteEintrag[][] {
+  return seitenMitKoepfen(
+    eintraege,
+    proSeite,
+    (eintrag): eintrag is Extract<NaechsteEintrag, { art: "kopf" }> => eintrag.art === "kopf",
+    (kopf) => ({ ...kopf, schluessel: `${kopf.schluessel}-weiter`, fortsetzung: true }),
+  );
+}
+
+/** Die Zahl links in „Als Nächstes“: bei Zeitplan die Bahn, bei Reihenfolge der Platz. */
+export function naechsteZahl(eintrag: FeedNaechsterEintrag): number {
+  return "lane" in eintrag ? eintrag.lane : eintrag.position;
 }
 
 /**
@@ -298,35 +373,24 @@ export function podestStufe(platz: number | null, stelle: number): 1 | 2 | 3 {
 }
 
 /**
- * Abgebrochene Starts (nicht angetreten, aufgegeben, disqualifiziert) haben nie einen Platz: Sie
- * stehen am Ende ihrer Gruppe (`group: unranked`). Der Server liefert sie schon so; die Reihenfolge
- * der übrigen bleibt unverändert.
+ * Siegerliste einer Klasse: aufs Podest die ersten drei Plätze, die weiteren Plätze danach.
+ * Abgebrochene (nicht angetreten, aufgegeben, disqualifiziert) liefert der Feed getrennt in
+ * `unplaced`; sie stehen nie auf dem Podest und nie unter den Plätzen.
  */
-export function mitAbgebrochenenAmEnde(zeilen: readonly FeedZeile[]): FeedZeile[] {
-  return [
-    ...zeilen.filter((zeile) => zeile.group !== "unranked"),
-    ...zeilen.filter((zeile) => zeile.group === "unranked"),
-  ];
-}
-
-/** Siegerliste einer Klasse: aufs Podest nur Platzierte (höchstens drei), alle übrigen danach. */
 export function siegerAufteilung(zeilen: readonly FeedZeile[]): {
   podest: FeedZeile[];
   rest: FeedZeile[];
 } {
   const platziert = zeilen.filter((zeile) => zeile.group !== "unranked");
-  return {
-    podest: platziert.slice(0, 3),
-    rest: [...platziert.slice(3), ...zeilen.filter((zeile) => zeile.group === "unranked")],
-  };
+  return { podest: platziert.slice(0, 3), rest: platziert.slice(3) };
 }
 
 /**
- * Ob zur Zeile ein Ergebniswert gehört. „Nicht angetreten“ hat keinen (der Feed liefert künftig
- * keinen; ein „0,00“ wäre bei „niedrigster Wert gewinnt“ irreführend).
+ * Ob zur Zeile ein Ergebniswert gehört. „Nicht angetreten“ hat nie einen (der Feed liefert dann
+ * `score_text: null`; ein „0,00“ wäre bei „niedrigster Wert gewinnt“ irreführend).
  */
-export function mitErgebnis(zeile: Pick<FeedZeile, "abort_reason">): boolean {
-  return zeile.abort_reason !== "dns";
+export function mitErgebnis(zeile: Pick<FeedZeile, "abort_reason" | "score_text">): boolean {
+  return zeile.score_text != null && zeile.abort_reason !== "dns";
 }
 
 /** Gibt es in der Gruppe Platzierte hinter dem Podest (Platz 4 und folgende)? */

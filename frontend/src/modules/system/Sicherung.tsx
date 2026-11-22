@@ -30,7 +30,7 @@ import type {
   SicherungsStatus,
 } from "../../api/typenSystem";
 import { useDarf } from "../../app/berechtigungen";
-import { useSicherungsLage } from "../../app/sicherungsLage";
+import { useSicherungsLage, WARNUNG_SCHLUESSEL } from "../../app/sicherungsLage";
 import { Bestaetigung } from "../../components/Bestaetigung";
 import { scrollVerhalten } from "../../components/bewegung";
 import { Chip } from "../../components/Chip";
@@ -90,6 +90,7 @@ function StatusPanel({ status }: { status: SicherungsStatus }) {
 
   const statusSetzen = (neu: SicherungsStatus) => {
     queryClient.setQueryData(schluessel.sicherung.status, neu);
+    void queryClient.invalidateQueries({ queryKey: WARNUNG_SCHLUESSEL });
   };
 
   const sichern = useMutation({
@@ -402,6 +403,7 @@ function EinstellungenFormular({ gespeichert }: { gespeichert: SicherungsEinstel
     onSuccess: (neu) => {
       queryClient.setQueryData(schluessel.sicherung.einstellungen, neu);
       void queryClient.invalidateQueries({ queryKey: schluessel.sicherung.status });
+      void queryClient.invalidateQueries({ queryKey: WARNUNG_SCHLUESSEL });
       zeigeMeldung({ ton: "erfolg", titel: t("sicherung.einstellungen_gespeichert") });
     },
   });
@@ -549,6 +551,7 @@ function PasswortPanel({ gesetzt }: { gesetzt: boolean }) {
       zuruecksetzen();
       setAendernOffen(false);
       void queryClient.invalidateQueries({ queryKey: schluessel.sicherung.status });
+      void queryClient.invalidateQueries({ queryKey: WARNUNG_SCHLUESSEL });
       zeigeMeldung({ ton: "erfolg", titel: t("sicherung.passwort_gespeichert") });
     },
   });

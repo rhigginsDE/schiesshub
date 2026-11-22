@@ -29,6 +29,9 @@ export type FeedAbschnitt = Schemas["FeedSection"];
 export type FeedSerienSchritt = Schemas["FeedSeriesStep"];
 export type FeedPosition = Schemas["FeedPosition"];
 export type FeedBahn = Schemas["FeedLane"];
+/** „Als Nächstes“ der Standanzeige: ein Block je Wettbewerb (Zeitplan oder Reihenfolge) */
+export type FeedNaechsteBlock = FeedStand["upcoming"][number];
+export type FeedNaechsterEintrag = FeedNaechsteBlock["entries"][number];
 export type FeedVorschauAnfrage = Schemas["FeedPreviewRequest"];
 
 export type SzeneVon<A extends FeedSzene["kind"]> = Extract<FeedSzene, { kind: A }>;

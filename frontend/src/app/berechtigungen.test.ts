@@ -7,6 +7,7 @@ const status = (teil: Record<string, unknown> = {}) => ({
   setup_required: false,
   auth_enforced: false,
   device: { id: "g1", name: "Kasse 1", default_role_id: null },
+  device_revoked: false,
   user: { id: "p1", name: "H. Berger" },
   role: { id: "r1", name: "Kasse" },
   permissions: ["person.read", "entry.edit"],
@@ -124,7 +125,7 @@ describe("abweisGrund", () => {
   const ohneGeraet = status({ auth_enforced: true, device: null, user: null, role: null });
 
   it("gesperrtes Gerät aus dem Status oder aus dem Code der 401", () => {
-    expect(abweisGrund({ ...ohneGeraet, device_revoked: true } as never, null)).toBe("gesperrt");
+    expect(abweisGrund({ ...ohneGeraet, device_revoked: true }, null)).toBe("gesperrt");
     expect(abweisGrund(ohneGeraet, "device_revoked")).toBe("gesperrt");
     expect(abweisGrund(ohneGeraet, "device_unknown")).toBeNull();
   });
@@ -142,14 +143,12 @@ describe("sichtbareWarnung", () => {
     message_de: "Der Sicherungs-Stick fehlt.",
     since: "2026-11-21T10:38:00Z",
   };
-  const sicherung = { warning: warnung } as never;
-  const einstellungen = { warn_all_stations: true, warn_on_display: false } as never;
+  const lage = { warning: warnung, warn_all_stations: true, warn_on_display: false };
 
   it("zeigt die Warnung auf allen Stationen", () => {
     expect(
       sichtbareWarnung({
-        status: sicherung,
-        einstellungen,
+        lage,
         istAnzeige: false,
         stumm: null,
         jetzt: 0,
@@ -160,8 +159,7 @@ describe("sichtbareWarnung", () => {
   it("die Anzeige hat eine eigene Einstellung", () => {
     expect(
       sichtbareWarnung({
-        status: sicherung,
-        einstellungen,
+        lage,
         istAnzeige: true,
         stumm: null,
         jetzt: 0,
@@ -169,9 +167,18 @@ describe("sichtbareWarnung", () => {
     ).toBeNull();
   });
 
+  it("ohne Warnung oder mit ausgeschalteter Einstellung kein Banner", () => {
+    const eingaben = { istAnzeige: false, stumm: null, jetzt: 0 };
+    expect(sichtbareWarnung({ ...eingaben, lage: undefined })).toBeNull();
+    expect(sichtbareWarnung({ ...eingaben, lage: { ...lage, warning: null } })).toBeNull();
+    expect(
+      sichtbareWarnung({ ...eingaben, lage: { ...lage, warn_all_stations: false } }),
+    ).toBeNull();
+  });
+
   it("ausgeblendet bis zum Ablauf, eine andere Warnung erscheint sofort", () => {
     const stumm = { bis: 1000, code: "usb_missing" };
-    const eingaben = { status: sicherung, einstellungen, istAnzeige: false, stumm };
+    const eingaben = { lage, istAnzeige: false, stumm };
     expect(sichtbareWarnung({ ...eingaben, jetzt: 999 })).toBeNull();
     expect(sichtbareWarnung({ ...eingaben, jetzt: 1001 })).toBe(warnung);
     expect(

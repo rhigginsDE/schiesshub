@@ -9,8 +9,9 @@ import { formatUhrzeit } from "../../lib/format";
 import { ABBRUCHGRUENDE, type Abbruchgrund, type Bahn, type StationStart } from "../anmeldung/api";
 import { ERFASSUNG_PFAD } from "../erfassung/pfade";
 import { type StandRechte, useAnzeigename } from "./aktionen";
+import { fortschrittAnzeige } from "./logik";
 import s from "./stand.module.css";
-import { type Kennziffern, WettbewerbName } from "./Wettbewerb";
+import { WettbewerbName } from "./Wettbewerb";
 
 interface BahnKachelProps {
   bahn: Bahn;
@@ -25,7 +26,6 @@ interface BahnKachelProps {
   beschaeftigt: boolean;
   /** Was die Person am Stand darf (Knöpfe ohne Recht fehlen) */
   rechte: StandRechte;
-  kennziffern: Kennziffern;
 }
 
 /** Eine Bahn als große Kachel: frei oder belegt mit Startnummer, Name, Wettbewerb und seit wann. */
@@ -38,7 +38,6 @@ export function BahnKachel({
   onFreigeben,
   beschaeftigt,
   rechte,
-  kennziffern,
 }: BahnKachelProps) {
   const { t, i18n } = useTranslation("stand");
   const anzeigename = useAnzeigename();
@@ -47,7 +46,7 @@ export function BahnKachel({
   const name = start ? anzeigename(start) : null;
   // Ein angefangenes Ergebnis hält die Bahn bis zum Abschließen; Zurückstellen geht dann nicht mehr.
   const inErfassung = start?.status === "captured";
-  const fortschritt = bahn.progress ?? null;
+  const fortschritt = fortschrittAnzeige(bahn.progress);
   const titelId = `bahn-${bahn.lane}-titel`;
 
   let zeit: ReactNode = null;
@@ -85,10 +84,7 @@ export function BahnKachel({
             </span>
           </div>
           <p className={s.bahnWas}>
-            <WettbewerbName
-              code={kennziffern.get(start.competition_id)}
-              name={start.competition_name}
-            />
+            <WettbewerbName code={start.competition_code} name={start.competition_name} />
             <span className="gedaempft">
               {start.class_short} · {t("bahn.start_nr", { nr: start.attempt })}
             </span>
@@ -99,20 +95,27 @@ export function BahnKachel({
               <span className="num">{zeit}</span>
             </p>
           )}
-          {fortschritt && fortschritt.series_total > 0 && (
-            <div className={s.bahnFortschritt} data-fertig={fortschritt.complete || undefined}>
+          {fortschritt && (
+            <div className={s.bahnFortschritt} data-fertig={fortschritt.fertig || undefined}>
               <span className="num">
-                {fortschritt.complete
+                {fortschritt.fertig
                   ? t("bahn.fortschritt_fertig")
-                  : t("bahn.fortschritt", {
-                      erfasst: fortschritt.series_done,
-                      gesamt: fortschritt.series_total,
-                    })}
+                  : fortschritt.abschnitt
+                    ? t("bahn.fortschritt_abschnitte", {
+                        erfasst: fortschritt.erfasst,
+                        gesamt: fortschritt.gesamt,
+                        abschnitt: fortschritt.abschnitt.nummer,
+                        abschnitte: fortschritt.abschnitt.anzahl,
+                      })
+                    : t("bahn.fortschritt", {
+                        erfasst: fortschritt.erfasst,
+                        gesamt: fortschritt.gesamt,
+                      })}
               </span>
               <progress
                 className={s.bahnBalken}
-                value={Math.min(fortschritt.series_done, fortschritt.series_total)}
-                max={fortschritt.series_total}
+                value={fortschritt.erfasst}
+                max={fortschritt.gesamt}
                 aria-hidden
               />
             </div>

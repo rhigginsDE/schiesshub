@@ -91,18 +91,13 @@ export function textSchluessel(name: string): string {
 
 /**
  * Was eine Berechtigung braucht, damit sie an ihrer Station etwas nützt, so wie der Server es meldet
- * (`GET /auth/permissions` → `requires`, ermittelt aus den Prüfungen der Endpunkte). Ein älterer
- * Server meldet nichts; dann behauptet die Matrix auch nichts.
+ * (`GET /auth/permissions` → `requires`, ermittelt aus den Prüfungen der Endpunkte).
  */
 export function voraussetzungen(liste: readonly Berechtigung[]): Map<string, string[]> {
   const karte = new Map<string, string[]>();
   for (const eintrag of liste) {
-    const braucht = (eintrag as { requires?: unknown }).requires;
-    if (!Array.isArray(braucht)) continue;
-    const bekannte = braucht.filter(
-      (recht): recht is string => typeof recht === "string" && recht !== eintrag.permission,
-    );
-    if (bekannte.length > 0) karte.set(eintrag.permission, bekannte);
+    const braucht = eintrag.requires.filter((recht) => recht !== eintrag.permission);
+    if (braucht.length > 0) karte.set(eintrag.permission, braucht);
   }
   return karte;
 }

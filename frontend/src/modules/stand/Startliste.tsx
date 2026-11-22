@@ -149,10 +149,7 @@ export function Startliste({ uebersicht, suche, onSuche }: StartlisteProps) {
                     </td>
                     <td data-label={spalten.klasse}>{start.class_short}</td>
                     <td data-label={spalten.wettbewerb}>
-                      <WettbewerbName
-                        code={nachId.get(start.competition_id)?.catalog_code}
-                        name={start.competition_name}
-                      />
+                      <WettbewerbName code={start.competition_code} name={start.competition_name} />
                     </td>
                     <td className={`num ${s.rechts}`} data-label={spalten.start}>
                       {start.attempt}

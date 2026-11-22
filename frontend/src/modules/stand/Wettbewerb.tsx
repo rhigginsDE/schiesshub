@@ -1,12 +1,4 @@
-import type { TurnierUebersicht } from "../turnier/typen";
 import s from "./stand.module.css";
-
-/** Kennziffer je Wettbewerb (ID → `catalog_code`), für Starts, die nur Name und ID mitbringen. */
-export type Kennziffern = ReadonlyMap<string, string | null>;
-
-export function kennziffernAus(uebersicht: Pick<TurnierUebersicht, "competitions">): Kennziffern {
-  return new Map(uebersicht.competitions.map((w) => [w.id, w.catalog_code ?? null]));
-}
 
 /**
  * Wettbewerb als Text mit Kennziffer davor („1001 Pistole bis 9 mm“): Zwei Wettbewerbe können

@@ -6,7 +6,7 @@
  * `heat.*`) sie mit einem Aufruf neu laden können (siehe `startsEreignisse`).
  */
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiGet, apiSenden } from "../../api/client";
+import { ApiFehler, apiGet, apiSenden } from "../../api/client";
 import { EREIGNIS_VERBUNDEN, type EreignisZuordnung } from "../../api/ereignisse";
 import type { components } from "../../api/schema.gen";
 
@@ -27,6 +27,11 @@ export type DurchgangSerie = Schemas["HeatSeries"];
 export type NaechsterPlatz = Schemas["NextSlotOut"];
 export type Warteschlange = Schemas["QueueOut"];
 export type Bahn = Schemas["LaneOut"];
+export type BahnFortschritt = Schemas["LaneProgressOut"];
+/** Antwort von „Nächste aufrufen“: wer aufgerufen, wer übersprungen, welche Bahnen freigehalten wurden */
+export type NaechsteErgebnis = Schemas["CallNextOut"];
+/** Durchgang, der bald beginnt und Bahnen des Stands braucht (siehe `upcoming_heat`) */
+export type DurchgangVorhalt = Schemas["HeatReservationOut"];
 
 export const ABBRUCHGRUENDE: readonly Abbruchgrund[] = ["dns", "dnf", "dsq"];
 
@@ -202,14 +207,40 @@ export function useStartAbbrechen(turnierId: string) {
   );
 }
 
+/**
+ * 409 mit `code: "heat_imminent"` (Aufrufen und „Nächste aufrufen“): Ein geplanter Durchgang
+ * beginnt bald und braucht die Bahn. Die Oberfläche fragt mit dem Servertext (`detail`) zurück und
+ * wiederholt bei Bestätigung mit `confirm_heat_conflict: true`.
+ */
+export function istDurchgangKonflikt(fehler: unknown): fehler is ApiFehler {
+  if (!(fehler instanceof ApiFehler) || fehler.art !== "konflikt") return false;
+  const inhalt = fehler.inhalt;
+  return (
+    typeof inhalt === "object" &&
+    inhalt !== null &&
+    (inhalt as { code?: unknown }).code === "heat_imminent"
+  );
+}
+
+export interface StartAufruf {
+  startId: string;
+  bahn?: number;
+  /** Trotz bald beginnendem Durchgang aufrufen (nach Rückfrage) */
+  bestaetigt?: boolean;
+}
+
 export function useStartAufrufen(turnierId: string) {
-  return useStartsSchreiben(turnierId, ({ startId, bahn }: { startId: string; bahn?: number }) =>
-    apiSenden<Start>(
+  return useStartsSchreiben(turnierId, ({ startId, bahn, bestaetigt }: StartAufruf) => {
+    const inhalt = {
+      ...(bahn === undefined ? {} : { lane: bahn }),
+      ...(bestaetigt ? { confirm_heat_conflict: true } : {}),
+    };
+    return apiSenden<Start>(
       "POST",
       `${pfad.start(turnierId, startId)}/call`,
-      bahn === undefined ? undefined : { lane: bahn },
-    ),
-  );
+      Object.keys(inhalt).length > 0 ? inhalt : undefined,
+    );
+  });
 }
 
 export function useStartZurueckstellen(turnierId: string) {
@@ -230,10 +261,27 @@ export function useStartVerschieben(turnierId: string) {
   );
 }
 
+export interface NaechsteAufruf {
+  standId: string;
+  /** Nur diese Bahn besetzen („Nächsten auf Bahn n“); wer schon auf einer Bahn steht, wird übersprungen */
+  bahn?: number;
+  /** Trotz bald beginnendem Durchgang aufrufen (nach Rückfrage) */
+  bestaetigt?: boolean;
+}
+
+/** „Nächste aufrufen“ (`POST …/call-next`): ohne `bahn` alle freien Bahnen, sonst nur diese. */
 export function useNaechsteAufrufen(turnierId: string) {
-  return useStartsSchreiben(turnierId, (standId: string) =>
-    apiSenden<Start[]>("POST", `${pfad.stand(turnierId, standId)}/call-next`),
-  );
+  return useStartsSchreiben(turnierId, ({ standId, bahn, bestaetigt }: NaechsteAufruf) => {
+    const inhalt = {
+      ...(bahn === undefined ? {} : { lane: bahn }),
+      ...(bestaetigt ? { confirm_heat_conflict: true } : {}),
+    };
+    return apiSenden<NaechsteErgebnis>(
+      "POST",
+      `${pfad.stand(turnierId, standId)}/call-next`,
+      Object.keys(inhalt).length > 0 ? inhalt : undefined,
+    );
+  });
 }
 
 export function useDurchgangAnlegen(turnierId: string, standId: string) {

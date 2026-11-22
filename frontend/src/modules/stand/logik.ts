@@ -1,7 +1,7 @@
 /**
  * Reine Regeln der Ablaufsteuerung am Stand: ohne React, einzeln getestet.
  */
-import type { Bahn, Durchgang, StationStart } from "../anmeldung/api";
+import type { Bahn, BahnFortschritt, Durchgang, StationStart } from "../anmeldung/api";
 
 /** Gerätespeicher: je Turnier die ID des gewählten Stands (nur IDs). */
 export type StandWahl = Record<string, string>;
@@ -154,4 +154,36 @@ export function ersterAufrufbarer(
   besetzt: ReadonlySet<string>,
 ): StationStart | null {
   return wartende.find((start) => !besetzt.has(start.entry_id)) ?? null;
+}
+
+// --- Fortschritt ---------------------------------------------------------------------------------
+
+export interface FortschrittAnzeige {
+  erfasst: number;
+  gesamt: number;
+  /** Nur bei mehreren Abschnitten: der laufende Abschnitt („Abschnitt 2 von 2“) */
+  abschnitt: { nummer: number; anzahl: number } | null;
+  fertig: boolean;
+}
+
+/**
+ * Was die Bahnkachel zum Erfassungsfortschritt zeigt: bei mehreren Abschnitten die Serien über alle
+ * Abschnitte (1201: „5 von 8“), sonst die des Abschnitts. `null`, wenn es nichts zu zählen gibt.
+ */
+export function fortschrittAnzeige(
+  fortschritt: BahnFortschritt | null | undefined,
+): FortschrittAnzeige | null {
+  if (!fortschritt) return null;
+  const mehrere = fortschritt.section_count > 1 && fortschritt.series_total_overall > 0;
+  const erfasst = mehrere ? fortschritt.series_done_overall : fortschritt.series_done;
+  const gesamt = mehrere ? fortschritt.series_total_overall : fortschritt.series_total;
+  if (gesamt <= 0) return null;
+  return {
+    erfasst: Math.min(erfasst, gesamt),
+    gesamt,
+    abschnitt: mehrere
+      ? { nummer: fortschritt.section_number, anzahl: fortschritt.section_count }
+      : null,
+    fertig: fortschritt.complete,
+  };
 }

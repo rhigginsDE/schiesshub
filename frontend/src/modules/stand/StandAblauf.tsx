@@ -1,7 +1,7 @@
 import { Button, Skeleton } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, PlayCircle } from "lucide-react";
+import { ArrowRight, CalendarClock, PlayCircle } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Bestaetigung } from "../../components/Bestaetigung";
@@ -13,7 +13,10 @@ import { formatUhrzeit } from "../../lib/format";
 import {
   type Abbruchgrund,
   type Durchgang,
+  type DurchgangVorhalt,
   durchgaengeAbfrage,
+  istDurchgangKonflikt,
+  type NaechsteErgebnis,
   type StationStart,
   useDurchgangAufrufen,
   useDurchgangLoeschen,
@@ -47,7 +50,7 @@ import {
 } from "./logik";
 import s from "./stand.module.css";
 import { Warteliste } from "./Warteliste";
-import { kennziffernAus, wettbewerbText } from "./Wettbewerb";
+import { wettbewerbText } from "./Wettbewerb";
 import { Zeitplan } from "./Zeitplan";
 
 interface StandAblaufProps {
@@ -68,7 +71,6 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
   const mitZeitplan = wettbewerbe.filter((w) => w.planning === "schedule");
   const planungVon = new Map(wettbewerbe.map((w) => [w.id, w.planning]));
   const zeitplanIds = new Set(mitZeitplan.map((w) => w.id));
-  const kennziffern = kennziffernAus(uebersicht);
   const rechte = useStandRechte();
   const anzeigename = useAnzeigename();
 
@@ -93,6 +95,10 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
   const [serieOffen, setSerieOffen] = useState(false);
   const [aendern, setAendern] = useState<Durchgang | null>(null);
   const [platz, setPlatz] = useState<StationStart | null>(null);
+  /** Rückfrage bei 409 `heat_imminent`: Text des Servers und der Aufruf mit Bestätigung */
+  const [rueckfrage, setRueckfrage] = useState<{ text: string; bestaetigen: () => void } | null>(
+    null,
+  );
 
   if (warteschlange.isPending || durchgaenge.isPending || startliste.isPending) {
     return <Skeleton height={320} radius="md" />;
@@ -129,32 +135,59 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
     herausnehmen.isPending ||
     freigeben.isPending;
 
-  const aufgerufenMelden = (anzahl: number) => {
+  /** Meldung nach dem Aufrufen; `hinweis` ist der Text des Servers (Übersprungene, freigehaltene Bahnen). */
+  const aufgerufenMelden = (anzahl: number, hinweis?: string | null) => {
     if (anzahl === 0) {
       zeigeMeldung({
         ton: "info",
         titel: t("aktion.niemand_aufgerufen"),
-        text: t("aktion.niemand_aufgerufen_text"),
+        text: hinweis || t("aktion.niemand_aufgerufen_text"),
       });
     } else {
-      zeigeMeldung({ ton: "erfolg", titel: t("aktion.aufgerufen", { count: anzahl }) });
+      zeigeMeldung({
+        ton: hinweis ? "info" : "erfolg",
+        titel: t("aktion.aufgerufen", { count: anzahl }),
+        ...(hinweis ? { text: hinweis } : {}),
+      });
+    }
+  };
+  /**
+   * Fehler eines Aufrufs: Braucht ein bald beginnender Durchgang die Bahn (409 `heat_imminent`),
+   * fragt die Oberfläche mit dem Text des Servers zurück; sonst die übliche Meldung.
+   */
+  const aufrufFehler = (nochmalBestaetigt: () => void) => (fehler: unknown) => {
+    if (istDurchgangKonflikt(fehler)) {
+      setRueckfrage({
+        text: fehler.detail ?? t("rueckfrage.text"),
+        bestaetigen: nochmalBestaetigt,
+      });
+    } else {
+      fehlerMelden(fehler);
     }
   };
 
-  const naechsteAufrufen = () =>
-    naechste.mutate(standId, {
-      onSuccess: (neu) => aufgerufenMelden(neu.length),
-      onError: fehlerMelden,
-    });
+  const naechsteRufen = (bahn?: number, bestaetigt = false) =>
+    naechste.mutate(
+      { standId, bahn, bestaetigt },
+      {
+        onSuccess: (ergebnis: NaechsteErgebnis) =>
+          aufgerufenMelden(ergebnis.called.length, ergebnis.message),
+        onError: bestaetigt ? fehlerMelden : aufrufFehler(() => naechsteRufen(bahn, true)),
+      },
+    );
+  const naechsteAufrufen = () => naechsteRufen();
   const durchgangRufen = (durchgang: Durchgang) =>
     durchgangAufrufen.mutate(durchgang.id, {
       onSuccess: (neu) => aufgerufenMelden(neu.length),
       onError: fehlerMelden,
     });
-  const startRufen = (start: StationStart, bahn?: number) =>
+  const startRufen = (start: StationStart, bahn?: number, bestaetigt = false) =>
     aufrufen.mutate(
-      { startId: start.start_id, bahn },
-      { onSuccess: () => aufgerufenMelden(1), onError: fehlerMelden },
+      { startId: start.start_id, bahn, bestaetigt },
+      {
+        onSuccess: () => aufgerufenMelden(1),
+        onError: bestaetigt ? fehlerMelden : aufrufFehler(() => startRufen(start, bahn, true)),
+      },
     );
   const zurueckstellen = (start: StationStart, position: "front" | "back") =>
     zurueck.mutate(
@@ -229,6 +262,9 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
             )}
           </div>
         </div>
+        {warteschlange.data.upcoming_heat && (
+          <VorhaltHinweis vorhalt={warteschlange.data.upcoming_heat} />
+        )}
         <ul className={s.bahnen} data-anzahl={bahnen.length}>
           {bahnen.map((bahn) => (
             <BahnKachel
@@ -241,11 +277,10 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
               planung={bahn.start ? (planungVon.get(bahn.start.competition_id) ?? null) : null}
               beschaeftigt={beschaeftigt}
               rechte={rechte}
-              kennziffern={kennziffern}
               onNaechsten={
-                rechte.aufrufen && naechsterAufrufbar
-                  ? () => startRufen(naechsterAufrufbar, bahn.lane)
-                  : undefined
+                // Der Server nimmt den Ersten, der nicht schon auf einer Bahn steht (auch an einem
+                // anderen Stand), und überspringt die anderen.
+                rechte.aufrufen && naechsterAufrufbar ? () => naechsteRufen(bahn.lane) : undefined
               }
               onZurueck={zurueckstellen}
               onAbbrechen={(start, grund) => setAbbruch({ start, grund })}
@@ -273,7 +308,6 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
               bahnen={bahnen}
               beschaeftigt={beschaeftigt}
               rechte={rechte}
-              kennziffern={kennziffern}
               onVerschieben={verschiebe}
               onAufrufen={startRufen}
               onAbbrechen={(start, grund) => setAbbruch({ start, grund })}
@@ -296,7 +330,6 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
               }
               beschaeftigt={beschaeftigt}
               rechte={rechte}
-              kennziffern={kennziffern}
               onSerie={() => setSerieOffen(true)}
               onDurchgangAufrufen={durchgangRufen}
               onDurchgangAendern={setAendern}
@@ -351,7 +384,7 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
           abbruch
             ? t("abbruch.text", {
                 wettbewerb: wettbewerbText(
-                  kennziffern.get(abbruch.start.competition_id),
+                  abbruch.start.competition_code,
                   abbruch.start.competition_name,
                 ),
                 versuch: abbruch.start.attempt,
@@ -443,6 +476,20 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
         }}
       />
 
+      <Bestaetigung
+        offen={rueckfrage !== null}
+        titel={t("rueckfrage.titel")}
+        text={rueckfrage?.text ?? ""}
+        bestaetigen={t("rueckfrage.bestaetigen")}
+        abbrechen={t("rueckfrage.zurueck")}
+        onSchliessen={() => setRueckfrage(null)}
+        onBestaetigen={() => {
+          const bestaetigen = rueckfrage?.bestaetigen;
+          setRueckfrage(null);
+          bestaetigen?.();
+        }}
+      />
+
       <SerieDialog
         offen={serieOffen}
         turnier={uebersicht}
@@ -465,5 +512,33 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
         onSchliessen={() => setPlatz(null)}
       />
     </div>
+  );
+}
+
+/**
+ * Ruhiger Hinweis über den Bahnen: Ein geplanter Durchgang beginnt bald und braucht Bahnen dieses
+ * Stands; „Nächste aufrufen“ hält sie ab `reserved_from` frei (Uhrzeiten in Ortszeit des Geräts).
+ */
+function VorhaltHinweis({ vorhalt }: { vorhalt: DurchgangVorhalt }) {
+  const { t, i18n } = useTranslation("stand");
+  if (vorhalt.lanes.length === 0) return null;
+  const uhr = (iso: string) => formatUhrzeit(new Date(iso), i18n.language);
+  const bahnen = t("vorhalt.bahnen", {
+    count: vorhalt.lanes.length,
+    liste: new Intl.ListFormat(i18n.language, { type: "conjunction" }).format(
+      vorhalt.lanes.map(String),
+    ),
+  });
+  const werte = { nummer: vorhalt.number, zeit: uhr(vorhalt.starts_at), bahnen };
+  const text = vorhalt.active
+    ? t("vorhalt.aktiv", { ...werte, count: vorhalt.lanes.length })
+    : vorhalt.reserved_from
+      ? t("vorhalt.kommt", { ...werte, ab: uhr(vorhalt.reserved_from) })
+      : t("vorhalt.kommt_ohne_ab", werte);
+  return (
+    <p className={s.vorhalt} data-aktiv={vorhalt.active || undefined}>
+      <CalendarClock aria-hidden />
+      <span>{text}</span>
+    </p>
   );
 }

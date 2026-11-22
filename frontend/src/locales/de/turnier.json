@@ -203,7 +203,7 @@
     "startgeld_hilfe": "Vorgabe für neue Wettbewerbe; 0,00 heißt kostenlos.",
     "vorhanden_one": "Dein vorhandener Wettbewerb behält sein Startgeld. Ändern kannst du es dort unter „Wettbewerbe“.",
     "vorhanden_other": "Deine {{count}} vorhandenen Wettbewerbe behalten ihr Startgeld. Ändern kannst du es dort unter „Wettbewerbe“.",
-    "erweitert_inhalt": "Erfassung, Wechselzeit, erste Startnummer, Einspruchsfrist, Zeitzone, Währung",
+    "erweitert_inhalt": "Erfassung, Wechselzeit, Bahnen vor einem Durchgang freihalten, erste Startnummer, Einspruchsfrist, Zeitzone, Währung",
     "waehrung": "Währung",
     "waehrung_hilfe": "Kürzel, z. B. EUR",
     "mehrfach_standard": "Mehrfachstart für neue Wettbewerbe erlauben",
@@ -220,7 +220,9 @@
     "einspruch_neu_an": "Wird ein abgeschlossenes Ergebnis korrigiert, ist es ab der Korrektur wieder für die volle Frist vorläufig.",
     "einspruch_neu_aus": "Eine Korrektur verlängert die Frist nicht: Sie läuft ab dem ersten Abschluss weiter.",
     "zeitzone": "Zeitzone",
-    "zeitzone_hilfe": "Uhrzeiten auf dem Bildschirm, in Listen und beim Export stehen in dieser Zeit."
+    "zeitzone_hilfe": "Uhrzeiten auf dem Bildschirm, in Listen und beim Export stehen in dieser Zeit.",
+    "bahnen_freihalten": "Bahnen vor einem Durchgang freihalten",
+    "bahnen_freihalten_hilfe": "Teilen sich Zeitplan und Reihenfolge einen Stand, bleiben die gebuchten Bahnen so viele Minuten vor Beginn des Durchgangs frei. 0 schaltet das aus."
   },
   "zeitzone": {
     "Europe_Berlin": "Deutschland (Berlin)",

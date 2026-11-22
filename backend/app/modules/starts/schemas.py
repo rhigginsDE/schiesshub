@@ -8,7 +8,15 @@ from datetime import UTC, datetime
 from typing import Annotated, Literal, Self
 from uuid import UUID
 
-from pydantic import AfterValidator, AwareDatetime, BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    AfterValidator,
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    model_validator,
+)
 
 # 409-Antwort: gemeinsamer Baustein, hier weiter erreichbar.
 from app.core.errors import ConflictOut as ConflictOut
@@ -20,6 +28,8 @@ from app.modules.turnier.schemas import Id, PositiveInt, StrictModel
 Instant = Annotated[
     AwareDatetime, Field(strict=False), AfterValidator(lambda value: value.astimezone(UTC))
 ]
+# Bemerkung zum Abbruch; dieselben Grenzen wie der Grund im Modul `ergebnisse`.
+AbortNote = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
 
 
 # --- Anmeldung ---------------------------------------------------------------
@@ -94,6 +104,8 @@ class StartBooking(StrictModel):
 
 class AbortRequest(StrictModel):
     abort_reason: AbortReason
+    # Bemerkung zum Abbruch, wie `reason` bei `POST …/result/abort` (1–500 Zeichen).
+    note: AbortNote | None = None
 
 
 class CallRequest(StrictModel):

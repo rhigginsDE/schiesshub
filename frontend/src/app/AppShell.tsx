@@ -43,7 +43,7 @@ import { useAlleModule, useStationen } from "./modul";
 import { useSeitenbreite } from "./seitenbreite";
 import { modulZuPfad, useSeitentitel } from "./seitentitel";
 import { useServerStatus } from "./serverStatus";
-import { bannerAktion, useSicherungsLage } from "./sicherungsLage";
+import { bannerAktion, useSicherungsLage, WARNUNG_SCHLUESSEL } from "./sicherungsLage";
 
 /** Ereignisse, auf die die Shell selbst hört: Anmelde-Zustand und Sicherung. */
 const SHELL_EREIGNISSE: EreignisZuordnung = {
@@ -54,7 +54,7 @@ const SHELL_EREIGNISSE: EreignisZuordnung = {
   "role.updated": [schluessel.auth.status],
   "role.deleted": [schluessel.auth.status],
   "user.updated": [schluessel.auth.status],
-  "backup.status": [schluessel.sicherung.status],
+  "backup.status": [schluessel.sicherung.status, WARNUNG_SCHLUESSEL],
   "backup.completed": [schluessel.sicherung.alle],
   "backup.failed": [schluessel.sicherung.alle],
 };

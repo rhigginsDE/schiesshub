@@ -145,6 +145,34 @@ describe("Turnier einrichten", () => {
     expect(await screen.findByRole("heading", { name: "Stände", level: 2 })).toBeInTheDocument();
   });
 
+  it("Vorgaben: Bahnen vor einem Durchgang freihalten (Standard 10, 0 = aus)", async () => {
+    const turnier = beispielTurnier();
+    turnier.settings = { ...turnier.settings, heat_reserve_minutes: 10 };
+    const geschrieben = api({
+      ...grundlage(turnier),
+      [`PATCH ${T}`]: (inhalt: unknown) => ({ ...turnier, ...(inhalt as object) }),
+    });
+    renderApp(`/turnier/${TURNIER_ID}?bereich=einstellungen`);
+
+    // Liegt unter „Erweitert“ bei den Ablauf-Einstellungen, gleich nach der Wechselzeit.
+    await userEvent.click(await screen.findByText("Erweitert"));
+    const feld = await screen.findByRole("textbox", {
+      name: /Bahnen vor einem Durchgang freihalten/,
+    });
+    expect(feld).toHaveValue("10 Min.");
+    expect(
+      screen.getByText(/bleiben die gebuchten Bahnen so viele Minuten vor Beginn/),
+    ).toBeInTheDocument();
+    await userEvent.clear(feld);
+    await userEvent.type(feld, "0");
+    await userEvent.click(screen.getByRole("button", { name: "Speichern" }));
+    await waitFor(() => expect(geschrieben).toHaveLength(1));
+    expect(geschrieben[0]).toMatchObject({
+      methode: "PATCH",
+      inhalt: { settings: { heat_reserve_minutes: 0 } },
+    });
+  });
+
   it("verwirft auf Wunsch und wechselt dann den Schritt", async () => {
     const geschrieben = api(grundlage());
     renderApp(`/turnier/${TURNIER_ID}?bereich=stammdaten`);

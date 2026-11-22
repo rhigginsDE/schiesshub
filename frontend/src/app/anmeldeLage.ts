@@ -66,9 +66,11 @@ export type AbweisGrund = "gesperrt" | "abgelaufen";
  * Grund aus `GET /auth/status` (`device_revoked`) oder dem `code` der letzten 401-Antwort
  * (`device_revoked`, `session_expired`). Ältere Server liefern beides nicht: dann `null`.
  */
-export function abweisGrund(status: AuthStatus | undefined, code401: unknown): AbweisGrund | null {
-  const gesperrt = (status as { device_revoked?: unknown } | undefined)?.device_revoked === true;
-  if (gesperrt && !status?.device) return "gesperrt";
+export function abweisGrund(
+  status: AuthStatus | undefined,
+  code401: string | null | undefined,
+): AbweisGrund | null {
+  if (status?.device_revoked && !status.device) return "gesperrt";
   if (code401 === "device_revoked" && !status?.device) return "gesperrt";
   if (code401 === "session_expired" && !status?.user) return "abgelaufen";
   return null;

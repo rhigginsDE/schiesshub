@@ -9,9 +9,10 @@ import {
   hauptSerie,
   laengstesWort,
   laufendeSerien,
-  mitAbgebrochenenAmEnde,
   mitErgebnis,
   mitWeiterenPlaetzen,
+  naechsteEintraege,
+  naechsteSeiten,
   podestReihenfolge,
   podestStufe,
   ranglistenEintraege,
@@ -35,6 +36,7 @@ import {
 } from "./rotation";
 import { startlistenZeilen } from "./schirm/Startliste";
 import { beispielFeed, rangliste, szenen, zeile } from "./testdaten";
+import type { SzeneVon } from "./typen";
 import {
   type Entwurf,
   fehlerZu,
@@ -166,7 +168,16 @@ describe("Standanzeige: laufende Serie und Fortschritt", () => {
     const bahn = {
       lane: 1,
       start,
-      progress: { section_id: "praezision", series_done: 1, series_total: 3, complete: false },
+      progress: {
+        section_id: "praezision",
+        series_done: 1,
+        series_total: 3,
+        complete: false,
+        section_number: 2,
+        section_count: 2,
+        series_done_overall: 3,
+        series_total_overall: 5,
+      },
     };
     expect(bahnFortschritt(bahn, [mitLauf])).toEqual({
       serie: 2,
@@ -180,7 +191,7 @@ describe("Standanzeige: laufende Serie und Fortschritt", () => {
     // Positionen im Parcours
     const parcours = {
       ...bahn,
-      progress: { section_id: "parcours", series_done: 0, series_total: 2, complete: false },
+      progress: { ...bahn.progress, section_id: "parcours", series_done: 0, series_total: 2 },
     };
     expect(bahnFortschritt(parcours, [{ ...ablauf, current: [] }])).toMatchObject({
       serie: 1,
@@ -410,24 +421,42 @@ describe("Abgebrochene Starts", () => {
   const drei = zeile({ start_id: "c", place: 3 });
   const vier = zeile({ start_id: "d", place: 4 });
 
-  it("stehen ohne Platz am Ende ihrer Gruppe", () => {
-    expect(mitAbgebrochenenAmEnde([ab, eins, zwei]).map((z) => z.start_id)).toEqual([
-      "a",
-      "b",
-      "x",
+  it("QA G-8: stehen in der Live-Wertung als eigener Block „Ohne Platzierung“ hinter den Plätzen", () => {
+    const liste = rangliste();
+    const [erste, zweite] = liste.groups;
+    if (!erste || !zweite) throw new Error("Testdaten");
+    const mitOhne = {
+      ...liste,
+      groups: [{ ...erste, more: 0, unplaced: [ab] }, zweite],
+    };
+    const eintraege = ranglistenEintraege(mitOhne);
+    expect(eintraege.map((e) => e.art)).toEqual([
+      "klasse",
+      "zeile",
+      "zeile",
+      "zeile",
+      "ohne_kopf",
+      "ohne",
+      "klasse",
+      "zeile",
     ]);
+    // Der Kopf „Ohne Platzierung“ steht nie allein unten; geht der Block weiter, steht er wieder da.
+    const seiten = ranglistenSeiten(eintraege, 5);
+    expect(seiten[0]?.map((e) => e.art)).toEqual(["klasse", "zeile", "zeile", "zeile"]);
+    expect(seiten[1]?.[0]).toMatchObject({ art: "ohne_kopf" });
   });
 
-  it("kommen nie aufs Podest", () => {
-    const { podest, rest } = siegerAufteilung([eins, ab, zwei, drei, vier]);
+  it("kommen nie aufs Podest; weitere Plätze ab Platz 4", () => {
+    const { podest, rest } = siegerAufteilung([eins, zwei, drei, vier]);
     expect(podest.map((z) => z.start_id)).toEqual(["a", "b", "c"]);
-    expect(rest.map((z) => z.start_id)).toEqual(["d", "x"]);
+    expect(rest.map((z) => z.start_id)).toEqual(["d"]);
   });
 
   it("QA G-8: „nicht angetreten“ ohne Ergebniswert; Abgebrochene sind keine weiteren Plätze", () => {
-    expect(mitErgebnis({ abort_reason: "dns" })).toBe(false);
-    expect(mitErgebnis({ abort_reason: "dnf" })).toBe(true);
-    expect(mitErgebnis({ abort_reason: null })).toBe(true);
+    expect(mitErgebnis({ abort_reason: "dns", score_text: "0,00 s" })).toBe(false);
+    expect(mitErgebnis({ abort_reason: "dnf", score_text: "30,00 s" })).toBe(true);
+    expect(mitErgebnis({ abort_reason: "dnf", score_text: null })).toBe(false);
+    expect(mitErgebnis({ abort_reason: null, score_text: "183 Ringe" })).toBe(true);
     expect(mitWeiterenPlaetzen([eins, zwei, ab])).toBe(false);
     expect(mitWeiterenPlaetzen([eins, zwei, drei, ab])).toBe(false);
     expect(mitWeiterenPlaetzen([eins, zwei, drei, vier])).toBe(true);
@@ -437,5 +466,26 @@ describe("Abgebrochene Starts", () => {
     expect(laengstesWort("Startnummer 5")).toBe(11);
     expect(laengstesWort("Ilse Bergmann")).toBe(8);
     expect(laengstesWort("")).toBe(0);
+  });
+});
+
+describe("Als Nächstes (Standanzeige)", () => {
+  it("QA G-7: je Wettbewerb ein Kopf, Zeitplan mit Bahn, Reihenfolge mit Platz", () => {
+    const stand = (szenen.range as SzeneVon<"range">).range;
+    const eintraege = naechsteEintraege(stand.upcoming);
+    expect(eintraege.map((e) => e.art)).toEqual(["kopf", "person", "kopf", "person", "mehr"]);
+    const zahlen = eintraege.flatMap((e) =>
+      e.art === "person"
+        ? [[e.block.kind, "lane" in e.eintrag ? e.eintrag.lane : e.eintrag.position]]
+        : [],
+    );
+    expect(zahlen).toEqual([
+      ["schedule", 3],
+      ["queue", 1],
+    ]);
+    // Ein Kopf steht nie allein unten auf einer Seite.
+    const seiten = naechsteSeiten(eintraege, 3);
+    expect(seiten[0]?.map((e) => e.art)).toEqual(["kopf", "person"]);
+    expect(seiten[1]?.[0]).toMatchObject({ art: "kopf" });
   });
 });

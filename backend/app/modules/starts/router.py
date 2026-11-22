@@ -253,7 +253,8 @@ async def cancel_start(
     description=(
         "Wechselt den Status zu „abgebrochen“ (Berechtigung `start.abort`). Ist das Modul "
         "`ergebnisse` aktiv, steht der Abbruch wie bei `POST …/starts/{start_id}/result/abort` "
-        "auch im Ergebnisprotokoll (Ereignis `aborted`)."
+        "auch im Ergebnisprotokoll (Ereignis `aborted`). Die optionale Bemerkung `note` "
+        "(bis 500 Zeichen) steht dort als Grund (`reason`) und im System-Protokoll."
     ),
     responses=WRITE,
 )
@@ -267,7 +268,7 @@ async def abort_start(
 ) -> StartOut:
     return _start(
         await service.abort_start(
-            session, events, actor, tournament_id, start_id, data.abort_reason
+            session, events, actor, tournament_id, start_id, data.abort_reason, data.note
         )
     )
 

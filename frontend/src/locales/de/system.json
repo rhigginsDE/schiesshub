@@ -194,7 +194,8 @@
     "schritt_3": "Fertig: Das Gerät erscheint danach hier in der Liste.",
     "schritt_3_warten": "Wartet auf das neue Gerät …",
     "gekoppelt": "Hinzugefügt: {{name}}",
-    "rolle_nur_mit_pin": "nur mit PIN"
+    "rolle_nur_mit_pin": "nur mit PIN: Verwaltungsrechte",
+    "rolle_hinweis": "Rollen mit Verwaltungsrechten (Rollen, Personen, Geräte, System oder Sicherung verwalten) gelten nur nach dem Einloggen mit PIN."
   },
   "personen": {
     "titel": "Personen",
@@ -379,7 +380,9 @@
       "start_slot_assigned": "Start einem Durchgang zugewiesen",
       "start_slot_cleared": "Start aus dem Durchgang genommen",
       "heat_created": "Durchgang angelegt",
-      "heat_updated": "Durchgang geändert"
+      "heat_updated": "Durchgang geändert",
+      "role_migrated": "Rechte einer Rolle bei der Aktualisierung angepasst",
+      "user_listed": "Personen mit Zugang aufgelistet"
     },
     "gegenstaende": {
       "user_account": "Person",
@@ -429,7 +432,11 @@
       "lane": "Bahn",
       "position": "Platz",
       "from_position": "vorher Platz",
-      "heat_number": "Durchgang"
+      "heat_number": "Durchgang",
+      "count": "Anzahl",
+      "via": "Weg",
+      "starts_at": "Beginn",
+      "ends_at": "Ende"
     },
     "werte": {
       "registered": "angemeldet",
@@ -451,7 +458,12 @@
       "startlist": "Startliste",
       "winners": "Siegerliste",
       "range": "Standanzeige",
-      "notice": "Hinweis"
+      "notice": "Hinweis",
+      "capture_mode": "Erfassungsart",
+      "multi_start": "Mehrfachstart",
+      "max_starts": "Höchstens Starts je Schütze",
+      "multi_start_rule": "Wertung bei Mehrfachstart",
+      "combined_ranking": "Alle Klassen gemeinsam werten"
     },
     "euro": "{{betrag}} €",
     "person_geraet": "{{person}} ({{geraet}})"

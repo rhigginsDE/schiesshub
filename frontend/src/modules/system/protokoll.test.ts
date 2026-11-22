@@ -40,3 +40,20 @@ describe("Protokoll: Details", () => {
     expect(text).toBe("score: 44,00 → 54,00 · competition_code: 4403");
   });
 });
+
+describe("Protokoll: Details mit Zeitpunkt (QA KLEIN 1)", () => {
+  it("schreibt Beginn und Ende eines Durchgangs lesbar, wenn eine Zeit-Hilfe da ist", () => {
+    const details = { number: 2, starts_at: "2026-11-22T04:15:00+00:00" };
+    expect(detailsText(details)).toBe("number: 2 · starts_at: 2026-11-22T04:15:00+00:00");
+    expect(
+      detailsText(details, {
+        feld: (k) => ({ number: "Nummer", starts_at: "Beginn" })[k] ?? k,
+        wert: (w) => w,
+        name: () => undefined,
+        geld: String,
+        jaNein: String,
+        zeit: () => "22.11.2026, 05:15",
+      }),
+    ).toBe("Nummer: 2 · Beginn: 22.11.2026, 05:15");
+  });
+});

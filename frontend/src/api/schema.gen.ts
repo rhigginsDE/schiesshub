@@ -783,7 +783,7 @@ export interface paths {
         put?: never;
         /**
          * Start abbrechen (dns, dnf, dsq)
-         * @description Wechselt den Status zu „abgebrochen“. Ist das Modul `ergebnisse` aktiv, steht der Abbruch wie bei `POST …/starts/{start_id}/result/abort` auch im Ergebnisprotokoll (Ereignis `aborted`).
+         * @description Wechselt den Status zu „abgebrochen“ (Berechtigung `start.abort`). Ist das Modul `ergebnisse` aktiv, steht der Abbruch wie bei `POST …/starts/{start_id}/result/abort` auch im Ergebnisprotokoll (Ereignis `aborted`). Die optionale Bemerkung `note` (bis 500 Zeichen) steht dort als Grund (`reason`) und im System-Protokoll.
          */
         post: operations["starts_abort_start"];
         delete?: never;
@@ -840,7 +840,7 @@ export interface paths {
         put?: never;
         /**
          * Start aufrufen
-         * @description Reihenfolge: auf `lane` oder die erste freie Bahn. Zeitplan: auf die Bahn des Durchgangs. Eine Bahn trägt nur einen Start (aufgerufen oder erfasst, bis sie frei wird), eine Person steht nur auf einer Bahn.
+         * @description Reihenfolge: auf `lane` oder die erste freie Bahn. Zeitplan: auf die Bahn des Durchgangs. Eine Bahn trägt nur einen Start (aufgerufen oder erfasst, bis sie frei wird), eine Person steht nur auf einer Bahn. Aus der Reihenfolge nicht ohne `confirm_heat_conflict` auf eine Bahn, die ein Durchgang innerhalb von `settings.heat_reserve_minutes` braucht (409 `heat_imminent`); ohne `lane` wird dann zuerst eine Bahn genommen, die keiner braucht.
          */
         post: operations["starts_call_start"];
         delete?: never;
@@ -900,7 +900,7 @@ export interface paths {
         put?: never;
         /**
          * Nächste aufrufen
-         * @description Füllt alle freien Bahnen des Stands der Reihe nach aus der Reihenfolge. Belegt bleibt eine Bahn auch mit einem erfassten Start, bis er abgeschlossen, abgebrochen oder die Bahn freigegeben ist. Wer schon auf einer Bahn steht, wird übersprungen. Antwort: die aufgerufenen Starts.
+         * @description Füllt alle freien Bahnen des Stands (mit `lane` nur diese: „Nächsten auf Bahn N“) der Reihe nach aus der Reihenfolge. Belegt bleibt eine Bahn auch mit einem erfassten Start, bis er abgeschlossen, abgebrochen oder die Bahn freigegeben ist. Wer gerade auf einer Bahn steht (auch an einem anderen Stand), wird übersprungen (`skipped`) und behält seinen Platz. Bahnen, die ein Durchgang innerhalb von `settings.heat_reserve_minutes` braucht, bleiben ohne `confirm_heat_conflict` frei (`held_lanes`); wäre nur auf ihnen jemand drangekommen, kommt 409 `heat_imminent`.
          */
         post: operations["starts_call_next"];
         delete?: never;
@@ -1409,7 +1409,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Alle bekannten Berechtigungen aller Module */
+        /**
+         * Alle bekannten Berechtigungen aller Module
+         * @description Für jedes gekoppelte Gerät lesbar, auch ohne angemeldete Person: Die Namen sind nicht geheim, die Oberfläche braucht sie, um Stationen freizugeben. `requires` nennt je Berechtigung die, ohne die sie an ihrer Station praktisch nichts nützt.
+         */
         get: operations["auth_list_permissions"];
         put?: never;
         post?: never;
@@ -1644,6 +1647,26 @@ export interface paths {
         };
         /** Zustand von Sicherung und Stick */
         get: operations["backup_get_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backup/warning": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Warnung der Sicherung für alle Stationen
+         * @description Für jedes gekoppelte Gerät lesbar, ohne bestimmtes Recht (auch die Standardrolle eines Geräts ohne angemeldete Person). Liefert nur die aktuelle Warnung in allgemeiner Fassung – ohne Pfade, Dateinamen oder Größen – und die Schalter, wo sie erscheinen soll. Neu laden beim Ereignis `backup.status` (das dieselben Daten mitbringt).
+         */
+        get: operations["backup_get_warning"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2078,6 +2101,8 @@ export interface components {
              * @enum {string}
              */
             abort_reason: "dns" | "dnf" | "dsq";
+            /** Note */
+            note?: string | null;
         };
         /** AbortResultRequest */
         AbortResultRequest: {
@@ -2327,10 +2352,63 @@ export interface components {
             /** Passphrase Set */
             passphrase_set: boolean;
         };
+        /**
+         * BackupWarningOut
+         * @description Was jedes gekoppelte Gerät über die Sicherung erfährt: nur die Warnung und wo sie gilt.
+         *
+         *     `warning.message_de` ist die allgemeine Fassung ohne Pfade, Dateinamen oder Größen;
+         *     Einzelheiten stehen in `GET /backup/status` (Recht „Sicherung ansehen“).
+         */
+        BackupWarningOut: {
+            warning: components["schemas"]["WarningOut"] | null;
+            /** Warn All Stations */
+            warn_all_stations: boolean;
+            /** Warn On Display */
+            warn_on_display: boolean;
+        };
+        /**
+         * CallConflictOut
+         * @description HTTP 409 beim Aufrufen. `code` nur bei `heat_imminent` (dann ohne `errors`).
+         */
+        CallConflictOut: {
+            /** Detail */
+            detail: string;
+            /** Errors */
+            errors?: components["schemas"]["FieldError"][] | null;
+            /** Code */
+            code?: "heat_imminent" | null;
+        };
+        /** CallNextOut */
+        CallNextOut: {
+            /** Called */
+            called: components["schemas"]["StartOut"][];
+            /** Skipped */
+            skipped: components["schemas"]["SkippedStartOut"][];
+            /** Held Lanes */
+            held_lanes: number[];
+            upcoming_heat: components["schemas"]["HeatReservationOut"] | null;
+            /** Message */
+            message: string | null;
+        };
+        /** CallNextRequest */
+        CallNextRequest: {
+            /** Lane */
+            lane?: number | null;
+            /**
+             * Confirm Heat Conflict
+             * @default false
+             */
+            confirm_heat_conflict: boolean;
+        };
         /** CallRequest */
         CallRequest: {
             /** Lane */
             lane?: number | null;
+            /**
+             * Confirm Heat Conflict
+             * @default false
+             */
+            confirm_heat_conflict: boolean;
         };
         /**
          * CatalogDiffOut
@@ -2457,6 +2535,16 @@ export interface components {
             name?: string | null;
             /** Short */
             short?: string | null;
+        };
+        /**
+         * CodedErrorOut
+         * @description Fehler mit maschinenlesbarem Grund (`code`), z. B. HTTP 401 mit `device_revoked`.
+         */
+        CodedErrorOut: {
+            /** Detail */
+            detail: string;
+            /** Code */
+            code: string;
         };
         /**
          * CompetitionCreate
@@ -3434,6 +3522,8 @@ export interface components {
             competition_name: string;
             /** Catalog Code */
             catalog_code: string | null;
+            /** Competition Code */
+            competition_code?: string | null;
             /** Variant Name */
             variant_name: string;
             /** Description */
@@ -3486,6 +3576,11 @@ export interface components {
             procedures: components["schemas"]["FeedProcedure"][];
             /** Lanes */
             lanes: components["schemas"]["FeedLane"][];
+            /**
+             * Upcoming
+             * @default []
+             */
+            upcoming: (components["schemas"]["FeedUpcomingSchedule"] | components["schemas"]["FeedUpcomingQueue"])[];
             next_heat: components["schemas"]["FeedNextHeat"] | null;
             /** Next */
             next: components["schemas"]["FeedPerson"][];
@@ -3521,6 +3616,11 @@ export interface components {
             rows: components["schemas"]["FeedRankRow"][];
             /** More */
             more: number;
+            /**
+             * Unplaced
+             * @default []
+             */
+            unplaced: components["schemas"]["FeedRankRow"][];
         };
         /** FeedRankRow */
         FeedRankRow: {
@@ -3716,6 +3816,141 @@ export interface components {
              */
             kind: "startlist";
             startlist: components["schemas"]["FeedStartlist"];
+        };
+        /**
+         * FeedUpcomingQueue
+         * @description Die nächsten Wartenden dieses Wettbewerbs in der Reihenfolge des Stands.
+         */
+        FeedUpcomingQueue: {
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Competition Name */
+            competition_name: string;
+            /** Competition Code */
+            competition_code: string | null;
+            /** More */
+            more: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "queue";
+            /** Entries */
+            entries: components["schemas"]["FeedUpcomingQueued"][];
+        };
+        /** FeedUpcomingQueued */
+        FeedUpcomingQueued: {
+            /**
+             * Start Id
+             * Format: uuid
+             */
+            start_id: string;
+            /** Start Number */
+            start_number: number;
+            /** Display Name */
+            display_name: string | null;
+            /** Club */
+            club: string | null;
+            /** Class Short */
+            class_short: string;
+            /** Attempt */
+            attempt: number;
+            /**
+             * Busy
+             * @default false
+             */
+            busy: boolean;
+            /** Busy Range Id */
+            busy_range_id?: string | null;
+            /** Busy Range Name */
+            busy_range_name?: string | null;
+            /** Busy Lane */
+            busy_lane?: number | null;
+            /** Position */
+            position: number;
+        };
+        /**
+         * FeedUpcomingSchedule
+         * @description Nächster Durchgang des Stands: nur dessen wartende Starts dieses Wettbewerbs.
+         */
+        FeedUpcomingSchedule: {
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Competition Name */
+            competition_name: string;
+            /** Competition Code */
+            competition_code: string | null;
+            /** More */
+            more: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "schedule";
+            /** Heat Number */
+            heat_number: number;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Starts At Local */
+            starts_at_local: string;
+            /** Ends At Local */
+            ends_at_local: string;
+            /** Entries */
+            entries: components["schemas"]["FeedUpcomingScheduled"][];
+        };
+        /** FeedUpcomingScheduled */
+        FeedUpcomingScheduled: {
+            /**
+             * Start Id
+             * Format: uuid
+             */
+            start_id: string;
+            /** Start Number */
+            start_number: number;
+            /** Display Name */
+            display_name: string | null;
+            /** Club */
+            club: string | null;
+            /** Class Short */
+            class_short: string;
+            /** Attempt */
+            attempt: number;
+            /**
+             * Busy
+             * @default false
+             */
+            busy: boolean;
+            /** Busy Range Id */
+            busy_range_id?: string | null;
+            /** Busy Range Name */
+            busy_range_name?: string | null;
+            /** Busy Lane */
+            busy_lane?: number | null;
+            /** Heat Number */
+            heat_number: number;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Starts At Local */
+            starts_at_local: string;
+            /** Lane */
+            lane: number;
         };
         /** FeedWarning */
         FeedWarning: {
@@ -3965,6 +4200,40 @@ export interface components {
             capacity: number;
         };
         /**
+         * HeatReservationOut
+         * @description Nächster Durchgang des Stands mit wartenden Starts und den Bahnen, die er braucht.
+         *
+         *     Solange `active` ist, hält der Stand `lanes` für ihn frei: Aufrufe aus der Reihenfolge auf
+         *     diese Bahnen brauchen `confirm_heat_conflict: true`.
+         */
+        HeatReservationOut: {
+            /**
+             * Heat Id
+             * Format: uuid
+             */
+            heat_id: string;
+            /** Number */
+            number: number;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Lanes */
+            lanes: number[];
+            /** Reserve Minutes */
+            reserve_minutes: number;
+            /** Reserved From */
+            reserved_from: string | null;
+            /** Active */
+            active: boolean;
+        };
+        /**
          * HeatSeries
          * @description Durchgänge hintereinander; Dauer je Durchgang aus `heat_minutes` des Wettbewerbs.
          */
@@ -4121,6 +4390,26 @@ export interface components {
             series_total: number;
             /** Complete */
             complete: boolean;
+            /**
+             * Section Number
+             * @default 0
+             */
+            section_number: number;
+            /**
+             * Section Count
+             * @default 0
+             */
+            section_count: number;
+            /**
+             * Series Done Overall
+             * @default 0
+             */
+            series_done_overall: number;
+            /**
+             * Series Total Overall
+             * @default 0
+             */
+            series_total_overall: number;
         };
         /** LeaderOut */
         LeaderOut: {
@@ -4299,6 +4588,11 @@ export interface components {
             module: string;
             /** Module Title */
             module_title: string;
+            /**
+             * Requires
+             * @default []
+             */
+            requires: string[];
         };
         /**
          * PersonCheck
@@ -4473,6 +4767,7 @@ export interface components {
             waiting: components["schemas"]["StationStartOut"][];
             /** Lanes */
             lanes: components["schemas"]["LaneOut"][];
+            upcoming_heat?: components["schemas"]["HeatReservationOut"] | null;
         };
         /** RangeCreate */
         RangeCreate: {
@@ -4502,6 +4797,7 @@ export interface components {
             next_heat_starts: components["schemas"]["StationStartOut"][];
             /** Next Queue */
             next_queue: components["schemas"]["StationStartOut"][];
+            upcoming_heat?: components["schemas"]["HeatReservationOut"] | null;
         };
         /** RangeOut */
         RangeOut: {
@@ -5118,6 +5414,36 @@ export interface components {
             /** Device Name */
             device_name: string;
         };
+        /**
+         * SkippedStartOut
+         * @description Ein Start, der bei „Nächste aufrufen“ übersprungen wurde.
+         */
+        SkippedStartOut: {
+            /**
+             * Start Id
+             * Format: uuid
+             */
+            start_id: string;
+            /**
+             * Entry Id
+             * Format: uuid
+             */
+            entry_id: string;
+            /** Start Number */
+            start_number: number;
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Queue Position */
+            queue_position: number | null;
+            /**
+             * Reason
+             * @constant
+             */
+            reason: "on_lane";
+        };
         /** SlotRequest */
         SlotRequest: {
             /**
@@ -5276,6 +5602,8 @@ export interface components {
             competition_id: string;
             /** Competition Name */
             competition_name: string;
+            /** Competition Code */
+            competition_code?: string | null;
             /** Range Id */
             range_id: string | null;
             /** Attempt */
@@ -5367,6 +5695,11 @@ export interface components {
             role: components["schemas"]["RoleBrief"] | null;
             /** Permissions */
             permissions: string[];
+            /**
+             * Device Revoked
+             * @default false
+             */
+            device_revoked: boolean;
             /** Pin Min Length */
             pin_min_length: number;
             /** Max Failed Logins */
@@ -5552,6 +5885,11 @@ export interface components {
              */
             first_start_number: number;
             /**
+             * Heat Reserve Minutes
+             * @default 10
+             */
+            heat_reserve_minutes: number;
+            /**
              * Display
              * @default {}
              */
@@ -5588,6 +5926,8 @@ export interface components {
             default_capture_mode?: ("shot" | "series") | null;
             /** First Start Number */
             first_start_number?: number | null;
+            /** Heat Reserve Minutes */
+            heat_reserve_minutes?: number | null;
             /** Display */
             display?: {
                 [key: string]: unknown;
@@ -8538,13 +8878,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
+            /** @description Im aktuellen Zustand nicht möglich (`detail`, bei Feldbezug `errors`). Mit `code: heat_imminent`: Der Aufruf aus der Reihenfolge würde eine Bahn belegen, die ein bald beginnender Durchgang braucht (Uhrzeit und Bahnen im Text); nach Rückfrage mit `confirm_heat_conflict: true` wiederholen. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConflictOut"];
+                    "application/json": components["schemas"]["CallConflictOut"];
                 };
             };
             /** @description Validation Error */
@@ -8668,7 +9008,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CallNextRequest"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -8676,7 +9020,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["StartOut"][];
+                    "application/json": components["schemas"]["CallNextOut"];
                 };
             };
             /** @description Nicht gefunden */
@@ -8686,13 +9030,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
+            /** @description Im aktuellen Zustand nicht möglich (`detail`, bei Feldbezug `errors`). Mit `code: heat_imminent`: Der Aufruf aus der Reihenfolge würde eine Bahn belegen, die ein bald beginnender Durchgang braucht (Uhrzeit und Bahnen im Text); nach Rückfrage mit `confirm_heat_conflict: true` wiederholen. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConflictOut"];
+                    "application/json": components["schemas"]["CallConflictOut"];
                 };
             };
             /** @description Validation Error */
@@ -9919,12 +10263,14 @@ export interface operations {
                     "application/json": components["schemas"]["UserBrief"][];
                 };
             };
-            /** @description Gerät nicht gekoppelt */
+            /** @description Gerät nicht gekoppelt oder gesperrt */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CodedErrorOut"];
+                };
             };
         };
     };
@@ -9950,12 +10296,14 @@ export interface operations {
                     "application/json": components["schemas"]["StatusOut"];
                 };
             };
-            /** @description Gerät nicht gekoppelt oder PIN falsch */
+            /** @description Gerät nicht gekoppelt oder gesperrt, oder PIN falsch */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CodedErrorOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -10009,6 +10357,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PermissionOut"][];
+                };
+            };
+            /** @description Gerät nicht gekoppelt oder gesperrt */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CodedErrorOut"];
                 };
             };
         };
@@ -10581,6 +10938,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BackupStatusOut"];
+                };
+            };
+        };
+    };
+    backup_get_warning: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupWarningOut"];
                 };
             };
         };

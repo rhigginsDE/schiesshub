@@ -21,11 +21,15 @@ const ERWEITERT = [
   "currency",
   "default_capture_mode",
   "default_changeover_minutes",
+  "heat_reserve_minutes",
   "first_start_number",
   "protest_minutes",
   "protest_restart_on_correction",
   "timezone",
 ] as const;
+
+/** Vorgabe des Servers, solange das Turnier noch keinen eigenen Wert hat. */
+export const BAHNEN_FREIHALTEN_STANDARD = 10;
 
 export type EinstellungsWerte = Omit<TurnierEinstellungen, "display" | "first_start_number"> &
   ZusatzEinstellungen;
@@ -40,6 +44,7 @@ const FELDER = [
   "default_multi_start_rule",
   "default_changeover_minutes",
   "default_capture_mode",
+  "heat_reserve_minutes",
   "first_start_number",
   "protest_restart_on_correction",
   "timezone",
@@ -115,6 +120,12 @@ export function pruefeEinstellungen(werte: EinstellungsWerte, t: (s: string) => 
   }
   if (!(werte.default_changeover_minutes >= 0)) {
     fehler.default_changeover_minutes = t("pruefung.nicht_negativ");
+  }
+  if (
+    werte.heat_reserve_minutes !== undefined &&
+    !(Number.isInteger(werte.heat_reserve_minutes) && werte.heat_reserve_minutes >= 0)
+  ) {
+    fehler.heat_reserve_minutes = t("pruefung.nicht_negativ");
   }
   if (
     "first_start_number" in werte &&
@@ -314,6 +325,22 @@ export function Einstellungen({
           value={werte.default_changeover_minutes}
           error={fehler.default_changeover_minutes}
           onChange={(wert) => setze("default_changeover_minutes", alsZahl(wert))}
+        />
+        <NumberInput
+          label={t("einstellungen.bahnen_freihalten")}
+          description={t("einstellungen.bahnen_freihalten_hilfe")}
+          inputWrapperOrder={HILFE_UNTEN}
+          size="md"
+          min={0}
+          max={240}
+          allowDecimal={false}
+          allowNegative={false}
+          suffix={` ${t("einheit.min")}`}
+          className={s.schmal}
+          disabled={gesperrt}
+          value={werte.heat_reserve_minutes ?? BAHNEN_FREIHALTEN_STANDARD}
+          error={fehler.heat_reserve_minutes}
+          onChange={(wert) => setze("heat_reserve_minutes", alsZahl(wert))}
         />
         {mitStartnummer && (
           <NumberInput

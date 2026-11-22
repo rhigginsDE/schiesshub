@@ -432,7 +432,13 @@ async def book_starts(
         entry.id,
         {
             "tournament_id": str(tournament_id),
+            "entry_id": str(entry.id),
             "competition_id": str(competition.id),
+            "competition_code": competition.catalog_code,
+            "competition_name": competition.name,
+            # Mehrere Starts einer Buchung gehören zur selben Anmeldung, also einer Startnummer.
+            "start_number": entry.start_number,
+            "attempts": [start.attempt for start in starts],
             "start_ids": [str(start.id) for start in starts],
             "fee_cents": [start.fee_cents for start in starts],
         },
@@ -495,13 +501,7 @@ async def cancel_start(
         "start.cancelled",
         "start",
         start.id,
-        {
-            "tournament_id": str(tournament_id),
-            "entry_id": str(start.entry_id),
-            "competition_id": str(competition.id),
-            "attempt": start.attempt,
-            "fee_cents": start.fee_cents,
-        },
+        context.audit_details(fee_cents=start.fee_cents),
     )
     await session.delete(start)
     for attempt, (sibling, fee) in enumerate(
@@ -532,23 +532,28 @@ async def abort_start(
     tournament_id: uuid.UUID,
     start_id: uuid.UUID,
     abort_reason: AbortReason,
+    note: str | None = None,
 ) -> Start:
-    """Bricht einen Start ab.
+    """Bricht einen Start ab, wahlweise mit Bemerkung (`note`).
 
     Ist ein Abbruch-Handler angemeldet (Modul `ergebnisse`), übernimmt er den ganzen Vorgang;
-    der Abbruch steht dann auch im Ergebnisprotokoll. Sonst wechselt nur der Status.
+    der Abbruch steht dann auch im Ergebnisprotokoll, die Bemerkung als Grund am Ereignis
+    `aborted`. Sonst wechselt nur der Status. In beiden Fällen steht die Bemerkung als
+    `reason` im Audit-Eintrag `start.aborted`.
     """
     context = await get_start(session, tournament_id, start_id)
     handler = hooks.abort_handler()
     if handler is not None:
-        await handler(session, events, actor, tournament_id, start_id, abort_reason)
+        await handler(session, events, actor, tournament_id, start_id, abort_reason, note)
         start = await session.get(Start, start_id, populate_existing=True)
         assert start is not None
         return start
     if context.competition.range_id is not None:
         # Wie alle Vorgänge an den Bahnen eines Stands nacheinander.
         await get_range(session, tournament_id, context.competition.range_id, lock=True)
-    change = await transition(session, context.start, "aborted", actor, abort_reason=abort_reason)
+    change = await transition(
+        session, context.start, "aborted", actor, abort_reason=abort_reason, reason=note
+    )
     await session.commit()
     publish_status(events, change)
     await session.refresh(context.start)

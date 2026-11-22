@@ -13,6 +13,7 @@ function status(teil: Record<string, unknown> = {}) {
     setup_required: false,
     auth_enforced: false,
     device: { id: "g1", name: "Kasse 1", default_role_id: null },
+    device_revoked: false,
     user: null,
     role: null,
     permissions: [],
@@ -171,6 +172,15 @@ describe("Sicherungswarnung", () => {
         },
         passphrase_set: true,
       },
+      "/backup/warning": {
+        warning: {
+          code: "usb_missing",
+          message_de: "Der Sicherungs-Stick fehlt.",
+          since: "2026-11-21T10:38:00Z",
+        },
+        warn_all_stations: true,
+        warn_on_display: false,
+      },
       "/backup/settings": {
         enabled: true,
         usb_enabled: true,
@@ -229,6 +239,105 @@ describe("Sicherungswarnung", () => {
     expect(banner).toHaveTextContent("Sag der Turnierleitung Bescheid.");
     expect(within(banner).queryByRole("link", { name: "Passwort festlegen" })).toBeNull();
   });
+
+  it("QA G-6: ohne „Sicherung ansehen“ erscheint die Warnung trotzdem, ohne Kopfzeilen-Chip", async () => {
+    const verboten = () => json({ detail: "Dafür fehlt die Berechtigung „backup.read“." }, 403);
+    let warnung: unknown = {
+      code: "usb_missing",
+      message_de: "Der Sicherungs-Stick fehlt.",
+      since: "2026-11-21T10:38:00Z",
+    };
+    const attrappe = apiAttrappe({
+      "/health": HEALTH,
+      "/tournaments": [],
+      "/auth/status": status({
+        auth_enforced: true,
+        user: { id: "p1", name: "L. Behrens" },
+        role: { id: "r3", name: "Auswertung" },
+        permissions: ["result.read", "result.edit"],
+      }),
+      "/backup/warning": () =>
+        json({ warning: warnung, warn_all_stations: true, warn_on_display: false }),
+      "/backup/status": verboten,
+      "/backup/settings": verboten,
+    });
+    const nutzer = userEvent.setup();
+    renderApp("/");
+    const banner = await screen.findByRole("alert");
+    expect(banner).toHaveTextContent("Der Sicherungs-Stick fehlt.");
+    expect(banner).toHaveTextContent("Steck den Sicherungs-Stick in den Server");
+    expect(screen.queryByText("Kein Sicherungs-Stick")).not.toBeInTheDocument();
+    const pfade = attrappe.mock.calls.map(([eingabe]) => String(eingabe));
+    expect(pfade.some((pfad) => pfad.includes("/backup/status"))).toBe(false);
+
+    // Stick wieder da: „Erneut prüfen“ fragt die Warnung neu ab, das Banner verschwindet.
+    warnung = null;
+    await nutzer.click(within(banner).getByRole("button", { name: "Erneut prüfen" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+  });
+
+  it("ein Server ohne Warnung zeigt kein Banner", async () => {
+    apiAttrappe({
+      ...sicherungsAttrappe("usb_missing", "Der Sicherungs-Stick fehlt."),
+      "/backup/warning": { warning: null, warn_all_stations: true, warn_on_display: false },
+    });
+    renderApp("/");
+    expect(await screen.findByText("Kein Sicherungs-Stick")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
+describe("Abgewiesene Geräte (QA KLEIN 3)", () => {
+  it("ein gesperrtes Gerät liest auf der Kopplungsseite, was los ist", async () => {
+    apiAttrappe({
+      "/health": HEALTH,
+      "/auth/status": status({ auth_enforced: true, device: null, device_revoked: true }),
+    });
+    renderApp("/");
+    expect(
+      await screen.findByRole("heading", { name: "Dieses Gerät wurde gesperrt" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Eine Person mit Verwaltungsrecht kann es unter System → Geräte wieder freigeben oder neu koppeln.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Kopplungscode")).toBeInTheDocument();
+  });
+
+  it("abgelaufene Sitzung: kurzer Hinweis auf der Anmeldeseite", async () => {
+    // Erst angemeldet; die nächste Anfrage kommt mit 401 `session_expired` zurück, danach meldet
+    // der Status niemanden mehr.
+    let abfragen = 0;
+    const abgelaufen = () =>
+      json({ detail: "Die Sitzung ist abgelaufen.", code: "session_expired" }, 401);
+    apiAttrappe({
+      "/health": HEALTH,
+      "/auth/status": () => {
+        abfragen += 1;
+        return json(
+          abfragen === 1
+            ? status({
+                auth_enforced: true,
+                user: { id: "p1", name: "H. Berger" },
+                role: { id: "r2", name: "Turnierleitung" },
+                permissions: ["backup.read"],
+              })
+            : status({ auth_enforced: true }),
+        );
+      },
+      "/auth/users": [{ id: "p1", name: "H. Berger" }],
+      "/backup/warning": { warning: null, warn_all_stations: true, warn_on_display: false },
+      "/backup/status": abgelaufen,
+      "/backup/settings": abgelaufen,
+      "/backup/runs?limit=50": abgelaufen,
+    });
+    renderApp("/system/sicherung");
+    expect(await screen.findByRole("heading", { name: "Wer bist du?" })).toBeInTheDocument();
+    expect(
+      await screen.findByText("Die Sitzung ist abgelaufen, bitte neu anmelden."),
+    ).toBeInTheDocument();
+  });
 });
 
 function sicherungsAttrappe(code: string, text: string) {
@@ -248,6 +357,11 @@ function sicherungsAttrappe(code: string, text: string) {
       journal: { pending: 0 },
       warning: { code, message_de: text, since: "2026-11-21T10:38:00Z" },
       passphrase_set: code !== "passphrase_missing",
+    },
+    "/backup/warning": {
+      warning: { code, message_de: text, since: "2026-11-21T10:38:00Z" },
+      warn_all_stations: true,
+      warn_on_display: false,
     },
     "/backup/settings": {
       enabled: true,

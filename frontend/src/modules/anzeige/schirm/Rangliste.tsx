@@ -37,6 +37,8 @@ function spaltenVorlage(serien: number): string {
 }
 
 function Gesamt({ zeile, einheit }: { zeile: FeedZeile; einheit: string | null }) {
+  // Ohne Platzierung: ein Wert nur, wenn es einen gibt – kein „–“, das wie ein Ergebnis wirkt.
+  if (zeile.abort_reason && !mitErgebnis(zeile)) return <span className={s.gesamt} />;
   const teile = gesamtTeile(mitErgebnis(zeile) ? zeile.score_text : null, einheit);
   return (
     <span className={`num ${s.gesamt}`}>
@@ -92,10 +94,13 @@ function RangZeile({
   zeile,
   serien,
   einheit,
+  ohnePlatz,
 }: {
   zeile: FeedZeile;
   serien: number;
   einheit: string | null;
+  /** Abgebrochen (Block „Ohne Platzierung“): keine Platzspalte, gedämpft */
+  ohnePlatz?: boolean;
 }) {
   const { sprache } = useSchirm();
   const name = useName();
@@ -103,11 +108,12 @@ function RangZeile({
     <div
       className={s.rang}
       data-zeile=""
-      data-erster={zeile.place === 1 || undefined}
+      data-erster={(!ohnePlatz && zeile.place === 1) || undefined}
       data-live={zeile.running || undefined}
       data-gruppe={zeile.group}
+      data-ohne-platz={ohnePlatz || undefined}
     >
-      <Platz zeile={zeile} />
+      {ohnePlatz ? <span className={s.platz} /> : <Platz zeile={zeile} />}
       <span className={s.wer}>
         <b>
           <span className={`num ${s.startnr}`}>{zeile.start_number}</span>
@@ -146,6 +152,21 @@ function Eintrag({
   const { t } = useTranslation("anzeige");
   if (eintrag.art === "zeile") {
     return <RangZeile zeile={eintrag.zeile} serien={serien} einheit={einheit} />;
+  }
+  if (eintrag.art === "ohne") {
+    return <RangZeile zeile={eintrag.zeile} serien={serien} einheit={einheit} ohnePlatz />;
+  }
+  if (eintrag.art === "ohne_kopf") {
+    const klasse = eintrag.mitKlasse
+      ? (eintrag.gruppe.class_short ?? eintrag.gruppe.class_name)
+      : null;
+    return (
+      <div className={s.ohneKopf} data-zeile="">
+        {t("schirm.ohne_platzierung")}
+        {klasse && <span className="num">{klasse}</span>}
+        {eintrag.fortsetzung && <small>{t("schirm.fortsetzung")}</small>}
+      </div>
+    );
   }
   if (eintrag.art === "klasse") {
     return (
@@ -256,6 +277,7 @@ function PodestStufe({
   );
 }
 
+/** Weitere Plätze (ab Platz 4) neben dem Podest. */
 function WeitereListe({
   zeilen,
   takt,
@@ -268,48 +290,71 @@ function WeitereListe({
   const { t } = useTranslation("anzeige");
   const name = useName();
   const seiten = useSeiten(zeilen, takt);
-  // Nur Abgebrochene: Sie haben keinen Platz, „Weitere Plätze“ wäre falsch.
-  const ohnePlatz = zeilen.every((zeile) => zeile.group === "unranked");
   return (
-    <div className={s.weitere}>
+    <section className={s.weitereBlock}>
       <div className={s.weitereKopf}>
-        <span className={s.kicker}>
-          {ohnePlatz ? t("schirm.ohne_platzierung") : t("schirm.weitere_plaetze")}
-        </span>
+        <span className={s.kicker}>{t("schirm.weitere_plaetze")}</span>
         <SeitenMarke seite={seiten.seite} seiten={seiten.seiten} />
       </div>
       <div ref={seiten.ref} className={s.weitereListe}>
         {seiten.eintraege.map((zeile) => (
-          <div
-            key={zeile.start_id}
-            className={s.weitereZeile}
-            data-zeile=""
-            data-abgebrochen={zeile.abort_reason ? "" : undefined}
-          >
-            {!zeile.abort_reason && <span className={`num ${s.platz}`}>{zeile.place ?? "–"}</span>}
+          <div key={zeile.start_id} className={s.weitereZeile} data-zeile="">
+            <span className={`num ${s.platz}`}>{zeile.place ?? "–"}</span>
             <span className={s.wer}>
               <b className={s.weitereName}>{name(zeile)}</b>
-              {(zeile.club || zeile.abort_reason) && (
-                <span className={s.unter}>
-                  {zeile.club}
-                  {zeile.abort_reason && (
-                    <>
-                      {" "}
-                      <em className={s.abbruch}>{t(`abbruch.${zeile.abort_reason}`)}</em>
-                    </>
-                  )}
-                </span>
-              )}
+              {zeile.club && <span className={s.unter}>{zeile.club}</span>}
             </span>
-            {mitErgebnis(zeile) && (
-              <span className={`num ${s.gesamt} ${s.gesamtKlein}`}>
-                {gesamtTeile(zeile.score_text, einheit).wert}
-              </span>
-            )}
+            <span className={`num ${s.gesamt} ${s.gesamtKlein}`}>
+              {gesamtTeile(zeile.score_text, einheit).wert}
+            </span>
           </div>
         ))}
       </div>
-    </div>
+    </section>
+  );
+}
+
+/**
+ * Abgebrochene einer Klasse, deutlich von den Plätzen abgesetzt: Name, Verein und Grund; ein Wert
+ * nur, wenn es einen gibt, klein und gedämpft hinter dem Grund (nie an der Stelle eines Platzes).
+ */
+function OhnePlatzListe({ zeilen, takt }: { zeilen: FeedZeile[]; takt: Takt }) {
+  const { t } = useTranslation("anzeige");
+  const name = useName();
+  const seiten = useSeiten(zeilen, takt);
+  return (
+    <section className={s.weitereBlock} data-art="ohne">
+      <div className={s.weitereKopf}>
+        <span className={s.kicker}>{t("schirm.ohne_platzierung")}</span>
+        <SeitenMarke seite={seiten.seite} seiten={seiten.seiten} />
+      </div>
+      <div ref={seiten.ref} className={s.weitereListe}>
+        {seiten.eintraege.map((zeile) => (
+          <div key={zeile.start_id} className={s.ohneZeile} data-zeile="">
+            <span className={s.wer}>
+              <b className={s.weitereName}>{name(zeile)}</b>
+              <span className={s.unter}>
+                {zeile.club}
+                {zeile.abort_reason && (
+                  <>
+                    {" "}
+                    <em className={s.abbruch}>{t(`abbruch.${zeile.abort_reason}`)}</em>
+                  </>
+                )}
+                {mitErgebnis(zeile) && zeile.score_text && (
+                  <>
+                    {" "}
+                    <em className={`num ${s.ohneWert}`}>
+                      {t("schirm.erreicht", { wert: zeile.score_text })}
+                    </em>
+                  </>
+                )}
+              </span>
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -325,12 +370,14 @@ function KlassenSieger({
   allein: boolean;
 }) {
   const { podest: erste, rest } = siegerAufteilung(gruppe.rows);
+  const ohne = gruppe.unplaced;
+  const seitlich = rest.length > 0 || ohne.length > 0;
   return (
     <section
       className={s.klassenSieger}
       data-allein={allein || undefined}
-      // Mehrere Klassen nebeneinander: Abgebrochene unter dem Podest statt daneben (sonst zu schmal).
-      data-gestapelt={(!allein && rest.length > 0) || undefined}
+      // Mehrere Klassen nebeneinander: Abgebrochene über dem Podest statt daneben (sonst zu schmal).
+      data-gestapelt={(!allein && seitlich) || undefined}
     >
       {(gruppe.class_name || gruppe.class_short) && (
         <h3 className={s.klassenTitel}>
@@ -346,7 +393,12 @@ function KlassenSieger({
             <PodestStufe key={eintrag.start_id} zeile={eintrag} rang={rang} einheit={einheit} />
           ))}
         </div>
-        {rest.length > 0 && <WeitereListe zeilen={rest} takt={takt} einheit={einheit} />}
+        {seitlich && (
+          <div className={s.weitere} data-beide={(rest.length > 0 && ohne.length > 0) || undefined}>
+            {rest.length > 0 && <WeitereListe zeilen={rest} takt={takt} einheit={einheit} />}
+            {ohne.length > 0 && <OhnePlatzListe zeilen={ohne} takt={takt} />}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -357,7 +409,9 @@ export function Siegerliste({ szene, takt }: { szene: SzeneVon<"winners">; takt:
   const { t } = useTranslation("anzeige");
   const { hochkant, jetzt } = useSchirm();
   const rangliste = szene.ranking;
-  const gruppen = rangliste.groups.filter((gruppe) => gruppe.rows.length > 0);
+  const gruppen = rangliste.groups.filter(
+    (gruppe) => gruppe.rows.length > 0 || gruppe.unplaced.length > 0,
+  );
   // Mit weiteren Plätzen (ab Platz 4) oder hochkant: eine Klasse je Seite; sonst bis zu drei
   // nebeneinander. Abgebrochene allein zählen nicht: Sie stehen dann unter dem Podest.
   const mitRest = gruppen.some((gruppe) => mitWeiterenPlaetzen(gruppe.rows));

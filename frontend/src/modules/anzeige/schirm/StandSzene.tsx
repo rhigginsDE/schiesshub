@@ -1,5 +1,5 @@
 import { Check, ChevronRight } from "lucide-react";
-import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PositionsAblauf } from "../../../components/anschlag/PositionsAblauf";
 import { formatDauer, formatZahl } from "../../../lib/format";
@@ -11,10 +11,20 @@ import {
   hatPositionen,
   hauptSerie,
   laufendeSerien,
+  type NaechsteEintrag,
+  naechsteEintraege,
+  naechsteSeiten,
+  naechsteZahl,
   trefferaufnahmeNach,
 } from "../format";
 import { seiteZurZeit, type Takt, teilTakt } from "../rotation";
-import type { FeedAblauf, FeedAbschnitt, FeedPerson, SzeneVon } from "../typen";
+import type {
+  FeedAblauf,
+  FeedAbschnitt,
+  FeedNaechsterEintrag,
+  FeedPerson,
+  SzeneVon,
+} from "../typen";
 import {
   AbschnittKopf,
   AbweichendMarke,
@@ -257,7 +267,7 @@ function AblaufBlock({ ablauf, takt }: { ablauf: FeedAblauf; takt: Takt }) {
 
   const seite = geteilt ? seiteZurZeit(takt, jetzt, abschnitte.length) : 0;
   const sichtbar = geteilt ? abschnitte.slice(seite, seite + 1) : abschnitte;
-  const titel = <WettbewerbTitel code={ablauf.catalog_code} name={ablauf.competition_name} />;
+  const titel = <WettbewerbTitel code={ablauf.competition_code} name={ablauf.competition_name} />;
 
   return (
     <div className={s.ablauf}>
@@ -396,44 +406,105 @@ function AmStand({ stand, takt }: { stand: SzeneVon<"range">["range"]; takt: Tak
   );
 }
 
-function AlsNaechstes({ stand, takt }: { stand: SzeneVon<"range">["range"]; takt: Takt }) {
+/** „gerade auf Bahn 1, 25-m-Stand“: Die Person schießt gerade woanders (oder hier). */
+function useBesetztText(): (eintrag: FeedNaechsterEintrag) => string | null {
+  const { t } = useTranslation("anzeige");
+  return (eintrag) => {
+    if (!eintrag.busy) return null;
+    const stand = eintrag.busy_range_name;
+    if (eintrag.busy_lane != null && stand) {
+      return t("schirm.stand.busy", { bahn: eintrag.busy_lane, stand });
+    }
+    if (stand) return t("schirm.stand.busy_ohne_bahn", { stand });
+    return t("schirm.stand.busy_kurz");
+  };
+}
+
+function NaechsteZeile({ eintrag }: { eintrag: NaechsteEintrag }) {
   const { t } = useTranslation("anzeige");
   const { sprache } = useSchirm();
-  const seiten = useSeiten(stand.next, takt);
-  const durchgang = stand.next_heat;
-  const beginn = durchgang
-    ? feedUhrzeit(durchgang.starts_at_local, durchgang.starts_at, sprache)
-    : null;
+  const name = useName();
+  const besetzt = useBesetztText();
+
+  if (eintrag.art === "mehr") {
+    return (
+      <div className={s.naechsteMehr} data-zeile="">
+        {t("schirm.stand.weitere", { count: eintrag.anzahl })}
+      </div>
+    );
+  }
+  if (eintrag.art === "kopf") {
+    const block = eintrag.block;
+    const zeitplan = block.kind === "schedule";
+    return (
+      <div className={s.naechsteKopf} data-zeile="">
+        {/* Beschriftung der Zahlenspalte: Bahn (Zeitplan) oder Platz (Reihenfolge) */}
+        <span className={s.naechsteSpalte}>
+          {t(zeitplan ? "schirm.stand.spalte_bahn" : "schirm.stand.spalte_platz")}
+        </span>
+        <span className={s.naechsteTitel}>
+          <b className={s.naechsteWettbewerb}>
+            <WettbewerbTitel code={block.competition_code} name={block.competition_name} klein />
+          </b>
+          <span className={s.naechsteWann}>
+            {zeitplan
+              ? t("schirm.stand.durchgang_um", {
+                  nummer: block.heat_number,
+                  zeit: feedUhrzeit(block.starts_at_local, block.starts_at, sprache),
+                })
+              : t("schirm.stand.reihenfolge")}
+            {eintrag.fortsetzung && ` · ${t("schirm.fortsetzung")}`}
+          </span>
+        </span>
+      </div>
+    );
+  }
+  const person = eintrag.eintrag;
+  const woanders = besetzt(person);
+  const unter = [person.club, person.class_short].filter(Boolean).join(" · ");
+  return (
+    <div className={s.bahn} data-zeile="" data-besetzt={woanders ? "" : undefined}>
+      <span className={`num ${s.bahnNr}`}>{naechsteZahl(person)}</span>
+      <span className={s.wer}>
+        <b className={s.bahnName}>
+          <span className={`num ${s.startnr}`}>{person.start_number}</span>
+          {name(person)}
+        </b>
+        <span className={s.unter}>
+          {unter}
+          {person.attempt > 1 && ` · ${t("schirm.versuch", { nr: person.attempt })}`}
+          {woanders && (
+            <>
+              {" "}
+              <em className={s.besetzt}>{woanders}</em>
+            </>
+          )}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+/**
+ * „Als Nächstes“: je Wettbewerb ein Block mit Kennziffer und Name – bei Zeitplan der nächste
+ * Durchgang mit Bahn, bei Reihenfolge die nächsten Plätze. Blättert, statt abzuschneiden.
+ */
+function AlsNaechstes({ stand, takt }: { stand: SzeneVon<"range">["range"]; takt: Takt }) {
+  const { t } = useTranslation("anzeige");
+  const eintraege = useMemo(() => naechsteEintraege(stand.upcoming), [stand.upcoming]);
+  const seiten = useSeiten(eintraege, takt, naechsteSeiten);
   return (
     <section className={s.standBlock} data-art="naechste">
       <AbschnittKopf
-        kicker={t("schirm.stand.als_naechstes")}
-        titel={
-          durchgang
-            ? t("schirm.stand.durchgang", { nummer: durchgang.number })
-            : t("schirm.stand.reihenfolge")
-        }
-        meta={
-          <>
-            {beginn && <span className="num">{beginn}</span>}
-            <SeitenMarke seite={seiten.seite} seiten={seiten.seiten} />
-          </>
-        }
+        titel={t("schirm.stand.als_naechstes")}
+        meta={<SeitenMarke seite={seiten.seite} seiten={seiten.seiten} />}
       />
-      {stand.next.length === 0 ? (
+      {eintraege.length === 0 ? (
         <p className={s.leerText}>{t("schirm.stand.niemand")}</p>
       ) : (
         <div ref={seiten.ref} className={s.bahnListe}>
-          {seiten.eintraege.map((person) => (
-            <PersonZeile
-              key={person.start_id}
-              person={person}
-              nr={String(
-                person.lane != null && person.heat_number === durchgang?.number
-                  ? person.lane
-                  : stand.next.indexOf(person) + 1,
-              )}
-            />
+          {seiten.eintraege.map((eintrag) => (
+            <NaechsteZeile key={eintrag.schluessel} eintrag={eintrag} />
           ))}
         </div>
       )}

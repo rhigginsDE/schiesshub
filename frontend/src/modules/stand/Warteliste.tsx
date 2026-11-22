@@ -9,7 +9,7 @@ import { ABBRUCHGRUENDE, type Abbruchgrund, type Bahn, type StationStart } from 
 import { type StandRechte, useAnzeigename } from "./aktionen";
 import { besetzteAnmeldungen, freieBahnen } from "./logik";
 import s from "./stand.module.css";
-import { type Kennziffern, WettbewerbName, wettbewerbText } from "./Wettbewerb";
+import { WettbewerbName, wettbewerbText } from "./Wettbewerb";
 
 interface WartelisteProps {
   wartende: readonly StationStart[];
@@ -22,7 +22,6 @@ interface WartelisteProps {
   onAufrufen: (start: StationStart, bahn: number) => void;
   onAbbrechen: (start: StationStart, grund: Abbruchgrund) => void;
   rechte: StandRechte;
-  kennziffern: Kennziffern;
 }
 
 /** „Als Nächstes“: die wartenden Starts der Reihenfolge, umsortierbar und einzeln aufrufbar. */
@@ -34,7 +33,6 @@ export function Warteliste({
   onAufrufen,
   onAbbrechen,
   rechte,
-  kennziffern,
 }: WartelisteProps) {
   const { t } = useTranslation("stand");
   const anzeigename = useAnzeigename();
@@ -61,7 +59,7 @@ export function Warteliste({
     <ol className={s.warteliste}>
       {wartende.map((start, index) => {
         const nr = start.start_number;
-        const code = kennziffern.get(start.competition_id);
+        const code = start.competition_code;
         // Wer mehrere Starts hat, steht mehrfach in der Liste: Wettbewerb und Start gehören ins Label.
         const wer = t("warten.wer", {
           nr,

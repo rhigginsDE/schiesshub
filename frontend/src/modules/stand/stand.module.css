@@ -103,6 +103,34 @@
   color: var(--sh-text-gedaempft);
 }
 
+/* ---------- Hinweis: Durchgang braucht Bahnen ---------- */
+.vorhalt {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-bg);
+  color: var(--sh-text-weich);
+  font-size: 15px;
+}
+
+.vorhalt[data-aktiv] {
+  border-color: transparent;
+  background: var(--sh-info-flaeche);
+  color: var(--sh-text);
+}
+
+.vorhalt svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  color: var(--sh-info);
+}
+
 /* ---------- Hauptaktion ---------- */
 .haupt {
   display: flex;

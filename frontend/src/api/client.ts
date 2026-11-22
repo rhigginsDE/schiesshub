@@ -50,6 +50,12 @@ export class ApiFehler extends Error {
    * dem aktuellen Stand eines Ergebnisses). `undefined`, wenn die Antwort kein JSON hatte.
    */
   readonly inhalt?: unknown;
+  /**
+   * Maschinenlesbarer Grund aus der Fehlerantwort (`{"detail": …, "code": …}`), z. B. bei 401
+   * `device_unknown`, `device_revoked`, `session_expired`, `login_required`, `login_failed` oder
+   * bei 409 `heat_imminent`. `undefined`, wenn der Server keinen liefert.
+   */
+  readonly code?: string;
 
   constructor(
     art: ApiFehlerArt,
@@ -59,6 +65,7 @@ export class ApiFehler extends Error {
     wiederholenNachSekunden?: number,
     felder: readonly FeldFehler[] = [],
     inhalt?: unknown,
+    code?: string,
   ) {
     super(
       `API-Fehler (${art}${status ? ` ${status}` : ""}) bei ${pfad}${detail ? `: ${detail}` : ""}`,
@@ -71,6 +78,7 @@ export class ApiFehler extends Error {
     this.wiederholenNachSekunden = wiederholenNachSekunden;
     this.felder = felder;
     this.inhalt = inhalt;
+    this.code = code;
   }
 }
 
@@ -108,6 +116,13 @@ function sekundenAus(antwort: Response): number | undefined {
   return Number.isFinite(sekunden) && sekunden > 0 ? Math.ceil(sekunden) : undefined;
 }
 
+/** `code` aus einer Fehlerantwort, falls es ein nicht leerer Text ist. */
+function codeAus(inhalt: unknown): string | undefined {
+  if (!inhalt || typeof inhalt !== "object") return undefined;
+  const wert = (inhalt as { code?: unknown }).code;
+  return typeof wert === "string" && wert !== "" ? wert : undefined;
+}
+
 async function fehlerAus(antwort: Response, pfad: string, optionen: AnfrageOptionen) {
   const { detail, felder, inhalt } = await inhaltAus(antwort);
   return melden(
@@ -119,6 +134,7 @@ async function fehlerAus(antwort: Response, pfad: string, optionen: AnfrageOptio
       sekundenAus(antwort),
       felder,
       inhalt,
+      codeAus(inhalt),
     ),
     optionen,
   );

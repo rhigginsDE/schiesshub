@@ -643,8 +643,9 @@ async def abort(
     loaded, replay = await begin(session, tournament_id, start_id, request)
     if replay:
         return await finish(session, events, loaded, None)
-    # Prüft den Übergang (z. B. nicht aus „abgeschlossen“) und schreibt das Audit-Protokoll.
-    await move(session, loaded, "aborted", actor, abort_reason=abort_reason)
+    # Prüft den Übergang (z. B. nicht aus „abgeschlossen“) und schreibt das Audit-Protokoll,
+    # mit dem Grund wie am Ereignis.
+    await move(session, loaded, "aborted", actor, abort_reason=abort_reason, reason=reason)
     event = append(
         session, loaded, request, actor, "aborted", {"abort_reason": abort_reason}, reason
     )
@@ -664,10 +665,12 @@ async def abort_from_starts(
     tournament_id: uuid.UUID,
     start_id: uuid.UUID,
     abort_reason: AbortReason,
+    note: str | None,
 ) -> None:
     """Abbruch-Handler: `POST …/starts/{id}/abort` führt zum selben Ergebnis wie
-    `POST …/starts/{id}/result/abort` (Ereignis `aborted` im Protokoll und Statuswechsel)."""
-    await abort(session, events, actor, tournament_id, start_id, abort_reason, None, None)
+    `POST …/starts/{id}/result/abort` (Ereignis `aborted` im Protokoll und Statuswechsel);
+    die Bemerkung `note` wird zum Grund (`reason`) des Ereignisses."""
+    await abort(session, events, actor, tournament_id, start_id, abort_reason, note, None)
 
 
 async def starts_with_events(

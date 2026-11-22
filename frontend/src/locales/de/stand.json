@@ -29,7 +29,7 @@
     "aufgerufen": "{{count}} Start aufgerufen",
     "aufgerufen_other": "{{count}} Starts aufgerufen",
     "niemand_aufgerufen": "Niemand aufgerufen",
-    "niemand_aufgerufen_text": "Alle Wartenden stehen schon auf einer anderen Bahn.",
+    "niemand_aufgerufen_text": "Alle Wartenden stehen schon auf einer Bahn.",
     "fehler": "Das hat nicht geklappt"
   },
   "bahn": {
@@ -55,7 +55,8 @@
     "zurueck_gemacht": "Startnummer {{nr}} zurückgestellt",
     "abbrechen": "Abbrechen",
     "ergebnis": "Ergebnis erfassen",
-    "aktionen": "Aktionen für Bahn {{bahn}}"
+    "aktionen": "Aktionen für Bahn {{bahn}}",
+    "fortschritt_abschnitte": "{{erfasst}} von {{gesamt}} Serien erfasst · Abschnitt {{abschnitt}} von {{abschnitte}}"
   },
   "freigabe": {
     "titel": "Bahn {{bahn}} freigeben?",
@@ -210,5 +211,19 @@
   "anleitung": "Rufe die Wartenden auf die freien Bahnen auf – der grüne Knopf holt die Nächsten. Mit den Pfeilen änderst du die Reihenfolge.",
   "rechte": {
     "nur_ansehen": "Aufrufen ist für deine Rolle nicht freigegeben – du siehst den Ablauf."
+  },
+  "rueckfrage": {
+    "titel": "Bahn wird für einen Durchgang gebraucht",
+    "text": "Ein geplanter Durchgang beginnt bald und braucht diese Bahn.",
+    "bestaetigen": "Trotzdem aufrufen",
+    "zurueck": "Nicht aufrufen"
+  },
+  "vorhalt": {
+    "bahnen_one": "Bahn {{liste}}",
+    "bahnen_other": "Bahnen {{liste}}",
+    "kommt": "Durchgang {{nummer}} um {{zeit}} braucht {{bahnen}} – wird ab {{ab}} freigehalten",
+    "kommt_ohne_ab": "Durchgang {{nummer}} um {{zeit}} braucht {{bahnen}}",
+    "aktiv_one": "{{bahnen}} ist für Durchgang {{nummer}} ({{zeit}}) freigehalten",
+    "aktiv_other": "{{bahnen}} sind für Durchgang {{nummer}} ({{zeit}}) freigehalten"
   }
 }

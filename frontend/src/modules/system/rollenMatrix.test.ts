@@ -58,9 +58,9 @@ describe("umschalten", () => {
 describe("Matrix-Hilfen", () => {
   it("gruppiert nach Modul und sortiert", () => {
     const gruppen = gruppieren([
-      { permission: "person.read", module: "teilnehmer", module_title: "Teilnehmer" },
-      { permission: "backup.read", module: "backup", module_title: "Sicherung" },
-      { permission: "club.edit", module: "teilnehmer", module_title: "Teilnehmer" },
+      { permission: "person.read", module: "teilnehmer", module_title: "Teilnehmer", requires: [] },
+      { permission: "backup.read", module: "backup", module_title: "Sicherung", requires: [] },
+      { permission: "club.edit", module: "teilnehmer", module_title: "Teilnehmer", requires: [] },
     ]);
     expect(gruppen.map((g) => g.titel)).toEqual(["Sicherung", "Teilnehmer"]);
     expect(gruppen[1]?.berechtigungen).toEqual(["club.edit", "person.read"]);
@@ -173,10 +173,9 @@ describe("Voraussetzungen", () => {
       requires: ["tournament.read"],
     },
     { permission: "tournament.read", module: "turnier", module_title: "Turnier", requires: [] },
-    // Älterer Server: kein Feld `requires`.
-    { permission: "backup.read", module: "backup", module_title: "Sicherung" },
+    { permission: "backup.read", module: "backup", module_title: "Sicherung", requires: [] },
   ];
-  const braucht = voraussetzungen(liste as never);
+  const braucht = voraussetzungen(liste);
   const alle = ["start.call", "start.read", "tournament.read", "backup.read"];
 
   it("liest nur, was der Server meldet", () => {

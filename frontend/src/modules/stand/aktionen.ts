@@ -39,13 +39,8 @@ export interface StandRechte {
   abbrechen: boolean;
 }
 
-/**
- * Abbrechen (`POST …/starts/{id}/abort`) hängt künftig am eigenen Recht `start.abort`; bisher
- * verlangte der Endpunkt `start.call`.
- * ÜBERGANG: Solange der Server `start.abort` noch nicht vergibt, reicht auch `start.call`. Sobald
- * das Backend das Recht kennt und die Rollenvorlagen es enthalten, `start.call` hier streichen.
- */
-export const RECHTE_ABBRECHEN = ["start.abort", "start.call"] as const;
+/** Abbrechen (`POST …/starts/{id}/abort`) hängt am eigenen Recht `start.abort`. */
+export const RECHTE_ABBRECHEN = ["start.abort"] as const;
 
 export function useStandRechte(): StandRechte {
   const rechte = useRechte();

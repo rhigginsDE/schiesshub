@@ -595,12 +595,14 @@ function Flaeche({
   };
 
   const kopf = maske.header;
+  // Kennziffer aus dem Kopf der Maske; die Wettbewerbsliste nur, falls der Server keine mitgibt.
+  const kennziffer = kopf.competition_code ?? kennziffern.get(kopf.competition_id) ?? null;
   const wer = `${kopf.start_number} · ${kopf.display_name ?? t("auswahl.ohne_name")}`;
   const pruefKopf: PruefKopf = {
     startnummer: kopf.start_number,
     name: kopf.display_name ?? t("auswahl.ohne_name"),
     wettbewerb: kopf.competition_name,
-    kennziffer: kennziffern.get(kopf.competition_id) ?? null,
+    kennziffer,
     klasse: kopf.class_name ?? kopf.class_short ?? null,
   };
   const wertung = basis.computed;
@@ -789,11 +791,7 @@ function Flaeche({
         aria-label={t("flaeche")}
         data-korrektur={korrektur || undefined}
       >
-        <Kopf
-          maske={maske}
-          basis={basis}
-          kennziffer={kennziffern.get(kopf.competition_id) ?? null}
-        />
+        <Kopf maske={maske} basis={basis} kennziffer={kennziffer} />
 
         {phase === "konflikt" && zustand.konflikt && (
           <KonfliktHinweis

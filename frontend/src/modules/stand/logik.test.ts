@@ -5,6 +5,7 @@ import {
   bestimmeStand,
   durchgangErledigt,
   ersterAufrufbarer,
+  fortschrittAnzeige,
   freieBahnen,
   freieBahnenDurchgang,
   hauptAktion,
@@ -130,5 +131,46 @@ describe("Hauptaktion", () => {
     ];
     expect(ersterAufrufbarer(wartende, new Set(["e1"]))?.start_id).toBe("b");
     expect(ersterAufrufbarer(wartende, new Set(["e1", "e2"]))).toBeNull();
+  });
+});
+
+describe("fortschrittAnzeige", () => {
+  const basis = {
+    section_id: "a",
+    series_done: 1,
+    series_total: 4,
+    complete: false,
+    section_number: 2,
+    section_count: 2,
+    series_done_overall: 5,
+    series_total_overall: 8,
+  };
+
+  it("QA KLEIN 2: zählt bei mehreren Abschnitten alle Serien und nennt den Abschnitt", () => {
+    expect(fortschrittAnzeige(basis)).toEqual({
+      erfasst: 5,
+      gesamt: 8,
+      abschnitt: { nummer: 2, anzahl: 2 },
+      fertig: false,
+    });
+  });
+
+  it("bleibt bei einem Abschnitt bei dessen Serien", () => {
+    expect(
+      fortschrittAnzeige({
+        ...basis,
+        section_number: 1,
+        section_count: 1,
+        series_done_overall: 1,
+        series_total_overall: 4,
+      }),
+    ).toEqual({ erfasst: 1, gesamt: 4, abschnitt: null, fertig: false });
+  });
+
+  it("ohne Serien oder ohne Angabe: nichts", () => {
+    expect(fortschrittAnzeige(null)).toBeNull();
+    expect(
+      fortschrittAnzeige({ ...basis, series_total: 0, section_count: 1, series_total_overall: 0 }),
+    ).toBeNull();
   });
 });

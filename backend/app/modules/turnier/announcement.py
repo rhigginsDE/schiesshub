@@ -88,6 +88,15 @@ def _sections(definition: CompetitionDefinition) -> list[DocumentSection]:
             parts.append(f"je {duration_text(abschnitt.zeit_je_serie_s)}")
         elif abschnitt.zeiten_s is not None:
             parts.append("Zeiten " + ", ".join(duration_text(t) for t in abschnitt.zeiten_s))
+        elif abschnitt.max_zeit_je_serie_s is not None:
+            # Zeitlimit je Serie (Fallscheibe); nur ohne feste Zeit, sonst stünde es doppelt.
+            parts.append(f"höchstens {duration_text(abschnitt.max_zeit_je_serie_s)} je Serie")
+        if abschnitt.zuschlag_je_stehender_scheibe_s is not None:
+            penalty = duration_text(abschnitt.zuschlag_je_stehender_scheibe_s)
+            parts.append(f"Zuschlag {penalty} je stehender Scheibe")
+        if abschnitt.zeit_bei_abbruch_s is not None:
+            fixed = duration_text(abschnitt.zeit_bei_abbruch_s)
+            parts.append(f"Serienzeit bei Zeitlimit oder Abbruch {fixed}")
         if abschnitt.sollzeit_s is not None:
             parts.append(f"Sollzeit {duration_text(abschnitt.sollzeit_s)}")
         counted = abschnitt.serien_gewertet

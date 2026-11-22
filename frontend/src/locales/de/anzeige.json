@@ -77,7 +77,15 @@
       "serie": "Serie",
       "position": "Position",
       "von": "{{nr}} von {{gesamt}}",
-      "fertig": "fertig"
+      "fertig": "fertig",
+      "durchgang_um": "Durchgang {{nummer}} · {{zeit}}",
+      "spalte_bahn": "Bahn",
+      "spalte_platz": "Platz",
+      "busy": "gerade auf Bahn {{bahn}}, {{stand}}",
+      "busy_ohne_bahn": "gerade am {{stand}}",
+      "busy_kurz": "gerade auf einer Bahn",
+      "weitere_one": "+ {{count}} weiterer",
+      "weitere_other": "+ {{count}} weitere"
     },
     "szene_teil": "{{titel}} · {{teil}}/{{teile}}",
     "rotation": "{{nr}}/{{anzahl}} · als Nächstes {{naechste}} in {{sekunden}} s",
@@ -93,7 +101,8 @@
       "anzeige_verboten": "Diesem Gerät fehlt das Recht, Anzeigen zu zeigen – in System → Geräte die Rolle „Anzeige“ geben.",
       "hinweis": "Der Bildschirm prüft von selbst weiter und zeigt die Anzeige, sobald es passt."
     },
-    "fortsetzung": "Fortsetzung"
+    "fortsetzung": "Fortsetzung",
+    "erreicht": "erreicht {{wert}}"
   },
   "liste": {
     "titel": "Anzeigen",

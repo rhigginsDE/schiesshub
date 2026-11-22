@@ -57,7 +57,7 @@ export function AnmeldungProvider({ children }: { children: ReactNode }) {
   const abfrage = useQuery(authStatusAbfrage());
   const [abgewiesen, setAbgewiesen] = useState(false);
   // Code aus der letzten 401 (`device_revoked`, `session_expired` …), falls der Server einen liefert.
-  const [abweisCode, setAbweisCode] = useState<unknown>(null);
+  const [abweisCode, setAbweisCode] = useState<string | null>(null);
 
   useEffect(
     () =>
@@ -65,7 +65,7 @@ export function AnmeldungProvider({ children }: { children: ReactNode }) {
         if (fehler.pfad.startsWith("/auth/")) return;
         if (fehler.art === "nicht_angemeldet") {
           setAbgewiesen(true);
-          setAbweisCode((fehler.inhalt as { code?: unknown } | undefined)?.code ?? null);
+          setAbweisCode(fehler.code ?? null);
           void queryClient.invalidateQueries({ queryKey: schluessel.auth.status });
         } else if (fehler.art === "verboten") {
           zeigeMeldung({

@@ -1,18 +1,30 @@
 import { useLocalStorage } from "@mantine/hooks";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import {
-  schluessel,
-  sicherungsEinstellungenAbfrage,
-  sicherungsStatusAbfrage,
-} from "../api/abfragen";
-import { apiSenden } from "../api/client";
-import type {
-  SicherungsEinstellungen,
-  SicherungsStatus,
-  SicherungsWarnung,
-} from "../api/typenSystem";
+import { schluessel, sicherungsStatusAbfrage } from "../api/abfragen";
+import { apiGet, apiSenden } from "../api/client";
+import type { components } from "../api/schema.gen";
+import type { SicherungsStatus, SicherungsWarnung } from "../api/typenSystem";
 import { useDarf } from "./berechtigungen";
+
+/** Was jedes gekoppelte Gerät über die Sicherung erfährt (`GET /backup/warning`). */
+export type SicherungsWarnLage = components["schemas"]["BackupWarningOut"];
+
+/** Unter `schluessel.sicherung.alle`, damit „Sicherung fertig/fehlgeschlagen“ es mit neu lädt. */
+export const WARNUNG_SCHLUESSEL = [...schluessel.sicherung.alle, "warnung"] as const;
+
+/**
+ * Aktuelle Warnung für das Banner, ohne bestimmtes Recht lesbar. Neu geladen beim Ereignis
+ * `backup.status` (siehe AppShell) und zur Sicherheit jede Minute. Still: Ein älterer Server ohne
+ * den Endpunkt oder ein noch nicht gekoppeltes Gerät zeigen schlicht keine Warnung.
+ */
+export const sicherungsWarnungAbfrage = () =>
+  queryOptions({
+    queryKey: WARNUNG_SCHLUESSEL,
+    queryFn: ({ signal }) => apiGet<SicherungsWarnLage>("/backup/warning", { signal, still: true }),
+    refetchInterval: 60 * 1000,
+    retry: false,
+  });
 
 /** So lange bleibt die Warnung nach „ausblenden“ auf diesem Gerät weg. */
 export const STUMM_DAUER_MS = 15 * 60 * 1000;
@@ -25,8 +37,8 @@ export interface Stummschaltung {
 }
 
 export interface WarnungEingaben {
-  status: SicherungsStatus | undefined;
-  einstellungen: SicherungsEinstellungen | undefined;
+  /** Antwort von `GET /backup/warning` */
+  lage: SicherungsWarnLage | undefined;
   /** Die Station ist die öffentliche Anzeige (eigene Einstellung „auf der Anzeige warnen“) */
   istAnzeige: boolean;
   stumm: Stummschaltung | null;
@@ -38,15 +50,14 @@ export interface WarnungEingaben {
  * Eine andere Warnung als die ausgeblendete erscheint sofort wieder.
  */
 export function sichtbareWarnung({
-  status,
-  einstellungen,
+  lage,
   istAnzeige,
   stumm,
   jetzt,
 }: WarnungEingaben): SicherungsWarnung | null {
-  const warnung = status?.warning;
-  if (!warnung || !einstellungen) return null;
-  if (istAnzeige ? !einstellungen.warn_on_display : !einstellungen.warn_all_stations) return null;
+  const warnung = lage?.warning;
+  if (!lage || !warnung) return null;
+  if (istAnzeige ? !lage.warn_on_display : !lage.warn_all_stations) return null;
   if (stumm && stumm.code === warnung.code && stumm.bis > jetzt) return null;
   return warnung;
 }
@@ -74,16 +85,17 @@ export function bannerAktion(code: string): BannerAktion {
   return AKTION_JE_CODE[code as SicherungsWarnung["code"]] ?? "sicherung";
 }
 
-/** Zustand der Sicherung für Kopfzeile und Banner; ohne `backup.read` bleibt alles leer. */
+/**
+ * Zustand der Sicherung für Kopfzeile und Banner. Die Warnung (Banner) sieht jede Station
+ * (`GET /backup/warning`, ohne Recht); Einzelheiten wie die letzte Sicherung (`status`) nur mit
+ * `backup.read`.
+ */
 export function useSicherungsLage(istAnzeige: boolean) {
   const queryClient = useQueryClient();
   const darfLesen = useDarf("backup.read");
   const darfVerwalten = useDarf("backup.manage");
   const status = useQuery({ ...sicherungsStatusAbfrage({ still: true }), enabled: darfLesen });
-  const einstellungen = useQuery({
-    ...sicherungsEinstellungenAbfrage({ still: true }),
-    enabled: darfLesen,
-  });
+  const warnLage = useQuery(sicherungsWarnungAbfrage());
   const [stumm, setStumm] = useLocalStorage<Stummschaltung | null>({
     key: STUMM_SCHLUESSEL,
     defaultValue: null,
@@ -100,19 +112,24 @@ export function useSicherungsLage(istAnzeige: boolean) {
     return () => clearTimeout(timer);
   }, [stumm]);
 
+  // Ohne `backup.manage` kann die Station nur nachfragen, ob der Server den Stick inzwischen sieht.
   const pruefen = useMutation({
-    mutationFn: async () => {
-      if (!darfVerwalten) return (await status.refetch()).data;
+    mutationFn: async (): Promise<SicherungsStatus | undefined> => {
+      if (!darfVerwalten) {
+        await warnLage.refetch();
+        return undefined;
+      }
       return apiSenden<SicherungsStatus>("POST", "/backup/usb/recheck");
     },
     onSuccess: (neu) => {
-      if (neu) queryClient.setQueryData(schluessel.sicherung.status, neu);
+      if (!neu) return;
+      queryClient.setQueryData(schluessel.sicherung.status, neu);
+      void queryClient.invalidateQueries({ queryKey: WARNUNG_SCHLUESSEL });
     },
   });
 
   const warnung = sichtbareWarnung({
-    status: status.data,
-    einstellungen: einstellungen.data,
+    lage: warnLage.data,
     istAnzeige,
     stumm,
     jetzt: Math.max(jetzt, Date.now()),

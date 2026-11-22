@@ -425,6 +425,41 @@
   color: var(--sh-text-gedaempft);
 }
 
+/* „Ohne Platzierung“: eigener Block hinter den Plätzen, gestrichelt abgesetzt */
+.ohneKopf {
+  height: 8cqmin;
+  display: flex;
+  align-items: flex-end;
+  gap: 1.4cqmin;
+  padding: 0 2cqmin 1cqmin 2.6cqmin;
+  border-bottom: 0.15cqmin dashed var(--sh-linie-stark);
+  font: 600 2cqmin / 1 var(--sh-font-text);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sh-text-gedaempft);
+}
+
+.ohneKopf span,
+.ohneKopf small {
+  font: 500 1.9cqmin / 1 var(--sh-font-mono);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.rang[data-ohne-platz] {
+  background: transparent;
+  border: 0.15cqmin dashed var(--sh-linie);
+}
+
+.rang[data-ohne-platz] .gesamt {
+  font-size: 3cqmin;
+  color: var(--sh-text-gedaempft);
+}
+
+.rang[data-ohne-platz] .serie {
+  color: var(--sh-text-gedaempft);
+}
+
 .mehr {
   height: 8cqmin;
   display: flex;
@@ -697,8 +732,25 @@
 .weitere {
   min-height: 0;
   display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 3cqmin;
+}
+
+/* Weitere Plätze und Ohne Platzierung zusammen: die Plätze bekommen mehr Höhe */
+.weitere[data-beide] {
+  grid-template-rows: minmax(0, 3fr) minmax(0, 2fr);
+}
+
+.weitereBlock {
+  min-height: 0;
+  display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 1.2cqmin;
+}
+
+.weitereBlock[data-art="ohne"] {
+  padding-top: 1.6cqmin;
+  border-top: 0.15cqmin dashed var(--sh-linie-stark);
 }
 
 .weitereKopf {
@@ -731,14 +783,19 @@
   font-size: 3.6cqmin;
 }
 
-/* Abgebrochen: kein Platz, ein Teilwert höchstens klein und gedämpft (wirkt nicht wie ein Platz) */
-.weitereZeile[data-abgebrochen] {
-  background: transparent;
+/* Ohne Platzierung: keine Platzspalte, kein Wert an der Stelle eines Platzes; Name voll breit */
+.ohneZeile {
+  height: 7cqmin;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  padding: 0 1.8cqmin;
+  border-radius: 1.2cqmin;
   border: 0.15cqmin dashed var(--sh-linie);
 }
 
-.weitereZeile[data-abgebrochen] .gesamtKlein {
-  font-size: 2.4cqmin;
+.unter .ohneWert {
+  font-weight: 500;
   color: var(--sh-text-gedaempft);
 }
 
@@ -752,11 +809,6 @@
 
 .klassenSieger[data-gestapelt] .weitere {
   order: -1;
-}
-
-/* Ohne Platz keine Platzspalte: der Name bekommt die Breite. */
-.weitereZeile[data-abgebrochen] {
-  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .wer .weitereName {
@@ -967,7 +1019,8 @@
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: minmax(0, 1.25fr) minmax(0, 1fr);
+  /* Gleich hoch: „Als Nächstes“ hat mehrere Blöcke (Zeitplan und Reihenfolge) */
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   gap: 2.4cqmin;
   padding: 2.4cqmin;
   border: 0.15cqmin solid var(--sh-linie);
@@ -1080,6 +1133,68 @@
 .bahn[data-frei] .bahnNr,
 .standBlock[data-art="naechste"] .bahnNr {
   color: var(--sh-text-weich);
+}
+
+/* „Als Nächstes“: Kopf je Wettbewerb in Zeilenhöhe, damit das Blättern gleich hohe Zeilen misst.
+   Die erste Spalte beschriftet die Zahl darunter (Bahn oder Platz). */
+.naechsteKopf {
+  height: 6.6cqmin;
+  display: grid;
+  grid-template-columns: 5.4cqmin minmax(0, 1fr);
+  align-items: end;
+  gap: 1.4cqmin;
+  padding: 0 1.6cqmin 0.8cqmin;
+  border-bottom: 0.15cqmin solid var(--sh-linie);
+}
+
+.naechsteSpalte {
+  font: 600 1.5cqmin / 1 var(--sh-font-text);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sh-text-gedaempft);
+}
+
+/* Wettbewerb oben, Durchgang mit Uhrzeit bzw. „Reihenfolge“ darunter: der Name bleibt ganz lesbar */
+.naechsteTitel {
+  min-width: 0;
+  display: grid;
+  gap: 0.5cqmin;
+}
+
+.naechsteWettbewerb {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: italic 700 2.4cqmin / 1.1 var(--sh-font-display);
+  color: var(--sh-text);
+}
+
+.naechsteWann {
+  font: 600 1.8cqmin / 1 var(--sh-font-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--sh-text-weich);
+}
+
+.naechsteMehr {
+  height: 6.6cqmin;
+  display: flex;
+  align-items: center;
+  padding: 0 1.6cqmin 0 8.4cqmin;
+  font-size: 2cqmin;
+  color: var(--sh-text-gedaempft);
+}
+
+/* Schießt gerade woanders: dezent, der Name bleibt lesbar */
+.unter .besetzt {
+  font-weight: 500;
+  color: var(--sh-info);
+}
+
+.bahn[data-besetzt] {
+  border-style: dashed;
+  border-color: var(--sh-linie);
 }
 
 /* ---------- Hinweis und Ruhe ---------- */
@@ -1329,7 +1444,8 @@
 
   .szeneStand[data-ohne-ablauf] .standSeite {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1.25fr) minmax(0, 1fr);
+    /* Gleich hoch: „Als Nächstes“ hat mehrere Blöcke (Zeitplan und Reihenfolge) */
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 

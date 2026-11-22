@@ -14,7 +14,7 @@ import {
 import { type StandRechte, useAnzeigename } from "./aktionen";
 import { belegungDurchgang, durchgangErledigt, sortiereDurchgaenge } from "./logik";
 import s from "./stand.module.css";
-import { type Kennziffern, WettbewerbName } from "./Wettbewerb";
+import { WettbewerbName } from "./Wettbewerb";
 
 interface ZeitplanProps {
   durchgaenge: readonly Durchgang[];
@@ -33,7 +33,6 @@ interface ZeitplanProps {
   onAbbrechen: (start: StationStart, grund: Abbruchgrund) => void;
   /** Was die Person am Stand darf (Knöpfe ohne Recht fehlen) */
   rechte: StandRechte;
-  kennziffern: Kennziffern;
 }
 
 /** Durchgänge des Stands mit Uhrzeit, Belegung je Bahn und den Aktionen der Standaufsicht. */
@@ -80,7 +79,7 @@ export function Zeitplan(props: ZeitplanProps) {
           </p>
           <ul className={s.ohnePlatzListe}>
             {ohnePlatz.map((start) => (
-              <StartZeile key={start.start_id} start={start} kennziffern={props.kennziffern}>
+              <StartZeile key={start.start_id} start={start}>
                 {rechte.planen && (
                   <Button
                     variant="default"
@@ -210,7 +209,6 @@ function PlatzInhalt({
   onAufrufen,
   onAbbrechen,
   rechte,
-  kennziffern,
 }: { start: StationStart } & ZeitplanProps) {
   const { t } = useTranslation("stand");
   const anzeigename = useAnzeigename();
@@ -224,11 +222,8 @@ function PlatzInhalt({
           <span className="num">{nr}</span> {anzeigename(start).text}
         </strong>
         <span className="gedaempft">
-          <WettbewerbName
-            code={kennziffern.get(start.competition_id)}
-            name={start.competition_name}
-          />{" "}
-          · {t("bahn.start_nr", { nr: start.attempt })}
+          <WettbewerbName code={start.competition_code} name={start.competition_name} /> ·{" "}
+          {t("bahn.start_nr", { nr: start.attempt })}
         </span>
       </span>
       {!wartet && (
@@ -286,15 +281,7 @@ function PlatzInhalt({
   );
 }
 
-function StartZeile({
-  start,
-  kennziffern,
-  children,
-}: {
-  start: StationStart;
-  kennziffern: Kennziffern;
-  children: ReactNode;
-}) {
+function StartZeile({ start, children }: { start: StationStart; children: ReactNode }) {
   const { t } = useTranslation("stand");
   const anzeigename = useAnzeigename();
   return (
@@ -303,11 +290,8 @@ function StartZeile({
       <span className={s.platzWer}>
         <strong>{anzeigename(start).text}</strong>
         <span className="gedaempft">
-          <WettbewerbName
-            code={kennziffern.get(start.competition_id)}
-            name={start.competition_name}
-          />{" "}
-          · {t("bahn.start_nr", { nr: start.attempt })}
+          <WettbewerbName code={start.competition_code} name={start.competition_name} /> ·{" "}
+          {t("bahn.start_nr", { nr: start.attempt })}
         </span>
       </span>
       {children}

@@ -68,7 +68,7 @@ describe("Bildschirm", () => {
     expect(within(liste).getByText("+ 4 weitere Starts")).toBeVisible();
   });
 
-  it("Live-Wertung: Kennziffer vor dem Namen, Abweichung vom Katalog, Abgebrochene ohne Platz am Ende", () => {
+  it("Live-Wertung: Kennziffer vor dem Namen, Abweichung vom Katalog, Abgebrochene im Block „Ohne Platzierung“", () => {
     const basis = rangliste();
     const klasse = basis.groups[0];
     if (!klasse) throw new Error("Testdaten");
@@ -81,7 +81,7 @@ describe("Bildschirm", () => {
         {
           ...klasse,
           more: 0,
-          rows: [
+          unplaced: [
             zeile({
               start_id: "a1",
               place: null,
@@ -89,9 +89,17 @@ describe("Bildschirm", () => {
               status: "aborted",
               abort_reason: "dnf",
               display_name: "Egon Abbruch",
+              score_text: "30,00 s",
+            }),
+            zeile({
+              start_id: "a2",
+              place: null,
+              group: "unranked",
+              status: "aborted",
+              abort_reason: "dns",
+              display_name: "Rita Fern",
               score_text: null,
             }),
-            ...klasse.rows,
           ],
         },
       ],
@@ -103,11 +111,21 @@ describe("Bildschirm", () => {
     expect(within(liste).getByText("Abweichend vom Katalog")).toBeVisible();
     expect(within(liste).getByText("Sollzeit 60 s statt 50 s")).toBeVisible();
     expect(within(liste).queryByText(/Sporthandbuch/)).toBeNull();
-    const zeilen = Array.from(liste.querySelectorAll("[data-gruppe]"));
-    const letzte = zeilen.at(-1) as HTMLElement;
-    expect(within(letzte).getByText("Egon Abbruch")).toBeVisible();
-    expect(within(letzte).getByText("aufgegeben")).toBeVisible();
-    expect(within(letzte).getAllByText("–").length).toBeGreaterThan(0);
+    expect(within(liste).getByText("Ohne Platzierung")).toBeVisible();
+    const ohne = Array.from(liste.querySelectorAll<HTMLElement>("[data-ohne-platz]"));
+    expect(ohne).toHaveLength(2);
+    const [egon, rita] = ohne as [HTMLElement, HTMLElement];
+    expect(within(egon).getByText("Egon Abbruch")).toBeVisible();
+    expect(within(egon).getByText("aufgegeben")).toBeVisible();
+    expect(within(egon).getByText("30,00 s")).toBeVisible();
+    // „Nicht angetreten“: weder Platz noch Wert, nur der Grund
+    expect(within(rita).getByText("nicht angetreten")).toBeVisible();
+    expect(rita.querySelector("[data-erster]")).toBeNull();
+    expect(within(rita).queryByText("–")).toBeNull();
+    expect(within(rita).queryByText(/0,00/)).toBeNull();
+    // Hinter allen Plätzen
+    const alle = Array.from(liste.querySelectorAll("[data-gruppe]"));
+    expect(alle.slice(-2)).toEqual(ohne);
   });
 
   it("Siegerliste: Abgebrochene nie auf dem Podest, sondern mit Grund danach", () => {
@@ -120,8 +138,8 @@ describe("Bildschirm", () => {
           class_name: "Schützenklasse",
           class_short: "S",
           more: 0,
-          rows: [
-            zeile({ start_id: "w1", place: 1, display_name: "Anna Beispiel" }),
+          rows: [zeile({ start_id: "w1", place: 1, display_name: "Anna Beispiel" })],
+          unplaced: [
             zeile({
               start_id: "w2",
               place: null,
@@ -129,6 +147,7 @@ describe("Bildschirm", () => {
               status: "aborted" as const,
               abort_reason: "dsq" as const,
               display_name: "Egon Abbruch",
+              club: "SV Abbruch",
               score_text: null,
             }),
           ],
@@ -139,7 +158,10 @@ describe("Bildschirm", () => {
     zeige(beispielFeed({ scenes: [{ ...sieger, ranking }] }));
     const region = screen.getByRole("region", { name: "Siegerliste" });
     expect(region.querySelectorAll("[data-rang]")).toHaveLength(1);
+    expect(within(region).getByText("Ohne Platzierung")).toBeVisible();
+    expect(within(region).queryByText("Weitere Plätze")).toBeNull();
     expect(within(region).getByText("Egon Abbruch")).toBeVisible();
+    expect(within(region).getByText("SV Abbruch")).toBeVisible();
     expect(within(region).getByText("disqualifiziert")).toBeVisible();
   });
 
@@ -172,7 +194,7 @@ describe("Bildschirm", () => {
   it("Standanzeige: Ablauf mit Positionen, Serien-Übersicht, Am Stand, Als Nächstes", () => {
     zeige(beispielFeed({ scenes: [szenen.range] }));
     const stand = screen.getByRole("region", { name: "25-m-Stand" });
-    expect(within(stand).getByText("1201")).toBeVisible();
+    expect(within(stand).getByRole("heading", { name: "1201Pistole bis 9 mm" })).toBeVisible();
     expect(within(stand).getByText("Abweichend vom Katalog")).toBeVisible();
     expect(within(stand).getByText("Sollzeit 60 s statt 50 s")).toBeVisible();
     expect(within(stand).getByRole("list", { name: "Parcours" })).toBeVisible();
@@ -180,8 +202,26 @@ describe("Bildschirm", () => {
     expect(within(stand).getByText("gestrichen – zählt nicht")).toBeVisible();
     expect(within(stand).getByText("Am Stand")).toBeVisible();
     expect(within(stand).getByText("frei")).toBeVisible();
-    expect(within(stand).getByText("Durchgang 4")).toBeVisible();
     expect(within(stand).getByText("Dora Nächste")).toBeVisible();
+  });
+
+  it("QA G-7: „Als Nächstes“ je Wettbewerb mit Kennziffer, Bahn bzw. Platz beschriftet, wer gerade schießt", () => {
+    zeige(beispielFeed({ scenes: [szenen.range] }));
+    const stand = screen.getByRole("region", { name: "25-m-Stand" });
+    const naechste = within(stand)
+      .getByRole("heading", { name: "Als Nächstes" })
+      .closest("section") as HTMLElement;
+    expect(within(naechste).getByText("Durchgang 4 · 14:20")).toBeVisible();
+    expect(within(naechste).getByText("1001")).toBeVisible();
+    expect(within(naechste).getByText("Bahn")).toBeVisible();
+    expect(within(naechste).getByText("Reihenfolge")).toBeVisible();
+    expect(within(naechste).getByText("Platz")).toBeVisible();
+    const dora = within(naechste).getByText("Dora Nächste").closest("[data-zeile]") as HTMLElement;
+    expect(within(dora).getByText("3")).toBeVisible();
+    const karl = within(naechste).getByText("Karl Weiß").closest("[data-zeile]") as HTMLElement;
+    expect(karl).toHaveAttribute("data-besetzt");
+    expect(within(karl).getByText("gerade auf Bahn 1, 15-m-Stand")).toBeVisible();
+    expect(within(naechste).getByText("+ 2 weitere")).toBeVisible();
   });
 
   it("Standanzeige: ohne `current` keine Hervorhebung und kein Fortschritt", () => {
@@ -191,7 +231,7 @@ describe("Bildschirm", () => {
     expect(within(stand).queryByText(/^\d+ von \d+$/)).toBeNull();
     expect(stand.querySelector("[aria-current]")).toBeNull();
     // Uhrzeit des nächsten Durchgangs aus `starts_at_local`
-    expect(within(stand).getByText("14:20")).toBeVisible();
+    expect(within(stand).getByText("Durchgang 4 · 14:20")).toBeVisible();
   });
 
   it("Standanzeige: hebt die laufende Serie hervor und zeigt je Bahn den Fortschritt", () => {
@@ -230,7 +270,16 @@ describe("Bildschirm", () => {
           {
             lane: 1,
             start: auf(1, 2),
-            progress: { section_id: "parcours", series_done: 1, series_total: 2, complete: false },
+            progress: {
+              section_id: "parcours",
+              series_done: 1,
+              series_total: 2,
+              complete: false,
+              section_number: 1,
+              section_count: 2,
+              series_done_overall: 1,
+              series_total_overall: 5,
+            },
           },
           {
             lane: 2,
@@ -240,6 +289,10 @@ describe("Bildschirm", () => {
               series_done: 2,
               series_total: 3,
               complete: false,
+              section_number: 2,
+              section_count: 2,
+              series_done_overall: 4,
+              series_total_overall: 5,
             },
           },
         ],

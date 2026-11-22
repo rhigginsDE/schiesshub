@@ -425,7 +425,7 @@ function WettbewerbKurz({
   start: StationStart;
   kennziffern: ReadonlyMap<string, string | null>;
 }) {
-  const kennziffer = kennziffern.get(start.competition_id);
+  const kennziffer = start.competition_code ?? kennziffern.get(start.competition_id);
   return (
     <span className={s.wettbewerbKurz}>
       {kennziffer && <span className="num">{kennziffer}</span>}
