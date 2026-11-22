@@ -658,7 +658,7 @@ export interface paths {
         put?: never;
         /**
          * Personen aus CSV importieren
-         * @description Rohinhalt der CSV-Datei als Anfragekörper (`Content-Type: text/csv`). UTF-8 mit oder ohne BOM, Trennzeichen `;` oder `,`. Spalten: `name`/`Name` (Pflicht), `club`/`Verein`, `member_no`/`Mitgliedsnummer`, `display_mode`/`Anzeige`, `show_club`/`Verein anzeigen`. Fehlende Vereine werden angelegt, Dubletten und fehlerhafte Zeilen übersprungen. Mit `dry_run=true` wird nur geprüft.
+         * @description Rohinhalt der CSV-Datei als Anfragekörper (`Content-Type: text/csv`). UTF-8 mit oder ohne BOM; ist die Datei kein gültiges UTF-8, wird sie als Windows-1252 gelesen (Excel „CSV (Trennzeichen-getrennt)“). Trennzeichen `;`, `,` oder Tabulator. Spalten: `name`/`Name` (Pflicht; alternativ `Vorname` und `Nachname`/`Name`/`Familienname`, zusammengesetzt zu „Vorname Nachname“), `club`/`Verein`/`Vereinsname`, `member_no`/`Mitgliedsnummer`, `display_mode`/`Anzeige`, `show_club`/`Verein anzeigen` (ohne Rücksicht auf Groß-/Kleinschreibung, Leerzeichen und Umlaut-Schreibweise). Andere Spalten werden ignoriert, nicht gespeichert und in `ignored_columns` genannt. Fehlende Vereine werden angelegt, Dubletten und fehlerhafte Zeilen übersprungen. Mit `dry_run=true` wird nur geprüft.
          */
         post: operations["teilnehmer_import_persons"];
         delete?: never;
