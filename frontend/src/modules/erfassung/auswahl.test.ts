@@ -71,7 +71,7 @@ describe("Startauswahl", () => {
   it("sucht Startnummern im ganzen Turnier und Namen ohne Akzente", () => {
     expect(suche(starts, "3", new Map(), true).map((s) => s.start_id)).toEqual(["a", "g"]);
     expect(suche(starts, "jurgen", new Map(), true).map((s) => s.start_id)).toEqual(["d"]);
-    const namen = namenAus([{ id: "e-e", person: { name: "Sabine Köhler" } } as never]);
+    const namen = namenAus([{ entry_id: "e-e", full_name: "Sabine Köhler" } as never]);
     expect(suche(starts, "köhler", namen, true).map((s) => s.start_id)).toEqual(["e"]);
     expect(suche(starts, "5", new Map(), true)).toEqual([]);
     expect(suche(starts, "5", new Map(), false).map((s) => s.start_id)).toEqual(["c"]);

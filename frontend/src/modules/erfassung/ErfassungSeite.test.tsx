@@ -90,8 +90,7 @@ function routen(extra: Record<string, TestAntwort | ((a: Aufruf) => TestAntwort)
   return serverAttrappe({
     "GET /tournaments": { inhalt: [turnier] },
     [`GET /tournaments/${T}/overview`]: { inhalt: uebersicht },
-    [`GET /tournaments/${T}/startlist`]: { inhalt: [startZeile] },
-    [`GET /tournaments/${T}/entries`]: { inhalt: [] },
+    [`GET /tournaments/${T}/startlist?names=full`]: { inhalt: [startZeile] },
     [`GET /tournaments/${T}/results/needs-review`]: { inhalt: [] },
     [`GET /tournaments/${T}/starts/${S}/form`]: () => ({ inhalt: maske(FALLSCHEIBE, server) }),
     [`GET /tournaments/${T}/starts/${S}/form?capture_mode=series`]: () => ({
@@ -196,8 +195,62 @@ describe("Erfassungsterminal", () => {
     expect(within(dialog).getByText("Markus Brandt")).toBeInTheDocument();
     await user.click(within(dialog).getByRole("button", { name: "Abschließen" }));
     expect(await screen.findByText("Abgeschlossen: 77,70 s")).toBeInTheDocument();
-    expect(aufrufe.some((a) => a.methode === "POST" && a.pfad.endsWith("/finalize"))).toBe(true);
+    const abschluss = aufrufe.find((a) => a.methode === "POST" && a.pfad.endsWith("/finalize"));
+    // Genau der Stand, den die Prüfansicht gezeigt hat: Sequenz und Ergebnis gehen mit.
+    const geprueft = abschluss?.inhalt as { base_seq: number; expected_seq: number };
+    expect(geprueft).toEqual({
+      base_seq: expect.any(Number),
+      expected_seq: geprueft.base_seq,
+      expected_score: "77.70",
+    });
     expect(screen.getByRole("button", { name: "Korrigieren" })).toBeInTheDocument();
+  });
+
+  it("409 beim Abschließen: sagt es in Klartext und lädt die Prüfansicht neu", async () => {
+    let server = stand();
+    const aufrufe = routen({
+      [`PUT /tournaments/${T}/starts/${S}/raw`]: (aufruf) => {
+        const inhalt = aufruf.inhalt as { raw: Rohwerte; base_seq: number };
+        server = gerechnet(inhalt.raw, inhalt.base_seq + 1);
+        return { inhalt: server };
+      },
+      [`GET /tournaments/${T}/starts/${S}/form?capture_mode=series`]: () => ({
+        inhalt: maske(FALLSCHEIBE, server),
+      }),
+      [`POST /tournaments/${T}/starts/${S}/finalize`]: () => {
+        // Inzwischen hat ein anderes Gerät ein anderes Ergebnis erzeugt (gleiche Rohwerte hier).
+        server = { ...server, seq: server.seq + 1, computed: wertung({ score: "80.00" }) };
+        return {
+          status: 409,
+          inhalt: { detail: "Das Ergebnis auf dem Server weicht ab.", current: server },
+        };
+      },
+    });
+    const user = userEvent.setup();
+    anzeigen();
+    await screen.findByRole("heading", { name: "Markus Brandt" });
+    await user.keyboard("12,84{Enter}1");
+    await user.keyboard("11,2{Enter}0");
+    await waitFor(
+      () => expect(screen.getByRole("button", { name: /Ergebnis abschließen/ })).toBeEnabled(),
+      { timeout: 3000 },
+    );
+    await user.click(screen.getByRole("button", { name: /Ergebnis abschließen/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(await within(dialog).findByText("77,70")).toBeInTheDocument();
+    const formVorher = aufrufe.filter((a) => a.pfad.endsWith("/form?capture_mode=series")).length;
+    await user.click(within(dialog).getByRole("button", { name: "Abschließen" }));
+
+    expect(
+      await within(dialog).findByText(
+        "Die Werte haben sich inzwischen geändert – bitte neu prüfen.",
+      ),
+    ).toBeInTheDocument();
+    expect(await within(dialog).findByText("80,00")).toBeInTheDocument();
+    expect(
+      aufrufe.filter((a) => a.pfad.endsWith("/form?capture_mode=series")).length,
+    ).toBeGreaterThan(formVorher);
+    expect(screen.queryByText(/Abgeschlossen:/)).toBeNull();
   });
 
   it("QA B1: Enter nach dem letzten Feld holt das angetippte Feld nicht zurück", async () => {
@@ -325,7 +378,8 @@ describe("Erfassungsterminal", () => {
   });
 
   it("Warnung des Servers: Abschließen erst nach ausdrücklicher Bestätigung", async () => {
-    const warnung = "Serie 1: 9.999,00 s liegt über dem Zeitlimit von 60 s.";
+    // Über dem Zeitlimit, aber unter der Plausibilitätsgrenze: nur eine Warnung des Servers.
+    const warnung = "Serie 1: 70,00 s liegt über dem Zeitlimit von 60 s.";
     let letzter = stand();
     const mitWarnung = (raw: Rohwerte, seq: number): ErgebnisStand => {
       const antwort = gerechnet(raw, seq);
@@ -350,7 +404,7 @@ describe("Erfassungsterminal", () => {
     const user = userEvent.setup();
     anzeigen();
     await screen.findByRole("heading", { name: "Markus Brandt" });
-    await user.keyboard("9999{Enter}0");
+    await user.keyboard("70{Enter}0");
     await user.keyboard("11,2{Enter}0");
     await waitFor(
       () => expect(screen.getByRole("button", { name: /Ergebnis abschließen/ })).toBeEnabled(),
@@ -363,6 +417,29 @@ describe("Erfassungsterminal", () => {
     expect(abschliessen).toBeDisabled();
     await user.click(within(dialog).getByRole("checkbox", { name: /Sie stimmen/ }));
     expect(abschliessen).toBeEnabled();
+  });
+
+  it("Zeit über der Grenze der Formularbeschreibung: Fehler am Feld schon bei der Eingabe", async () => {
+    routen({
+      [`PUT /tournaments/${T}/starts/${S}/raw`]: {
+        status: 422,
+        inhalt: {
+          detail: "Zeit nicht plausibel",
+          errors: [{ field: "raw.sections.fallscheibe.series[0].time_cs", message: "zu groß" }],
+        },
+      },
+    });
+    const user = userEvent.setup();
+    anzeigen();
+    await screen.findByRole("heading", { name: "Markus Brandt" });
+    await user.keyboard("200");
+    expect(
+      await screen.findByText(
+        "Diese Zeit ist nicht plausibel: höchstens 180,00 s. Bitte mit dem Startzettel vergleichen.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("zu groß")).toBeNull();
+    expect(screen.getByRole("button", { name: /Ergebnis abschließen/ })).toBeDisabled();
   });
 
   it("Prüfansicht: weicht der Server von der Eingabe ab, geht es nur zurück", async () => {
@@ -410,7 +487,7 @@ describe("Erfassungsterminal", () => {
 
   it("Startnummer mit mehreren Starts öffnet nicht den ersten, sondern zeigt die Auswahl", async () => {
     routen({
-      [`GET /tournaments/${T}/startlist`]: {
+      [`GET /tournaments/${T}/startlist?names=full`]: {
         inhalt: [
           startZeile,
           {
@@ -547,5 +624,19 @@ describe("Erfassungsterminal", () => {
     expect(screen.getByText(/Ablauf geändert/)).toBeInTheDocument();
     expect(screen.getByText("Am Stand · 1")).toBeInTheDocument();
     expect(screen.getByText("Bahn frei")).toBeInTheDocument();
+  });
+
+  it("zeigt am Stand den vollen Namen aus der Startliste (names=full), ohne die Anmeldungen zu laden", async () => {
+    localStorage.setItem("schiesshub.erfassung.stand", JSON.stringify({ [T]: R }));
+    const aufrufe = routen({
+      [`GET /tournaments/${T}/startlist?names=full`]: {
+        inhalt: [{ ...startZeile, full_name: "Markus Brandt", full_club: "SV Tell" }],
+      },
+    });
+    anzeigen(undefined);
+    expect(await screen.findByText("Am Stand · 1")).toBeInTheDocument();
+    expect(screen.getAllByText("Markus Brandt").length).toBeGreaterThan(0);
+    expect(screen.queryByText("M. Brandt")).toBeNull();
+    expect(aufrufe.some((a) => a.pfad.includes("/entries"))).toBe(false);
   });
 });

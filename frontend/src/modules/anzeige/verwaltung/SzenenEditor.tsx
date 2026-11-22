@@ -282,6 +282,12 @@ function SzenenOptionen({
             checked={szene.show_running}
             onChange={(e) => onAendern({ ...szene, show_running: e.currentTarget.checked })}
           />
+          <Switch
+            label={t("szene.abgebrochene")}
+            description={t("szene.abgebrochene_hilfe")}
+            checked={szene.show_aborted}
+            onChange={(e) => onAendern({ ...szene, show_aborted: e.currentTarget.checked })}
+          />
         </div>
       );
     case "startlist":
@@ -342,6 +348,12 @@ function SzenenOptionen({
             description={t("szene.vorlaeufige_hilfe")}
             checked={szene.include_provisional}
             onChange={(e) => onAendern({ ...szene, include_provisional: e.currentTarget.checked })}
+          />
+          <Switch
+            label={t("szene.abgebrochene")}
+            description={t("szene.abgebrochene_hilfe")}
+            checked={szene.show_aborted}
+            onChange={(e) => onAendern({ ...szene, show_aborted: e.currentTarget.checked })}
           />
         </div>
       );

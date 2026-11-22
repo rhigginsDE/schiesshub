@@ -153,6 +153,24 @@ describe("Sende-Sitzung", () => {
     });
   });
 
+  it("422, dann zurück auf den gespeicherten Wert: Feldfehler verschwinden", async () => {
+    const { sitzung, vorspulen } = neueSitzung(async () => {
+      throw new ApiFehler("anfrage", "/raw", 422, "Fehler", undefined, [
+        { feld: "raw.sections.fallscheibe.series.0.time_cs", meldung: "zu groß" },
+      ]);
+    });
+    const vorher = sitzung.lesen().entwurf;
+    sitzung.aendern(zeit(vorher, 20000));
+    await vorspulen(400);
+    expect(sitzung.lesen().feldFehler).toHaveLength(1);
+    sitzung.aendern(vorher);
+    expect(sitzung.lesen()).toMatchObject({
+      phase: "gespeichert",
+      ungespeichert: false,
+      feldFehler: [],
+    });
+  });
+
   it("fremde Änderung: übernehmen ohne eigene Eingabe, sonst Konflikt", async () => {
     const senden = vi.fn(async (raw: Rohwerte, seq: number) => antwort(raw, seq + 1));
     const { sitzung, vorspulen } = neueSitzung(senden);

@@ -11,10 +11,18 @@ import {
   serienBreite,
   serienPassen,
   serienWert,
+  siegerAufteilung,
 } from "../format";
 import { inSeiten, seiteZurZeit, type Takt, teilTakt } from "../rotation";
 import type { FeedGruppe, FeedZeile, SzeneVon } from "../typen";
-import { AbschnittKopf, LivePunkt, SeitenMarke, useName } from "./Bausteine";
+import {
+  AbschnittKopf,
+  KatalogAbweichung,
+  LivePunkt,
+  SeitenMarke,
+  useName,
+  WettbewerbTitel,
+} from "./Bausteine";
 import { useSchirm, useSeiten } from "./messen";
 import s from "./schirm.module.css";
 
@@ -173,7 +181,12 @@ export function LiveWertung({ szene, takt }: { szene: SzeneVon<"live_ranking">; 
   return (
     <section className={s.szeneRangliste} aria-label={szene.title} style={stil}>
       <AbschnittKopf
-        titel={rangliste.competition_name}
+        titel={
+          <WettbewerbTitel code={rangliste.competition_code} name={rangliste.competition_name} />
+        }
+        zusatz={
+          <KatalogAbweichung deviates={rangliste.deviates} deviations={rangliste.deviations} />
+        }
         meta={
           <>
             {rangliste.combined && <span>{t("schirm.gemeinsame_wertung")}</span>}
@@ -263,7 +276,17 @@ function WeitereListe({
             <span className={`num ${s.platz}`}>{zeile.place ?? "–"}</span>
             <span className={s.wer}>
               <b>{name(zeile)}</b>
-              {zeile.club && <span className={s.unter}>{zeile.club}</span>}
+              {(zeile.club || zeile.abort_reason) && (
+                <span className={s.unter}>
+                  {zeile.club}
+                  {zeile.abort_reason && (
+                    <>
+                      {" "}
+                      <em className={s.abbruch}>{t(`abbruch.${zeile.abort_reason}`)}</em>
+                    </>
+                  )}
+                </span>
+              )}
             </span>
             <span className={`num ${s.gesamt} ${s.gesamtKlein}`}>
               {gesamtTeile(zeile.score_text, einheit).wert}
@@ -286,8 +309,7 @@ function KlassenSieger({
   einheit: string | null;
   allein: boolean;
 }) {
-  const erste = gruppe.rows.slice(0, 3);
-  const rest = gruppe.rows.slice(3);
+  const { podest: erste, rest } = siegerAufteilung(gruppe.rows);
   return (
     <section className={s.klassenSieger} data-allein={allein || undefined}>
       {(gruppe.class_name || gruppe.class_short) && (
@@ -327,7 +349,12 @@ export function Siegerliste({ szene, takt }: { szene: SzeneVon<"winners">; takt:
   return (
     <section className={s.szeneSieger} aria-label={szene.title}>
       <AbschnittKopf
-        titel={rangliste.competition_name}
+        titel={
+          <WettbewerbTitel code={rangliste.competition_code} name={rangliste.competition_name} />
+        }
+        zusatz={
+          <KatalogAbweichung deviates={rangliste.deviates} deviations={rangliste.deviations} />
+        }
         meta={
           <>
             {rangliste.combined && <span>{t("schirm.gemeinsame_wertung")}</span>}

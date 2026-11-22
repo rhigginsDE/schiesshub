@@ -16,7 +16,6 @@ import { belegungDurchgang, durchgangErledigt, sortiereDurchgaenge } from "./log
 import s from "./stand.module.css";
 
 interface ZeitplanProps {
-  turnierId: string;
   durchgaenge: readonly Durchgang[];
   /** Starts der Zeitplan-Wettbewerbe dieses Stands */
   starts: readonly StationStart[];
@@ -73,7 +72,7 @@ export function Zeitplan(props: ZeitplanProps) {
           <p className="gedaempft">{t("zeitplan.ohne_platz_text")}</p>
           <ul className={s.ohnePlatzListe}>
             {ohnePlatz.map((start) => (
-              <StartZeile key={start.start_id} start={start} turnierId={props.turnierId}>
+              <StartZeile key={start.start_id} start={start}>
                 <Button
                   variant="default"
                   size="md"
@@ -189,7 +188,6 @@ export function Zeitplan(props: ZeitplanProps) {
 }
 
 function PlatzInhalt({
-  turnierId,
   start,
   beschaeftigt,
   onPlatz,
@@ -198,7 +196,7 @@ function PlatzInhalt({
   onAbbrechen,
 }: { start: StationStart } & ZeitplanProps) {
   const { t } = useTranslation("stand");
-  const anzeigename = useAnzeigename(turnierId);
+  const anzeigename = useAnzeigename();
   const nr = start.start_number;
   const wartet = start.status === "registered";
   return (
@@ -256,17 +254,9 @@ function PlatzInhalt({
   );
 }
 
-function StartZeile({
-  start,
-  turnierId,
-  children,
-}: {
-  start: StationStart;
-  turnierId: string;
-  children: ReactNode;
-}) {
+function StartZeile({ start, children }: { start: StationStart; children: ReactNode }) {
   const { t } = useTranslation("stand");
-  const anzeigename = useAnzeigename(turnierId);
+  const anzeigename = useAnzeigename();
   return (
     <li className={s.platz}>
       <span className={`num ${s.platzBahn}`}>{start.start_number}</span>

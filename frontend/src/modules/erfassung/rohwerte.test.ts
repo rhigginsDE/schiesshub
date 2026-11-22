@@ -14,6 +14,7 @@ import {
   rohwerteAus,
   setzeWert,
   uebrigeMeldungen,
+  zeitenUeberGrenze,
 } from "./rohwerte";
 import { FALLSCHEIBE, PRAEZISION } from "./testdaten";
 
@@ -140,6 +141,16 @@ describe("Meldungen am Feld", () => {
     ];
     expect(meldungenFuer(meldungen, "sections.fallscheibe.series.1")).toHaveLength(1);
     expect(uebrigeMeldungen(FALLSCHEIBE, meldungen)).toEqual([{ pfad: "", meldung: "allgemein" }]);
+  });
+
+  it("findet Zeiten über der Grenze der Formularbeschreibung (max in Hundertstel)", () => {
+    let e = setzeWert(leer, { abschnitt: "fallscheibe", serie: 0, key: "time_cs" }, 18000);
+    expect(zeitenUeberGrenze(FALLSCHEIBE, e)).toEqual([]);
+    e = setzeWert(e, { abschnitt: "fallscheibe", serie: 1, key: "time_cs" }, 18001);
+    const ueber = zeitenUeberGrenze(FALLSCHEIBE, e);
+    expect(ueber.map((u) => [u.ref.id, u.grenze])).toEqual([
+      ["sections.fallscheibe.series.1.time_cs", 18000],
+    ]);
   });
 
   it("beschreibt Änderungen im Verlauf mit den Namen der Maske", () => {

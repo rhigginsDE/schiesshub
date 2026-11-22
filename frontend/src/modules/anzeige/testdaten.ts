@@ -2,7 +2,7 @@ import type { Feed, FeedPerson, FeedRangliste, FeedSzene, FeedZeile } from "./ty
 
 /** Beispieldaten für Tests (erfundene Personen). */
 
-function zeile(teil: Partial<FeedZeile> & Pick<FeedZeile, "start_id" | "place">): FeedZeile {
+export function zeile(teil: Partial<FeedZeile> & Pick<FeedZeile, "start_id" | "place">): FeedZeile {
   return {
     tied: false,
     group: "ranked",

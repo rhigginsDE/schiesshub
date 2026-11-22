@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { istNurDiesesGeraet, kopplungsAdresse } from "./Geraete";
+import { brauchbareAdressen, istNurDiesesGeraet, kopplungsAdresse } from "./Geraete";
 
 describe("Kopplungsadresse", () => {
   it("setzt die Adresse aus der Herkunft dieses Browsers zusammen", () => {
@@ -30,5 +30,20 @@ describe("Kopplungsadresse", () => {
     ]) {
       expect(istNurDiesesGeraet(netz), netz).toBe(false);
     }
+  });
+
+  it("nimmt aus den Adressen des Servers nur die, die andere Geräte erreichen", () => {
+    expect(
+      brauchbareAdressen([
+        "http://localhost:8010",
+        "http://192.168.1.20:8080",
+        "http://127.0.0.1",
+        "https://schiesshub.local",
+      ]),
+    ).toEqual(["http://192.168.1.20:8080", "https://schiesshub.local"]);
+    expect(brauchbareAdressen(["http://localhost:5180"])).toEqual([]);
+    expect(brauchbareAdressen(undefined)).toEqual([]);
+    const [erste] = brauchbareAdressen(["http://127.0.0.1", "http://10.0.0.5"]);
+    expect(kopplungsAdresse("/pair?code=AB", erste)).toBe("http://10.0.0.5/pair?code=AB");
   });
 });

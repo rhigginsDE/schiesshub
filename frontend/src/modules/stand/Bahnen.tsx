@@ -6,14 +6,13 @@ import { useTranslation } from "react-i18next";
 import { useDarf } from "../../app/berechtigungen";
 import { Chip } from "../../components/Chip";
 import { formatUhrzeit } from "../../lib/format";
-import { ABBRUCHGRUENDE, type Abbruchgrund, type StationStart } from "../anmeldung/api";
+import { ABBRUCHGRUENDE, type Abbruchgrund, type Bahn, type StationStart } from "../anmeldung/api";
 import { ERFASSUNG_PFAD } from "../erfassung/pfade";
-import { type BahnMitFortschritt, useAnzeigename } from "./aktionen";
+import { useAnzeigename } from "./aktionen";
 import s from "./stand.module.css";
 
 interface BahnKachelProps {
-  turnierId: string;
-  bahn: BahnMitFortschritt;
+  bahn: Bahn;
   /** Planung des Wettbewerbs des Starts auf der Bahn */
   planung: "queue" | "schedule" | null;
   /** „Nächsten auf Bahn n“; fehlt, wenn niemand aufrufbar ist */
@@ -27,7 +26,6 @@ interface BahnKachelProps {
 
 /** Eine Bahn als große Kachel: frei oder belegt mit Startnummer, Name, Wettbewerb und seit wann. */
 export function BahnKachel({
-  turnierId,
   bahn,
   planung,
   onNaechsten,
@@ -37,7 +35,7 @@ export function BahnKachel({
   beschaeftigt,
 }: BahnKachelProps) {
   const { t, i18n } = useTranslation("stand");
-  const anzeigename = useAnzeigename(turnierId);
+  const anzeigename = useAnzeigename();
   const darfErfassen = useDarf(["result.capture", "result.read"]);
   const start = bahn.start;
   const name = start ? anzeigename(start) : null;

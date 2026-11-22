@@ -6,9 +6,9 @@ import { Chip, type ChipTon } from "../../components/Chip";
 import { ExportKnoepfe } from "../../components/ExportKnoepfe";
 import { Fehlerzustand, Leerzustand } from "../../components/Zustand";
 import { formatUhrzeit } from "../../lib/format";
-import { type StationStart, startlisteAbfrage } from "../anmeldung/api";
+import type { StationStart } from "../anmeldung/api";
 import type { TurnierUebersicht } from "../turnier/typen";
-import { useAnzeigename } from "./aktionen";
+import { standStartlisteAbfrage, useAnzeigename, useVolleNamen } from "./aktionen";
 import type { StandSuche } from "./pfade";
 import s from "./stand.module.css";
 
@@ -29,9 +29,9 @@ const STATUS_TON: Record<StationStart["status"], ChipTon> = {
 /** Startliste des Turniers, gefiltert nach Wettbewerb oder Stand. Namen wie in der Standansicht (intern voll). */
 export function Startliste({ uebersicht, suche, onSuche }: StartlisteProps) {
   const { t, i18n } = useTranslation("stand");
-  const anzeigename = useAnzeigename(uebersicht.id);
+  const anzeigename = useAnzeigename();
   const filter = { wettbewerb: suche.wettbewerb, stand: suche.stand };
-  const abfrage = useQuery(startlisteAbfrage(uebersicht.id, filter));
+  const abfrage = useQuery(standStartlisteAbfrage(uebersicht.id, filter, useVolleNamen()));
 
   const platz = (start: StationStart): string => {
     if (start.heat_number != null && start.heat_starts_at) {

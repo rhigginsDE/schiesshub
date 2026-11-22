@@ -40,6 +40,7 @@ import {
   type Maske as MaskeDaten,
   maskeAbfrage,
   neuerSchluessel,
+  SeqKonflikt,
   type SerieForm,
   vorschauAbfrage,
   type Wertung,
@@ -61,6 +62,7 @@ import {
   tasteAusTastatur,
   type ZahlEingabe,
   zahlTaste,
+  zeitText,
 } from "./eingabe";
 import s from "./erfassung.module.css";
 import { Maske } from "./Maske";
@@ -86,6 +88,7 @@ import {
   uebrigeMeldungen,
   voriges,
   wertAus,
+  zeitenUeberGrenze,
 } from "./rohwerte";
 import { Sitzung, type SitzungsZustand, sitzungsAblage } from "./sitzung";
 import { Tastenfeld } from "./Tastenfeld";
@@ -535,6 +538,8 @@ function Flaeche({
   const vorgang = async (
     ausfuehren: (schluessel: string) => Promise<ErgebnisStand>,
     danach?: (stand: ErgebnisStand) => void,
+    /** 409 mit Stand selbst behandeln (statt Konflikt der Sitzung); der Dialog bleibt offen. */
+    beiKonflikt?: (konflikt: SeqKonflikt) => void,
   ) => {
     setLaedt(true);
     setVorgangFehler(null);
@@ -545,6 +550,12 @@ function Flaeche({
       danach?.(stand);
       neuLaden();
     } catch (fehler) {
+      if (beiKonflikt && fehler instanceof SeqKonflikt) {
+        // Nichts wurde geschrieben; ein neuer Versuch ist ein neuer Vorgang.
+        vorgangSchluessel.current = neuerSchluessel();
+        beiKonflikt(fehler);
+        return;
+      }
       sitzung.vorgangFehler(fehler);
       if (sitzung.lesen().phase === "konflikt") setDialog(null);
       else setVorgangFehler(fehler);
@@ -571,6 +582,8 @@ function Flaeche({
   const [pruefStand, setPruefStand] = useState<ErgebnisStand | null>(null);
   const [pruefLaedt, setPruefLaedt] = useState(false);
   const [pruefFehler, setPruefFehler] = useState<unknown>(null);
+  /** Der Server hatte beim Abschließen andere Werte als die Prüfansicht (409): neu prüfen. */
+  const [pruefGeaendert, setPruefGeaendert] = useState(false);
   const pruefLauf = useRef(0);
 
   const pruefungLaden = async () => {
@@ -592,6 +605,7 @@ function Flaeche({
   };
 
   const pruefungOeffnen = () => {
+    setPruefGeaendert(false);
     // Erst wenn der Server alle Eingaben bestätigt hat: nichts wartet, nichts ist unterwegs.
     if (!sitzung.allesBestaetigt()) {
       zeigeMeldung({ ton: "warn", titel: t("abschluss.nicht_bereit") });
@@ -605,13 +619,22 @@ function Flaeche({
     pruefLauf.current += 1;
     setPruefStand(null);
     setPruefLaedt(false);
+    setPruefGeaendert(false);
     setDialog(null);
   };
 
-  /** Schließt genau den Stand ab, der in der Prüfansicht zu sehen war (Sequenznummer). */
+  /**
+   * Schließt genau den Stand ab, der in der Prüfansicht zu sehen war: Sequenznummer und Ergebnis
+   * gehen mit. Hat der Server inzwischen andere Werte (409), bleibt die Prüfansicht offen, sagt das
+   * und lädt den aktuellen Stand neu.
+   */
   const abschliessen = (geprueft: ErgebnisStand) =>
     vorgang(
-      (schluessel) => ergebnisApi.abschliessen(turnierId, startId, geprueft.seq, schluessel),
+      (schluessel) =>
+        ergebnisApi.abschliessen(turnierId, startId, geprueft.seq, schluessel, {
+          expected_seq: geprueft.seq,
+          expected_score: geprueft.computed?.score ?? geprueft.score,
+        }),
       (stand) => {
         zeigeMeldung({
           ton: "erfolg",
@@ -621,6 +644,10 @@ function Flaeche({
             : undefined,
         });
         setVorgeschlagen(vorschlag());
+      },
+      () => {
+        setPruefGeaendert(true);
+        void pruefungLaden();
       },
     );
 
@@ -680,7 +707,17 @@ function Flaeche({
 
   // --- Anzeige ---
 
-  const fehler: PfadMeldung[] = zustand.feldFehler;
+  // Zeiten über der Grenze der Formularbeschreibung gleich bei der Eingabe als Fehler am Feld
+  // (der Server lehnt sie ab); dessen Meldung zum selben Feld ersetzt diese Klartext-Meldung.
+  const grenzFehler: PfadMeldung[] = zeitenUeberGrenze(form, entwurf).map(({ ref, grenze }) => ({
+    pfad: ref.id,
+    meldung: t("feld.zeit_zu_gross", { grenze: zeitText(grenze) }),
+  }));
+  const grenzPfade = new Set(grenzFehler.map((f) => f.pfad));
+  const fehler: PfadMeldung[] = [
+    ...grenzFehler,
+    ...zustand.feldFehler.filter((f) => !grenzPfade.has(f.pfad)),
+  ];
   const warnungen: PfadMeldung[] = (wertung?.warnings ?? []).map((w) => ({
     pfad: normalerPfad(w.path),
     meldung: w.message,
@@ -689,7 +726,10 @@ function Flaeche({
   const uebrigeWarnungen = uebrigeMeldungen(form, warnungen);
   const berechnet = zustand.ungespeichert || phase === "wartet" || phase === "sendet";
   const vollstaendig =
-    (wertung?.complete ?? false) && !zustand.ungespeichert && phase === "gespeichert";
+    (wertung?.complete ?? false) &&
+    !zustand.ungespeichert &&
+    phase === "gespeichert" &&
+    grenzFehler.length === 0;
   const ringe = form.sections.some((a) => a.series.some((serie) => serie.shots !== null));
   const titelAktiv = aktiv ? feldTitel(aktiv, form, t) : null;
   const luecken = wertung && !wertung.complete ? fehlstellen(form, entwurf) : [];
@@ -1011,6 +1051,7 @@ function Flaeche({
           stand={pruefStand}
           standLaedt={pruefLaedt}
           standFehler={pruefFehler}
+          geaendert={pruefGeaendert}
           onNeuLaden={() => void pruefungLaden()}
           lokal={rohwerteAus(form, entwurf)}
           onBestaetigen={(geprueft) => void abschliessen(geprueft)}

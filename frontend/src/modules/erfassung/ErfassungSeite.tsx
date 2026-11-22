@@ -5,14 +5,14 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, CheckCheck, ListChecks, type LucideIcon, Target } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useDarf } from "../../app/berechtigungen";
 import { useBereiche, useModule } from "../../app/modul";
 import { ExportKnoepfe } from "../../components/ExportKnoepfe";
 import { MitTurnier, TurnierWechsel } from "../../components/TurnierWahl";
 import { Leerzustand } from "../../components/Zustand";
-import { anmeldungenAbfrage, startlisteAbfrage } from "../anmeldung/api";
 import { uebersichtAbfrage } from "../turnier/abfragen";
 import type { Turnier, TurnierUebersicht } from "../turnier/typen";
-import { prueflisteAbfrage } from "./api";
+import { erfassungStartlisteAbfrage, prueflisteAbfrage } from "./api";
 import { bestimmeStand, istOffen, naechsterOffener, namenAus } from "./auswahl";
 import s from "./erfassung.module.css";
 import type { ErfassungSuche } from "./pfade";
@@ -101,9 +101,9 @@ interface StationProps extends ErfassungSeiteProps {
 function Station({ station, icon, turnier, onWechseln, suche, onSuche }: StationProps) {
   const { t } = useTranslation("erfassung");
   const uebersicht = useQuery(uebersichtAbfrage(turnier.id));
-  const startliste = useQuery(startlisteAbfrage(turnier.id));
-  // Volle Namen nur mit `entry.read`; ohne bleibt es beim Anzeigenamen der Startliste.
-  const anmeldungen = useQuery({ ...anmeldungenAbfrage(turnier.id), retry: false });
+  // Volle Namen liefert der Server in der Startliste mit, wenn die Person sie sehen darf.
+  const volleNamen = useDarf(["start.call", "result.capture", "entry.read"]);
+  const startliste = useQuery(erfassungStartlisteAbfrage(turnier.id, volleNamen));
   const pruefliste = useQuery(prueflisteAbfrage(turnier.id));
   const [wahl, setWahl] = useLocalStorage<Record<string, string>>({
     key: ERFASSUNG_STAND_SPEICHER,
@@ -116,7 +116,7 @@ function Station({ station, icon, turnier, onWechseln, suche, onSuche }: Station
   const standId = bestimmeStand(staende, wahl, turnier.id);
   const stand = staende.find((r) => r.id === standId) ?? null;
   const starts = startliste.data ?? [];
-  const namen = useMemo(() => namenAus(anmeldungen.data), [anmeldungen.data]);
+  const namen = useMemo(() => namenAus(startliste.data), [startliste.data]);
   const kennziffern = useMemo(
     () =>
       new Map(

@@ -194,6 +194,8 @@
     "zeilen_hilfe": "Höchstens so viele Plätze je Klasse",
     "laufende": "Laufende Starts zeigen",
     "laufende_hilfe": "Zwischenstände mit Live-Punkt",
+    "abgebrochene": "Abgebrochene Starts zeigen",
+    "abgebrochene_hilfe": "Nicht angetreten, aufgegeben oder disqualifiziert: Sie stehen mit dem Grund am Ende der Liste und bekommen keinen Platz.",
     "staende": "Stände",
     "alle_staende": "Alle Stände",
     "starts": "Starts je Wettbewerb",

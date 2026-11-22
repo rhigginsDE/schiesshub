@@ -124,7 +124,8 @@
     "freiwillig": "freiwillig",
     "bereich": "{{min}} bis {{max}}",
     "leer_wert": "leer",
-    "fehler": "Fehler"
+    "fehler": "Fehler",
+    "zeit_zu_gross": "Diese Zeit ist nicht plausibel: höchstens {{grenze}} s. Bitte mit dem Startzettel vergleichen."
   },
   "schuss": {
     "reihe": "Schüsse {{serie}}",
@@ -227,7 +228,9 @@
     "plausibel": "Ich habe diese Werte mit dem Startzettel verglichen. Sie stimmen.",
     "ergebnis": "Ergebnis",
     "fehlt": "Fehlt:",
-    "fehlt_ort": "{{ort}}: {{felder}}"
+    "fehlt_ort": "{{ort}}: {{felder}}",
+    "geaendert": "Die Werte haben sich inzwischen geändert – bitte neu prüfen.",
+    "geaendert_text": "Nichts wurde abgeschlossen. Hier steht jetzt der aktuelle Stand des Servers."
   },
   "abbruch": {
     "knopf": "Start abbrechen",

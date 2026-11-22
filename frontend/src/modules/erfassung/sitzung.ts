@@ -322,7 +322,8 @@ export class Sitzung {
   private planen(ms: number) {
     this.timerStoppen();
     if (!this.zustand.ungespeichert) {
-      if (!this.laeuft) this.setzen({ phase: "gespeichert", fehler: null });
+      // Wieder genau der Stand des Servers: Feldfehler einer abgelehnten Eingabe gelten nicht mehr.
+      if (!this.laeuft) this.setzen({ phase: "gespeichert", fehler: null, feldFehler: [] });
       return;
     }
     if (!this.laeuft && this.zustand.phase !== "netzfehler" && this.zustand.phase !== "abgelehnt") {

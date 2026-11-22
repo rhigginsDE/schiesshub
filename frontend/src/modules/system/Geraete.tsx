@@ -292,6 +292,14 @@ export function istNurDiesesGeraet(herkunft: string = window.location.origin): b
   );
 }
 
+/**
+ * Adressen des Servers aus der Antwort (`server_urls`), die auch andere Geräte erreichen; ohne
+ * localhost, 127.x und Co. Die erste kommt in den QR-Code, die übrigen stehen als Text darunter.
+ */
+export function brauchbareAdressen(serverUrls: readonly string[] | undefined): string[] {
+  return (serverUrls ?? []).filter((url) => url.trim() !== "" && !istNurDiesesGeraet(url));
+}
+
 function LokaleAdresseWarnung() {
   const { t } = useTranslation("system");
   if (!istNurDiesesGeraet()) return null;
@@ -353,7 +361,12 @@ function KoppelDialog({
   }, [code]);
 
   const rest = code ? (new Date(code.expires_at).getTime() - jetzt) / 1000 : 0;
-  const adresse = code ? kopplungsAdresse(code.pair_path) : "";
+  // Der Server nennt seine Adressen im Netz; sonst gilt die Adresse dieses Browsers.
+  const brauchbar = brauchbareAdressen(code?.server_urls);
+  const adresse = code ? kopplungsAdresse(code.pair_path, brauchbar[0]) : "";
+  const weitere = code
+    ? brauchbar.slice(1).map((url) => kopplungsAdresse(code.pair_path, url))
+    : [];
 
   const absenden = (ereignis: FormEvent) => {
     ereignis.preventDefault();
@@ -401,7 +414,7 @@ function KoppelDialog({
         </form>
       ) : (
         <div className={s.koppelSchritte}>
-          <LokaleAdresseWarnung />
+          {brauchbar.length === 0 && <LokaleAdresseWarnung />}
           <h3 className={s.aufgabenTitel}>{t("geraete.schritte")}</h3>
           <ol className={s.schritte}>
             <li className={s.schritt}>
@@ -420,6 +433,12 @@ function KoppelDialog({
                     <span className={`${s.adresse} num`}>
                       {t("geraete.code_adresse")}: {adresse}
                     </span>
+                    {weitere.length > 0 && (
+                      <span className={`${s.adresse} num`}>
+                        {t("geraete.code_weitere", { count: weitere.length })}:{" "}
+                        {weitere.join(" · ")}
+                      </span>
+                    )}
                   </div>
                 ) : (
                   !neuesGeraet && <p className={s.schlecht}>{t("geraete.code_abgelaufen")}</p>

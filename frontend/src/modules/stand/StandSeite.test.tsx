@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { RechteProvider } from "../../app/berechtigungen";
 import { meldungenLeeren } from "../../components/Meldungen";
 import { renderAnsicht, serverAttrappe, type TestAntwort } from "../teilnehmer/testhilfe";
 import type { TurnierUebersicht } from "../turnier/typen";
@@ -100,7 +101,7 @@ function routen(
   return serverAttrappe({
     "GET /tournaments": { inhalt: [turnier] },
     [`GET /tournaments/${T}/overview`]: { inhalt: uebersicht(planungen) },
-    [`GET /tournaments/${T}/ranges/${R}/queue`]: {
+    [`GET /tournaments/${T}/ranges/${R}/queue?names=full`]: {
       inhalt: {
         range_id: R,
         lane_count: 2,
@@ -112,7 +113,7 @@ function routen(
       },
     },
     [`GET /tournaments/${T}/ranges/${R}/heats`]: { inhalt: [] },
-    [`GET /tournaments/${T}/startlist?range_id=${R}`]: { inhalt: [] },
+    [`GET /tournaments/${T}/startlist?range_id=${R}&names=full`]: { inhalt: [] },
     ...extra,
   });
 }
@@ -168,10 +169,18 @@ describe("Stand", { timeout: 15000 }, () => {
     expect(abbruch?.inhalt).toEqual({ abort_reason: "dnf" });
   });
 
-  it("zeigt intern den vollen Namen aus den Anmeldungen", async () => {
-    routen(["queue"], {
-      [`GET /tournaments/${T}/entries`]: {
-        inhalt: [{ id: "e-2", person: { name: "Paul Winter" } }],
+  it("zeigt intern den vollen Namen, den der Server mit names=full liefert", async () => {
+    const aufrufe = routen(["queue"], {
+      [`GET /tournaments/${T}/ranges/${R}/queue?names=full`]: {
+        inhalt: {
+          range_id: R,
+          lane_count: 2,
+          waiting: [],
+          lanes: [
+            { lane: 1, start: { ...aufgerufen, full_name: "Paul Winter" } },
+            { lane: 2, start: null },
+          ],
+        },
       },
     });
     renderAnsicht(() => <StandSeite suche={{}} onSuche={() => {}} />);
@@ -179,12 +188,40 @@ describe("Stand", { timeout: 15000 }, () => {
     const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
     expect(await within(bahn1).findByText("Paul Winter")).toBeInTheDocument();
     expect(within(bahn1).queryByText("Name nicht angezeigt")).toBeNull();
+    expect(aufrufe.some((a) => a.pfad.includes("/entries"))).toBe(false);
+  });
+
+  it("fragt ohne Recht auf volle Namen ohne names=full (kein 403)", async () => {
+    const aufrufe = routen(["queue"], {
+      [`GET /tournaments/${T}/ranges/${R}/queue`]: {
+        inhalt: {
+          range_id: R,
+          lane_count: 2,
+          waiting: [wartend],
+          lanes: [
+            { lane: 1, start: aufgerufen },
+            { lane: 2, start: null },
+          ],
+        },
+      },
+      [`GET /tournaments/${T}/startlist?range_id=${R}`]: { inhalt: [] },
+    });
+    const rechte = { offen: false, erlaubt: ["result.read", "tournament.read"] } as const;
+    renderAnsicht(() => (
+      <RechteProvider value={rechte}>
+        <StandSeite suche={{}} onSuche={() => {}} />
+      </RechteProvider>
+    ));
+
+    const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
+    expect(within(bahn1).getByText("Name nicht angezeigt")).toBeInTheDocument();
+    expect(aufrufe.some((a) => a.pfad.includes("names=full"))).toBe(false);
   });
 
   it("hält die Bahn bis zum Abschluss, zeigt den Fortschritt und gibt sie nach Rückfrage frei", async () => {
     const inErfassung = { ...aufgerufen, status: "captured" as const };
     const aufrufe = routen(["queue"], {
-      [`GET /tournaments/${T}/ranges/${R}/queue`]: {
+      [`GET /tournaments/${T}/ranges/${R}/queue?names=full`]: {
         inhalt: {
           range_id: R,
           lane_count: 2,

@@ -18,6 +18,7 @@ import {
 } from "../../api/client";
 import { EREIGNIS_VERBUNDEN, type EreignisZuordnung } from "../../api/ereignisse";
 import type { components } from "../../api/schema.gen";
+import { type StationStart, startsSchluessel } from "../anmeldung/api";
 
 type Schemas = components["schemas"];
 
@@ -110,6 +111,21 @@ export const verlaufAbfrage = (turnierId: string, startId: string) =>
     queryKey: erfassungSchluessel.verlauf(turnierId, startId),
     queryFn: ({ signal }) =>
       apiGet<VerlaufEintrag[]>(`${startPfad(turnierId, startId)}/events`, { signal }),
+  });
+
+/**
+ * Startliste des Turniers für das Terminal. Mit `voll` (Recht `start.call`, `result.capture` oder
+ * `entry.read`) liefert der Server zusätzlich den vollen Namen (`names=full`); ohne das Recht wird
+ * ohne den Parameter gefragt, sonst antwortet der Server mit 403.
+ */
+export const erfassungStartlisteAbfrage = (turnierId: string, voll: boolean) =>
+  queryOptions({
+    queryKey: [...startsSchluessel.startliste(turnierId, {}), voll ? "voll" : ""] as const,
+    queryFn: ({ signal }) =>
+      apiGet<StationStart[]>(`/tournaments/${kodiert(turnierId)}/startlist`, {
+        parameter: { names: voll ? "full" : undefined },
+        signal,
+      }),
   });
 
 export const prueflisteAbfrage = (turnierId: string) =>
@@ -206,8 +222,23 @@ export async function sendeVorgang(
 export const ergebnisApi = {
   rohwerte: (t: string, s: string, raw: Rohwerte, baseSeq: number, schluessel: string) =>
     sendeVorgang("PUT", `${startPfad(t, s)}/raw`, { raw, base_seq: baseSeq }, schluessel),
-  abschliessen: (t: string, s: string, baseSeq: number, schluessel: string) =>
-    sendeVorgang("POST", `${startPfad(t, s)}/finalize`, { base_seq: baseSeq }, schluessel),
+  /**
+   * Abschließen. `geprueft`: Sequenz und Ergebnis, die die Prüfansicht gezeigt hat; weicht der
+   * Server davon ab, antwortet er mit 409 und dem aktuellen Stand (`SeqKonflikt`).
+   */
+  abschliessen: (
+    t: string,
+    s: string,
+    baseSeq: number,
+    schluessel: string,
+    geprueft?: Pick<Schemas["FinalizeRequest"], "expected_seq" | "expected_score">,
+  ) =>
+    sendeVorgang(
+      "POST",
+      `${startPfad(t, s)}/finalize`,
+      { base_seq: baseSeq, ...geprueft } satisfies Schemas["FinalizeRequest"],
+      schluessel,
+    ),
   korrigieren: (
     t: string,
     s: string,
@@ -239,21 +270,10 @@ export const ergebnisApi = {
 };
 
 /**
- * Probe-Rechnung des Servers (`POST …/starts/{id}/preview`, `PreviewOut`): wertet Rohwerte gegen die
- * aktuelle Definition, speichert aber nichts. Noch nicht in `schema.gen.ts`, deshalb hier getippt.
+ * Probe-Rechnung des Servers (`POST …/starts/{id}/preview`): wertet Rohwerte gegen die aktuelle
+ * Definition, speichert aber nichts.
  */
-export interface Vorschau {
-  start_id: string;
-  status: StartStatus;
-  seq: number;
-  definition_revision: number;
-  valid: boolean;
-  errors: Schemas["FieldError"][];
-  complete: boolean;
-  finalize_errors: Schemas["FieldError"][];
-  computed: Wertung | null;
-  score: string | null;
-}
+export type Vorschau = Schemas["PreviewOut"];
 
 /** Vorschau für genau diese Rohwerte; `schluessel` ist eine stabile Form der Rohwerte. */
 export const vorschauAbfrage = (

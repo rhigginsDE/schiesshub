@@ -15,7 +15,6 @@ import {
   type Durchgang,
   durchgaengeAbfrage,
   type StationStart,
-  startlisteAbfrage,
   useDurchgangAufrufen,
   useDurchgangLoeschen,
   useNaechsteAufrufen,
@@ -25,10 +24,15 @@ import {
   useStartVerschieben,
   useStartZurueckstellen,
   type Verschiebung,
-  warteschlangeAbfrage,
 } from "../anmeldung/api";
 import type { TurnierUebersicht } from "../turnier/typen";
-import { useBahnFreigeben, useFehlerMelden } from "./aktionen";
+import {
+  standStartlisteAbfrage,
+  standWarteschlangeAbfrage,
+  useBahnFreigeben,
+  useFehlerMelden,
+  useVolleNamen,
+} from "./aktionen";
 import { BahnKachel } from "./Bahnen";
 import { DurchgangDialog, PlatzDialog, SerieDialog } from "./Dialoge";
 import {
@@ -62,9 +66,10 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
   const planungVon = new Map(wettbewerbe.map((w) => [w.id, w.planning]));
   const zeitplanIds = new Set(mitZeitplan.map((w) => w.id));
 
-  const warteschlange = useQuery(warteschlangeAbfrage(turnierId, standId));
+  const volleNamen = useVolleNamen();
+  const warteschlange = useQuery(standWarteschlangeAbfrage(turnierId, standId, volleNamen));
   const durchgaenge = useQuery(durchgaengeAbfrage(turnierId, standId));
-  const startliste = useQuery(startlisteAbfrage(turnierId, { stand: standId }));
+  const startliste = useQuery(standStartlisteAbfrage(turnierId, { stand: standId }, volleNamen));
 
   const naechste = useNaechsteAufrufen(turnierId);
   const aufrufen = useStartAufrufen(turnierId);
@@ -214,7 +219,6 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
           {bahnen.map((bahn) => (
             <BahnKachel
               key={bahn.lane}
-              turnierId={turnierId}
               bahn={bahn}
               onFreigeben={(start) => {
                 freigeben.reset();
@@ -247,7 +251,6 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
               </Chip>
             </div>
             <Warteliste
-              turnierId={turnierId}
               wartende={wartende}
               bahnen={bahnen}
               beschaeftigt={beschaeftigt}
@@ -266,7 +269,6 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
               </h2>
             </div>
             <Zeitplan
-              turnierId={turnierId}
               durchgaenge={durchgaenge.data}
               starts={zeitplanStarts}
               hauptDurchgangId={haupt.art === "durchgang" ? haupt.durchgang.id : null}

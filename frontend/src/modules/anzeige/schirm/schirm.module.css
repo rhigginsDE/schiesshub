@@ -1250,3 +1250,20 @@
     display: none;
   }
 }
+
+/* Wettbewerb weicht vom Katalog ab: Marke und Punkte in einer Zeile unter dem Titel. */
+.katalogAbweichung {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8cqmin 1.6cqmin;
+  min-width: 0;
+  font-size: 1.9cqmin;
+}
+
+.katalogAbweichung .hinweisListe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6cqmin 1.6cqmin;
+  font-size: inherit;
+}

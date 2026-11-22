@@ -1,29 +1,61 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
+import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { ApiFehler, apiSenden } from "../../api/client";
+import { ApiFehler, apiGet, apiSenden } from "../../api/client";
 import { useDarf } from "../../app/berechtigungen";
 import { useFehlerText } from "../../components/FehlerHinweis";
 import { zeigeMeldung } from "../../components/Meldungen";
 import {
-  anmeldungenAbfrage,
-  type Bahn,
   type Start,
+  type StartlistenFilter,
   type StationStart,
   startsSchluessel,
+  type Warteschlange,
 } from "../anmeldung/api";
 
 /**
- * Neu im Server, noch nicht in den erzeugten API-Typen (`schema.gen.ts`): Fortschritt der
- * Erfassung je Bahn (`LaneOut.progress`). Optional, damit ältere Antworten weiter passen.
+ * Wer Starts aufrufen, Ergebnisse erfassen oder Anmeldungen lesen darf, bekommt vom Server mit
+ * `names=full` auch den vollen Namen (`full_name`, `full_club`). Ohne diese Rechte fragt die
+ * Standansicht ohne den Parameter (sonst antwortet der Server mit 403).
  */
-export interface BahnFortschritt {
-  section_id: string | null;
-  series_done: number;
-  series_total: number;
-  complete: boolean;
+export const VOLLE_NAMEN = ["start.call", "result.capture", "entry.read"] as const;
+
+export function useVolleNamen(): boolean {
+  return useDarf(VOLLE_NAMEN);
 }
-export type BahnMitFortschritt = Bahn & { progress?: BahnFortschritt | null };
+
+const kodiert = encodeURIComponent;
+const namenParameter = (voll: boolean) => (voll ? "full" : undefined);
+
+/** Reihenfolge und Bahnen eines Stands; mit `voll` samt vollem Namen. */
+export const standWarteschlangeAbfrage = (turnierId: string, standId: string, voll: boolean) =>
+  queryOptions({
+    queryKey: [...startsSchluessel.warteschlange(turnierId, standId), voll ? "voll" : ""] as const,
+    queryFn: ({ signal }) =>
+      apiGet<Warteschlange>(`/tournaments/${kodiert(turnierId)}/ranges/${kodiert(standId)}/queue`, {
+        parameter: { names: namenParameter(voll) },
+        signal,
+      }),
+  });
+
+/** Startliste (gefiltert); mit `voll` samt vollem Namen. */
+export const standStartlisteAbfrage = (
+  turnierId: string,
+  filter: StartlistenFilter,
+  voll: boolean,
+) =>
+  queryOptions({
+    queryKey: [...startsSchluessel.startliste(turnierId, filter), voll ? "voll" : ""] as const,
+    queryFn: ({ signal }) =>
+      apiGet<StationStart[]>(`/tournaments/${kodiert(turnierId)}/startlist`, {
+        parameter: {
+          competition_id: filter.wettbewerb,
+          range_id: filter.stand,
+          names: namenParameter(voll),
+        },
+        signal,
+      }),
+  });
 
 /**
  * „Bahn freigeben“ (`POST …/starts/{id}/release-lane`): nimmt einen Start mit angefangenem Ergebnis
@@ -72,28 +104,17 @@ export interface StandName {
 }
 
 /**
- * Name für die Standaufsicht. Wer Starts aufrufen oder Ergebnisse erfassen darf, sieht – wie in der
- * Erfassung – den vollen Namen aus den Anmeldungen (braucht Lesezugriff auf die Anmeldungen; die
- * Startliste des Servers liefert nie den vollen Namen). Sonst der Name nach Anzeige-Einstellung;
- * `null` (Person will nicht genannt werden) bleibt leer.
+ * Name für die Standaufsicht: der volle Name, wenn der Server ihn mitgeliefert hat (`names=full`,
+ * siehe `useVolleNamen`), sonst der Name nach Anzeige-Einstellung; `null` (Person will nicht
+ * genannt werden) bleibt leer.
  */
-export function useAnzeigename(turnierId: string): (start: StationStart) => StandName {
+export function useAnzeigename(): (start: StationStart) => StandName {
   const { t } = useTranslation("stand");
-  const intern = useDarf(["start.call", "result.capture"]);
-  const anmeldungen = useQuery({
-    ...anmeldungenAbfrage(turnierId),
-    enabled: intern,
-    retry: false,
-  });
-  const namen = useMemo(
-    () => new Map((anmeldungen.data ?? []).map((a) => [a.id, a.person.name] as const)),
-    [anmeldungen.data],
-  );
   return useCallback(
     (start: StationStart) => {
-      const name = (intern ? namen.get(start.entry_id) : undefined) ?? start.display_name;
+      const name = start.full_name ?? start.display_name;
       return name ? { text: name, ohne: false } : { text: t("bahn.ohne_name"), ohne: true };
     },
-    [intern, namen, t],
+    [t],
   );
 }

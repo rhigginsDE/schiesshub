@@ -51,6 +51,8 @@ interface PruefDialogProps extends VorgangProps {
   stand: ErgebnisStand | null;
   standLaedt: boolean;
   standFehler: unknown;
+  /** Der Server hatte beim Abschließen andere Werte (409); `stand` ist der neu geladene. */
+  geaendert?: boolean;
   onNeuLaden: () => void;
   /** Rohwerte der Eingabe auf diesem Gerät (zum Vergleich mit dem Server) */
   lokal: Rohwerte;
@@ -72,13 +74,16 @@ export function PruefDialog({
   stand,
   standLaedt,
   standFehler,
+  geaendert = false,
   onNeuLaden,
   lokal,
   onBestaetigen,
 }: PruefDialogProps) {
   const { t } = useTranslation("erfassung");
   const fehlerText = useFehlerText();
-  const [geprueft, setGeprueft] = useState(false);
+  // Der Haken gilt nur für den Stand, an dem er gesetzt wurde (nach dem Neuladen neu prüfen).
+  const [geprueftBei, setGeprueftBei] = useState<number | null>(null);
+  const geprueft = stand !== null && geprueftBei === stand.seq;
   const wertung = stand?.computed ?? null;
   const warnungen = wertung?.warnings ?? [];
   const abweichung = stand !== null && !gleicheRohwerte(lokal, stand.raw);
@@ -112,6 +117,16 @@ export function PruefDialog({
             </p>
           </div>
         </header>
+
+        {geaendert && (
+          <div className={s.banner} data-ton="warn" role="alert">
+            <TriangleAlert aria-hidden />
+            <div>
+              <strong>{t("abschluss.geaendert")}</strong>
+              <p>{t("abschluss.geaendert_text")}</p>
+            </div>
+          </div>
+        )}
 
         {stand === null ? (
           standFehler ? (
@@ -164,7 +179,9 @@ export function PruefDialog({
                     className={s.pruefHaken}
                     size="md"
                     checked={geprueft}
-                    onChange={(e) => setGeprueft(e.currentTarget.checked)}
+                    onChange={(e) =>
+                      setGeprueftBei(e.currentTarget.checked && stand ? stand.seq : null)
+                    }
                     label={t("abschluss.plausibel")}
                   />
                 </div>

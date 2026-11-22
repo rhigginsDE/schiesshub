@@ -88,7 +88,7 @@ export function ranglistenEintraege(rangliste: FeedRangliste): RanglistenEintrag
     if (mitKopf && (gruppe.class_name || gruppe.class_short)) {
       eintraege.push({ art: "klasse", schluessel: `k-${id}`, gruppe });
     }
-    for (const zeile of gruppe.rows) {
+    for (const zeile of mitAbgebrochenenAmEnde(gruppe.rows)) {
       eintraege.push({ art: "zeile", schluessel: `z-${zeile.start_id}`, zeile });
     }
     if (gruppe.more > 0)
@@ -157,6 +157,30 @@ export function trefferaufnahmeNach(abschnitt: FeedAbschnitt): number[] {
 export function podestStufe(platz: number | null, stelle: number): 1 | 2 | 3 {
   const wert = platz ?? stelle;
   return wert <= 1 ? 1 : wert === 2 ? 2 : 3;
+}
+
+/**
+ * Abgebrochene Starts (nicht angetreten, aufgegeben, disqualifiziert) haben nie einen Platz: Sie
+ * stehen am Ende ihrer Gruppe (`group: unranked`). Der Server liefert sie schon so; die Reihenfolge
+ * der übrigen bleibt unverändert.
+ */
+export function mitAbgebrochenenAmEnde(zeilen: readonly FeedZeile[]): FeedZeile[] {
+  return [
+    ...zeilen.filter((zeile) => zeile.group !== "unranked"),
+    ...zeilen.filter((zeile) => zeile.group === "unranked"),
+  ];
+}
+
+/** Siegerliste einer Klasse: aufs Podest nur Platzierte (höchstens drei), alle übrigen danach. */
+export function siegerAufteilung(zeilen: readonly FeedZeile[]): {
+  podest: FeedZeile[];
+  rest: FeedZeile[];
+} {
+  const platziert = zeilen.filter((zeile) => zeile.group !== "unranked");
+  return {
+    podest: platziert.slice(0, 3),
+    rest: [...platziert.slice(3), ...zeilen.filter((zeile) => zeile.group === "unranked")],
+  };
 }
 
 /** Podest-Reihenfolge der ersten drei: Zweiter links, Erster in der Mitte, Dritter rechts. */

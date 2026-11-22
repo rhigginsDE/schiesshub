@@ -6,7 +6,14 @@ import { formatDauer, formatUhrzeit, formatZahl } from "../../../lib/format";
 import { alsPosition, hatPositionen, trefferaufnahmeNach } from "../format";
 import { seiteZurZeit, type Takt, teilTakt } from "../rotation";
 import type { FeedAblauf, FeedAbschnitt, FeedPerson, SzeneVon } from "../typen";
-import { AbschnittKopf, LivePunkt, SeitenMarke, useName } from "./Bausteine";
+import {
+  AbschnittKopf,
+  AbweichendMarke,
+  LivePunkt,
+  SeitenMarke,
+  useName,
+  WettbewerbTitel,
+} from "./Bausteine";
 import { useGroesse, useSchirm, useSeiten } from "./messen";
 import s from "./schirm.module.css";
 
@@ -179,12 +186,7 @@ function AblaufBlock({ ablauf, takt }: { ablauf: FeedAblauf; takt: Takt }) {
 
   const seite = geteilt ? seiteZurZeit(takt, jetzt, abschnitte.length) : 0;
   const sichtbar = geteilt ? abschnitte.slice(seite, seite + 1) : abschnitte;
-  const titel = (
-    <>
-      {ablauf.catalog_code && <span className={`num ${s.kennziffer}`}>{ablauf.catalog_code}</span>}
-      {ablauf.competition_name}
-    </>
-  );
+  const titel = <WettbewerbTitel code={ablauf.catalog_code} name={ablauf.competition_name} />;
 
   return (
     <div className={s.ablauf}>
@@ -196,9 +198,7 @@ function AblaufBlock({ ablauf, takt }: { ablauf: FeedAblauf; takt: Takt }) {
       <p className={s.ablaufMeta}>
         <span>{ablauf.variant_name}</span>
         <span>{ablauf.scoring}</span>
-        {ablauf.deviates && (
-          <span className={s.abweichendMarke}>{t("schirm.ablauf.abweichend")}</span>
-        )}
+        {ablauf.deviates && <AbweichendMarke />}
       </p>
       {(ablauf.deviations.length > 0 || ablauf.notes.length > 0) && (
         <ul className={s.hinweisListe}>

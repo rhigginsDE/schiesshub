@@ -36,5 +36,7 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.ts"],
     css: false,
     restoreMocks: true,
+    // Unter Last (viele Testdateien parallel) reichen 5 s für Abläufe mit Dialogen nicht immer.
+    testTimeout: 15000,
   },
 });

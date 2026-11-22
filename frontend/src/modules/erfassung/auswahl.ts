@@ -2,7 +2,7 @@
  * Startauswahl des Terminals: Bahnen am Stand, Wartende, Suche, nächster offener Start.
  * Ohne React, einzeln getestet. Grundlage ist die Startliste des Turniers (Modul `starts`).
  */
-import type { Anmeldung, StationStart } from "../anmeldung/api";
+import type { StationStart } from "../anmeldung/api";
 
 /** Status einer Kachel; „in Erfassung“ ist der Start, der gerade auf diesem Gerät offen ist. */
 export type KachelStatus = "offen" | "in_erfassung" | "erfasst" | "abgeschlossen" | "abgebrochen";
@@ -83,11 +83,18 @@ export function uebrige(
     .sort((a, b) => a.start_number - b.start_number || a.attempt - b.attempt);
 }
 
-/** Voller Name aus den Anmeldungen (falls lesbar), sonst der Anzeigename der Startliste. */
+/**
+ * Volle Namen je Anmeldung, wie der Server sie mit `names=full` in der Startliste mitliefert
+ * (nur mit Recht); sonst bleibt es beim Anzeigenamen der Startliste.
+ */
 export type Namen = ReadonlyMap<string, string>;
 
-export function namenAus(anmeldungen: readonly Anmeldung[] | undefined): Namen {
-  return new Map((anmeldungen ?? []).map((a) => [a.id, a.person.name]));
+export function namenAus(starts: readonly StationStart[] | undefined): Namen {
+  const namen = new Map<string, string>();
+  for (const start of starts ?? []) {
+    if (start.full_name) namen.set(start.entry_id, start.full_name);
+  }
+  return namen;
 }
 
 export function nameVon(start: StationStart, namen: Namen): string | null {

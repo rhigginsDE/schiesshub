@@ -184,6 +184,8 @@
     "code_fertig": "Fertig",
     "code_qr": "QR-Code zum Koppeln: {{adresse}}",
     "code_adresse": "Adresse",
+    "code_weitere_one": "Falls diese nicht geht, auch unter",
+    "code_weitere_other": "Falls diese nicht geht, auch unter",
     "lokal_titel": "„{{adresse}}“ gilt nur auf diesem Gerät",
     "lokal_text": "Andere Geräte erreichen den Server unter dieser Adresse nicht; der QR-Code würde sie ins Leere schicken. Öffne Schiesshub auf diesem Gerät über die Adresse im Netz – die Adresse, die auch die anderen Geräte im WLAN aufrufen – und erzeuge den Code dort.",
     "schritte": "So fügst du das Gerät hinzu",

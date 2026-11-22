@@ -327,6 +327,23 @@ export function reihenfolge(
   return refs;
 }
 
+/**
+ * Zeiten über der Grenze der Formularbeschreibung (`max` am Zeitfeld, in Hundertstel): So eine
+ * Zeit ist nicht plausibel, der Server lehnt sie ab. Das Terminal zeigt das schon bei der Eingabe
+ * am Feld. (Über dem Zeitlimit, aber unter dieser Grenze ist nur eine Warnung des Servers.)
+ */
+export function zeitenUeberGrenze(
+  form: Formular,
+  entwurf: Entwurf,
+): { ref: FeldRef; grenze: number }[] {
+  return reihenfolge(form, entwurf).flatMap((ref) => {
+    const grenze = ref.feld.max;
+    if (ref.feld.kind !== "time" || grenze == null) return [];
+    const wert = wertAus(entwurf, ref);
+    return typeof wert === "number" && wert > grenze ? [{ ref, grenze }] : [];
+  });
+}
+
 /** Ob ein Eingabeplatz schon einen Wert hat. */
 export function hatWert(entwurf: Entwurf, ref: FeldRef): boolean {
   const wert = wertAus(entwurf, ref);

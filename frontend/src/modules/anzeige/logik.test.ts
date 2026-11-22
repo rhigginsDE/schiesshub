@@ -4,6 +4,7 @@ import { ereignisseZumNachladen, passtEreignis } from "./ereignisse";
 import {
   alsPosition,
   gesamtTeile,
+  mitAbgebrochenenAmEnde,
   podestReihenfolge,
   podestStufe,
   ranglistenEintraege,
@@ -12,6 +13,7 @@ import {
   serienBreite,
   serienPassen,
   serienWert,
+  siegerAufteilung,
 } from "./format";
 import {
   indexNachWechsel,
@@ -23,7 +25,7 @@ import {
   zeilenProSeite,
 } from "./rotation";
 import { startlistenZeilen } from "./schirm/Startliste";
-import { beispielFeed, rangliste } from "./testdaten";
+import { beispielFeed, rangliste, zeile } from "./testdaten";
 import {
   type Entwurf,
   fehlerZu,
@@ -285,5 +287,27 @@ describe("Export", () => {
     expect(exportPfad("t 1", "winners", "pdf")).toBe("/tournaments/t%201/export/winners.pdf");
     expect(csvIstLeer("﻿Nr;Name\r\n")).toBe(true);
     expect(csvIstLeer("Nr;Name\n1;Anna\n")).toBe(false);
+  });
+});
+
+describe("Abgebrochene Starts", () => {
+  const ab = zeile({ start_id: "x", place: null, group: "unranked", abort_reason: "dns" });
+  const eins = zeile({ start_id: "a", place: 1 });
+  const zwei = zeile({ start_id: "b", place: 2 });
+  const drei = zeile({ start_id: "c", place: 3 });
+  const vier = zeile({ start_id: "d", place: 4 });
+
+  it("stehen ohne Platz am Ende ihrer Gruppe", () => {
+    expect(mitAbgebrochenenAmEnde([ab, eins, zwei]).map((z) => z.start_id)).toEqual([
+      "a",
+      "b",
+      "x",
+    ]);
+  });
+
+  it("kommen nie aufs Podest", () => {
+    const { podest, rest } = siegerAufteilung([eins, ab, zwei, drei, vier]);
+    expect(podest.map((z) => z.start_id)).toEqual(["a", "b", "c"]);
+    expect(rest.map((z) => z.start_id)).toEqual(["d", "x"]);
   });
 });

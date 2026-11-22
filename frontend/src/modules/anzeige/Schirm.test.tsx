@@ -5,8 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { theme } from "../../theme";
 import { SchirmAnsicht } from "./schirm/Schirm";
 import type { FeedQuelle, FeedZustand } from "./schirm/useFeed";
-import { beispielFeed, szenen } from "./testdaten";
-import type { Feed, SzeneVon } from "./typen";
+import { beispielFeed, rangliste, szenen, zeile } from "./testdaten";
+import type { Feed, FeedPerson, SzeneVon } from "./typen";
 
 const QUELLE: FeedQuelle = { art: "anzeige", id: "a1" };
 
@@ -66,6 +66,107 @@ describe("Bildschirm", () => {
     expect(within(liste).getByText("aufgerufen")).toBeVisible();
     expect(within(liste).getByText("Startnummer 6")).toBeVisible();
     expect(within(liste).getByText("+ 4 weitere Starts")).toBeVisible();
+  });
+
+  it("Live-Wertung: Kennziffer vor dem Namen, Abweichung vom Katalog, Abgebrochene ohne Platz am Ende", () => {
+    const basis = rangliste();
+    const klasse = basis.groups[0];
+    if (!klasse) throw new Error("Testdaten");
+    const ranking = {
+      ...basis,
+      competition_code: "1201",
+      deviates: true,
+      deviations: ["Sollzeit 60 s statt 50 s"],
+      groups: [
+        {
+          ...klasse,
+          more: 0,
+          rows: [
+            zeile({
+              start_id: "a1",
+              place: null,
+              group: "unranked",
+              status: "aborted",
+              abort_reason: "dnf",
+              display_name: "Egon Abbruch",
+              score_text: null,
+            }),
+            ...klasse.rows,
+          ],
+        },
+      ],
+    };
+    const live = szenen.live_ranking as SzeneVon<"live_ranking">;
+    zeige(beispielFeed({ scenes: [{ ...live, ranking }] }));
+    const liste = screen.getByRole("region", { name: "Live-Wertung" });
+    expect(within(liste).getByRole("heading", { name: "1201Pistole bis 9 mm" })).toBeVisible();
+    expect(within(liste).getByText("Abweichend vom Katalog")).toBeVisible();
+    expect(within(liste).getByText("Sollzeit 60 s statt 50 s")).toBeVisible();
+    expect(within(liste).queryByText(/Sporthandbuch/)).toBeNull();
+    const zeilen = Array.from(liste.querySelectorAll("[data-gruppe]"));
+    const letzte = zeilen.at(-1) as HTMLElement;
+    expect(within(letzte).getByText("Egon Abbruch")).toBeVisible();
+    expect(within(letzte).getByText("aufgegeben")).toBeVisible();
+    expect(within(letzte).getAllByText("–").length).toBeGreaterThan(0);
+  });
+
+  it("Siegerliste: Abgebrochene nie auf dem Podest, sondern mit Grund danach", () => {
+    const basis = rangliste();
+    const ranking = {
+      ...basis,
+      groups: [
+        {
+          class_id: "k1",
+          class_name: "Schützenklasse",
+          class_short: "S",
+          more: 0,
+          rows: [
+            zeile({ start_id: "w1", place: 1, display_name: "Anna Beispiel" }),
+            zeile({
+              start_id: "w2",
+              place: null,
+              group: "unranked" as const,
+              status: "aborted" as const,
+              abort_reason: "dsq" as const,
+              display_name: "Egon Abbruch",
+              score_text: null,
+            }),
+          ],
+        },
+      ],
+    };
+    const sieger = szenen.winners as SzeneVon<"winners">;
+    zeige(beispielFeed({ scenes: [{ ...sieger, ranking }] }));
+    const region = screen.getByRole("region", { name: "Siegerliste" });
+    expect(region.querySelectorAll("[data-rang]")).toHaveLength(1);
+    expect(within(region).getByText("Egon Abbruch")).toBeVisible();
+    expect(within(region).getByText("disqualifiziert")).toBeVisible();
+  });
+
+  it("Startliste: Grund des Abbruchs statt „abgebrochen“, Kennziffer und Abweichung", () => {
+    const start = szenen.startlist as SzeneVon<"startlist">;
+    const startlist = {
+      ...start.startlist,
+      competition_code: "1201",
+      deviates: true,
+      deviations: ["Sollzeit 60 s statt 50 s"],
+      starts: [
+        ...start.startlist.starts,
+        {
+          ...(start.startlist.starts[0] as FeedPerson),
+          start_id: "p3",
+          start_number: 9,
+          status: "aborted" as const,
+          abort_reason: "dns" as const,
+        },
+      ],
+    };
+    zeige(beispielFeed({ scenes: [{ ...start, startlist }] }));
+    const liste = screen.getByRole("region", { name: "Startliste" });
+    expect(within(liste).getByRole("heading", { name: "1201Pistole bis 9 mm" })).toBeVisible();
+    expect(within(liste).getByText("Abweichend vom Katalog")).toBeVisible();
+    expect(within(liste).getByText("nicht angetreten")).toBeVisible();
+    expect(within(liste).queryByText("abgebrochen")).toBeNull();
   });
 
   it("Standanzeige: Ablauf mit Positionen, Serien-Übersicht, Am Stand, Als Nächstes", () => {

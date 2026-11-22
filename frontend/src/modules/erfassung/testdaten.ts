@@ -27,6 +27,8 @@ const ZEIT: FeldBeschreibung = {
   kind: "time",
   required: true,
   min: 1,
+  // Plausibilitätsgrenze des Servers: 3 × Zeitlimit (60 s), in Hundertstel
+  max: 18000,
   unit: "cs",
 };
 

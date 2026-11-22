@@ -3,7 +3,14 @@ import { useTranslation } from "react-i18next";
 import { formatUhrzeit } from "../../../lib/format";
 import type { Takt } from "../rotation";
 import type { FeedPerson, SzeneVon } from "../typen";
-import { AbschnittKopf, LivePunkt, SeitenMarke, useName } from "./Bausteine";
+import {
+  AbschnittKopf,
+  KatalogAbweichung,
+  LivePunkt,
+  SeitenMarke,
+  useName,
+  WettbewerbTitel,
+} from "./Bausteine";
 import { useSchirm, useSeiten } from "./messen";
 import s from "./schirm.module.css";
 
@@ -56,7 +63,8 @@ export function StartlistenSzene({ szene, takt }: { szene: SzeneVon<"startlist">
   return (
     <section className={s.szeneStartliste} aria-label={szene.title}>
       <AbschnittKopf
-        titel={liste.competition_name}
+        titel={<WettbewerbTitel code={liste.competition_code} name={liste.competition_name} />}
+        zusatz={<KatalogAbweichung deviates={liste.deviates} deviations={liste.deviations} />}
         meta={
           <>
             {liste.range_name && <span>{liste.range_name}</span>}
@@ -87,7 +95,9 @@ export function StartlistenSzene({ szene, takt }: { szene: SzeneVon<"startlist">
                 {person.status !== "registered" && (
                   <span className={s.startStatus} data-status={person.status}>
                     {person.status === "called" && <LivePunkt />}
-                    {t(`status.${person.status}`)}
+                    {person.status === "aborted" && person.abort_reason
+                      ? t(`abbruch.${person.abort_reason}`)
+                      : t(`status.${person.status}`)}
                   </span>
                 )}
               </span>
