@@ -337,6 +337,29 @@ export function bekannteFelder(formular: WettbewerbFormular): string[] {
   return felder;
 }
 
+// --- Aufteilung des Formulars -------------------------------------------------------------------
+
+/** Felder, die immer sichtbar oben stehen: was fast jeder Wettbewerb braucht. */
+const FELDER_OBEN = [
+  "range_id",
+  "fee_first_cents",
+  "fee_repeat_cents",
+  "multi_start",
+  "max_starts",
+  "class_ids",
+] as const;
+
+/**
+ * Liegt ein Feld (API-Name oder Fehlerpfad) im zugeklappten Teil „Erweitert“? Der Name steht bei
+ * eigenen Wettbewerben oben, bei Katalog-Wettbewerben unter „Erweitert“. Allgemeine Fehler (`""`)
+ * und der Grund gehören zu keinem Teil.
+ */
+export function erweiterteFelder(ausKatalog: boolean): (feld: string) => boolean {
+  const oben = new Set<string>([...FELDER_OBEN, "", "reason"]);
+  if (!ausKatalog) oben.add("name");
+  return (feld) => !oben.has(feld);
+}
+
 // --- Abweichungen vom Katalog -------------------------------------------------------------------
 
 export interface Abweichung {

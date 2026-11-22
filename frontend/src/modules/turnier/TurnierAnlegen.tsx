@@ -1,8 +1,9 @@
-import { Button, Group, Modal, SegmentedControl, TextInput } from "@mantine/core";
+import { Button, Checkbox, Group, Modal, Radio, TextInput } from "@mantine/core";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTurnierAnlegen } from "./abfragen";
+import a from "./aufgaben.module.css";
 import { EINRICHTEN_PFAD } from "./pfade";
 import { feldFehlerFuer } from "./senden";
 import s from "./turnier.module.css";
@@ -19,7 +20,7 @@ function heute(): string {
 /** Formular → Anlage für `POST /tournaments`. Leere Angaben fallen weg (eintägig, ohne Veranstalter). */
 export function anlageAusFormular(werte: {
   name: string;
-  organizer: string;
+  organizer?: string;
   date_from: string;
   date_to: string;
   template: Vorlage;
@@ -29,7 +30,7 @@ export function anlageAusFormular(werte: {
     date_from: werte.date_from,
     template: werte.template,
   };
-  if (werte.organizer.trim()) anlage.organizer = werte.organizer.trim();
+  if (werte.organizer?.trim()) anlage.organizer = werte.organizer.trim();
   if (werte.date_to && werte.date_to !== werte.date_from) anlage.date_to = werte.date_to;
   return anlage;
 }
@@ -39,23 +40,27 @@ interface TurnierAnlegenProps {
   onSchliessen: () => void;
 }
 
+/**
+ * Neues Turnier mit so wenigen Fragen wie möglich: Name, Datum (heute vorbelegt, eintägig) und
+ * Turnierart. Alles Weitere folgt Schritt für Schritt in der Einrichtung; dorthin geht es danach.
+ */
 export function TurnierAnlegen({ offen, onSchliessen }: TurnierAnlegenProps) {
   const { t } = useTranslation("turnier");
   const navigate = useNavigate();
   const anlegen = useTurnierAnlegen();
   const [werte, setWerte] = useState({
     name: "",
-    organizer: "",
     date_from: heute(),
     date_to: "",
     template: "open" as Vorlage,
   });
+  const [mehrtaegig, setMehrtaegig] = useState(false);
   const [geprueft, setGeprueft] = useState(false);
 
   const eigene: Record<string, string> = {};
   if (geprueft && !werte.name.trim()) eigene.name = t("pruefung.pflicht");
   if (geprueft && !werte.date_from) eigene.date_from = t("pruefung.pflicht");
-  if (werte.date_to && werte.date_from && werte.date_to < werte.date_from) {
+  if (mehrtaegig && werte.date_to && werte.date_from && werte.date_to < werte.date_from) {
     eigene.date_to = t("pruefung.datum_reihenfolge");
   }
   const server = anlegen.isError ? feldFehlerFuer(anlegen.error, FELDER) : {};
@@ -82,18 +87,23 @@ export function TurnierAnlegen({ offen, onSchliessen }: TurnierAnlegenProps) {
           ereignis.preventDefault();
           setGeprueft(true);
           if (!werte.name.trim() || !werte.date_from || eigene.date_to) return;
-          anlegen.mutate(anlageAusFormular(werte), {
-            onSuccess: (turnier) => {
-              onSchliessen();
-              void navigate({
-                to: EINRICHTEN_PFAD,
-                params: { turnierId: turnier.id },
-                search: { bereich: "stammdaten" },
-              });
+          anlegen.mutate(
+            anlageAusFormular({ ...werte, date_to: mehrtaegig ? werte.date_to : "" }),
+            {
+              onSuccess: (turnier) => {
+                onSchliessen();
+                // Ohne Bereich öffnet die Einrichtung den ersten Schritt, in dem noch etwas fehlt.
+                void navigate({
+                  to: EINRICHTEN_PFAD,
+                  params: { turnierId: turnier.id },
+                  search: {},
+                });
+              },
             },
-          });
+          );
         }}
       >
+        <p className={s.hilfe}>{t("anlegen.text")}</p>
         <TextInput
           label={t("feld.name")}
           placeholder={t("feld.name_platzhalter")}
@@ -104,53 +114,59 @@ export function TurnierAnlegen({ offen, onSchliessen }: TurnierAnlegenProps) {
           error={fehler.name}
           onChange={(e) => setze("name", e.currentTarget.value)}
         />
-        <TextInput
-          label={t("feld.veranstalter")}
-          placeholder={t("feld.veranstalter_platzhalter")}
-          size="md"
-          value={werte.organizer}
-          error={fehler.organizer}
-          onChange={(e) => setze("organizer", e.currentTarget.value)}
-        />
         <div className={s.zweiSpalten}>
           <TextInput
             type="date"
-            label={t("feld.datum_von")}
+            label={mehrtaegig ? t("feld.datum_von") : t("feld.datum")}
             required
             size="md"
             value={werte.date_from}
             error={fehler.date_from}
             onChange={(e) => setze("date_from", e.currentTarget.value)}
           />
-          <TextInput
-            type="date"
-            label={t("feld.datum_bis")}
-            description={t("feld.datum_bis_hilfe")}
-            size="md"
-            value={werte.date_to}
-            min={werte.date_from}
-            error={fehler.date_to}
-            onChange={(e) => setze("date_to", e.currentTarget.value)}
-          />
+          {mehrtaegig && (
+            <TextInput
+              type="date"
+              label={t("feld.datum_bis")}
+              size="md"
+              value={werte.date_to}
+              min={werte.date_from}
+              error={fehler.date_to}
+              onChange={(e) => setze("date_to", e.currentTarget.value)}
+            />
+          )}
         </div>
-        <div className={s.feldGruppe}>
-          <span className={s.feldLabel} id="vorlage-label">
-            {t("feld.vorlage")}
-          </span>
-          <SegmentedControl
-            aria-labelledby="vorlage-label"
-            fullWidth
-            size="md"
-            value={werte.template}
-            onChange={(wert) => setze("template", wert)}
-            data={VORLAGEN.map((vorlage) => ({
-              value: vorlage,
-              label: t(`vorlage.${vorlage}.name`),
-            }))}
-            className={s.segmente}
-          />
-          <p className={s.hilfe}>{t(`vorlage.${werte.template}.text`)}</p>
-        </div>
+        <Checkbox
+          size="md"
+          label={t("anlegen.mehrtaegig")}
+          checked={mehrtaegig}
+          onChange={(e) => setMehrtaegig(e.currentTarget.checked)}
+        />
+        <Radio.Group
+          label={t("anlegen.art")}
+          size="md"
+          value={werte.template}
+          onChange={(wert) => setze("template", wert)}
+        >
+          <div className={a.arten}>
+            {VORLAGEN.map((vorlage) => (
+              <Radio.Card
+                key={vorlage}
+                value={vorlage}
+                withBorder={false}
+                radius="md"
+                className={a.art}
+                aria-label={t(`vorlage.${vorlage}.name`)}
+              >
+                <Radio.Indicator size="md" />
+                <span className={a.artText}>
+                  <strong>{t(`vorlage.${vorlage}.name`)}</strong>
+                  <span>{t(`vorlage.${vorlage}.text`)}</span>
+                </span>
+              </Radio.Card>
+            ))}
+          </div>
+        </Radio.Group>
         {fehler[""] && (
           <p className={s.fehlerText} role="alert">
             {fehler[""]}

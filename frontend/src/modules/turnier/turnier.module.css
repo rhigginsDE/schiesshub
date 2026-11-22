@@ -336,7 +336,7 @@
 
 .einrichtenSpalten {
   display: grid;
-  grid-template-columns: 230px minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
   min-width: 0;
@@ -451,6 +451,14 @@
   border-radius: var(--sh-radius-l);
 }
 
+/* Mit Änderungen bleibt „Speichern“ am unteren Rand der scrollenden Spalte sichtbar (Nr. 7). */
+.speicherleiste[data-geaendert] {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  border-color: var(--sh-linie-stark);
+}
+
 .speicherZustand {
   margin-right: auto;
   font-size: 14px;
@@ -477,6 +485,8 @@
     flex: 1;
     min-height: 0;
     align-items: stretch;
+    /* Die Zeile darf nicht mit dem Inhalt wachsen, sonst scrollt die Seite zusätzlich (F1). */
+    grid-template-rows: minmax(0, 1fr);
   }
 
   .einrichten[data-layout="fenster"] .bereichNav,
@@ -500,7 +510,8 @@
   }
 
   /* „voll“: Der Bereich (Ausschreibung) teilt sich selbst in Spalten, die je für sich scrollen. */
-  .einrichten[data-layout="fenster"] .bereichInhalt[data-geteilt="voll"] {
+  .einrichten[data-layout="fenster"] .bereichInhalt[data-geteilt="voll"],
+  .einrichten[data-layout="fenster"] .bereichInhalt[data-geteilt="zwei"] {
     grid-template-rows: minmax(0, 1fr);
   }
 

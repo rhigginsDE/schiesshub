@@ -6,7 +6,7 @@ import { feldFehlerFuer } from "../senden";
 import s from "../turnier.module.css";
 import type { TurnierAenderung, TurnierUebersicht } from "../typen";
 import { useEntwurf } from "../useEntwurf";
-import { BereichKopf, Speicherleiste } from "./Bausteine";
+import { BereichKopf, HILFE_UNTEN, Speicherleiste } from "./Bausteine";
 
 const FELDER = ["name", "organizer", "date_from", "date_to"] as const;
 
@@ -28,6 +28,7 @@ export function stammdatenAenderung(werte: Stammwerte, basis: Stammwerte): Turni
   return aenderung;
 }
 
+/** Schritt 1: Name, Datum und Veranstalter des Turniers. */
 export function Stammdaten({
   turnier,
   gesperrt,
@@ -46,9 +47,20 @@ export function Stammdaten({
     }),
     [turnier.name, turnier.organizer, turnier.date_from, turnier.date_to],
   );
-  const entwurf = useEntwurf(quelle);
-  const { werte } = entwurf;
   const [geprueft, setGeprueft] = useState(false);
+  const entwurf = useEntwurf(quelle, {
+    speichern: async () => {
+      setGeprueft(true);
+      if (!gueltig(entwurf.werte)) return false;
+      try {
+        await aendern.mutateAsync(stammdatenAenderung(entwurf.werte, entwurf.basis));
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  });
+  const { werte } = entwurf;
 
   const eigene: Record<string, string> = {};
   if (geprueft && !werte.name.trim()) eigene.name = t("pruefung.pflicht");
@@ -68,7 +80,7 @@ export function Stammdaten({
       onSubmit={(ereignis) => {
         ereignis.preventDefault();
         setGeprueft(true);
-        if (!werte.name.trim() || eigene.date_to) return;
+        if (!gueltig(werte)) return;
         aendern.mutate(stammdatenAenderung(werte, entwurf.basis));
       }}
     >
@@ -82,15 +94,6 @@ export function Stammdaten({
           value={werte.name}
           error={fehler.name}
           onChange={(e) => setze("name", e.currentTarget.value)}
-        />
-        <TextInput
-          label={t("feld.veranstalter")}
-          placeholder={t("feld.veranstalter_platzhalter")}
-          size="md"
-          disabled={gesperrt}
-          value={werte.organizer}
-          error={fehler.organizer}
-          onChange={(e) => setze("organizer", e.currentTarget.value)}
         />
         <div className={s.zweiSpalten}>
           <TextInput
@@ -106,6 +109,8 @@ export function Stammdaten({
           <TextInput
             type="date"
             label={t("feld.datum_bis")}
+            description={t("feld.datum_bis_hilfe")}
+            inputWrapperOrder={HILFE_UNTEN}
             size="md"
             disabled={gesperrt}
             value={werte.date_to}
@@ -114,13 +119,23 @@ export function Stammdaten({
             onChange={(e) => setze("date_to", e.currentTarget.value)}
           />
         </div>
-        <div className={`inset ${s.hinweisKasten}`}>
-          <strong>
-            {t("feld.vorlage")}: {t(`vorlage.${turnier.template}.name`)}
-          </strong>
-          <p>{t(`vorlage.${turnier.template}.text`)}</p>
-          <p className="gedaempft">{t("bereich.stammdaten.vorlage_hinweis")}</p>
-        </div>
+        <TextInput
+          label={t("feld.veranstalter")}
+          description={t("feld.veranstalter_hilfe")}
+          inputWrapperOrder={HILFE_UNTEN}
+          placeholder={t("feld.veranstalter_platzhalter")}
+          size="md"
+          disabled={gesperrt}
+          value={werte.organizer}
+          error={fehler.organizer}
+          onChange={(e) => setze("organizer", e.currentTarget.value)}
+        />
+        <p className={s.hilfe}>
+          {t("bereich.stammdaten.vorlage_hinweis", {
+            vorlage: t(`vorlage.${turnier.template}.name`),
+            bereich: t("bereich.einstellungen.titel"),
+          })}
+        </p>
       </section>
       <Speicherleiste
         geaendert={entwurf.geaendert}
@@ -131,8 +146,14 @@ export function Stammdaten({
         onVerwerfen={() => {
           entwurf.verwerfen();
           aendern.reset();
+          setGeprueft(false);
         }}
       />
     </form>
   );
+}
+
+function gueltig(werte: Stammwerte): boolean {
+  if (!werte.name.trim()) return false;
+  return !(werte.date_to && werte.date_from && werte.date_to < werte.date_from);
 }

@@ -1,8 +1,10 @@
 import { NumberInput, SegmentedControl, Select, Switch, TextInput } from "@mantine/core";
+import { Info } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GeldEingabe } from "../../../components/GeldEingabe";
 import { useTurnierAendern } from "../abfragen";
+import a from "../aufgaben.module.css";
 import { feldFehlerFuer } from "../senden";
 import s from "../turnier.module.css";
 import type {
@@ -12,7 +14,16 @@ import type {
   ZusatzEinstellungen,
 } from "../typen";
 import { useEntwurf } from "../useEntwurf";
-import { BereichKopf, Speicherleiste } from "./Bausteine";
+import { BereichKopf, Erweitert, HILFE_UNTEN, Speicherleiste } from "./Bausteine";
+
+/** Felder, die unter „Erweitert“ stehen; ein Fehler dort klappt den Abschnitt auf. */
+const ERWEITERT = [
+  "currency",
+  "default_capture_mode",
+  "default_changeover_minutes",
+  "first_start_number",
+  "protest_minutes",
+] as const;
 
 export type EinstellungsWerte = Omit<TurnierEinstellungen, "display" | "first_start_number"> &
   ZusatzEinstellungen;
@@ -76,6 +87,10 @@ function alsZahl(wert: string | number): number {
   return typeof wert === "number" ? wert : Number.NaN;
 }
 
+/**
+ * Startgeld und Vorgaben: Startgeld und Mehrfachstart oben, Seltenes unter „Erweitert“. Die Werte
+ * gelten für Wettbewerbe, die danach hinzukommen; darum steht der Schritt vor den Wettbewerben.
+ */
 export function Einstellungen({
   turnier,
   gesperrt,
@@ -90,9 +105,22 @@ export function Einstellungen({
       ZusatzEinstellungen;
     return rest;
   }, [turnier.settings]);
-  const entwurf = useEntwurf(quelle);
-  const { werte } = entwurf;
   const [geprueft, setGeprueft] = useState(false);
+  const entwurf = useEntwurf(quelle, {
+    speichern: async () => {
+      setGeprueft(true);
+      if (Object.keys(pruefeEinstellungen(entwurf.werte, t)).length > 0) return false;
+      try {
+        await aendern.mutateAsync({
+          settings: einstellungsAenderung(entwurf.werte, entwurf.basis),
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  });
+  const { werte } = entwurf;
   // Gesetzte Werte bleiben im Entwurf; „aus“ blendet nur das Feld aus.
   const [fristMinuten, setFristMinuten] = useState(werte.protest_minutes ?? 30);
   const mitStartnummer = "first_start_number" in quelle;
@@ -106,6 +134,7 @@ export function Einstellungen({
   };
   const waehrung = /^[A-Z]{3}$/.test(werte.currency) ? werte.currency : "EUR";
   const meldungBetrag = t("pruefung.betrag_format");
+  const vorhanden = turnier.competitions.length;
 
   return (
     <form
@@ -122,52 +151,34 @@ export function Einstellungen({
         titel={t("bereich.einstellungen.titel")}
         text={t("bereich.einstellungen.text")}
       />
+      {vorhanden > 0 && (
+        <p className={`inset ${a.infoKasten}`}>
+          <Info aria-hidden />
+          {t("einstellungen.vorhanden", { count: vorhanden })}
+        </p>
+      )}
 
       <section className={`panel ${s.formular}`} aria-labelledby="einst-startgeld">
         <h3 className="h-label" id="einst-startgeld">
           {t("einstellungen.startgeld")}
         </h3>
-        <div className={s.dreiSpalten}>
-          <TextInput
-            label={t("einstellungen.waehrung")}
-            description={t("einstellungen.waehrung_hilfe")}
-            size="md"
-            maxLength={3}
-            disabled={gesperrt}
-            value={werte.currency}
-            error={fehler.currency}
-            onChange={(e) => setze("currency", e.currentTarget.value.toUpperCase())}
-          />
-          <GeldEingabe
-            label={t("feld.startgeld")}
-            size="md"
-            waehrung={waehrung}
-            meldungUnlesbar={meldungBetrag}
-            disabled={gesperrt}
-            wert={werte.default_fee_first_cents}
-            error={fehler.default_fee_first_cents}
-            onWert={(cent) => setze("default_fee_first_cents", cent ?? 0)}
-          />
-          <GeldEingabe
-            label={t("feld.nachkauf")}
-            size="md"
-            waehrung={waehrung}
-            meldungUnlesbar={meldungBetrag}
-            disabled={gesperrt}
-            wert={werte.default_fee_repeat_cents}
-            error={fehler.default_fee_repeat_cents}
-            onWert={(cent) => setze("default_fee_repeat_cents", cent ?? 0)}
-          />
-        </div>
-      </section>
-
-      <section className={`panel ${s.formular}`} aria-labelledby="einst-mehrfach">
-        <h3 className="h-label" id="einst-mehrfach">
-          {t("feld.mehrfachstart")}
-        </h3>
+        <GeldEingabe
+          label={t("einstellungen.startgeld_feld")}
+          description={t("einstellungen.startgeld_hilfe")}
+          inputWrapperOrder={HILFE_UNTEN}
+          size="md"
+          className={s.schmal}
+          waehrung={waehrung}
+          meldungUnlesbar={meldungBetrag}
+          disabled={gesperrt}
+          wert={werte.default_fee_first_cents}
+          error={fehler.default_fee_first_cents}
+          onWert={(cent) => setze("default_fee_first_cents", cent ?? 0)}
+        />
         <Switch
           size="md"
           label={t("einstellungen.mehrfach_standard")}
+          description={t("einstellungen.mehrfach_hilfe")}
           disabled={gesperrt}
           checked={werte.default_multi_start}
           onChange={(e) => {
@@ -180,7 +191,17 @@ export function Einstellungen({
           }}
         />
         {werte.default_multi_start && (
-          <div className={s.zweiSpalten}>
+          <div className={s.dreiSpalten}>
+            <GeldEingabe
+              label={t("feld.nachkauf")}
+              size="md"
+              waehrung={waehrung}
+              meldungUnlesbar={meldungBetrag}
+              disabled={gesperrt}
+              wert={werte.default_fee_repeat_cents}
+              error={fehler.default_fee_repeat_cents}
+              onWert={(cent) => setze("default_fee_repeat_cents", cent ?? 0)}
+            />
             <NumberInput
               label={t("feld.max_starts")}
               size="md"
@@ -207,10 +228,11 @@ export function Einstellungen({
         )}
       </section>
 
-      <section className={`panel ${s.formular}`} aria-labelledby="einst-ablauf">
-        <h3 className="h-label" id="einst-ablauf">
-          {t("einstellungen.ablauf")}
-        </h3>
+      <Erweitert
+        titel={t("erweitert.titel")}
+        text={t("einstellungen.erweitert_inhalt")}
+        fehler={ERWEITERT.some((feld) => fehler[feld])}
+      >
         <div className={s.feldGruppe}>
           <span className={s.feldLabel} id="einst-erfassung">
             {t("feld.erfassung")}
@@ -234,6 +256,7 @@ export function Einstellungen({
         <NumberInput
           label={t("feld.wechselzeit")}
           description={t("feld.wechselzeit_hilfe")}
+          inputWrapperOrder={HILFE_UNTEN}
           size="md"
           min={0}
           max={240}
@@ -245,16 +268,11 @@ export function Einstellungen({
           error={fehler.default_changeover_minutes}
           onChange={(wert) => setze("default_changeover_minutes", alsZahl(wert))}
         />
-      </section>
-
-      <section className={`panel ${s.formular}`} aria-labelledby="einst-weitere">
-        <h3 className="h-label" id="einst-weitere">
-          {t("einstellungen.weitere")}
-        </h3>
         {mitStartnummer && (
           <NumberInput
             label={t("einstellungen.erste_startnummer")}
             description={t("einstellungen.erste_startnummer_hilfe")}
+            inputWrapperOrder={HILFE_UNTEN}
             size="md"
             min={1}
             allowDecimal={false}
@@ -299,7 +317,19 @@ export function Einstellungen({
             />
           )}
         </div>
-      </section>
+        <TextInput
+          label={t("einstellungen.waehrung")}
+          description={t("einstellungen.waehrung_hilfe")}
+          inputWrapperOrder={HILFE_UNTEN}
+          size="md"
+          maxLength={3}
+          className={s.schmal}
+          disabled={gesperrt}
+          value={werte.currency}
+          error={fehler.currency}
+          onChange={(e) => setze("currency", e.currentTarget.value.toUpperCase())}
+        />
+      </Erweitert>
 
       <Speicherleiste
         geaendert={entwurf.geaendert}

@@ -13,7 +13,7 @@ import { moeglicheWechsel } from "./Status";
 import { EingabeFehler, feldFehlerFuer, leseFehlerInhalt } from "./senden";
 import { anlageAusFormular } from "./TurnierAnlegen";
 import { beispielTurnier, beispielWettbewerb } from "./testdaten";
-import { offenePunkte } from "./vollstaendigkeit";
+import { BEREICHE, ersterOffenerSchritt, offenePunkte, schrittZustaende } from "./vollstaendigkeit";
 import {
   abweichungen,
   aenderungen,
@@ -140,7 +140,7 @@ describe("Planung und Klartext", () => {
     const variante = beispielWettbewerb().definition.variant;
     const vorschlag = planungVorschlag(variante, 5);
     expect(vorschlag.planung).toBe("queue");
-    expect(planungBegruendung(vorschlag, 5, "de")).toMatch(/Abschnitt „Fallscheibe“/);
+    expect(planungBegruendung(vorschlag, 5, "de")).toMatch(/Bei „Fallscheibe“/);
   });
 
   it("beschreibt Ablauf, Planung und Starts kurz", () => {
@@ -151,7 +151,7 @@ describe("Planung und Klartext", () => {
     expect(planungKurz({ ...w, planning: "schedule", heat_minutes: 12 }, "de")).toBe(
       "Zeitplan, 12 Min.",
     );
-    expect(planungKurz(w, "de")).toBe("Reihenfolge");
+    expect(planungKurz(w, "de")).toBe("Aufruf der Reihe nach");
     expect(startsKurz(w, "de")).toBe("bis 3 Starts, bestes zählt");
     expect(zeitraum({ date_from: "2026-12-05", date_to: "2026-12-06" }, "de")).toBe(
       "05.12.2026 – 06.12.2026",
@@ -212,6 +212,22 @@ describe("Formulare des Turniers", () => {
       "ohne_stand",
     ]);
     expect(offenePunkte(turnier)).toEqual([]);
+  });
+
+  it("zeigt je Schritt erledigt, fehlt noch oder optional und führt zum ersten offenen", () => {
+    const turnier = beispielTurnier();
+    const leer = { ...turnier, ranges: [], classes: [] };
+    const zustaende = schrittZustaende(leer, offenePunkte(leer));
+    expect(zustaende.stammdaten).toEqual({ art: "erledigt" });
+    expect(zustaende.staende).toEqual({ art: "fehlt", schluessel: "kein_stand", anzahl: 1 });
+    expect(zustaende.wettbewerbe).toMatchObject({ art: "fehlt", schluessel: "ohne_stand" });
+    expect(zustaende.ausschreibung).toEqual({ art: "optional" });
+    expect(ersterOffenerSchritt(zustaende)).toBe("staende");
+    // Die Vorgaben stehen vor den Wettbewerben, damit sie für neue Wettbewerbe gelten.
+    expect(BEREICHE.indexOf("einstellungen")).toBeLessThan(BEREICHE.indexOf("wettbewerbe"));
+    expect(ersterOffenerSchritt(schrittZustaende(turnier, offenePunkte(turnier)))).toBe(
+      "zusammenfassung",
+    );
   });
 });
 

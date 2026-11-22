@@ -1,6 +1,7 @@
 import {
   Button,
   NumberInput,
+  Radio,
   SegmentedControl,
   Select,
   Switch,
@@ -8,11 +9,21 @@ import {
   TextInput,
 } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
-import { CopyPlus, History, Info, Lightbulb, RotateCcw } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  CopyPlus,
+  History,
+  Info,
+  Lightbulb,
+  RotateCcw,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { disziplinAbfrage } from "../../../api/abfragen";
 import { Bestaetigung } from "../../../components/Bestaetigung";
+import { Chip } from "../../../components/Chip";
 import { GeldEingabe } from "../../../components/GeldEingabe";
 import { formatDatum, formatUhrzeit, formatZahl } from "../../../lib/format";
 import {
@@ -34,11 +45,13 @@ import {
   aenderungen,
   ausWettbewerb,
   bekannteFelder,
+  erweiterteFelder,
   pruefeFormular,
   type WettbewerbFormular,
   wertungGeaendert,
 } from "../wettbewerbFormular";
 import { AblaufEditor } from "./AblaufEditor";
+import w from "./wettbewerbe.module.css";
 
 interface WettbewerbBearbeitenProps {
   turnier: TurnierUebersicht;
@@ -75,6 +88,19 @@ type Rueckfrage =
   | { art: "kopieren" }
   | null;
 
+/** Hilfetexte unter dem Feld, damit Felder nebeneinander auf einer Höhe beginnen. */
+const HILFE_UNTEN = ["label", "input", "description", "error"] as (
+  | "label"
+  | "input"
+  | "description"
+  | "error"
+)[];
+
+/**
+ * Einstellungen eines Wettbewerbs. Oben, was fast jeder braucht (Stand, Startgeld, Mehrfachstart,
+ * Klassen); Ablauf, Wertung, Erfassung und Planung liegen zugeklappt unter „Erweitert“ und sind
+ * aus Katalog und Turnier-Einstellungen voreingestellt.
+ */
 export function WettbewerbBearbeiten({
   turnier,
   wettbewerb,
@@ -93,6 +119,7 @@ export function WettbewerbBearbeiten({
   const [rueckfrage, setRueckfrage] = useState<Rueckfrage>(null);
   const [grund, setGrund] = useState("");
   const [kopieName, setKopieName] = useState("");
+  const [erweitertOffen, setErweitertOffen] = useState(false);
 
   const ausKatalog = Boolean(wettbewerb.catalog_federation && wettbewerb.catalog_code);
   const katalog = useQuery({
@@ -102,7 +129,12 @@ export function WettbewerbBearbeiten({
   const varianten = katalog.data?.ablauf.varianten ?? [];
   const katalogVariante = varianten.find((v) => v.id === wettbewerb.definition.variant.id);
   const abw = abweichungen(werte.abschnitte, katalogVariante);
-  const revisionen = useQuery(revisionenAbfrage(turnier.id, wettbewerb.id));
+  const entwurfsStatus = turnier.status === "draft";
+  // Frühere Einstellungen gibt es erst, wenn das Turnier läuft; im Entwurf wären sie nur Rauschen.
+  const revisionen = useQuery({
+    ...revisionenAbfrage(turnier.id, wettbewerb.id),
+    enabled: !entwurfsStatus,
+  });
 
   const aktiv = turnier.status === "active";
   const waehrung = turnier.settings.currency;
@@ -110,6 +142,9 @@ export function WettbewerbBearbeiten({
     { ...wettbewerb.definition.variant, abschnitte: werte.abschnitte },
     werte.changeover_minutes,
   );
+  const vorschlagWeicht =
+    vorschlag.planung !== werte.planning ||
+    (vorschlag.planung === "schedule" && vorschlag.durchgangMinuten !== werte.heat_minutes);
 
   const eigene = geprueft ? pruefeFormular(werte) : {};
   const serverFehler = aendern.isError ? feldFehlerFuer(aendern.error, bekannteFelder(werte)) : {};
@@ -119,6 +154,13 @@ export function WettbewerbBearbeiten({
     if (aendern.isError) aendern.reset();
   };
 
+  // Welche Felder liegen unter „Erweitert“? Fehler dort klappen den Abschnitt auf.
+  const imErweitert = erweiterteFelder(ausKatalog);
+  const fehlerErweitert = Object.keys(fehler).some(imErweitert);
+  const geaendertErweitert = Object.keys(aenderungen(werte, wettbewerb)).some(imErweitert);
+  const erweitertSichtbar = erweitertOffen || fehlerErweitert;
+  const erweitertId = `erweitert-${wettbewerb.id}`;
+
   const speichern = (mitGrund?: string) => {
     const daten = { ...aenderungen(werte, wettbewerb), ...(mitGrund ? { reason: mitGrund } : {}) };
     aendern.mutate(
@@ -127,7 +169,24 @@ export function WettbewerbBearbeiten({
     );
   };
 
+  const zuruecksetzenFragen = () => {
+    setGrund("");
+    zuruecksetzen.reset();
+    setRueckfrage({ art: "zuruecksetzen" });
+  };
+
   const klassenIds = new Set(werte.class_ids);
+  const nameFeld = (
+    <TextInput
+      label={t("wettbewerb.name")}
+      description={ausKatalog ? t("wettbewerb.name_hilfe") : undefined}
+      inputWrapperOrder={HILFE_UNTEN}
+      size="md"
+      value={werte.name}
+      error={fehler.name}
+      onChange={(e) => setze({ name: e.currentTarget.value })}
+    />
+  );
 
   return (
     <form
@@ -145,18 +204,12 @@ export function WettbewerbBearbeiten({
         speichern();
       }}
     >
+      {/* Das, was fast jeder Wettbewerb braucht */}
       <fieldset className={s.ohneRahmen} disabled={gesperrt}>
-        {/* Allgemein */}
         <div className={s.feldGruppe}>
-          <span className="h-label">{t("wettbewerb.gruppe.allgemein")}</span>
+          <span className="h-label">{t("wettbewerb.gruppe.grundlagen")}</span>
+          {!ausKatalog && nameFeld}
           <div className={s.zweiSpalten}>
-            <TextInput
-              label={t("wettbewerb.name")}
-              size="md"
-              value={werte.name}
-              error={fehler.name}
-              onChange={(e) => setze({ name: e.currentTarget.value })}
-            />
             <Select
               label={t("wettbewerb.stand")}
               size="md"
@@ -171,60 +224,24 @@ export function WettbewerbBearbeiten({
               }))}
               value={werte.range_id}
               description={werte.range_id ? undefined : t("wettbewerb.stand_fehlt")}
+              inputWrapperOrder={HILFE_UNTEN}
               error={fehler.range_id}
               onChange={(wert) => setze({ range_id: wert })}
             />
+            <GeldEingabe
+              label={t("feld.startgeld")}
+              size="md"
+              waehrung={waehrung}
+              meldungUnlesbar={t("pruefung.betrag_format")}
+              wert={werte.fee_first_cents}
+              error={fehler.fee_first_cents}
+              onWert={(cent) => setze({ fee_first_cents: cent })}
+            />
           </div>
-        </div>
-
-        {/* Ablauf & Erfassung */}
-        <div className={s.feldGruppe}>
-          <span className="h-label">{t("wettbewerb.gruppe.erfassung")}</span>
-          <div className={s.stapel}>
-            {ausKatalog && varianten.length > 1 && (
-              <Select
-                label={t("wettbewerb.variante")}
-                description={t("wettbewerb.variante_hilfe")}
-                size="md"
-                allowDeselect={false}
-                data={varianten.map((v) => ({ value: v.id, label: v.name }))}
-                value={wettbewerb.definition.variant.id}
-                onChange={(wert) => {
-                  if (!wert || wert === wettbewerb.definition.variant.id) return;
-                  setGrund("");
-                  zuruecksetzen.reset();
-                  setRueckfrage({ art: "zuruecksetzen", variante: wert });
-                }}
-              />
-            )}
-            <div className={s.feldGruppe}>
-              <span className={s.feldLabel} id={`erfassung-${wettbewerb.id}`}>
-                {t("feld.erfassung")}
-              </span>
-              <SegmentedControl
-                aria-labelledby={`erfassung-${wettbewerb.id}`}
-                size="md"
-                className={s.segmente}
-                value={werte.capture_mode}
-                onChange={(wert) =>
-                  setze({ capture_mode: wert as WettbewerbFormular["capture_mode"] })
-                }
-                data={[
-                  { value: "series", label: t("erfassung.series") },
-                  { value: "shot", label: t("erfassung.shot") },
-                ]}
-              />
-              <p className={s.hilfe}>{t(`erfassung.${werte.capture_mode}_hilfe`)}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Mehrfachstart und Startgeld */}
-        <div className={s.feldGruppe}>
-          <span className="h-label">{t("wettbewerb.gruppe.starts")}</span>
           <Switch
             size="md"
             label={t("wettbewerb.mehrfach")}
+            description={t("wettbewerb.mehrfach_hilfe")}
             checked={werte.multi_start}
             onChange={(e) => {
               const an = e.currentTarget.checked;
@@ -235,50 +252,22 @@ export function WettbewerbBearbeiten({
               });
             }}
           />
-          <div className={s.dreiSpalten}>
-            {werte.multi_start && (
-              <>
-                <NumberInput
-                  label={t("feld.max_starts")}
-                  size="md"
-                  min={2}
-                  max={99}
-                  allowDecimal={false}
-                  value={werte.max_starts}
-                  error={fehler.max_starts}
-                  onChange={(wert) =>
-                    setze({ max_starts: typeof wert === "number" ? wert : Number.NaN })
-                  }
-                />
-                <Select
-                  label={t("feld.regel")}
-                  size="md"
-                  allowDeselect={false}
-                  data={REGELN.map((regel) => ({ value: regel, label: t(`regel.${regel}`) }))}
-                  value={werte.multi_start_rule}
-                  error={fehler.multi_start_rule}
-                  onChange={(wert) =>
-                    wert &&
-                    setze({ multi_start_rule: wert as WettbewerbFormular["multi_start_rule"] })
-                  }
-                />
-              </>
-            )}
-          </div>
-          <div className={s.zweiSpalten}>
-            <GeldEingabe
-              label={t("feld.startgeld")}
-              size="md"
-              waehrung={waehrung}
-              meldungUnlesbar={t("pruefung.betrag_format")}
-              wert={werte.fee_first_cents}
-              error={fehler.fee_first_cents}
-              onWert={(cent) => setze({ fee_first_cents: cent })}
-            />
-            {werte.multi_start && (
+          {werte.multi_start && (
+            <div className={s.zweiSpalten}>
+              <NumberInput
+                label={t("feld.max_starts")}
+                size="md"
+                min={2}
+                max={99}
+                allowDecimal={false}
+                value={werte.max_starts}
+                error={fehler.max_starts}
+                onChange={(wert) =>
+                  setze({ max_starts: typeof wert === "number" ? wert : Number.NaN })
+                }
+              />
               <GeldEingabe
                 label={t("feld.nachkauf")}
-                description={t("feld.nachkauf_hilfe")}
                 size="md"
                 waehrung={waehrung}
                 meldungUnlesbar={t("pruefung.betrag_format")}
@@ -286,11 +275,10 @@ export function WettbewerbBearbeiten({
                 error={fehler.fee_repeat_cents}
                 onWert={(cent) => setze({ fee_repeat_cents: cent })}
               />
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Klassen */}
         <div className={s.feldGruppe}>
           <span className="h-label" id={`klassen-${wettbewerb.id}`}>
             {t("wettbewerb.gruppe.klassen")}
@@ -304,7 +292,7 @@ export function WettbewerbBearbeiten({
                   <button
                     key={klasse.id}
                     type="button"
-                    className={s.wahlchip}
+                    className={`${s.wahlchip} ${w.chip}`}
                     aria-pressed={klassenIds.has(klasse.id)}
                     title={klasse.name}
                     onClick={() =>
@@ -333,201 +321,299 @@ export function WettbewerbBearbeiten({
               {fehler.class_ids}
             </p>
           )}
-          <Switch
-            size="md"
-            label={t("wettbewerb.gemeinsam")}
-            description={t("wettbewerb.gemeinsam_hilfe")}
-            checked={werte.combined_ranking}
-            onChange={(e) => setze({ combined_ranking: e.currentTarget.checked })}
-          />
-        </div>
-
-        {/* Planung */}
-        <div className={s.feldGruppe}>
-          <span className="h-label" id={`planung-${wettbewerb.id}`}>
-            {t("wettbewerb.gruppe.planung")}
-          </span>
-          <SegmentedControl
-            aria-labelledby={`planung-${wettbewerb.id}`}
-            size="md"
-            className={s.segmente}
-            value={werte.planning}
-            onChange={(wert) => {
-              const planning = wert as WettbewerbFormular["planning"];
-              setze({
-                planning,
-                heat_minutes:
-                  planning === "schedule" && !werte.heat_minutes
-                    ? (vorschlag.durchgangMinuten ?? null)
-                    : werte.heat_minutes,
-              });
-            }}
-            data={[
-              { value: "queue", label: t("planung.queue") },
-              { value: "schedule", label: t("planung.schedule") },
-            ]}
-          />
-          <p className={s.hilfe}>{t(`planung.${werte.planning}_hilfe`)}</p>
-          <div className={`inset ${s.vorschlag}`}>
-            <Lightbulb aria-hidden className={s.vorschlagSymbol} />
-            <div>
-              <strong>
-                {vorschlag.planung === "schedule"
-                  ? t("planung.vorschlag_zeitplan", {
-                      minuten: formatZahl(vorschlag.durchgangMinuten ?? 0, {}, sprache),
-                    })
-                  : t("planung.vorschlag_reihenfolge")}
-              </strong>
-              <p>{planungBegruendung(vorschlag, werte.changeover_minutes, sprache)}</p>
-            </div>
-            {(vorschlag.planung !== werte.planning ||
-              (vorschlag.planung === "schedule" &&
-                vorschlag.durchgangMinuten !== werte.heat_minutes)) && (
-              <Button
-                variant="default"
-                onClick={() =>
-                  setze({
-                    planning: vorschlag.planung,
-                    heat_minutes:
-                      vorschlag.planung === "schedule"
-                        ? vorschlag.durchgangMinuten
-                        : werte.heat_minutes,
-                  })
-                }
-              >
-                {t("planung.uebernehmen")}
-              </Button>
-            )}
-          </div>
-          {werte.planning === "schedule" && (
-            <div className={s.zweiSpalten}>
-              <NumberInput
-                label={t("planung.durchgang")}
-                description={t("planung.durchgang_hilfe")}
-                size="md"
-                min={1}
-                allowDecimal={false}
-                suffix={` ${t("einheit.min")}`}
-                value={werte.heat_minutes ?? ""}
-                error={fehler.heat_minutes}
-                onChange={(wert) => setze({ heat_minutes: typeof wert === "number" ? wert : null })}
-              />
-              <NumberInput
-                label={t("feld.wechselzeit")}
-                description={t("feld.wechselzeit_hilfe")}
-                size="md"
-                min={0}
-                allowDecimal={false}
-                suffix={` ${t("einheit.min")}`}
-                value={werte.changeover_minutes}
-                error={fehler.changeover_minutes}
-                onChange={(wert) =>
-                  setze({ changeover_minutes: typeof wert === "number" ? wert : Number.NaN })
-                }
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Ablauf */}
-        <div className={s.feldGruppe}>
-          <div className={s.gruppenKopf}>
-            <span className="h-label">{t("wettbewerb.gruppe.ablauf")}</span>
-            {abw && abw.length > 0 && (
-              <span className={s.geaendertMarke}>
-                {t("wettbewerb.abweichungen", { count: abw.length })}
-              </span>
-            )}
-          </div>
-          {aktiv && <p className={s.hilfe}>{t("wettbewerb.ablauf_aktiv_hinweis")}</p>}
-          <AblaufEditor
-            abschnitte={werte.abschnitte}
-            original={wettbewerb.definition.variant.abschnitte}
-            katalog={katalogVariante}
-            fehler={fehler}
-            gesperrt={gesperrt}
-            onAendern={(abschnitte) => setze({ abschnitte })}
-          />
         </div>
       </fieldset>
 
-      {/* Herkunft */}
-      <div className={s.herkunft}>
-        <span>
-          <Info aria-hidden />
-          {wettbewerb.definition.source
-            ? t("wettbewerb.herkunft_katalog", {
-                verband: wettbewerb.definition.source.federation.toUpperCase(),
-                kennziffer: wettbewerb.definition.source.code,
-                stand: formatDatum(wettbewerb.definition.source.catalog_stand, sprache),
-              })
-            : t("wettbewerb.herkunft_eigen")}
-        </span>
-        <span className={s.knopfReihe}>
-          {ausKatalog && (
-            <Button
-              variant="subtle"
-              color="gray"
-              leftSection={<RotateCcw aria-hidden />}
-              disabled={gesperrt || (abw !== null && abw.length === 0)}
-              onClick={() => {
-                setGrund("");
-                zuruecksetzen.reset();
-                setRueckfrage({ art: "zuruecksetzen" });
-              }}
-            >
-              {t("wettbewerb.zuruecksetzen")}
-            </Button>
-          )}
-          <Button
-            variant="subtle"
-            color="gray"
-            leftSection={<CopyPlus aria-hidden />}
-            disabled={gesperrt}
-            onClick={() => {
-              setKopieName(t("wettbewerb.kopie_name", { name: wettbewerb.name }));
-              anlegen.reset();
-              setRueckfrage({ art: "kopieren" });
-            }}
-          >
-            {t("wettbewerb.kopieren")}
-          </Button>
-        </span>
-      </div>
+      {/* Erweitert: zugeklappt, voreingestellt aus Katalog und Turnier */}
+      <section className={w.erweitert} data-offen={erweitertSichtbar || undefined}>
+        <button
+          type="button"
+          className={w.erweitertKopf}
+          aria-expanded={erweitertSichtbar}
+          aria-controls={erweitertId}
+          onClick={() => setErweitertOffen(!erweitertSichtbar)}
+        >
+          {erweitertSichtbar ? <ChevronDown aria-hidden /> : <ChevronRight aria-hidden />}
+          <span className={w.erweitertText}>
+            <strong>{t("wettbewerb.erweitert.titel")}</strong>
+            <span>{t("wettbewerb.erweitert.text")}</span>
+          </span>
+          <span className={w.erweitertMarken}>
+            {abw && abw.length > 0 && (
+              <Chip ton="info">{t("wettbewerb.abweichungen", { count: abw.length })}</Chip>
+            )}
+            {geaendertErweitert && (
+              <Chip ton="warn">{t("wettbewerb.erweitert.ungespeichert")}</Chip>
+            )}
+          </span>
+        </button>
 
-      {revisionen.data && revisionen.data.length > 1 && (
-        <details className={s.verlauf}>
-          <summary>
-            <History aria-hidden />
-            {t("wettbewerb.verlauf", { count: revisionen.data.length - 1 })}
-          </summary>
-          <ol>
-            {[...revisionen.data].reverse().map((revision) => (
-              <li key={revision.revision}>
-                <span className="num">
-                  {t("wettbewerb.revision", { nr: revision.revision })} ·{" "}
-                  {formatDatum(revision.created_at, sprache)}{" "}
-                  {formatUhrzeit(new Date(revision.created_at), sprache)}
+        {erweitertSichtbar && (
+          <div id={erweitertId} className={w.erweitertInhalt}>
+            <fieldset className={s.ohneRahmen} disabled={gesperrt}>
+              {/* Name und Wertung */}
+              <div className={s.feldGruppe}>
+                <span className="h-label">{t("wettbewerb.gruppe.wertung")}</span>
+                {ausKatalog && nameFeld}
+                {ausKatalog && varianten.length > 1 && (
+                  <Select
+                    label={t("wettbewerb.variante")}
+                    description={t("wettbewerb.variante_hilfe")}
+                    inputWrapperOrder={HILFE_UNTEN}
+                    size="md"
+                    allowDeselect={false}
+                    data={varianten.map((v) => ({ value: v.id, label: v.name }))}
+                    value={wettbewerb.definition.variant.id}
+                    onChange={(wert) => {
+                      if (!wert || wert === wettbewerb.definition.variant.id) return;
+                      setGrund("");
+                      zuruecksetzen.reset();
+                      setRueckfrage({ art: "zuruecksetzen", variante: wert });
+                    }}
+                  />
+                )}
+                {werte.multi_start && (
+                  <Select
+                    label={t("feld.regel")}
+                    size="md"
+                    className={w.schmal}
+                    allowDeselect={false}
+                    data={REGELN.map((regel) => ({ value: regel, label: t(`regel.${regel}`) }))}
+                    value={werte.multi_start_rule}
+                    error={fehler.multi_start_rule}
+                    onChange={(wert) =>
+                      wert &&
+                      setze({ multi_start_rule: wert as WettbewerbFormular["multi_start_rule"] })
+                    }
+                  />
+                )}
+                <Switch
+                  size="md"
+                  label={t("wettbewerb.gemeinsam")}
+                  description={t("wettbewerb.gemeinsam_hilfe")}
+                  checked={werte.combined_ranking}
+                  onChange={(e) => setze({ combined_ranking: e.currentTarget.checked })}
+                />
+                <div className={s.feldGruppe}>
+                  <span className={s.feldLabel} id={`erfassung-${wettbewerb.id}`}>
+                    {t("feld.erfassung")}
+                  </span>
+                  <SegmentedControl
+                    aria-labelledby={`erfassung-${wettbewerb.id}`}
+                    size="md"
+                    className={s.segmente}
+                    value={werte.capture_mode}
+                    onChange={(wert) =>
+                      setze({ capture_mode: wert as WettbewerbFormular["capture_mode"] })
+                    }
+                    data={[
+                      { value: "series", label: t("erfassung.series") },
+                      { value: "shot", label: t("erfassung.shot") },
+                    ]}
+                  />
+                  <p className={s.hilfe}>{t(`erfassung.${werte.capture_mode}_hilfe`)}</p>
+                </div>
+              </div>
+
+              {/* Planung am Stand */}
+              <div className={s.feldGruppe}>
+                <span className="h-label" id={`planung-${wettbewerb.id}`}>
+                  {t("wettbewerb.gruppe.planung")}
                 </span>
-                <span>{revision.reason ?? t("wettbewerb.revision_ohne_grund")}</span>
-              </li>
-            ))}
-          </ol>
-        </details>
-      )}
+                <Radio.Group
+                  aria-labelledby={`planung-${wettbewerb.id}`}
+                  value={werte.planning}
+                  onChange={(wert) => {
+                    const planning = wert as WettbewerbFormular["planning"];
+                    setze({
+                      planning,
+                      heat_minutes:
+                        planning === "schedule" && !werte.heat_minutes
+                          ? (vorschlag.durchgangMinuten ?? null)
+                          : werte.heat_minutes,
+                    });
+                  }}
+                >
+                  <div className={w.planungWahl}>
+                    {(["queue", "schedule"] as const).map((art) => (
+                      <Radio
+                        key={art}
+                        value={art}
+                        size="md"
+                        className={w.planungKarte}
+                        label={t(`planung.${art}`)}
+                        description={t(`planung.${art}_hilfe`)}
+                      />
+                    ))}
+                  </div>
+                </Radio.Group>
+                {vorschlagWeicht && (
+                  <div className={`inset ${s.vorschlag}`}>
+                    <Lightbulb aria-hidden className={s.vorschlagSymbol} />
+                    <div>
+                      <strong>
+                        {vorschlag.planung === "schedule"
+                          ? t("planung.vorschlag_zeitplan", {
+                              minuten: formatZahl(vorschlag.durchgangMinuten ?? 0, {}, sprache),
+                            })
+                          : t("planung.vorschlag_reihenfolge")}
+                      </strong>
+                      <p>{planungBegruendung(vorschlag, werte.changeover_minutes, sprache)}</p>
+                    </div>
+                    <Button
+                      variant="default"
+                      onClick={() =>
+                        setze({
+                          planning: vorschlag.planung,
+                          heat_minutes:
+                            vorschlag.planung === "schedule"
+                              ? vorschlag.durchgangMinuten
+                              : werte.heat_minutes,
+                        })
+                      }
+                    >
+                      {t("planung.uebernehmen")}
+                    </Button>
+                  </div>
+                )}
+                {werte.planning === "schedule" && (
+                  <div className={s.zweiSpalten}>
+                    <NumberInput
+                      label={t("planung.durchgang")}
+                      description={t("planung.durchgang_hilfe")}
+                      inputWrapperOrder={HILFE_UNTEN}
+                      size="md"
+                      min={1}
+                      allowDecimal={false}
+                      suffix={` ${t("einheit.min")}`}
+                      value={werte.heat_minutes ?? ""}
+                      error={fehler.heat_minutes}
+                      onChange={(wert) =>
+                        setze({ heat_minutes: typeof wert === "number" ? wert : null })
+                      }
+                    />
+                    <NumberInput
+                      label={t("feld.wechselzeit")}
+                      description={t("feld.wechselzeit_hilfe")}
+                      inputWrapperOrder={HILFE_UNTEN}
+                      size="md"
+                      min={0}
+                      allowDecimal={false}
+                      suffix={` ${t("einheit.min")}`}
+                      value={werte.changeover_minutes}
+                      error={fehler.changeover_minutes}
+                      onChange={(wert) =>
+                        setze({ changeover_minutes: typeof wert === "number" ? wert : Number.NaN })
+                      }
+                    />
+                  </div>
+                )}
+              </div>
 
-      <Speicherleiste
-        geaendert={entwurf.geaendert}
-        laedt={aendern.isPending}
-        gespeichert={aendern.isSuccess && !entwurf.geaendert}
-        fehler={fehler[""]}
-        gesperrt={gesperrt}
-        onVerwerfen={() => {
-          entwurf.verwerfen();
-          aendern.reset();
-          setGeprueft(false);
-        }}
-      />
+              {/* Ablauf */}
+              <div className={s.feldGruppe}>
+                <span className="h-label">{t("wettbewerb.gruppe.ablauf")}</span>
+                <p className={s.hilfe}>
+                  {ausKatalog ? t("wettbewerb.ablauf_zweck") : t("wettbewerb.ablauf_zweck_eigen")}
+                </p>
+                {abw !== null && (
+                  <div className={w.ablaufStatus}>
+                    {abw.length === 0 ? (
+                      <span className={w.wieKatalog}>
+                        <Check aria-hidden />
+                        {t("wettbewerb.wie_katalog")}
+                      </span>
+                    ) : (
+                      <Chip ton="info">{t("wettbewerb.abweichungen", { count: abw.length })}</Chip>
+                    )}
+                    <Button
+                      variant="default"
+                      leftSection={<RotateCcw aria-hidden />}
+                      disabled={gesperrt || abw.length === 0}
+                      onClick={zuruecksetzenFragen}
+                    >
+                      {t("wettbewerb.zuruecksetzen")}
+                    </Button>
+                  </div>
+                )}
+                {aktiv && <p className={s.hilfe}>{t("wettbewerb.ablauf_aktiv_hinweis")}</p>}
+                <AblaufEditor
+                  abschnitte={werte.abschnitte}
+                  original={wettbewerb.definition.variant.abschnitte}
+                  katalog={katalogVariante}
+                  fehler={fehler}
+                  gesperrt={gesperrt}
+                  onAendern={(abschnitte) => setze({ abschnitte })}
+                />
+              </div>
+            </fieldset>
+
+            {/* Herkunft */}
+            <div className={s.herkunft}>
+              <span>
+                <Info aria-hidden />
+                {wettbewerb.definition.source
+                  ? t("wettbewerb.herkunft_katalog", {
+                      verband: wettbewerb.definition.source.federation.toUpperCase(),
+                      kennziffer: wettbewerb.definition.source.code,
+                      stand: formatDatum(wettbewerb.definition.source.catalog_stand, sprache),
+                    })
+                  : t("wettbewerb.herkunft_eigen")}
+              </span>
+              <Button
+                variant="subtle"
+                color="gray"
+                leftSection={<CopyPlus aria-hidden />}
+                disabled={gesperrt}
+                onClick={() => {
+                  setKopieName(t("wettbewerb.kopie_name", { name: wettbewerb.name }));
+                  anlegen.reset();
+                  setRueckfrage({ art: "kopieren" });
+                }}
+              >
+                {t("wettbewerb.kopieren")}
+              </Button>
+            </div>
+
+            {!entwurfsStatus && revisionen.data && revisionen.data.length > 1 && (
+              <details className={s.verlauf}>
+                <summary>
+                  <History aria-hidden />
+                  {t("wettbewerb.verlauf", { count: revisionen.data.length - 1 })}
+                </summary>
+                <ol>
+                  {[...revisionen.data].reverse().map((revision) => (
+                    <li key={revision.revision}>
+                      <span className="num">
+                        {t("wettbewerb.revision", { nr: revision.revision })} ·{" "}
+                        {formatDatum(revision.created_at, sprache)}{" "}
+                        {formatUhrzeit(new Date(revision.created_at), sprache)}
+                      </span>
+                      <span>{revision.reason ?? t("wettbewerb.revision_ohne_grund")}</span>
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* Feste Knopfleiste: bleibt am unteren Rand sichtbar, solange der Wettbewerb offen ist */}
+      <div className={w.fussLeiste}>
+        <Speicherleiste
+          geaendert={entwurf.geaendert}
+          laedt={aendern.isPending}
+          gespeichert={aendern.isSuccess && !entwurf.geaendert}
+          fehler={fehler[""]}
+          gesperrt={gesperrt}
+          onVerwerfen={() => {
+            entwurf.verwerfen();
+            aendern.reset();
+            setGeprueft(false);
+          }}
+        />
+      </div>
 
       {/* Rückfragen */}
       <Bestaetigung

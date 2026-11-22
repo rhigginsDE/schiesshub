@@ -46,15 +46,15 @@
   "vorlage": {
     "open": {
       "name": "Offenes Turnier",
-      "text": "Voreinstellung: Mehrfachstart erlaubt, bis zu 3 Starts je Schütze. Alles lässt sich danach ändern."
+      "text": "Mehrfachstart erlaubt, bis zu 3 Starts je Schütze. Lässt sich später ändern."
     },
     "club_championship": {
       "name": "Vereinsmeisterschaft",
-      "text": "Voreinstellung: ein Start je Schütze, kein Nachkauf. Alles lässt sich danach ändern."
+      "text": "Ein Start je Schütze, kein Nachkauf. Lässt sich später ändern."
     },
     "custom": {
-      "name": "Eigene",
-      "text": "Keine Voreinstellung: Es gelten die allgemeinen Standardwerte, alles wird selbst eingestellt."
+      "name": "Ohne Vorgabe",
+      "text": "Allgemeine Grundwerte, ein Start je Schütze. Du stellst alles selbst ein."
     }
   },
   "liste": {
@@ -62,7 +62,7 @@
     "anlegen": "Turnier anlegen",
     "oeffnen": "Öffnen",
     "leer_titel": "Noch kein Turnier",
-    "leer_text": "Mit „Turnier anlegen“ beginnt die Einrichtung: Name, Datum und Vorlage, danach Stände, Klassen und Wettbewerbe.",
+    "leer_text": "Leg mit „Turnier anlegen“ dein erstes Turnier an. Danach führt dich eine Liste Schritt für Schritt durch die Einrichtung.",
     "loeschen": "„{{name}}“ löschen",
     "loeschen_titel": "„{{name}}“ löschen?",
     "loeschen_text": "Das Turnier wird mit allen Ständen, Klassen und Wettbewerben gelöscht. Das lässt sich nicht rückgängig machen.",
@@ -70,6 +70,9 @@
   },
   "anlegen": {
     "titel": "Turnier anlegen",
+    "text": "Name und Datum genügen. Alles Weitere richtest du danach Schritt für Schritt ein.",
+    "mehrtaegig": "Das Turnier dauert mehrere Tage",
+    "art": "Art des Turniers",
     "knopf": "Anlegen und einrichten"
   },
   "feld": {
@@ -77,6 +80,8 @@
     "name_platzhalter": "z. B. Herbstpokal 2026",
     "veranstalter": "Veranstalter",
     "veranstalter_platzhalter": "z. B. SV Tell Musterstadt",
+    "veranstalter_hilfe": "Optional. Steht in der Ausschreibung.",
+    "datum": "Datum",
     "datum_von": "Datum von",
     "datum_bis": "Datum bis",
     "datum_bis_hilfe": "Leer lassen bei einem Tag",
@@ -103,22 +108,22 @@
     "shot_hilfe": "Jeder Schuss wird einzeln eingegeben."
   },
   "planung": {
-    "queue": "Reihenfolge",
-    "schedule": "Zeitplan",
-    "queue_hilfe": "Wartende Starts stehen in einer Reihenfolge; die Standaufsicht ruft den nächsten auf.",
+    "queue": "Der Reihe nach aufrufen",
+    "schedule": "Nach Zeitplan",
+    "queue_hilfe": "Ohne feste Uhrzeiten: Wer angemeldet ist, wartet, und die Standaufsicht ruft den Nächsten auf.",
     "schedule_hilfe": "Durchgänge mit Uhrzeit und Bahn; die Anmeldung bucht einen freien Platz.",
-    "vorschlag_zeitplan": "Vorschlag aus dem Ablauf: Zeitplan, {{minuten}} Min. je Durchgang",
-    "vorschlag_reihenfolge": "Vorschlag aus dem Ablauf: Reihenfolge",
+    "vorschlag_zeitplan": "Vorschlag aus dem Ablauf: nach Zeitplan, {{minuten}} Min. je Durchgang",
+    "vorschlag_reihenfolge": "Vorschlag aus dem Ablauf: der Reihe nach aufrufen",
     "uebernehmen": "Vorschlag übernehmen",
     "durchgang": "Dauer je Durchgang",
     "durchgang_hilfe": "Einschließlich Wechselzeit",
     "begruendung": {
       "zeitplan": "Alle Serien haben eine feste Zeit: {{schiesszeit}} Min. Schießzeit plus {{wechsel}} Min. Wechselzeit ergeben {{dauer}} Min.",
-      "reihenfolge": "Im Abschnitt „{{abschnitt}}“ steht die Dauer nicht fest, zum Beispiel weil nur eine Höchstzeit gilt."
+      "reihenfolge": "Bei „{{abschnitt}}“ steht die Dauer nicht fest, zum Beispiel weil nur eine Höchstzeit gilt."
     }
   },
   "einrichten": {
-    "bereiche": "Bereiche der Einrichtung",
+    "bereiche": "Schritte der Einrichtung",
     "unvollstaendig": "unvollständig",
     "abgeschlossen": "Das Turnier ist abgeschlossen. Zum Ändern zuerst „Wieder öffnen“.",
     "nicht_gefunden_titel": "Turnier nicht gefunden",
@@ -127,28 +132,28 @@
   },
   "bereich": {
     "stammdaten": {
-      "titel": "Stammdaten",
-      "text": "Name, Veranstalter und Datum des Turniers.",
-      "vorlage_hinweis": "Die Vorlage hat beim Anlegen Standardwerte gesetzt. Geändert werden sie unter „Einstellungen“."
+      "titel": "Name und Datum",
+      "text": "Wie das Turnier heißt, wann es stattfindet und wer es ausrichtet.",
+      "vorlage_hinweis": "Art des Turniers: {{vorlage}}. Die Vorgaben dazu, etwa für Mehrfachstart, änderst du unter „{{bereich}}“."
     },
     "staende": {
       "titel": "Stände",
-      "text": "Schießstände mit der Zahl ihrer Bahnen. Die Reihenfolge gilt für Listen und Anzeige."
+      "text": "Wo geschossen wird und wie viele Bahnen es gibt. Ein Stand genügt, wenn alles auf einem Stand stattfindet."
     },
     "klassen": {
       "titel": "Klassen",
-      "text": "Wettbewerbsklassen dieses Turniers. Aus dem Katalog übernehmen und danach frei ändern."
+      "text": "In diesen Klassen wird gewertet. Bei der Anmeldung wählst du die Klasse von Hand; Schiesshub speichert kein Geburtsdatum."
     },
     "wettbewerbe": {
       "titel": "Wettbewerbe"
     },
     "einstellungen": {
-      "titel": "Einstellungen",
-      "text": "Standardwerte für neu hinzugefügte Wettbewerbe und Regeln für das ganze Turnier. Vorhandene Wettbewerbe bleiben, wie sie sind."
+      "titel": "Startgeld und Vorgaben",
+      "text": "Das bekommt jeder Wettbewerb, den du danach hinzufügst. Leg es vor den Wettbewerben fest, dann musst du es nicht bei jedem einzeln eintragen."
     },
     "zusammenfassung": {
-      "titel": "Zusammenfassung",
-      "text": "Das Turnier auf einen Blick, mit allem, was vor dem Start noch fehlt."
+      "titel": "Überblick und Start",
+      "text": "Was noch fehlt, was als Nächstes kommt, und das Turnier auf einen Blick."
     },
     "ausschreibung": {
       "titel": "Ausschreibung",
@@ -158,14 +163,51 @@
   "speichern": {
     "knopf": "Speichern",
     "verwerfen": "Verwerfen",
-    "ungespeichert": "Ungespeicherte Änderungen",
-    "gespeichert": "Gespeichert"
+    "ungespeichert": "Nicht gespeichert",
+    "gespeichert": "Gespeichert",
+    "alles_gespeichert": "Alles gespeichert"
+  },
+  "aufgaben": {
+    "erledigt": "Erledigt",
+    "optional": "Optional",
+    "fehlt": "Fehlt noch: {{was}}",
+    "fehlt_was": {
+      "kein_stand": "ein Stand",
+      "keine_klasse": "Klassen",
+      "kein_wettbewerb": "ein Wettbewerb",
+      "ohne_stand_one": "Stand für {{count}} Wettbewerb",
+      "ohne_stand_other": "Stand für {{count}} Wettbewerbe",
+      "ohne_dauer_one": "Dauer je Durchgang bei {{count}} Wettbewerb",
+      "ohne_dauer_other": "Dauer je Durchgang bei {{count}} Wettbewerben"
+    },
+    "weiter": "Weiter: {{name}}",
+    "weiter_mit": "Weiter mit: {{name}}",
+    "schritt_von": "Schritt {{nr}} von {{gesamt}}",
+    "auswahl_eintrag": "{{nr}}. {{name}}{{zustand}}"
+  },
+  "entwurf": {
+    "titel": "Änderungen speichern?",
+    "text": "Du hast in „{{ort}}“ etwas geändert und noch nicht gespeichert.",
+    "text_ohne_speichern": "Du hast in „{{ort}}“ etwas geändert und noch nicht gespeichert. Speichere es im Formular, oder verwirf die Änderungen.",
+    "speichern": "Speichern und weiter",
+    "verwerfen": "Verwerfen",
+    "weiter_bearbeiten": "Weiter bearbeiten",
+    "fehler": "Speichern hat nicht geklappt. Was zu ändern ist, steht am Formular."
+  },
+  "erweitert": {
+    "titel": "Erweitert"
   },
   "einstellungen": {
     "startgeld": "Startgeld",
+    "startgeld_feld": "Startgeld (erster Start)",
+    "startgeld_hilfe": "Vorgabe für neue Wettbewerbe; 0,00 heißt kostenlos.",
+    "vorhanden_one": "Dein vorhandener Wettbewerb behält sein Startgeld. Ändern kannst du es dort unter „Wettbewerbe“.",
+    "vorhanden_other": "Deine {{count}} vorhandenen Wettbewerbe behalten ihr Startgeld. Ändern kannst du es dort unter „Wettbewerbe“.",
+    "erweitert_inhalt": "Erfassung, Wechselzeit, erste Startnummer, Einspruchsfrist, Währung",
     "waehrung": "Währung",
     "waehrung_hilfe": "Kürzel, z. B. EUR",
     "mehrfach_standard": "Mehrfachstart für neue Wettbewerbe erlauben",
+    "mehrfach_hilfe": "Ein Schütze darf denselben Wettbewerb mehrmals schießen und zahlt dafür Nachkauf.",
     "ablauf": "Ablauf",
     "weitere": "Weitere",
     "erste_startnummer": "Erste Startnummer",
@@ -176,7 +218,11 @@
     "einspruch_minuten": "Einspruchsfrist in Minuten"
   },
   "staende": {
-    "neu": "Neuer Stand",
+    "neu": "Weiterer Stand",
+    "weiterer": "Weiteren Stand anlegen",
+    "erster_titel": "Ersten Stand anlegen",
+    "erster_text": "Name und Zahl der Bahnen genügen. Weitere Stände kannst du jederzeit ergänzen.",
+    "reihenfolge_hinweis": "Die Reihenfolge gilt für Listen und Anzeige.",
     "name": "Name",
     "name_platzhalter": "z. B. 25-m-Stand",
     "bahnen": "Bahnen",
@@ -186,7 +232,7 @@
     "wettbewerbe_other": "{{count}} Wettbewerbe",
     "anlegen": "Stand anlegen",
     "leer_titel": "Noch kein Stand",
-    "leer_text": "Ohne Stand lassen sich Wettbewerbe keinen Bahnen zuordnen. Unten einen Stand anlegen.",
+    "leer_text": "Für dieses Turnier ist noch kein Stand angelegt.",
     "loeschen_titel": "„{{name}}“ löschen?",
     "loeschen_text": "Der Stand wird aus dem Turnier entfernt.",
     "loeschen_text_wettbewerbe_one": "Der Stand wird entfernt. {{count}} Wettbewerb verliert dadurch seinen Stand.",
@@ -194,11 +240,16 @@
   },
   "klassen": {
     "kein_geburtsdatum": "Schiesshub speichert kein Geburtsdatum. Die Klasse wählt die Anmeldung von Hand; die Altersangaben aus dem Katalog sind nur Hilfetext.",
-    "import_titel": "Aus dem Katalog übernehmen",
+    "import_titel": "Klassen des Verbands übernehmen",
     "verband": "Verband",
     "import_knopf": "Klassen übernehmen",
-    "import_hilfe_one": "Der Katalog nennt {{count}} Klasse.",
-    "import_hilfe_other": "Der Katalog nennt {{count}} Klassen.",
+    "import_knopf_verband": "{{verband}}-Klassen übernehmen",
+    "import_hilfe_one": "Mit einem Klick übernimmst du die {{count}} Klasse des {{verband}}. Danach kannst du umbenennen, löschen oder zusammenlegen.",
+    "import_hilfe_other": "Mit einem Klick übernimmst du alle {{count}} Klassen des {{verband}}. Danach kannst du umbenennen, löschen oder zusammenlegen.",
+    "nachladen": "Fehlende {{verband}}-Klassen nachladen",
+    "nachladen_hilfe": "Übernimmt nur Klassen, die noch nicht im Turnier sind.",
+    "eigene_knopf": "Eigene Klasse anlegen",
+    "erweitert_inhalt": "Kennung",
     "import_hilfe_vorhanden_one": "Der Katalog nennt {{count}} Klasse. Vorhandene Kennungen bleiben unverändert.",
     "import_hilfe_vorhanden_other": "Der Katalog nennt {{count}} Klassen. Vorhandene Kennungen bleiben unverändert.",
     "import_ergebnis_zero": "Keine neue Klasse: Alle Klassen des Katalogs sind schon im Turnier.",
@@ -207,17 +258,17 @@
     "im_turnier_one": "{{count}} Klasse im Turnier",
     "im_turnier_other": "{{count}} Klassen im Turnier",
     "leer_titel": "Noch keine Klasse",
-    "leer_text": "Klassen aus dem Katalog übernehmen oder unten einzeln anlegen.",
-    "neu": "Klasse einzeln anlegen",
+    "leer_text": "Für dieses Turnier sind noch keine Klassen angelegt.",
+    "neu": "Eigene Klasse anlegen",
     "anlegen": "Klasse anlegen",
     "name": "Name",
     "name_platzhalter": "z. B. Seniorenklasse",
     "kurz": "Kurzname",
     "kurz_platzhalter": "z. B. Sen",
     "kennung": "Kennung",
-    "kennung_hilfe": "Eindeutig, ohne Leerzeichen; leer = aus dem Kurznamen",
-    "zusammenlegen": "Zusammenlegen in",
-    "nicht_zusammenlegen": "Nicht zusammenlegen",
+    "kennung_hilfe": "Interner Schlüssel, eindeutig und ohne Leerzeichen. Leer lassen: Er wird aus dem Kurznamen gebildet.",
+    "zusammenlegen": "Kommt die Klasse nicht zustande, werten mit",
+    "nicht_zusammenlegen": "Keiner anderen Klasse",
     "zusammen_in": "Kommt sie nicht zustande: zusammen mit {{name}}",
     "loeschen_titel": "„{{name}}“ löschen?",
     "loeschen_text": "Die Klasse wird aus dem Turnier entfernt.",
@@ -228,21 +279,27 @@
     "titel": "Disziplin-Katalog",
     "umfang": "{{disziplinen}} Disziplinen · {{gruppen}} Gruppen",
     "suche": "Katalog durchsuchen",
-    "suche_platzhalter": "Kennziffer oder Name, z. B. 4401",
+    "suche_platzhalter": "Kennziffer, Name oder Gruppe",
     "suche_leeren": "Suche leeren",
     "verband": "Verband",
-    "gruppen": "Gruppen",
     "alle_gruppen": "Alle Gruppen",
+    "gruppen_hinweis": "Eine Gruppe wählen oder oben suchen.",
+    "waffenart": {
+      "kurzwaffe": "Kurzwaffe",
+      "langwaffe": "Langwaffe",
+      "flinte": "Flinte"
+    },
+    "treffer_one": "{{anzahl}} Treffer für „{{q}}“",
+    "treffer_other": "{{anzahl}} Treffer für „{{q}}“",
     "hinzufuegen": "Hinzufügen",
     "hinzufuegen_name": "{{kennziffer}} {{name}} hinzufügen",
     "im_turnier": "Im Turnier",
     "nochmal": "{{kennziffer}} noch einmal hinzufügen",
     "leer_titel": "Keine Disziplin gefunden",
-    "leer_suche": "Zu „{{q}}“ passt nichts. Gesucht wird in Kennziffer und Name.",
+    "leer_suche": "Zu „{{q}}“ passt nichts. Suche nach Kennziffer (z. B. 4401), Name (z. B. Repetierflinte) oder Gruppe (z. B. Fallscheibe oder KW 25 m).",
     "leer_gruppe": "Diese Gruppe enthält keine Disziplinen.",
-    "in_allen_suchen": "In allen Gruppen suchen",
     "stand": "{{name}}, Stand {{stand}}",
-    "eigener_hinweis": "Eigener Wettbewerb: Disziplin hinzufügen, aufklappen und „Als eigenen Wettbewerb kopieren“.",
+    "eigener_hinweis": "Abgewandelter Wettbewerb: Disziplin hinzufügen, aufklappen, unter „Erweitert“ „Als abgewandelten Wettbewerb kopieren“.",
     "variante_titel": "Ablauf für {{name}}",
     "variante_text": "Der Katalog nennt mehrere Abläufe. Welcher gilt in diesem Turnier? Er lässt sich später wechseln."
   },
@@ -253,56 +310,65 @@
     "leer_titel": "Noch kein Wettbewerb",
     "leer_text": "Links im Katalog eine Disziplin suchen und „Hinzufügen“ wählen.",
     "eigen": "Eigen",
-    "eigen_lang": "Eigener Wettbewerb",
+    "eigen_lang": "Abgewandelter Wettbewerb",
     "ohne_stand": "Kein Stand",
     "aufklappen": "Einstellungen aufklappen",
     "zuklappen": "Einstellungen zuklappen",
     "gruppe": {
-      "allgemein": "Allgemein",
-      "erfassung": "Ablauf und Erfassung",
-      "starts": "Mehrfachstart und Startgeld",
-      "klassen": "Klassen",
+      "grundlagen": "Stand und Startgeld",
+      "klassen": "Zugelassene Klassen",
+      "wertung": "Name, Wertung und Erfassung",
       "planung": "Planung am Stand",
       "ablauf": "Ablauf"
     },
+    "erweitert": {
+      "titel": "Erweitert: Ablauf und Wertung",
+      "text": "Voreingestellt aus Katalog und Turnier. Nur ändern, wenn die Ausschreibung es verlangt.",
+      "ungespeichert": "Ungespeicherte Änderung"
+    },
     "name": "Name",
+    "name_hilfe": "So steht der Wettbewerb auf Startzetteln und in der Anzeige.",
     "stand": "Stand",
     "kein_stand": "Kein Stand gewählt",
     "stand_fehlt": "Ohne Stand lassen sich keine Bahnen zuteilen.",
     "stand_option_one": "{{name}} ({{count}} Bahn)",
     "stand_option_other": "{{name}} ({{count}} Bahnen)",
-    "variante": "Ablauf-Variante",
-    "variante_hilfe": "Wechseln übernimmt den Ablauf dieser Variante aus dem Katalog.",
-    "variante_titel": "Variante „{{name}}“ übernehmen?",
+    "variante": "Ablauf laut Katalog",
+    "variante_hilfe": "Der Katalog nennt für diese Disziplin mehrere Abläufe. Ein Wechsel übernimmt den gewählten Ablauf unverändert.",
+    "variante_titel": "Ablauf „{{name}}“ übernehmen?",
     "mehrfach": "Mehrfachstart erlaubt",
+    "mehrfach_hilfe": "Schützen dürfen mehrmals starten und zahlen dafür den Nachkauf.",
     "keine_klassen": "Das Turnier hat noch keine Klassen. Ohne Auswahl sind alle Klassen zugelassen.",
     "klassen_alle": "Keine ausgewählt: Alle Klassen sind zugelassen.",
     "klassen_gewaehlt_one": "{{count}} Klasse zugelassen.",
     "klassen_gewaehlt_other": "{{count}} Klassen zugelassen.",
     "gemeinsam": "Alle Klassen gemeinsam werten",
     "gemeinsam_hilfe": "Eine Rangliste für alle zugelassenen Klassen",
-    "abweichungen_one": "{{count}} Wert geändert",
-    "abweichungen_other": "{{count}} Werte geändert",
+    "abweichungen_one": "{{count}} Abweichung vom Katalog",
+    "abweichungen_other": "{{count}} Abweichungen vom Katalog",
+    "wie_katalog": "Wie im Katalog",
+    "ablauf_zweck": "So wird geschossen: Serien, Schuss, Zeiten und Zuschläge. Die Werte kommen aus dem Katalog und passen für die meisten Turniere. Ändere sie nur, wenn deine Ausschreibung etwas anderes festlegt.",
+    "ablauf_zweck_eigen": "So wird geschossen: Serien, Schuss, Zeiten und Zuschläge. Bei einem abgewandelten Wettbewerb sind alle Werte frei einstellbar.",
     "ablauf_aktiv_hinweis": "Das Turnier läuft: Änderungen an Ablauf, Erfassung oder Mehrfachstart brauchen einen Grund. Erfasste Ergebnisse werden neu berechnet.",
     "herkunft_katalog": "Aus dem Katalog: {{verband}} {{kennziffer}}, Stand {{stand}}. Änderungen gelten nur für dieses Turnier.",
-    "herkunft_eigen": "Eigener Wettbewerb ohne Katalog. Alle Werte sind frei einstellbar.",
-    "zuruecksetzen": "Auf Katalogwert zurücksetzen",
-    "zuruecksetzen_titel": "Ablauf auf den Katalogwert zurücksetzen?",
+    "herkunft_eigen": "Abgewandelter Wettbewerb ohne Bindung an den Katalog. Alle Werte sind frei einstellbar.",
+    "zuruecksetzen": "Auf Katalog zurücksetzen",
+    "zuruecksetzen_titel": "Ablauf auf den Katalog zurücksetzen?",
     "zuruecksetzen_text": "Ablauf und Wertung kommen neu aus dem aktuellen Katalog. Stand, Startgeld, Klassen und Planung bleiben.",
     "zuruecksetzen_knopf": "Zurücksetzen",
-    "kopieren": "Als eigenen Wettbewerb kopieren",
-    "kopieren_titel": "Als eigenen Wettbewerb kopieren",
+    "kopieren": "Als abgewandelten Wettbewerb kopieren",
+    "kopieren_titel": "Als abgewandelten Wettbewerb kopieren",
     "kopieren_text": "Es entsteht ein zusätzlicher Wettbewerb mit denselben Einstellungen, aber ohne Bindung an den Katalog. Ablauf und Name sind danach frei änderbar.",
     "kopieren_knopf": "Kopie anlegen",
-    "kopie_name": "{{name}} (eigen)",
+    "kopie_name": "{{name}} (abgewandelt)",
     "grund_titel": "Wertung eines laufenden Turniers ändern",
-    "grund_text": "Die Änderung betrifft die Wertung. Bereits erfasste Ergebnisse werden neu berechnet; Serien, die es nicht mehr gibt, werden gestrichen. Die alte Fassung bleibt im Verlauf erhalten.",
+    "grund_text": "Die Änderung betrifft die Wertung. Bereits erfasste Ergebnisse werden neu berechnet; Serien, die es nicht mehr gibt, werden gestrichen. Die bisherigen Einstellungen bleiben unter „Frühere Einstellungen“ erhalten.",
     "grund": "Grund",
     "grund_platzhalter": "z. B. Ausschreibung: nur 3 Serien gewertet",
     "grund_knopf": "Mit Grund speichern",
-    "verlauf_one": "Verlauf: {{count}} frühere Fassung der Wertung",
-    "verlauf_other": "Verlauf: {{count}} frühere Fassungen der Wertung",
-    "revision": "Fassung {{nr}}",
+    "verlauf_one": "Frühere Einstellungen der Wertung ({{count}})",
+    "verlauf_other": "Frühere Einstellungen der Wertung ({{count}})",
+    "revision": "Änderung {{nr}}",
     "revision_ohne_grund": "ohne Grund (vor dem Start)",
     "loeschen_titel": "„{{name}}“ entfernen?",
     "loeschen_text": "Der Wettbewerb wird aus dem Turnier entfernt."
@@ -313,7 +379,7 @@
     "ja": "ja",
     "nein": "nein",
     "nicht_gesetzt": "nicht gesetzt",
-    "katalog_wert": "Geändert · Katalog: {{wert}}",
+    "katalog_wert": "Geändert – im Katalog: {{wert}}",
     "serie_nr": "Serie {{nr}}",
     "nach_serie": "nach Serie {{nr}}",
     "positionen_one": "Anschlag und Position für {{count}} Serie kommen aus dem Katalog und bleiben unverändert.",
@@ -361,7 +427,7 @@
     "gewertet_one": "{{count}} Serie gewertet",
     "gewertet_other": "{{count}} Serien gewertet",
     "trefferaufnahme": "Trefferaufnahme nach Serie {{liste}}",
-    "planung_reihenfolge": "Reihenfolge",
+    "planung_reihenfolge": "Aufruf der Reihe nach",
     "planung_zeitplan": "Zeitplan",
     "planung_zeitplan_dauer": "Zeitplan, {{minuten}} Min.",
     "ein_start": "1 Start",
@@ -388,13 +454,19 @@
     "minuten": "{{wert}} Min.",
     "stand_one": "{{name}} ({{count}} Bahn)",
     "stand_other": "{{name}} ({{count}} Bahnen)",
-    "wie_katalog": "Wie im Katalog",
+    "wie_katalog": "Ablauf wie Katalog",
+    "frei": "frei",
+    "frei_lang": "Abgewandelt (frei änderbar)",
+    "zu_wettbewerben": "Wettbewerbe auswählen",
     "status_titel": "Status",
+    "naechster_titel": "Nächster Schritt",
+    "naechster_fehlt": "Am besten machst du mit „{{name}}“ weiter.",
+    "trotzdem": "Du kannst das Turnier auch starten, wenn noch etwas fehlt, und es danach ergänzen.",
     "vollstaendig": "Alles Nötige ist eingerichtet.",
-    "offen_titel": "Noch offen (startet trotzdem, wenn gewünscht):",
+    "offen_titel": "Bevor das Turnier startet, fehlt noch:",
     "status_text": {
-      "draft": "Das Turnier ist im Entwurf. Mit dem Start können Anmeldung und Erfassung beginnen.",
-      "active": "Das Turnier läuft. Nach dem letzten Ergebnis wird es abgeschlossen.",
+      "draft": "Starte das Turnier, wenn alles passt. Danach können Anmeldung und Erfassung beginnen; Einstellungen bleiben änderbar.",
+      "active": "Das Turnier läuft: Anmeldung und Erfassung sind offen. Nach dem letzten Ergebnis schließt du es ab.",
       "closed": "Das Turnier ist abgeschlossen."
     }
   },
@@ -418,31 +490,32 @@
   "ausschreibung": {
     "titel_standard": "Ausschreibung",
     "titel_feld": "Titel",
+    "titel_hilfe": "Leer lassen für „{{titel}}“.",
     "nicht_verfuegbar_titel": "Ausschreibung nicht verfügbar",
     "nicht_verfuegbar_text": "Der Server kennt die Ausschreibung noch nicht. Nach einem Update des Servers steht sie hier bereit.",
     "ansicht_bearbeiten": "Bearbeiten",
     "ansicht_vorschau": "Vorschau",
     "druckansicht": "Druckansicht",
     "erst_speichern": "Erst speichern, dann drucken",
-    "bausteine": "Bausteine",
+    "bausteine": "Abschnitte",
     "ohne_ueberschrift": "Ohne Überschrift",
     "ausgeblendet": "ausgeblendet",
     "noch_leer": "noch leer",
     "ausblenden": "„{{name}}“ ausblenden",
     "einblenden": "„{{name}}“ einblenden",
-    "text_hinzufuegen": "Text-Baustein hinzufügen",
-    "eckdaten_titel": "Titel und Eckdaten",
-    "baustein": "Baustein",
+    "text_hinzufuegen": "Abschnitt hinzufügen",
+    "eckdaten_titel": "Titel und Angaben zum Turnier",
+    "baustein": "Abschnitt",
     "ueberschrift": "Überschrift",
     "sichtbar": "In der Ausschreibung zeigen",
     "text": "Text",
     "zusatztext": "Zusatztext",
     "text_hilfe": "Reiner Text. Eine Leerzeile beginnt einen neuen Absatz.",
     "automatisch_hinweis": "Dieser Inhalt kommt automatisch aus dem Turnier:",
-    "keine_daten": "Dazu gibt es im Turnier noch keine Daten, oder der Baustein ist ausgeblendet.",
-    "keine_auswahl": "Links einen Baustein wählen.",
-    "baustein_loeschen": "Baustein löschen",
-    "hinweis_text": "Was hier stehen soll, schreibt der Verein selbst. Leer bleibt der Baustein in der Ausschreibung weg.",
+    "keine_daten": "Dazu gibt es im Turnier noch keine Daten, oder der Abschnitt ist ausgeblendet.",
+    "keine_auswahl": "Wähle links einen Abschnitt.",
+    "baustein_loeschen": "Abschnitt löschen",
+    "hinweis_text": "Was hier stehen soll, schreibt der Verein selbst. Bleibt das Feld leer, fehlt der Abschnitt in der Ausschreibung.",
     "hinweis_zusatz": "Optional: ein Satz vor oder nach der Aufstellung.",
     "hinweis": {
       "begruessung": "Üblich: Einladung zum Turnier und ein kurzer Gruß des Vereins.",
@@ -457,12 +530,12 @@
       "kontakt": "Üblich: Ansprechperson mit Telefon oder E-Mail."
     },
     "art": {
-      "text": "Freitext",
-      "competitions": "Automatisch: Wettbewerbe",
-      "classes": "Automatisch: Klassen",
-      "fees": "Automatisch: Startgeld",
-      "dates": "Automatisch: Termine",
-      "ranges": "Automatisch: Stände"
+      "text": "Eigener Text",
+      "competitions": "Aus dem Turnier: Wettbewerbe",
+      "classes": "Aus dem Turnier: Klassen",
+      "fees": "Aus dem Turnier: Startgeld",
+      "dates": "Aus dem Turnier: Termine",
+      "ranges": "Aus dem Turnier: Stände"
     },
     "eckdaten": {
       "venue": "Ort",

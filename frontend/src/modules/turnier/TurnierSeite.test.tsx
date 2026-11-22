@@ -79,8 +79,12 @@ describe("Turnierliste", () => {
     await userEvent.click(screen.getByRole("button", { name: "Turnier anlegen" }));
     const dialog = await screen.findByRole("dialog");
     await userEvent.type(within(dialog).getByLabelText(/Name/), "Herbstpokal");
-    await userEvent.click(within(dialog).getByRole("radio", { name: "Vereinsmeisterschaft" }));
-    expect(within(dialog).getByText(/ein Start je Schütze/)).toBeInTheDocument();
+    // Nur Name, Datum und Art: Veranstalter und Enddatum fragt der Dialog nicht ab.
+    expect(within(dialog).queryByLabelText(/Veranstalter/)).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText(/Datum bis/)).not.toBeInTheDocument();
+    const art = within(dialog).getByRole("radio", { name: "Vereinsmeisterschaft" });
+    await userEvent.click(art);
+    expect(art).toHaveAttribute("aria-checked", "true");
     await userEvent.click(within(dialog).getByRole("button", { name: "Anlegen und einrichten" }));
 
     await waitFor(() => expect(geschrieben).toHaveLength(1));
@@ -93,14 +97,65 @@ describe("Turnierliste", () => {
 });
 
 describe("Turnier einrichten", () => {
-  it("markiert unvollständige Bereiche", async () => {
+  it("zeigt nummerierte Schritte mit Zustand und öffnet den ersten offenen", async () => {
     api(grundlage({ ...beispielTurnier(), classes: [] }));
+    renderApp(`/turnier/${TURNIER_ID}`);
+
+    const nav = await screen.findByRole("navigation", { name: "Schritte der Einrichtung" });
+    const klassen = within(nav).getByRole("button", { name: /Klassen/ });
+    expect(within(klassen).getByText("Fehlt noch: Klassen")).toBeInTheDocument();
+    expect(klassen).toHaveAttribute("aria-current", "step");
+    const staende = within(nav).getByRole("button", { name: /Stände/ });
+    expect(within(staende).getByText("Erledigt")).toBeInTheDocument();
+    // Vorgaben vor den Wettbewerben, und am Ende des Schritts geht es weiter.
+    const titel = within(nav)
+      .getAllByRole("button")
+      .map((knopf) => knopf.textContent ?? "");
+    expect(titel.findIndex((x) => x.includes("Startgeld und Vorgaben"))).toBeLessThan(
+      titel.findIndex((x) => x.includes("Wettbewerbe")),
+    );
+    expect(screen.getByRole("button", { name: /Weiter: Startgeld und Vorgaben/ })).toBeVisible();
+  });
+
+  it("fragt vor dem Verlassen nach, wenn etwas ungespeichert ist", async () => {
+    const turnier = beispielTurnier();
+    const geschrieben = api({
+      ...grundlage(turnier),
+      [`PATCH ${T}`]: (inhalt: unknown) => ({ ...turnier, ...(inhalt as object) }),
+    });
     renderApp(`/turnier/${TURNIER_ID}?bereich=stammdaten`);
 
-    const nav = await screen.findByRole("navigation", { name: "Bereiche der Einrichtung" });
-    const klassen = within(nav).getByRole("button", { name: /Klassen/ });
-    expect(within(klassen).getByText("unvollständig")).toBeInTheDocument();
-    expect(within(nav).getByRole("button", { name: /^Stände$/ })).toBeInTheDocument();
+    const veranstalter = await screen.findByRole("textbox", { name: /Veranstalter/ });
+    await userEvent.clear(veranstalter);
+    await userEvent.type(veranstalter, "SV Neu");
+    expect(screen.getAllByText("Nicht gespeichert").length).toBeGreaterThan(0);
+
+    const nav = screen.getByRole("navigation", { name: "Schritte der Einrichtung" });
+    await userEvent.click(within(nav).getByRole("button", { name: /Stände/ }));
+    let dialog = await screen.findByRole("dialog", { name: "Änderungen speichern?" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Weiter bearbeiten" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.getByRole("textbox", { name: /Veranstalter/ })).toHaveValue("SV Neu");
+
+    await userEvent.click(within(nav).getByRole("button", { name: /Stände/ }));
+    dialog = await screen.findByRole("dialog", { name: "Änderungen speichern?" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Speichern und weiter" }));
+    await waitFor(() => expect(geschrieben).toHaveLength(1));
+    expect(geschrieben[0]).toMatchObject({ methode: "PATCH", inhalt: { organizer: "SV Neu" } });
+    expect(await screen.findByRole("heading", { name: "Stände", level: 2 })).toBeInTheDocument();
+  });
+
+  it("verwirft auf Wunsch und wechselt dann den Schritt", async () => {
+    const geschrieben = api(grundlage());
+    renderApp(`/turnier/${TURNIER_ID}?bereich=stammdaten`);
+
+    const name = await screen.findByRole("textbox", { name: /^Name/ });
+    await userEvent.type(name, " X");
+    await userEvent.click(screen.getByRole("button", { name: /Weiter: Stände/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Änderungen speichern?" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Verwerfen" }));
+    expect(await screen.findByRole("heading", { name: "Stände", level: 2 })).toBeInTheDocument();
+    expect(geschrieben).toHaveLength(0);
   });
 
   it("speichert eine Änderung am Ablauf als Definition", async () => {
@@ -111,6 +166,10 @@ describe("Turnier einrichten", () => {
     });
     renderApp(`/turnier/${TURNIER_ID}?bereich=wettbewerbe&wettbewerb=${WETTBEWERB_ID}`);
 
+    // Der Ablauf liegt unter „Erweitert“.
+    await userEvent.click(
+      await screen.findByRole("button", { name: /Erweitert: Ablauf und Wertung/ }),
+    );
     const gewertet = await screen.findByRole("textbox", { name: /Gewertete Serien/ });
     await userEvent.type(gewertet, "3");
     await userEvent.click(screen.getByRole("button", { name: "Speichern" }));
@@ -147,6 +206,9 @@ describe("Turnier einrichten", () => {
     });
     renderApp(`/turnier/${TURNIER_ID}?bereich=wettbewerbe&wettbewerb=${WETTBEWERB_ID}`);
 
+    await userEvent.click(
+      await screen.findByRole("button", { name: /Erweitert: Ablauf und Wertung/ }),
+    );
     const serien = await screen.findByRole("textbox", { name: /^Serien/ });
     await userEvent.clear(serien);
     await userEvent.type(serien, "12");
@@ -167,7 +229,7 @@ describe("Turnier einrichten", () => {
   it("blendet die Ausschreibung aus, wenn das Backend sie nicht kennt", async () => {
     api(grundlage());
     renderApp(`/turnier/${TURNIER_ID}?bereich=stammdaten`);
-    const nav = await screen.findByRole("navigation", { name: "Bereiche der Einrichtung" });
+    const nav = await screen.findByRole("navigation", { name: "Schritte der Einrichtung" });
     await waitFor(() =>
       expect(within(nav).queryByRole("button", { name: /Ausschreibung/ })).not.toBeInTheDocument(),
     );

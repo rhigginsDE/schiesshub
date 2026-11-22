@@ -12,6 +12,7 @@ import {
   useStandAnlegen,
   useStandLoeschen,
 } from "../abfragen";
+import a from "../aufgaben.module.css";
 import { fehlerText } from "../fehlertext";
 import { feldFehlerFuer } from "../senden";
 import s from "../turnier.module.css";
@@ -38,21 +39,29 @@ export function Staende({ turnier, gesperrt }: { turnier: TurnierUebersicht; ges
   const { t } = useTranslation("turnier");
   const sortieren = useStaendeSortieren(turnier.id);
   const staende = turnier.ranges;
+  // Mit einem Stand ist alles entschieden; ein weiterer Stand ist eine bewusste Zusatzaufgabe.
+  const [weiterer, setWeiterer] = useState(false);
 
   return (
     <div className={s.bereich}>
       <BereichKopf titel={t("bereich.staende.titel")} text={t("bereich.staende.text")} />
-      <section className="panel" aria-labelledby="staende-liste">
-        <h3 className="nur-screenreader" id="staende-liste">
-          {t("bereich.staende.titel")}
-        </h3>
-        {staende.length === 0 ? (
-          <Leerzustand
-            icon={LandPlot}
-            titel={t("staende.leer_titel")}
-            text={t("staende.leer_text")}
-          />
+      {staende.length === 0 ? (
+        !gesperrt ? (
+          <StandNeu turnierId={turnier.id} erster />
         ) : (
+          <section className="panel">
+            <Leerzustand
+              icon={LandPlot}
+              titel={t("staende.leer_titel")}
+              text={t("staende.leer_text")}
+            />
+          </section>
+        )
+      ) : (
+        <section className="panel" aria-labelledby="staende-liste">
+          <h3 className="nur-screenreader" id="staende-liste">
+            {t("bereich.staende.titel")}
+          </h3>
           <ul className={s.zeilenListe}>
             {staende.map((stand, index) => (
               <StandZeile
@@ -69,19 +78,47 @@ export function Staende({ turnier, gesperrt }: { turnier: TurnierUebersicht; ges
               />
             ))}
           </ul>
-        )}
-        {sortieren.isError && (
-          <p className={s.fehlerText} role="alert">
-            {fehlerText(sortieren.error)}
-          </p>
-        )}
-      </section>
-      {!gesperrt && <StandNeu turnierId={turnier.id} />}
+          {staende.length > 1 && <p className={s.hilfe}>{t("staende.reihenfolge_hinweis")}</p>}
+          {sortieren.isError && (
+            <p className={s.fehlerText} role="alert">
+              {fehlerText(sortieren.error)}
+            </p>
+          )}
+        </section>
+      )}
+      {!gesperrt &&
+        staende.length > 0 &&
+        (weiterer ? (
+          <StandNeu turnierId={turnier.id} onFertig={() => setWeiterer(false)} />
+        ) : (
+          <div className={a.knopfLinks}>
+            <Button
+              variant="default"
+              size="md"
+              leftSection={<Plus aria-hidden />}
+              onClick={() => setWeiterer(true)}
+            >
+              {t("staende.weiterer")}
+            </Button>
+          </div>
+        ))}
     </div>
   );
 }
 
-function StandNeu({ turnierId }: { turnierId: string }) {
+/**
+ * Formular für einen Stand. Beim ersten Stand ist „Stand anlegen“ die Hauptaktion; ein weiterer
+ * Stand lässt sich abbrechen.
+ */
+function StandNeu({
+  turnierId,
+  erster,
+  onFertig,
+}: {
+  turnierId: string;
+  erster?: boolean;
+  onFertig?: () => void;
+}) {
   const { t } = useTranslation("turnier");
   const anlegen = useStandAnlegen(turnierId);
   const [werte, setWerte] = useState<StandWerte>({ name: "", lane_count: 6 });
@@ -106,19 +143,24 @@ function StandNeu({ turnierId }: { turnierId: string }) {
             onSuccess: () => {
               setWerte({ name: "", lane_count: werte.lane_count });
               setGeprueft(false);
+              onFertig?.();
             },
           },
         );
       }}
     >
-      <h3 className="h-label" id="stand-neu">
-        {t("staende.neu")}
-      </h3>
+      <div>
+        <h3 className="h-section" id="stand-neu">
+          {erster ? t("staende.erster_titel") : t("staende.neu")}
+        </h3>
+        {erster && <p className={s.hilfe}>{t("staende.erster_text")}</p>}
+      </div>
       <div className={s.zeileFormular}>
         <TextInput
           label={t("staende.name")}
           placeholder={t("staende.name_platzhalter")}
           size="md"
+          autoFocus={!erster}
           value={werte.name}
           error={fehler.name}
           onChange={(e) => setWerte({ ...werte, name: e.currentTarget.value })}
@@ -138,6 +180,7 @@ function StandNeu({ turnierId }: { turnierId: string }) {
         <Button
           type="submit"
           size="md"
+          variant={erster ? "filled" : "default"}
           leftSection={<Plus aria-hidden />}
           loading={anlegen.isPending}
         >
@@ -148,6 +191,13 @@ function StandNeu({ turnierId }: { turnierId: string }) {
         <p className={s.fehlerText} role="alert">
           {fehler[""]}
         </p>
+      )}
+      {onFertig && (
+        <div className={a.knopfLinks}>
+          <Button variant="subtle" color="gray" size="md" onClick={onFertig}>
+            {t("aktion.abbrechen")}
+          </Button>
+        </div>
       )}
     </form>
   );
@@ -248,14 +298,16 @@ function StandZeile({ turnier, stand, index, gesperrt, onVerschieben }: StandZei
         </span>
       </span>
       <span className={s.zeilenAktionen}>
-        <ReihenfolgeKnoepfe
-          index={index}
-          anzahl={turnier.ranges.length}
-          hoch={t("aktion.nach_oben", { name: stand.name })}
-          runter={t("aktion.nach_unten", { name: stand.name })}
-          gesperrt={gesperrt}
-          onVerschieben={onVerschieben}
-        />
+        {turnier.ranges.length > 1 && (
+          <ReihenfolgeKnoepfe
+            index={index}
+            anzahl={turnier.ranges.length}
+            hoch={t("aktion.nach_oben", { name: stand.name })}
+            runter={t("aktion.nach_unten", { name: stand.name })}
+            gesperrt={gesperrt}
+            onVerschieben={onVerschieben}
+          />
+        )}
         <ActionIcon
           variant="subtle"
           color="gray"

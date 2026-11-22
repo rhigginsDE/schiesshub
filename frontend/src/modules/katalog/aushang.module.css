@@ -353,6 +353,8 @@
   :global(html[data-druck="aushang"] body) {
     /* biome-ignore lint/complexity/noImportantStyles: der dunkle App-Hintergrund darf nicht mitgedruckt werden */
     background: none !important;
+    /* Sonst färbt Chromium im dunklen Farbschema die leere Fläche einer Folgeseite dunkel ein. */
+    color-scheme: light;
   }
 
   .ebene {

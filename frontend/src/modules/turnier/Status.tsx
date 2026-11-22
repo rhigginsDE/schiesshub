@@ -20,7 +20,12 @@ import type { Turnier, TurnierStatus } from "./typen";
 /** Berechtigung zum Zurückstufen (Backend: `tournament.reopen`). */
 export const RECHT_WIEDEROEFFNEN = "tournament.reopen";
 
-const TON: Record<TurnierStatus, ChipTon> = { draft: "warn", active: "gruen", closed: "neutral" };
+// Entwurf ist kein Problem, darum neutral statt Warnfarbe.
+const TON: Record<TurnierStatus, ChipTon> = {
+  draft: "neutral",
+  active: "gruen",
+  closed: "neutral",
+};
 const SYMBOL = { draft: PencilLine, active: CirclePlay, closed: CircleCheck } as const;
 
 export function StatusChip({ status }: { status: TurnierStatus }) {

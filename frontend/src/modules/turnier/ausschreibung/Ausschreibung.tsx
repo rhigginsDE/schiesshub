@@ -109,7 +109,19 @@ function Editor({
   const navigate = useNavigate();
   const speichern = useAusschreibungSpeichern(turnier.id);
   const server = useQuery(ausschreibungDokumentAbfrage(turnier.id));
-  const entwurf = useEntwurf<AusschreibungDaten>({ ...LEER, ...quelle, facts: quelle.facts ?? {} });
+  const entwurf = useEntwurf<AusschreibungDaten>(
+    { ...LEER, ...quelle, facts: quelle.facts ?? {} },
+    {
+      speichern: async () => {
+        try {
+          await speichern.mutateAsync(zumSpeichern(entwurf.werte));
+          return true;
+        } catch {
+          return false;
+        }
+      },
+    },
+  );
   const { werte } = entwurf;
   const [gewaehlt, setGewaehlt] = useState<string | null>(werte.blocks[0]?.id ?? null);
   const [ansicht, setAnsicht] = useState<"bearbeiten" | "vorschau">("bearbeiten");
@@ -293,7 +305,10 @@ function Editor({
           <legend className="h-label">{t("ausschreibung.eckdaten_titel")}</legend>
           <TextInput
             label={t("ausschreibung.titel_feld")}
-            placeholder={`${t("ausschreibung.titel_standard")} ${turnier.name}`}
+            description={t("ausschreibung.titel_hilfe", {
+              titel: `${t("ausschreibung.titel_standard")} ${turnier.name}`,
+            })}
+            inputWrapperOrder={["label", "input", "description", "error"]}
             value={werte.title ?? ""}
             error={fehler.title}
             onChange={(e) => setze({ title: e.currentTarget.value })}

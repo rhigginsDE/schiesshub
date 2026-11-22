@@ -1,9 +1,10 @@
 import { ActionIcon, Button, CloseButton, Modal, Radio, Skeleton, TextInput } from "@mantine/core";
-import { useDebouncedCallback } from "@mantine/hooks";
-import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowLeft,
   Check,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Plus,
   Search,
@@ -20,7 +21,7 @@ import {
   gruppenAbfrage,
   verbaendeAbfrage,
 } from "../../../api/abfragen";
-import type { Disziplin, DisziplinDetail, Verband } from "../../../api/typen";
+import type { Disziplin, DisziplinDetail, Gruppe, Verband } from "../../../api/typen";
 import { Bestaetigung } from "../../../components/Bestaetigung";
 import { Chip } from "../../../components/Chip";
 import { formatGeld } from "../../../components/geld";
@@ -32,9 +33,9 @@ import { fehlerText } from "../fehlertext";
 import { ablaufKurz, planungKurz, startsKurz } from "../klartext";
 import s from "../turnier.module.css";
 import type { TurnierUebersicht, Wettbewerb } from "../typen";
+import { gruppenNachWaffenart, sucheImKatalog } from "./katalogSuche";
 import { WettbewerbBearbeiten } from "./WettbewerbBearbeiten";
-
-const SUCHE_VERZOEGERUNG_MS = 250;
+import w from "./wettbewerbe.module.css";
 
 interface WettbewerbeProps {
   turnier: TurnierUebersicht;
@@ -55,6 +56,10 @@ export function Wettbewerbe({ turnier, gesperrt, offen, onOffen }: WettbewerbePr
 
 // --- Katalog -----------------------------------------------------------------------------------
 
+/**
+ * Katalog: Suchfeld oben, darunter genau eine Ansicht – Treffer der Suche, die Disziplinen einer
+ * Gruppe oder die Übersicht der Gruppen. So stehen Treffer immer direkt unter dem Suchfeld.
+ */
 function KatalogAuswahl({
   turnier,
   gesperrt,
@@ -67,13 +72,8 @@ function KatalogAuswahl({
   const { t, i18n } = useTranslation("turnier");
   const verbaende = useQuery(verbaendeAbfrage());
   const [verbandId, setVerbandId] = useState<string | undefined>();
-  const [gruppe, setGruppe] = useState<string | undefined>();
+  const [gruppeId, setGruppeId] = useState<string | undefined>();
   const [eingabe, setEingabe] = useState("");
-  const [suche, setSuche] = useState<string | undefined>();
-  const sucheVerzoegert = useDebouncedCallback(
-    (text: string) => setSuche(text.trim() || undefined),
-    SUCHE_VERZOEGERUNG_MS,
-  );
   const verband: Verband | undefined =
     verbaende.data?.find((v) => v.id === verbandId) ?? verbaende.data?.[0];
 
@@ -101,20 +101,10 @@ function KatalogAuswahl({
         leftSection={<Search aria-hidden />}
         rightSection={
           eingabe ? (
-            <CloseButton
-              aria-label={t("katalog.suche_leeren")}
-              onClick={() => {
-                setEingabe("");
-                sucheVerzoegert.cancel();
-                setSuche(undefined);
-              }}
-            />
+            <CloseButton aria-label={t("katalog.suche_leeren")} onClick={() => setEingabe("")} />
           ) : null
         }
-        onChange={(e) => {
-          setEingabe(e.currentTarget.value);
-          sucheVerzoegert(e.currentTarget.value);
-        }}
+        onChange={(e) => setEingabe(e.currentTarget.value)}
       />
       {verbaende.isError ? (
         <Fehlerzustand fehler={verbaende.error} onErneut={() => void verbaende.refetch()} />
@@ -133,7 +123,7 @@ function KatalogAuswahl({
                   title={v.name}
                   onClick={() => {
                     setVerbandId(v.id);
-                    setGruppe(undefined);
+                    setGruppeId(undefined);
                   }}
                 >
                   {v.kuerzel}
@@ -141,15 +131,15 @@ function KatalogAuswahl({
               ))}
             </fieldset>
           )}
-          <Gruppen verband={verband.id} gruppe={gruppe} onGruppe={setGruppe} />
-          <Treffer
+          <KatalogInhalt
             turnier={turnier}
             verband={verband}
-            gruppe={gruppe}
-            suche={suche}
+            eingabe={eingabe}
+            gruppeId={gruppeId}
             gesperrt={gesperrt}
+            onGruppe={setGruppeId}
+            onSucheLeeren={() => setEingabe("")}
             onAngelegt={onAngelegt}
-            onAlleGruppen={() => setGruppe(undefined)}
           />
           <p className={s.katalogFuss}>
             {t("katalog.stand", {
@@ -165,86 +155,198 @@ function KatalogAuswahl({
   );
 }
 
-function Gruppen({
+interface KatalogInhaltProps {
+  turnier: TurnierUebersicht;
+  verband: Verband;
+  eingabe: string;
+  gruppeId: string | undefined;
+  gesperrt: boolean;
+  onGruppe: (gruppe: string | undefined) => void;
+  onSucheLeeren: () => void;
+  onAngelegt: (id: string) => void;
+}
+
+function KatalogInhalt({
+  turnier,
   verband,
-  gruppe,
+  eingabe,
+  gruppeId,
+  gesperrt,
+  onGruppe,
+  onSucheLeeren,
+  onAngelegt,
+}: KatalogInhaltProps) {
+  const { t, i18n } = useTranslation("turnier");
+  // Der ganze Katalog eines Verbands (rund 200 Einträge); gesucht wird im Browser.
+  const disziplinen = useQuery(disziplinenAbfrage(verband.id));
+  const gruppen = useQuery(gruppenAbfrage(verband.id));
+  const suche = eingabe.trim();
+
+  if (disziplinen.isError || gruppen.isError) {
+    return (
+      <Fehlerzustand
+        fehler={disziplinen.error ?? gruppen.error}
+        onErneut={() => {
+          void disziplinen.refetch();
+          void gruppen.refetch();
+        }}
+      />
+    );
+  }
+  if (!disziplinen.data || !gruppen.data) return <Skeleton height={240} radius="md" />;
+
+  if (suche) {
+    const treffer = sucheImKatalog(disziplinen.data, gruppen.data, suche);
+    if (treffer.length === 0) {
+      return (
+        <Leerzustand
+          icon={SearchX}
+          titel={t("katalog.leer_titel")}
+          text={t("katalog.leer_suche", { q: suche })}
+        >
+          <Button variant="default" onClick={onSucheLeeren}>
+            {t("katalog.suche_leeren")}
+          </Button>
+        </Leerzustand>
+      );
+    }
+    return (
+      <div className={w.katalogAnsicht}>
+        <p className={w.ansichtKopf} aria-live="polite">
+          {t("katalog.treffer", {
+            count: treffer.length,
+            anzahl: formatZahl(treffer.length, {}, i18n.language),
+            q: suche,
+          })}
+        </p>
+        <Treffer
+          turnier={turnier}
+          verband={verband}
+          disziplinen={treffer}
+          zweiteZeile="gruppe"
+          gesperrt={gesperrt}
+          onAngelegt={onAngelegt}
+        />
+      </div>
+    );
+  }
+
+  const gruppe = gruppen.data.find((eintrag) => eintrag.id === gruppeId);
+  if (gruppe) {
+    const inGruppe = disziplinen.data.filter((d) => d.gruppe_id === gruppe.id);
+    return (
+      <div className={w.katalogAnsicht}>
+        <div className={w.gruppenPfad}>
+          <Button
+            variant="subtle"
+            color="gray"
+            leftSection={<ArrowLeft aria-hidden />}
+            onClick={() => onGruppe(undefined)}
+          >
+            {t("katalog.alle_gruppen")}
+          </Button>
+          <h4 className={w.gruppenTitel}>{gruppe.name}</h4>
+        </div>
+        {inGruppe.length === 0 ? (
+          <Leerzustand
+            icon={SearchX}
+            titel={t("katalog.leer_titel")}
+            text={t("katalog.leer_gruppe")}
+          />
+        ) : (
+          <Treffer
+            turnier={turnier}
+            verband={verband}
+            disziplinen={inGruppe}
+            zweiteZeile="waffe"
+            gesperrt={gesperrt}
+            onAngelegt={onAngelegt}
+          />
+        )}
+      </div>
+    );
+  }
+
+  return <GruppenUebersicht gruppen={gruppen.data} onGruppe={onGruppe} />;
+}
+
+/** Ohne Suche: die Gruppen des Katalogs, nach Waffenart gegliedert. */
+function GruppenUebersicht({
+  gruppen,
   onGruppe,
 }: {
-  verband: string;
-  gruppe: string | undefined;
-  onGruppe: (gruppe: string | undefined) => void;
+  gruppen: readonly Gruppe[];
+  onGruppe: (gruppe: string) => void;
 }) {
   const { t, i18n } = useTranslation("turnier");
-  const gruppen = useQuery(gruppenAbfrage(verband));
-  if (gruppen.isPending) return <Skeleton height={120} radius="md" />;
-  if (gruppen.isError) {
-    return <Fehlerzustand fehler={gruppen.error} onErneut={() => void gruppen.refetch()} />;
-  }
   return (
-    <ul className={`inset ${s.gruppen}`} aria-label={t("katalog.gruppen")}>
-      <li>
-        <button
-          type="button"
-          className={s.gruppe}
-          aria-pressed={!gruppe}
-          onClick={() => onGruppe(undefined)}
-        >
-          <span>{t("katalog.alle_gruppen")}</span>
-        </button>
-      </li>
-      {gruppen.data.map((eintrag) => (
-        <li key={eintrag.id}>
-          <button
-            type="button"
-            className={s.gruppe}
-            aria-pressed={gruppe === eintrag.id}
-            onClick={() => onGruppe(eintrag.id)}
-          >
-            <span>{eintrag.name}</span>
-            <span className={`num ${s.anzahl}`}>
-              {formatZahl(eintrag.anzahl, {}, i18n.language)}
-            </span>
-          </button>
-        </li>
-      ))}
-    </ul>
+    <div className={w.katalogAnsicht}>
+      <p className={w.ansichtKopf}>{t("katalog.gruppen_hinweis")}</p>
+      {gruppenNachWaffenart(gruppen).map(([waffenart, liste]) => {
+        const titel = t(`katalog.waffenart.${waffenart}`, { defaultValue: waffenart });
+        const id = `wb-waffenart-${waffenart}`;
+        return (
+          <section key={waffenart} className={w.waffenart} aria-labelledby={id}>
+            <h4 className={w.waffenartTitel} id={id}>
+              {titel}
+            </h4>
+            <ul className={`inset ${s.gruppen}`}>
+              {liste.map((eintrag) => (
+                <li key={eintrag.id}>
+                  <button
+                    type="button"
+                    className={`${s.gruppe} ${w.gruppe}`}
+                    onClick={() => onGruppe(eintrag.id)}
+                  >
+                    <span>{eintrag.name}</span>
+                    <span className={w.gruppeRechts}>
+                      <span className={`num ${s.anzahl}`}>
+                        {formatZahl(eintrag.anzahl, {}, i18n.language)}
+                      </span>
+                      <ChevronRight aria-hidden />
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+    </div>
   );
 }
 
 interface TrefferProps {
   turnier: TurnierUebersicht;
   verband: Verband;
-  gruppe: string | undefined;
-  suche: string | undefined;
+  disziplinen: readonly Disziplin[];
+  /** Unter dem Namen: Gruppe (bei der Suche) oder Waffe (innerhalb einer Gruppe) */
+  zweiteZeile: "gruppe" | "waffe";
   gesperrt: boolean;
   onAngelegt: (id: string) => void;
-  onAlleGruppen: () => void;
 }
 
 function Treffer({
   turnier,
   verband,
-  gruppe,
-  suche,
+  disziplinen,
+  zweiteZeile,
   gesperrt,
   onAngelegt,
-  onAlleGruppen,
 }: TrefferProps) {
   const { t } = useTranslation("turnier");
   const queryClient = useQueryClient();
-  const disziplinen = useQuery({
-    ...disziplinenAbfrage(verband.id, { gruppe, q: suche }),
-    placeholderData: keepPreviousData,
-  });
   const anlegen = useWettbewerbAnlegen(turnier.id);
   const [wahl, setWahl] = useState<{ detail: DisziplinDetail; variante: string } | null>(null);
   const [laedt, setLaedt] = useState<string | null>(null);
   const [fehler, setFehler] = useState<unknown>(null);
+  // Hat das Turnier genau einen Stand, ist die Zuordnung eindeutig.
+  const einzigerStand = turnier.ranges.length === 1 ? turnier.ranges[0]?.id : undefined;
 
   const imTurnier = new Map<string, number>();
-  for (const w of turnier.competitions) {
-    if (w.catalog_federation === verband.id && w.catalog_code) {
-      imTurnier.set(w.catalog_code, (imTurnier.get(w.catalog_code) ?? 0) + 1);
+  for (const eintrag of turnier.competitions) {
+    if (eintrag.catalog_federation === verband.id && eintrag.catalog_code) {
+      imTurnier.set(eintrag.catalog_code, (imTurnier.get(eintrag.catalog_code) ?? 0) + 1);
     }
   }
 
@@ -254,6 +356,7 @@ function Treffer({
         catalog_federation: detail.verband,
         catalog_code: detail.kennziffer,
         ...(variante ? { variant_id: variante } : {}),
+        ...(einzigerStand ? { range_id: einzigerStand } : {}),
       },
       {
         onSuccess: (neu) => {
@@ -285,26 +388,6 @@ function Treffer({
     }
   };
 
-  if (disziplinen.isPending) return <Skeleton height={240} radius="md" />;
-  if (disziplinen.isError) {
-    return <Fehlerzustand fehler={disziplinen.error} onErneut={() => void disziplinen.refetch()} />;
-  }
-  if (disziplinen.data.length === 0) {
-    return (
-      <Leerzustand
-        icon={SearchX}
-        titel={t("katalog.leer_titel")}
-        text={suche ? t("katalog.leer_suche", { q: suche }) : t("katalog.leer_gruppe")}
-      >
-        {gruppe && suche && (
-          <Button variant="default" onClick={onAlleGruppen}>
-            {t("katalog.in_allen_suchen")}
-          </Button>
-        )}
-      </Leerzustand>
-    );
-  }
-
   return (
     <>
       {fehler !== null && (
@@ -313,8 +396,8 @@ function Treffer({
           {fehlerText(fehler)}
         </p>
       )}
-      <ul className={s.treffer} data-laedt={disziplinen.isPlaceholderData || undefined}>
-        {disziplinen.data.map((disziplin) => {
+      <ul className={s.treffer}>
+        {disziplinen.map((disziplin) => {
           const anzahl = imTurnier.get(disziplin.kennziffer) ?? 0;
           return (
             <li key={disziplin.kennziffer} className={s.trefferZeile}>
@@ -322,7 +405,7 @@ function Treffer({
               <span className={s.zeileText}>
                 <strong>{disziplin.name}</strong>
                 <span className="gedaempft">
-                  {gruppe ? disziplin.waffe : disziplin.gruppe_name}
+                  {zweiteZeile === "waffe" ? disziplin.waffe : disziplin.gruppe_name}
                 </span>
               </span>
               {anzahl > 0 ? (
@@ -332,7 +415,7 @@ function Treffer({
                   <ActionIcon
                     variant="subtle"
                     color="gray"
-                    size={40}
+                    size={44}
                     aria-label={t("katalog.nochmal", { kennziffer: disziplin.kennziffer })}
                     title={t("katalog.nochmal", { kennziffer: disziplin.kennziffer })}
                     disabled={gesperrt}
@@ -448,7 +531,7 @@ function ImTurnier({ turnier, gesperrt, offen, onOffen }: WettbewerbeProps) {
               sortiertGerade={sortieren.isPending}
               onOffen={onOffen}
               onVerschieben={(richtung) =>
-                sortieren.mutate(verschiebe(liste, index, richtung).map((w) => w.id))
+                sortieren.mutate(verschiebe(liste, index, richtung).map((wb) => wb.id))
               }
             />
           ))}
@@ -501,13 +584,16 @@ function WettbewerbKarte({
         >
           <strong>{wettbewerb.name}</strong>
           <span>{ablaufKurz(wettbewerb.definition.variant, sprache)}</span>
-          <span className={s.wettbewerbMeta}>
+          {/* Trennpunkte per CSS; am Zeilenanfang werden sie abgeschnitten. */}
+          <span className={w.meta}>
             {stand ? (
               <span>{stand.name}</span>
             ) : (
-              <Chip ton="warn" icon={TriangleAlert}>
-                {t("wettbewerb.ohne_stand")}
-              </Chip>
+              <span>
+                <Chip ton="warn" icon={TriangleAlert}>
+                  {t("wettbewerb.ohne_stand")}
+                </Chip>
+              </span>
             )}
             <span>{planungKurz(wettbewerb, sprache)}</span>
             <span>{startsKurz(wettbewerb, sprache)}</span>
@@ -528,7 +614,7 @@ function WettbewerbKarte({
           <ActionIcon
             variant="subtle"
             color="gray"
-            size={40}
+            size={44}
             aria-label={t("aktion.loeschen", { name: wettbewerb.name })}
             title={t("aktion.loeschen", { name: wettbewerb.name })}
             disabled={gesperrt}
@@ -542,7 +628,7 @@ function WettbewerbKarte({
           <ActionIcon
             variant="subtle"
             color="gray"
-            size={40}
+            size={44}
             aria-label={offen ? t("wettbewerb.zuklappen") : t("wettbewerb.aufklappen")}
             aria-expanded={offen}
             aria-controls={formularId}

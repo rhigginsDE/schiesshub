@@ -1,8 +1,17 @@
 import { Button } from "@mantine/core";
-import { Check, Save, TriangleAlert, Undo2 } from "lucide-react";
-import type { ReactNode } from "react";
+import { Check, ChevronRight, Save, TriangleAlert, Undo2 } from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import a from "../aufgaben.module.css";
 import s from "../turnier.module.css";
+
+/** Hilfetexte unter dem Feld, damit nebeneinander stehende Felder auf einer Höhe bleiben. */
+export const HILFE_UNTEN = ["label", "input", "description", "error"] as (
+  | "label"
+  | "input"
+  | "description"
+  | "error"
+)[];
 
 export function BereichKopf({
   titel,
@@ -24,6 +33,40 @@ export function BereichKopf({
   );
 }
 
+/**
+ * Zugeklappter Abschnitt „Erweitert“ für Seltenes. Öffnet sich von selbst, wenn darin ein Fehler
+ * steht, damit niemand einen unsichtbaren Fehler sucht.
+ */
+export function Erweitert({
+  titel,
+  text,
+  fehler,
+  children,
+}: {
+  titel: string;
+  /** Was darin steht, z. B. „Währung, Erfassung, Einspruchsfrist“ */
+  text?: string;
+  fehler?: boolean;
+  children: ReactNode;
+}) {
+  const [offen, setOffen] = useState(false);
+  useEffect(() => {
+    if (fehler) setOffen(true);
+  }, [fehler]);
+  return (
+    <details className={a.erweitert} open={offen} onToggle={(e) => setOffen(e.currentTarget.open)}>
+      <summary>
+        <ChevronRight className={a.erweitertPfeil} aria-hidden />
+        <span className={a.erweitertText}>
+          <strong>{titel}</strong>
+          {text && <span>{text}</span>}
+        </span>
+      </summary>
+      <div className={a.erweitertInhalt}>{children}</div>
+    </details>
+  );
+}
+
 interface SpeicherleisteProps {
   geaendert: boolean;
   laedt: boolean;
@@ -37,7 +80,10 @@ interface SpeicherleisteProps {
   onVerwerfen: () => void;
 }
 
-/** Fuß eines Formulars: Zustand, Verwerfen und Speichern (Submit des umgebenden Formulars). */
+/**
+ * Fuß eines Formulars: Zustand, Verwerfen und Speichern (Submit des umgebenden Formulars).
+ * Mit Änderungen bleibt die Leiste am unteren Rand der Spalte stehen, damit „Speichern“ sichtbar ist.
+ */
 export function Speicherleiste({
   geaendert,
   laedt,
@@ -50,7 +96,7 @@ export function Speicherleiste({
 }: SpeicherleisteProps) {
   const { t } = useTranslation("turnier");
   return (
-    <div className={s.speicherleiste}>
+    <div className={s.speicherleiste} data-geaendert={geaendert || undefined}>
       <span className={s.speicherZustand} aria-live="polite">
         {fehler ? (
           <span className={s.fehlerText} role="alert">

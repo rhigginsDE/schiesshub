@@ -15,11 +15,12 @@ import {
   useKlassenSortieren,
   useKlassenUebernehmen,
 } from "../abfragen";
+import a from "../aufgaben.module.css";
 import { fehlerText } from "../fehlertext";
 import { feldFehlerFuer } from "../senden";
 import s from "../turnier.module.css";
 import type { KlasseAnlage, TurnierKlasse, TurnierUebersicht } from "../typen";
-import { BereichKopf } from "./Bausteine";
+import { BereichKopf, Erweitert, HILFE_UNTEN } from "./Bausteine";
 
 const FELDER = ["code", "name", "short", "merge_into_id"] as const;
 
@@ -72,32 +73,40 @@ export function Klassen({ turnier, gesperrt }: { turnier: TurnierUebersicht; ges
   const sortieren = useKlassenSortieren(turnier.id);
   const klassen = turnier.classes;
   const hilfe = new Map((katalogKlassen.data ?? []).map((klasse) => [klasse.id, klasse]));
+  const [eigene, setEigene] = useState(false);
+  const leer = klassen.length === 0;
+
+  const importProps = {
+    turnierId: turnier.id,
+    verbaende: (verbaende.data ?? []).map((v) => ({ value: v.id, label: v.kuerzel })),
+    verband: gewaehlt,
+    onVerband: setVerband,
+    anzahlKatalog: katalogKlassen.data?.length,
+  };
 
   return (
     <div className={s.bereich}>
       <BereichKopf titel={t("bereich.klassen.titel")} text={t("bereich.klassen.text")} />
-      <p className={`inset ${s.hinweisKasten}`}>{t("klassen.kein_geburtsdatum")}</p>
 
-      {!gesperrt && (
-        <KlassenImport
-          turnierId={turnier.id}
-          verbaende={(verbaende.data ?? []).map((v) => ({ value: v.id, label: v.kuerzel }))}
-          verband={gewaehlt}
-          onVerband={setVerband}
-          anzahlKatalog={katalogKlassen.data?.length}
-          vorhanden={klassen.length}
-        />
-      )}
-
-      <section className="panel" aria-labelledby="klassen-liste">
-        <div className="panel-kopf">
-          <h3 className="h-section" id="klassen-liste">
-            {t("klassen.im_turnier", { count: klassen.length })}
-          </h3>
-        </div>
-        {klassen.length === 0 ? (
-          <Leerzustand icon={Users} titel={t("klassen.leer_titel")} text={t("klassen.leer_text")} />
+      {leer ? (
+        !gesperrt ? (
+          <KlassenImport {...importProps} erster />
         ) : (
+          <section className="panel">
+            <Leerzustand
+              icon={Users}
+              titel={t("klassen.leer_titel")}
+              text={t("klassen.leer_text")}
+            />
+          </section>
+        )
+      ) : (
+        <section className="panel" aria-labelledby="klassen-liste">
+          <div className="panel-kopf">
+            <h3 className="h-section" id="klassen-liste">
+              {t("klassen.im_turnier", { count: klassen.length })}
+            </h3>
+          </div>
           <ul className={s.zeilenListe}>
             {klassen.map((klasse, index) => (
               <KlassenZeile
@@ -113,15 +122,31 @@ export function Klassen({ turnier, gesperrt }: { turnier: TurnierUebersicht; ges
               />
             ))}
           </ul>
-        )}
-        {sortieren.isError && (
-          <p className={s.fehlerText} role="alert">
-            {fehlerText(sortieren.error)}
-          </p>
-        )}
-      </section>
+          {sortieren.isError && (
+            <p className={s.fehlerText} role="alert">
+              {fehlerText(sortieren.error)}
+            </p>
+          )}
+        </section>
+      )}
 
-      {!gesperrt && <KlasseNeu turnier={turnier} />}
+      {!gesperrt &&
+        (eigene ? (
+          <KlasseNeu turnier={turnier} onFertig={() => setEigene(false)} />
+        ) : (
+          <div className={a.knopfLinks}>
+            {!leer && <KlassenImport {...importProps} />}
+            <Button
+              variant={leer ? "subtle" : "default"}
+              color={leer ? "gray" : undefined}
+              size="md"
+              leftSection={<Plus aria-hidden />}
+              onClick={() => setEigene(true)}
+            >
+              {t("klassen.eigene_knopf")}
+            </Button>
+          </div>
+        ))}
     </div>
   );
 }
@@ -132,37 +157,88 @@ interface KlassenImportProps {
   verband: string | null;
   onVerband: (verband: string) => void;
   anzahlKatalog: number | undefined;
-  vorhanden: number;
+  /** Noch keine Klasse im Turnier: Übernehmen ist die Hauptaktion. */
+  erster?: boolean;
 }
 
+/**
+ * Klassen des Verbands übernehmen. Ohne Klassen ist das die eine Hauptaktion; danach nur noch ein
+ * grauer Knopf, der fehlende Klassen nachlädt. Gibt es nur einen Verband, entfällt die Auswahl.
+ */
 function KlassenImport({
   turnierId,
   verbaende,
   verband,
   onVerband,
   anzahlKatalog,
-  vorhanden,
+  erster,
 }: KlassenImportProps) {
   const { t } = useTranslation("turnier");
   const uebernehmen = useKlassenUebernehmen(turnierId);
+  const kuerzel = verbaende.find((v) => v.value === verband)?.label ?? "";
+  const auswahl = verbaende.length > 1 && (
+    <Select
+      label={t("klassen.verband")}
+      size="md"
+      allowDeselect={false}
+      data={verbaende}
+      value={verband}
+      className={s.schmal}
+      onChange={(wert) => {
+        if (wert) onVerband(wert);
+        uebernehmen.reset();
+      }}
+    />
+  );
+  const meldung = (
+    <>
+      {uebernehmen.isSuccess && (
+        <p className={s.hilfe} aria-live="polite">
+          {t("klassen.import_ergebnis", { count: uebernehmen.data.length })}
+        </p>
+      )}
+      {uebernehmen.isError && (
+        <p className={s.fehlerText} role="alert">
+          {fehlerText(uebernehmen.error)}
+        </p>
+      )}
+    </>
+  );
+
+  if (!erster) {
+    return (
+      <>
+        {auswahl}
+        <Button
+          variant="default"
+          size="md"
+          leftSection={<Download aria-hidden />}
+          disabled={!verband}
+          loading={uebernehmen.isPending}
+          title={t("klassen.nachladen_hilfe")}
+          onClick={() => verband && uebernehmen.mutate(verband)}
+        >
+          {t("klassen.nachladen", { verband: kuerzel })}
+        </Button>
+        {meldung}
+      </>
+    );
+  }
 
   return (
     <section className={`panel ${s.formular}`} aria-labelledby="klassen-import">
-      <h3 className="h-label" id="klassen-import">
-        {t("klassen.import_titel")}
-      </h3>
-      <div className={s.zeileFormular}>
-        <Select
-          label={t("klassen.verband")}
-          size="md"
-          allowDeselect={false}
-          data={verbaende}
-          value={verband}
-          onChange={(wert) => {
-            if (wert) onVerband(wert);
-            uebernehmen.reset();
-          }}
-        />
+      <div>
+        <h3 className="h-section" id="klassen-import">
+          {t("klassen.import_titel")}
+        </h3>
+        <p className={s.hilfe}>
+          {anzahlKatalog !== undefined
+            ? t("klassen.import_hilfe", { count: anzahlKatalog, verband: kuerzel })
+            : t("klassen.leer_text")}
+        </p>
+      </div>
+      {auswahl}
+      <div className={a.knopfLinks}>
         <Button
           size="md"
           leftSection={<Download aria-hidden />}
@@ -170,23 +246,12 @@ function KlassenImport({
           loading={uebernehmen.isPending}
           onClick={() => verband && uebernehmen.mutate(verband)}
         >
-          {t("klassen.import_knopf")}
+          {kuerzel
+            ? t("klassen.import_knopf_verband", { verband: kuerzel })
+            : t("klassen.import_knopf")}
         </Button>
       </div>
-      <p className={s.hilfe} aria-live="polite">
-        {uebernehmen.isSuccess
-          ? t("klassen.import_ergebnis", { count: uebernehmen.data.length })
-          : anzahlKatalog !== undefined
-            ? t(vorhanden > 0 ? "klassen.import_hilfe_vorhanden" : "klassen.import_hilfe", {
-                count: anzahlKatalog,
-              })
-            : null}
-      </p>
-      {uebernehmen.isError && (
-        <p className={s.fehlerText} role="alert">
-          {fehlerText(uebernehmen.error)}
-        </p>
-      )}
+      {meldung}
     </section>
   );
 }
@@ -206,48 +271,58 @@ function KlassenFelder({
 }) {
   const { t } = useTranslation("turnier");
   return (
-    <div className={s.klassenFelder}>
-      <TextInput
-        label={t("klassen.name")}
-        placeholder={neu ? t("klassen.name_platzhalter") : undefined}
-        size="md"
-        value={werte.name}
-        error={fehler.name}
-        onChange={(e) => setWerte({ ...werte, name: e.currentTarget.value })}
-      />
-      <TextInput
-        label={t("klassen.kurz")}
-        placeholder={neu ? t("klassen.kurz_platzhalter") : undefined}
-        size="md"
-        value={werte.short}
-        error={fehler.short}
-        onChange={(e) => setWerte({ ...werte, short: e.currentTarget.value })}
-      />
-      <TextInput
-        label={t("klassen.kennung")}
-        description={neu ? t("klassen.kennung_hilfe") : undefined}
-        placeholder={neu ? kennungAus(werte.short || werte.name) : undefined}
-        size="md"
-        value={werte.code}
-        error={fehler.code}
-        classNames={{ input: "num" }}
-        onChange={(e) => setWerte({ ...werte, code: e.currentTarget.value })}
-      />
-      <Select
-        label={t("klassen.zusammenlegen")}
-        size="md"
-        clearable
-        placeholder={t("klassen.nicht_zusammenlegen")}
-        data={ziele}
-        value={werte.merge_into_id}
-        error={fehler.merge_into_id}
-        onChange={(wert) => setWerte({ ...werte, merge_into_id: wert })}
-      />
-    </div>
+    <>
+      <div className={s.klassenFelder}>
+        <TextInput
+          label={t("klassen.name")}
+          placeholder={neu ? t("klassen.name_platzhalter") : undefined}
+          size="md"
+          value={werte.name}
+          error={fehler.name}
+          onChange={(e) => setWerte({ ...werte, name: e.currentTarget.value })}
+        />
+        <TextInput
+          label={t("klassen.kurz")}
+          placeholder={neu ? t("klassen.kurz_platzhalter") : undefined}
+          size="md"
+          value={werte.short}
+          error={fehler.short}
+          onChange={(e) => setWerte({ ...werte, short: e.currentTarget.value })}
+        />
+        <Select
+          label={t("klassen.zusammenlegen")}
+          size="md"
+          clearable
+          placeholder={t("klassen.nicht_zusammenlegen")}
+          data={ziele}
+          value={werte.merge_into_id}
+          error={fehler.merge_into_id}
+          onChange={(wert) => setWerte({ ...werte, merge_into_id: wert })}
+        />
+      </div>
+      <Erweitert
+        titel={t("erweitert.titel")}
+        text={t("klassen.erweitert_inhalt")}
+        fehler={Boolean(fehler.code)}
+      >
+        <TextInput
+          label={t("klassen.kennung")}
+          description={t("klassen.kennung_hilfe")}
+          inputWrapperOrder={HILFE_UNTEN}
+          placeholder={neu ? kennungAus(werte.short || werte.name) : undefined}
+          size="md"
+          className={s.schmal}
+          value={werte.code}
+          error={fehler.code}
+          classNames={{ input: "num" }}
+          onChange={(e) => setWerte({ ...werte, code: e.currentTarget.value })}
+        />
+      </Erweitert>
+    </>
   );
 }
 
-function KlasseNeu({ turnier }: { turnier: TurnierUebersicht }) {
+function KlasseNeu({ turnier, onFertig }: { turnier: TurnierUebersicht; onFertig: () => void }) {
   const { t } = useTranslation("turnier");
   const anlegen = useKlasseAnlegen(turnier.id);
   const leer: KlassenWerte = { code: "", name: "", short: "", merge_into_id: null };
@@ -271,11 +346,12 @@ function KlasseNeu({ turnier }: { turnier: TurnierUebersicht }) {
           onSuccess: () => {
             setWerte(leer);
             setGeprueft(false);
+            onFertig();
           },
         });
       }}
     >
-      <h3 className="h-label" id="klasse-neu">
+      <h3 className="h-section" id="klasse-neu">
         {t("klassen.neu")}
       </h3>
       <KlassenFelder
@@ -294,6 +370,9 @@ function KlasseNeu({ turnier }: { turnier: TurnierUebersicht }) {
         </p>
       )}
       <div className={s.knopfReihe}>
+        <Button variant="default" size="md" onClick={onFertig}>
+          {t("aktion.abbrechen")}
+        </Button>
         <Button
           type="submit"
           variant="default"
@@ -398,10 +477,7 @@ function KlassenZeile({
       <span className={`num ${s.kuerzel}`}>{klasse.short}</span>
       <span className={s.zeileText}>
         <strong>{klasse.name}</strong>
-        <span className="gedaempft">
-          <span className="num">{klasse.code}</span>
-          {katalog?.alter_hilfe && ` · ${katalog.alter_hilfe}`}
-        </span>
+        {katalog?.alter_hilfe && <span className="gedaempft">{katalog.alter_hilfe}</span>}
         {ziel && (
           <span className={s.zusammen}>
             <Merge aria-hidden />

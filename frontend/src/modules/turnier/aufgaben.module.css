@@ -1,0 +1,366 @@
+/* Turnier einrichten: Schrittliste, Weiter-Leiste, „Erweitert“, Speicherstand. Farben nur über --sh-*. */
+
+/* ---------- Schrittliste (links) ---------- */
+.schritte {
+  padding: 8px;
+  background: var(--sh-flaeche);
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-l);
+  min-width: 0;
+}
+
+.liste {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.schritt {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: start;
+  gap: 2px 10px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--sh-radius-s);
+  background: transparent;
+  color: var(--sh-text-weich);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.schritt:hover {
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text);
+}
+
+.schritt:focus-visible {
+  outline: 2px solid var(--sh-akzent);
+  outline-offset: 1px;
+}
+
+.schritt[aria-current="step"] {
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text);
+  box-shadow: inset 3px 0 0 var(--sh-akzent);
+}
+
+.nummer {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--sh-linie-stark);
+  border-radius: 50%;
+  font: 600 var(--sh-fz-klein) / 1 var(--sh-font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--sh-text-weich);
+}
+
+.schritt[data-zustand="erledigt"] .nummer {
+  border-color: var(--sh-akzent);
+  background: var(--sh-akzent-flaeche);
+  color: var(--sh-akzent-text);
+}
+
+.schritt[aria-current="step"] .nummer {
+  border-color: var(--sh-akzent);
+  color: var(--sh-text);
+}
+
+.schrittText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 3px;
+}
+
+.schrittTitel {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.zustand {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: var(--sh-fz-klein);
+  line-height: 1.35;
+  color: var(--sh-text-gedaempft);
+}
+
+.zustand svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.zustand[data-art="erledigt"] {
+  color: var(--sh-akzent-text);
+}
+
+.zustand[data-art="fehlt"] {
+  color: var(--sh-warn);
+}
+
+/* Schmal: statt der Liste eine Auswahl „Schritt 2 von 7: …“ */
+.auswahl {
+  display: none;
+}
+
+/* ---------- Spalte rechts: Bereich und Weiter-Leiste ---------- */
+.bereichSpalte {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+
+.weiter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--sh-linie);
+}
+
+.weiterHinweis {
+  margin-right: auto;
+  font-size: var(--sh-fz-klein);
+  color: var(--sh-text-gedaempft);
+  min-width: 0;
+}
+
+/* ---------- Speicherstand im Kopf ---------- */
+.kopfRechts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 16px;
+}
+
+.speicherstand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--sh-fz-klein);
+  color: var(--sh-akzent-text);
+  white-space: nowrap;
+}
+
+.speicherstand[data-offen] {
+  color: var(--sh-warn);
+  font-weight: 600;
+}
+
+/* ---------- „Erweitert“ innerhalb eines Bereichs ---------- */
+.erweitert {
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-l);
+  background: var(--sh-flaeche);
+  min-width: 0;
+}
+
+.erweitert > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 10px 16px;
+  cursor: pointer;
+  list-style: none;
+  border-radius: var(--sh-radius-l);
+}
+
+.erweitert > summary::-webkit-details-marker {
+  display: none;
+}
+
+.erweitert > summary:focus-visible {
+  outline: 2px solid var(--sh-akzent);
+  outline-offset: 2px;
+}
+
+.erweitertPfeil {
+  flex: none;
+  color: var(--sh-text-gedaempft);
+  transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.erweitert[open] .erweitertPfeil {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .erweitertPfeil {
+    transition: none;
+  }
+}
+
+.erweitertText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.erweitertText strong {
+  font-weight: 600;
+}
+
+.erweitertText span {
+  font-size: var(--sh-fz-klein);
+  color: var(--sh-text-gedaempft);
+}
+
+.erweitertInhalt {
+  display: grid;
+  gap: 20px;
+  padding: 4px 16px 18px;
+  min-width: 0;
+}
+
+.unterTitel {
+  font-size: var(--sh-fz-label);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sh-text-gedaempft);
+}
+
+/* ---------- Zusammenfassung: nächster Schritt ---------- */
+.naechster {
+  display: grid;
+  gap: 14px;
+}
+
+.naechsterAktionen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Hinweis mit Info-Symbol, z. B. „Vorhandene Wettbewerbe behalten ihr Startgeld“ */
+.infoKasten {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  font-size: var(--sh-fz-klein);
+  line-height: 1.45;
+  color: var(--sh-text-weich);
+}
+
+.infoKasten > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--sh-info);
+}
+
+/* ---------- Rückfrage beim Verlassen ---------- */
+.rueckfrage {
+  display: grid;
+  gap: 16px;
+}
+
+.rueckfrageKnoepfe {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ---------- Turnier anlegen: Turnierart als Karten ---------- */
+.arten {
+  display: grid;
+  gap: 8px;
+}
+
+.art {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 4px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--sh-linie-stark);
+  border-radius: var(--sh-radius-m);
+  background: transparent;
+}
+
+.art[data-checked] {
+  border-color: var(--sh-akzent);
+  background: var(--sh-akzent-flaeche);
+}
+
+.art:focus-visible {
+  outline: 2px solid var(--sh-akzent);
+  outline-offset: 2px;
+}
+
+.artText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
+}
+
+.artText strong {
+  font-weight: 600;
+  color: var(--sh-text);
+}
+
+.artText span {
+  font-size: var(--sh-fz-klein);
+  color: var(--sh-text-weich);
+}
+
+/* Fenster-Layout groß: Schrittliste und Bereich scrollen je für sich, die Leiste bleibt unten. */
+@media (min-width: 1101px) and (min-height: 560px) {
+  .schritte {
+    align-self: start;
+    max-height: 100%;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sh-linie) transparent;
+  }
+
+  .bereichSpalte {
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-content: stretch;
+    min-height: 0;
+    gap: 12px;
+  }
+
+  .weiter {
+    padding: 10px 4px 0;
+  }
+}
+
+@media (max-width: 1100px) {
+  .liste {
+    display: none;
+  }
+
+  .auswahl {
+    display: block;
+  }
+
+  .schritte {
+    padding: 12px;
+  }
+}
+
+/* Knopfreihe links unter einer Liste, z. B. „Weiteren Stand anlegen“ */
+.knopfLinks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}

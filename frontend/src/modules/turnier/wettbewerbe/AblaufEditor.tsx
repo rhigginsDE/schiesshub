@@ -12,6 +12,15 @@ import {
   setzeSerien,
   sichtbareFelder,
 } from "../wettbewerbFormular";
+import w from "./wettbewerbe.module.css";
+
+/** Hilfetexte unter dem Feld, damit Felder einer Zeile auf einer Höhe beginnen. */
+const HILFE_UNTEN = ["label", "input", "description", "error"] as (
+  | "label"
+  | "input"
+  | "description"
+  | "error"
+)[];
 
 interface AblaufEditorProps {
   abschnitte: Abschnitt[];
@@ -96,7 +105,7 @@ function AbschnittFormular({
   const allgemein = fehler[pfad("")] ?? fehler[abschnittPfad(index)];
 
   return (
-    <fieldset className={`inset ${s.abschnitt}`} disabled={gesperrt}>
+    <fieldset className={`inset ${s.abschnitt} ${w.abschnitt}`} disabled={gesperrt}>
       <legend className={mitName ? s.abschnittName : "nur-screenreader"}>
         {mitName ? abschnitt.name : t("ablauf.titel")}
       </legend>
@@ -106,7 +115,7 @@ function AbschnittFormular({
         </p>
       )}
 
-      <div className={s.feldRaster}>
+      <div className={w.feldRaster}>
         <ZahlFeld
           label={t("ablauf.feld.serien")}
           wert={abschnitt.serien}
@@ -143,7 +152,7 @@ function AbschnittFormular({
         return (
           <div key={gruppe} className={s.feldGruppe}>
             <span className="h-label">{t(`ablauf.gruppe.${gruppe}`)}</span>
-            <div className={s.feldRaster}>
+            <div className={w.feldRaster}>
               {inGruppe.map((beschreibung) => (
                 <Feld
                   key={beschreibung.feld}
@@ -214,6 +223,7 @@ function ZahlFeld({
     <NumberInput
       label={label}
       description={geaendertText ?? beschreibung}
+      inputWrapperOrder={HILFE_UNTEN}
       placeholder={platzhalter}
       size="md"
       min={min}
@@ -358,6 +368,7 @@ function RingwerteFeld({
     <TextInput
       label={label}
       description={geaendertText ?? t("ablauf.feld.ringwerte_hilfe")}
+      inputWrapperOrder={HILFE_UNTEN}
       size="md"
       value={text}
       error={fehler}
