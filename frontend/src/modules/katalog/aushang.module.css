@@ -8,6 +8,12 @@
   background: var(--sh-bg);
   color: var(--sh-text);
   display: grid;
+  /* Eine Spalte in Fensterbreite: Ohne feste Spur richtet sich die Spalte nach dem 210 mm breiten
+     Blatt, und auf dem Handy würde es rechts abgeschnitten (max-width: 100% griffe dann nicht). */
+  grid-template-columns: minmax(0, 1fr);
+  /* Zeilen so hoch wie ihr Inhalt; sonst staucht das Grid das Blatt auf Fensterhöhe und der Text
+     läuft unten über das Blatt hinaus. */
+  grid-auto-rows: max-content;
   align-content: start;
   justify-items: center;
   gap: 16px;
@@ -175,13 +181,18 @@
   color: var(--sh-text-weich);
 }
 
+/* Bewusst kein Grid: Chromium streckt eine Tabelle in einem Grid beim Seitenumbruch für den Druck
+   auf Seitenhöhe (Aushang 4403 zerfiel so auf drei Seiten). Abstände daher über margin. */
 .kasten {
-  display: grid;
-  gap: 2mm;
+  display: flow-root;
   padding: 2mm 4mm;
   border-radius: var(--sh-radius-s);
   background: var(--sh-flaeche-2);
   font-size: 9.5pt;
+}
+
+.kasten > * + * {
+  margin-top: 2mm;
 }
 
 .tabelle {
@@ -189,10 +200,12 @@
   border-collapse: collapse;
 }
 
-.tabelle caption {
-  text-align: left;
+.tabellenTitel {
   font-weight: 700;
-  padding-bottom: 1mm;
+}
+
+.kasten > .tabellenTitel + .tabelle {
+  margin-top: 1mm;
 }
 
 .tabelle th {
@@ -255,9 +268,11 @@
   font-weight: 700;
 }
 
+/* Die Reihenfolge der Kriterien zählt: Nummern zeigen (der globale Reset nimmt sie sonst weg). */
 .gleichstand {
   margin: 0;
   padding-left: 5mm;
+  list-style: decimal;
 }
 
 .gedaempft {

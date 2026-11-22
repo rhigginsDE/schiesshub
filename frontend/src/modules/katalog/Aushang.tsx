@@ -18,6 +18,7 @@ import s from "./aushang.module.css";
 import {
   ganzzahl,
   nurZeitVarianten,
+  ohneSollzeiten,
   sollzeitTabelle,
   verwendeteHaende,
   zeitTabelle,
@@ -184,7 +185,12 @@ function Blatt({ disziplin, variante, alleVarianten, nurZeiten, verband }: Blatt
       {variante.abschnitte.map((abschnitt, index) => {
         const sollzeiten = nurZeiten ? sollzeitTabelle(alleVarianten, index, sprache) : [];
         const zeiten = zeitTabelle(abschnitt, sprache);
-        const teile = beschreibeAbschnitt(abschnitt, sprache);
+        // Stehen Sollzeit und Abbruch je Variante in der Tabelle darunter, nennt die Kopfzeile
+        // sie nicht noch einmal (sonst stünde dort nur der Wert der ersten Variante).
+        const teile = beschreibeAbschnitt(
+          sollzeiten.length > 0 ? ohneSollzeiten(abschnitt) : abschnitt,
+          sprache,
+        );
         const abzug = disziplin.wertung.abzug_je_voller_sekunde_ueber_sollzeit;
         return (
           <section key={abschnitt.id} className={s.abschnitt}>
@@ -239,8 +245,12 @@ function Blatt({ disziplin, variante, alleVarianten, nurZeiten, verband }: Blatt
 
             {zeiten.length > 0 && (
               <div className={s.kasten}>
-                <table className={s.tabelle}>
-                  <caption>{t("aushang.zeit.titel")}</caption>
+                {/* Titel bewusst kein <caption>: Chromium streckt eine Tabelle mit caption beim
+                    Seitenumbruch für den Druck (Aushang 4403 lief so auf mehrere Seiten). */}
+                <p className={s.tabellenTitel} id={`${abschnitt.id}-zeit`}>
+                  {t("aushang.zeit.titel")}
+                </p>
+                <table className={s.tabelle} aria-labelledby={`${abschnitt.id}-zeit`}>
                   <thead>
                     <tr>
                       <th scope="col">{t("aushang.zeit.fall")}</th>

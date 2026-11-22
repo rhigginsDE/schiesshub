@@ -19,7 +19,7 @@
   border: 1px solid var(--sh-linie-stark);
   border-radius: var(--sh-radius-m);
   background: var(--sh-flaeche);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .symbol {

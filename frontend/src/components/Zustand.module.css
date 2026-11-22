@@ -8,6 +8,13 @@
   min-width: 0;
 }
 
+/* Im Panel trägt schon das Panel den Rahmen; ein zweiter wirkt wie ein Platzhalter. */
+:global(.panel) > .zustand:not(.fehler),
+.ohneRahmen {
+  border: 0;
+  padding: 4px 0;
+}
+
 .fehler {
   border-style: solid;
   border-color: var(--sh-krit-linie);
@@ -15,7 +22,7 @@
 }
 
 .symbol {
-  font-size: 22px;
+  font-size: 24px;
   color: var(--sh-text-gedaempft);
   margin-bottom: 4px;
 }
@@ -25,19 +32,19 @@
 }
 
 .titel {
-  font-weight: 600;
-  font-size: 16px;
+  font: italic 700 19px / 1.2 var(--sh-font-display);
+  text-wrap: balance;
 }
 
 .text {
   color: var(--sh-text-weich);
-  font-size: 14px;
+  font-size: var(--sh-fz-text);
   max-width: 62ch;
 }
 
 .technisch {
   color: var(--sh-text-gedaempft);
-  font-size: 12px;
+  font-size: var(--sh-fz-klein);
   overflow-wrap: anywhere;
 }
 

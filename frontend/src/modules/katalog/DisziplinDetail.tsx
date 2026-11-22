@@ -10,6 +10,7 @@ import { Chip } from "../../components/Chip";
 import { Fehlerzustand, Leerzustand } from "../../components/Zustand";
 import { beschreibeAbschnitt, schussGesamt } from "./ablauf";
 import s from "./katalog.module.css";
+import { verwendeteKuerzel } from "./kuerzel";
 import { AUSHANG_PFAD, KATALOG_PFAD, type KatalogSuche } from "./pfade";
 import { beschreibeWertung } from "./wertung";
 
@@ -82,6 +83,9 @@ function Inhalt({ disziplin }: { disziplin: DisziplinDetailDaten }) {
   const wertung = beschreibeWertung(disziplin.wertung, sprache);
   const unsicher = new Set(disziplin.pruefen ?? []);
   const ungeprueft = !disziplin.wertung.geprueft;
+  const kuerzel = verwendeteKuerzel(
+    [...STAMMDATEN.map((feld) => disziplin[feld]), disziplin.ablauf.beschreibung].join(" "),
+  );
 
   return (
     <>
@@ -107,6 +111,48 @@ function Inhalt({ disziplin }: { disziplin: DisziplinDetailDaten }) {
         {ungeprueft && <p className={s.hinweisWarn}>{t("detail.ungeprueft_hinweis")}</p>}
         {disziplin.optional && <p className={s.hinweis}>{t("liste.optional_hinweis")}.</p>}
       </header>
+
+      {/* Reihenfolge für Laien: erst wie es abläuft (Bild, je Variante), dann die Wertung,
+          danach Stammdaten und der Ablauf im Wortlaut des Katalogs. */}
+      <section className={s.abschnitt} aria-labelledby="detail-ablauf">
+        <h3 className="h-label" id="detail-ablauf">
+          {t("detail.ablauf")}
+        </h3>
+        <Positionen variante={disziplin.ablauf.varianten[0]} />
+        <ul className={s.varianten}>
+          {disziplin.ablauf.varianten.map((variante) => (
+            <VarianteKarte
+              key={variante.id}
+              variante={variante}
+              sprache={sprache}
+              mitName={disziplin.ablauf.varianten.length > 1}
+            />
+          ))}
+        </ul>
+        <p className={s.hinweis}>{t("detail.ablauf_je_serie")}</p>
+      </section>
+
+      <section className={s.abschnitt} aria-labelledby="detail-wertung">
+        <h3 className="h-label" id="detail-wertung">
+          {t("detail.wertung")}
+        </h3>
+        <div className={`inset ${s.wertung}`}>
+          <strong>{wertung.name}</strong>
+          <p>{wertung.saetze.join(" ")}</p>
+          {wertung.gleichstand ? (
+            <div>
+              <p>{t("wertung.gleichstand.titel")}:</p>
+              <ol className={s.gleichstand}>
+                {wertung.gleichstand.map((kriterium) => (
+                  <li key={kriterium}>{kriterium}</li>
+                ))}
+              </ol>
+            </div>
+          ) : (
+            <p className="gedaempft">{t("wertung.gleichstand.keine_regel")}</p>
+          )}
+        </div>
+      </section>
 
       <section className={s.abschnitt} aria-labelledby="detail-stammdaten">
         <h3 className="h-label" id="detail-stammdaten">
@@ -136,48 +182,26 @@ function Inhalt({ disziplin }: { disziplin: DisziplinDetailDaten }) {
             </div>
           )}
         </dl>
+        {kuerzel.length > 0 && (
+          <dl className={s.kuerzel} aria-label={t("detail.kuerzel_titel")}>
+            {kuerzel.map((eintrag) => (
+              <div key={eintrag}>
+                <dt>{t(`detail.kuerzel.${eintrag}.kurz`)}</dt>
+                <dd>{t(`detail.kuerzel.${eintrag}.text`)}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
       </section>
 
-      <section className={s.abschnitt} aria-labelledby="detail-ablauf">
-        <h3 className="h-label" id="detail-ablauf">
-          {t("detail.ablauf")}
-        </h3>
-        {disziplin.ablauf.beschreibung && <p>{disziplin.ablauf.beschreibung}</p>}
-        <ul className={s.varianten}>
-          {disziplin.ablauf.varianten.map((variante) => (
-            <VarianteKarte
-              key={variante.id}
-              variante={variante}
-              sprache={sprache}
-              mitName={disziplin.ablauf.varianten.length > 1}
-            />
-          ))}
-        </ul>
-        <p className={s.hinweis}>{t("detail.ablauf_je_serie")}</p>
-        <Positionen variante={disziplin.ablauf.varianten[0]} />
-      </section>
-
-      <section className={s.abschnitt} aria-labelledby="detail-wertung">
-        <h3 className="h-label" id="detail-wertung">
-          {t("detail.wertung")}
-        </h3>
-        <div className={`inset ${s.wertung}`}>
-          <strong>{wertung.name}</strong>
-          <p>{wertung.saetze.join(" ")}</p>
-          {wertung.gleichstand ? (
-            <div>
-              <p>{t("wertung.gleichstand.titel")}:</p>
-              <ol className={s.gleichstand}>
-                {wertung.gleichstand.map((kriterium) => (
-                  <li key={kriterium}>{kriterium}</li>
-                ))}
-              </ol>
-            </div>
-          ) : (
-            <p className="gedaempft">{t("wertung.gleichstand.keine_regel")}</p>
-          )}
-        </div>
-      </section>
+      {disziplin.ablauf.beschreibung && (
+        <section className={s.abschnitt} aria-labelledby="detail-beschreibung">
+          <h3 className="h-label" id="detail-beschreibung">
+            {t("detail.beschreibung")}
+          </h3>
+          <p className={s.beschreibung}>{disziplin.ablauf.beschreibung}</p>
+        </section>
+      )}
 
       <p className={s.hinweis}>{t("detail.haftung")}</p>
     </>

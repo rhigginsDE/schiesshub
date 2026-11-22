@@ -12,6 +12,7 @@ import {
   vereineAbfrage,
 } from "./api";
 import s from "./teilnehmer.module.css";
+import { vereinTreffer } from "./vereinSuche";
 
 const NEU = "$neu";
 const KEIN = "$kein";
@@ -60,24 +61,21 @@ export function VereinFeld({ wert, onAendern, label, description }: VereinFeldPr
   const alle = vereine.data ?? [];
   const gewaehlt = alle.find((verein) => verein.id === wert);
   const filter = vergleichsform(suche ?? "");
-  const passend = filter
-    ? alle.filter(
-        (verein) =>
-          vergleichsform(verein.name).includes(filter) ||
-          (verein.short ? vergleichsform(verein.short).includes(filter) : false),
-      )
-    : alle;
+  const { treffer: passend, aehnlich, exakt } = vereinTreffer(alle, suche ?? "");
   // Erst anbieten, wenn die Liste geladen ist; sonst entstünde beim schnellen Tippen eine Dublette.
-  const neuMoeglich =
-    vereine.isSuccess &&
-    filter !== "" &&
-    !alle.some((verein) => vergleichsform(verein.name) === filter);
+  // Passt Name oder Kürzel genau, gibt es den Verein schon.
+  const neuMoeglich = vereine.isSuccess && filter !== "" && !exakt;
 
-  // Nach jeder Eingabe den besten Treffer vorwählen, damit Enter ihn übernimmt.
+  // Nach jeder Eingabe den besten Treffer vorwählen, damit Enter ihn übernimmt. Gibt es nur ähnliche
+  // Vereine, wird nichts vorgewählt: Dann soll niemand per Enter versehentlich einen fremden Verein
+  // übernehmen oder einen doppelten anlegen. „Neu anlegen“ ist nur vorgewählt, wenn gar nichts passt.
+  const nurAehnlich = passend.length === 0 && aehnlich.length > 0;
   // biome-ignore lint/correctness/useExhaustiveDependencies: nur bei neuem Suchtext, nicht bei jedem Render
   useEffect(() => {
-    if (filter) combobox.selectFirstOption();
-  }, [filter]);
+    if (!filter) return;
+    if (nurAehnlich) combobox.resetSelectedOption();
+    else combobox.selectFirstOption();
+  }, [filter, nurAehnlich]);
 
   const fehler = anlegen.isError
     ? (fehlertext(anlegen.error) ?? t("vereinfeld.fehler"))
@@ -132,6 +130,9 @@ export function VereinFeld({ wert, onAendern, label, description }: VereinFeldPr
               anlegen.reset();
               setHinweis(null);
               onAendern(erster.id);
+            } else if (nurAehnlich) {
+              // Liste offen lassen: Ähnlichen Verein wählen oder bewusst „neu anlegen“ antippen.
+              return;
             } else if (neuMoeglich) {
               anlegen.mutate(bereinigen(suche ?? ""));
             }
@@ -165,15 +166,31 @@ export function VereinFeld({ wert, onAendern, label, description }: VereinFeldPr
                   {verein.short && <span className="gedaempft">{verein.short}</span>}
                 </Combobox.Option>
               ))}
+              {aehnlich.length > 0 && (
+                <Combobox.Group label={t("vereinfeld.aehnlich")}>
+                  {aehnlich.map((verein) => (
+                    <Combobox.Option
+                      key={verein.id}
+                      value={verein.id}
+                      active={verein.id === wert}
+                      className={s.vereinOption}
+                    >
+                      <span>{verein.name}</span>
+                      {verein.short && <span className="gedaempft">{verein.short}</span>}
+                    </Combobox.Option>
+                  ))}
+                </Combobox.Group>
+              )}
               {neuMoeglich && (
                 <Combobox.Option value={NEU} className={s.vereinNeu}>
                   <Plus aria-hidden />
                   {t("vereinfeld.neu", { name: bereinigen(suche ?? "") })}
                 </Combobox.Option>
               )}
-              {passend.length === 0 && !neuMoeglich && !(!filter && wert) && (
-                <Combobox.Empty>{t("vereinfeld.leer")}</Combobox.Empty>
-              )}
+              {passend.length === 0 &&
+                aehnlich.length === 0 &&
+                !neuMoeglich &&
+                !(!filter && wert) && <Combobox.Empty>{t("vereinfeld.leer")}</Combobox.Empty>}
             </>
           )}
         </Combobox.Options>

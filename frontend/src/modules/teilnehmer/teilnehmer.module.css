@@ -115,6 +115,13 @@
     align-items: stretch;
   }
 
+  /* position: relative hält absolut positionierte Inhalte (nur-screenreader-Texte) in der Spalte;
+     sonst ragen sie ins Dokument und die Seite scrollt zusätzlich. */
+  .listenSpalte,
+  .detailSpalte {
+    position: relative;
+  }
+
   .listenSpalte {
     min-height: 0;
     display: flex;
@@ -134,6 +141,23 @@
     scrollbar-color: var(--sh-linie) transparent;
     border-radius: var(--sh-radius-l);
   }
+}
+
+/* „Zur Liste“ gibt es nur in der einspaltigen Ansicht. Die Grundregel muss VOR der Media Query
+   stehen, sonst überschreibt sie dort das Einblenden (dann fehlt auf Tablet und Handy jeder Weg zurück). */
+.zurueck {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  justify-self: start;
+  margin-block: -8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sh-akzent-text);
+  font: 600 14px / 1 var(--sh-font-text);
+  cursor: pointer;
 }
 
 @media (max-width: 1100px) {
@@ -165,21 +189,6 @@
   container-type: inline-size;
 }
 
-.zurueck {
-  display: none;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  justify-self: start;
-  margin-block: -8px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--sh-akzent-text);
-  font: 600 14px / 1 var(--sh-font-text);
-  cursor: pointer;
-}
-
 .detailKopf {
   display: flex;
   align-items: flex-start;
@@ -209,7 +218,9 @@
   gap: 18px 28px;
 }
 
-@container (min-width: 820px) {
+/* Ab 700 px Panelbreite zwei Spalten: links Name/Verein/Nummer, rechts die Anzeige. So passt das
+   Formular auf dem Laptop (1440 × 900) ohne Scrollen. */
+@container (min-width: 700px) {
   .formRaster {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
@@ -245,25 +256,25 @@
 .feldHilfe {
   font-size: 13px;
   color: var(--sh-text-gedaempft);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .schalter {
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .vorschau {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   margin: 0;
-  padding: 14px 16px;
+  padding: 10px 14px;
 }
 
 .vorschauName {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font: italic 700 24px / 1.15 var(--sh-font-display);
+  font: italic 700 20px / 1.15 var(--sh-font-display);
   overflow-wrap: anywhere;
 }
 
@@ -311,13 +322,20 @@
   min-width: 0;
 }
 
+/* Knopfleiste bleibt unten im Blick, auch wenn das Formular länger ist als die Spalte bzw. der
+   Bildschirm: Der Hauptknopf ist ohne Scrollen erreichbar. */
 .aktionen {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  padding-top: 16px;
+  margin-inline: -16px;
+  padding: 12px 16px;
   border-top: 1px solid var(--sh-linie);
+  background: var(--sh-flaeche);
 }
 
 .status {
@@ -372,6 +390,13 @@
   gap: 4px;
   border: 1px solid var(--sh-krit-linie);
   background: var(--sh-krit-flaeche);
+}
+
+.hinweisAktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 /* Zerstörende Aktion: zurückhaltend, aber eindeutig. Farben aus den Variablen. */

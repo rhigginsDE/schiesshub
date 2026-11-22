@@ -3,7 +3,7 @@
   align-items: center;
   gap: 6px;
   white-space: nowrap;
-  font: 600 12px / 1 var(--sh-font-text);
+  font: 600 var(--sh-fz-klein) / 1 var(--sh-font-text);
   padding: 6px 10px;
   border-radius: 999px;
   background: var(--sh-flaeche-2);

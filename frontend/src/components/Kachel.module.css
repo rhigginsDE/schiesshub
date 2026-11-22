@@ -47,7 +47,7 @@
   gap: 4px;
   min-width: 0;
   color: var(--sh-text-gedaempft);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .text strong {
@@ -81,7 +81,7 @@
   grid-area: text;
   align-self: end;
   gap: 6px;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .gross .text strong {
@@ -111,7 +111,7 @@
 
   .gross .text {
     align-self: center;
-    font-size: 14px;
+    font-size: 15px;
   }
 
   .gross .text strong {

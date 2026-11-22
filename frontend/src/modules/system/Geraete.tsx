@@ -2,6 +2,7 @@ import { ActionIcon, Button, Menu, Modal, Select, Skeleton, TextInput } from "@m
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Ban,
+  CircleCheck,
   MonitorSmartphone,
   MoreVertical,
   Pencil,
@@ -147,7 +148,7 @@ function GeraetZeile({ geraet, rollen }: { geraet: Geraet; rollen: Rolle[] | und
       <Select
         className={s.auswahl}
         size="md"
-        aria-label={t("geraete.rolle")}
+        label={t("geraete.rolle")}
         data={rollenAuswahl(rollen, t("geraete.rolle_keine"))}
         value={geraet.default_role_id ?? OHNE_ROLLE}
         placeholder={rolleBekannt ? undefined : t("geraete.rolle_unbekannt")}
@@ -280,19 +281,33 @@ function KoppelDialog({
   const [name, setName] = useState("");
   const [rolle, setRolle] = useState<string>(OHNE_ROLLE);
   const [jetzt, setJetzt] = useState(() => Date.now());
+  // Geräte, die es schon vor dem Code gab; ein neues in der Liste heißt: gekoppelt.
+  const [vorher, setVorher] = useState<ReadonlySet<string> | null>(null);
 
   const erzeugen = useMutation({
-    mutationFn: () =>
-      apiSenden<Kopplungscode>("POST", "/devices/pairing-codes", {
+    mutationFn: async () => {
+      const bekannte = await queryClient.ensureQueryData(geraeteAbfrage());
+      const code = await apiSenden<Kopplungscode>("POST", "/devices/pairing-codes", {
         name: name.trim() || null,
         default_role_id: rolle === OHNE_ROLLE ? null : rolle,
-      }),
-    onSuccess: () => {
+      });
+      return { code, bekannte };
+    },
+    onSuccess: ({ bekannte }) => {
       setJetzt(Date.now());
+      setVorher((alt) => alt ?? new Set(bekannte.map((geraet) => geraet.id)));
       void queryClient.invalidateQueries({ queryKey: ["auth", "protokoll"] });
     },
   });
-  const code = erzeugen.data;
+  const code = erzeugen.data?.code;
+  // Das Ereignis „device.paired“ lädt die Liste neu; zur Sicherheit auch selbst nachsehen.
+  const geraete = useQuery({
+    ...geraeteAbfrage(),
+    enabled: vorher !== null,
+    refetchInterval: (abfrage) =>
+      vorher && !abfrage.state.data?.some((geraet) => !vorher.has(geraet.id)) ? 3000 : false,
+  });
+  const neuesGeraet = vorher ? geraete.data?.find((geraet) => !vorher.has(geraet.id)) : undefined;
 
   useEffect(() => {
     if (!code) return;
@@ -347,39 +362,78 @@ function KoppelDialog({
           </div>
         </form>
       ) : (
-        <div className={s.code}>
-          <p className={s.einleitung}>{t("geraete.code_anleitung")}</p>
-          {rest > 0 ? (
-            <>
-              <QrCode
-                text={adresse}
-                groesse={240}
-                beschriftung={t("geraete.code_qr", { adresse })}
-              />
-              <output className={`${s.codeText} num`} aria-label={t("auth:koppeln.code")}>
-                {codeGruppiert(code.code)}
-              </output>
-              <span className="num gedaempft">
-                {t("geraete.code_gueltig", {
-                  zeit: formatZeitpunkt(code.expires_at, i18n.language),
-                  rest: formatRestzeit(rest),
-                })}
+        <div className={s.koppelSchritte}>
+          <h3 className={s.aufgabenTitel}>{t("geraete.schritte")}</h3>
+          <ol className={s.schritte}>
+            <li className={s.schritt}>
+              <span className={`${s.schrittNr} num`} aria-hidden>
+                1
               </span>
-              <span className={`${s.adresse} num`}>
-                {t("geraete.code_adresse")}: {adresse}
+              <div className={s.schrittInhalt}>
+                <p>{t("geraete.schritt_1")}</p>
+                {rest > 0 && !neuesGeraet ? (
+                  <div className={s.code}>
+                    <QrCode
+                      text={adresse}
+                      groesse={220}
+                      beschriftung={t("geraete.code_qr", { adresse })}
+                    />
+                    <span className={`${s.adresse} num`}>
+                      {t("geraete.code_adresse")}: {adresse}
+                    </span>
+                  </div>
+                ) : (
+                  !neuesGeraet && <p className={s.schlecht}>{t("geraete.code_abgelaufen")}</p>
+                )}
+              </div>
+            </li>
+            <li className={s.schritt}>
+              <span className={`${s.schrittNr} num`} aria-hidden>
+                2
               </span>
-            </>
-          ) : (
-            <p className={s.schlecht}>{t("geraete.code_abgelaufen")}</p>
-          )}
-          <div className={s.aktionen}>
-            <Button
-              variant="default"
-              onClick={() => erzeugen.mutate()}
-              loading={erzeugen.isPending}
-            >
-              {t("geraete.code_neu")}
-            </Button>
+              <div className={s.schrittInhalt}>
+                <p>{t("geraete.schritt_2")}</p>
+                {rest > 0 && !neuesGeraet && (
+                  <>
+                    <output className={`${s.codeText} num`} aria-label={t("auth:koppeln.code")}>
+                      {codeGruppiert(code.code)}
+                    </output>
+                    <span className="num gedaempft">
+                      {t("geraete.code_gueltig", {
+                        zeit: formatZeitpunkt(code.expires_at, i18n.language),
+                        rest: formatRestzeit(rest),
+                      })}
+                    </span>
+                  </>
+                )}
+              </div>
+            </li>
+            <li className={s.schritt} data-erledigt={neuesGeraet ? "ja" : undefined}>
+              <span className={`${s.schrittNr} num`} aria-hidden>
+                {neuesGeraet ? <CircleCheck aria-hidden /> : "3"}
+              </span>
+              <div className={s.schrittInhalt}>
+                <p>{t("geraete.schritt_3")}</p>
+                <p role="status" className={neuesGeraet ? s.gut : "gedaempft"}>
+                  {neuesGeraet
+                    ? t("geraete.gekoppelt", { name: neuesGeraet.name })
+                    : rest > 0
+                      ? t("geraete.schritt_3_warten")
+                      : null}
+                </p>
+              </div>
+            </li>
+          </ol>
+          <div className={s.dialogKnoepfe}>
+            {!neuesGeraet && (
+              <Button
+                variant="default"
+                onClick={() => erzeugen.mutate()}
+                loading={erzeugen.isPending}
+              >
+                {t("geraete.code_neu")}
+              </Button>
+            )}
             <Button onClick={onSchliessen}>{t("geraete.code_fertig")}</Button>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import type { CSSVariablesResolver } from "@mantine/core";
-import { type Farbschema, farbschemata, radius, schriften } from "./tokens";
+import { type Farbschema, farbschemata, radius, schriften, schriftgroesse } from "./tokens";
 
 function variablen(schema: Farbschema): Record<string, string> {
   return {
@@ -55,6 +55,9 @@ export const cssVariablesResolver: CSSVariablesResolver = () => ({
     "--sh-font-display": schriften.display,
     "--sh-font-text": schriften.text,
     "--sh-font-mono": schriften.mono,
+    "--sh-fz-text": `${schriftgroesse.text}px`,
+    "--sh-fz-klein": `${schriftgroesse.klein}px`,
+    "--sh-fz-label": `${schriftgroesse.label}px`,
   },
   light: variablen(farbschemata.light),
   dark: variablen(farbschemata.dark),

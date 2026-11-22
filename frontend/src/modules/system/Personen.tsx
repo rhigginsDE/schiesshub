@@ -265,7 +265,11 @@ function PersonAnlegen({ rollen, onSchliessen }: { rollen: Rolle[]; onSchliessen
       apiSenden<Person>("POST", "/users", { name: name.trim(), pin, role_id: rolle }),
     onSuccess: () => {
       invalidieren(queryClient);
-      zeigeMeldung({ ton: "erfolg", titel: t("personen.angelegt") });
+      zeigeMeldung({
+        ton: "erfolg",
+        titel: t("personen.angelegt"),
+        text: t("personen.angelegt_text"),
+      });
       onSchliessen();
     },
   });

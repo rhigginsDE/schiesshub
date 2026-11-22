@@ -57,6 +57,8 @@ describe("Vereine", () => {
     await userEvent.click(within(zeile).getByRole("button", { name: /Löschen/ }));
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText(/hat noch eine Person/)).toBeInTheDocument();
+    expect(within(dialog).getByText("Verein hat noch Personen")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Zusammenführen …" })).toBeInTheDocument();
     expect(
       within(dialog).queryByRole("button", { name: "Verein löschen" }),
     ).not.toBeInTheDocument();
@@ -134,23 +136,49 @@ describe("Import", () => {
     expect(aufrufe.at(-1)?.pfad).toBe("/persons/import?dry_run=false");
   });
 
-  it("zeigt die Erklärung des Servers, wenn die Datei unbrauchbar ist", async () => {
+  it("erklärt eine abgelehnte Datei in Klartext mit Abhilfe, ohne technische Angabe", async () => {
     serverAttrappe({
       "POST /persons/import?dry_run=true": {
         status: 400,
-        inhalt: { detail: "Die Kopfzeile braucht eine Spalte „name“ oder „Name“." },
+        inhalt: {
+          detail: "Die Datei ist nicht in UTF-8 kodiert. Bitte als „CSV UTF-8“ speichern.",
+        },
       },
     });
     renderAnsicht(() => <ImportSeite />);
     const ablage = await screen.findByRole("region", { name: "Datei wählen" });
     fireEvent.drop(ablage, {
       dataTransfer: {
-        files: [new File(["Vorname;Verein\nA;B\n"], "liste.csv", { type: "text/csv" })],
+        files: [new File(["Name;Verein\nA;B\n"], "liste.csv", { type: "text/csv" })],
       },
     });
     expect(await screen.findByText("Die Datei lässt sich nicht importieren")).toBeInTheDocument();
+    expect(screen.getByText(/Excel unter Windows/)).toBeInTheDocument();
+    expect(screen.getByText(/CSV UTF-8 \(durch Trennzeichen getrennt\)/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Andere Datei wählen" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Erneut versuchen" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Technische Angabe/)).not.toBeInTheDocument();
+  });
+
+  it("rät bei getrennten Spalten Vorname/Nachname, sie zu „Name“ zusammenzufassen", async () => {
+    serverAttrappe({
+      "POST /persons/import?dry_run=true": {
+        status: 400,
+        inhalt: { detail: "Die Spalte „Vorname“ ist unbekannt. Erlaubt sind: name/Name." },
+      },
+    });
+    renderAnsicht(() => <ImportSeite />);
+    const ablage = await screen.findByRole("region", { name: "Datei wählen" });
+    fireEvent.drop(ablage, {
+      dataTransfer: {
+        files: [new File(["Vorname;Nachname\nA;B\n"], "liste.csv", { type: "text/csv" })],
+      },
+    });
+    expect(
+      await screen.findByText("Die Spalte „Vorname“ kennt Schiesshub nicht."),
+    ).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.getAllByText(/braucht eine Spalte „name“/).length).toBeGreaterThan(0),
+      expect(screen.getByText(/zusammen in einer Spalte „Name“/)).toBeInTheDocument(),
     );
   });
 

@@ -1,5 +1,6 @@
 import { Button, Modal } from "@mantine/core";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import s from "./Bestaetigung.module.css";
 
 interface BestaetigungProps {
@@ -24,7 +25,10 @@ interface BestaetigungProps {
   children?: ReactNode;
 }
 
-/** Rückfrage vor einer folgenreichen Aktion. Schließt nicht von selbst; das macht der Aufrufer. */
+/**
+ * Rückfrage vor einer folgenreichen Aktion. Schließt nicht von selbst; das macht der Aufrufer.
+ * Beim Öffnen steht der Fokus auf „Abbrechen“, nicht auf dem ersten Eingabefeld.
+ */
 export function Bestaetigung({
   offen,
   titel,
@@ -39,6 +43,7 @@ export function Bestaetigung({
   onBestaetigen,
   children,
 }: BestaetigungProps) {
+  const { t } = useTranslation();
   return (
     <Modal
       opened={offen}
@@ -46,7 +51,7 @@ export function Bestaetigung({
       title={titel}
       centered
       size="md"
-      closeButtonProps={{ "aria-label": abbrechen }}
+      closeButtonProps={{ "aria-label": t("shell:dialog.schliessen") }}
     >
       <div className={s.inhalt}>
         <div className={s.text}>{text}</div>
@@ -57,7 +62,8 @@ export function Bestaetigung({
           </p>
         )}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" }}>
-          <Button variant="default" onClick={onSchliessen} disabled={laedt}>
+          {/* Fokus beim Öffnen auf dem sicheren Knopf: Enter löst nichts Folgenreiches aus. */}
+          <Button variant="default" onClick={onSchliessen} disabled={laedt} data-autofocus>
             {abbrechen}
           </Button>
           <Button

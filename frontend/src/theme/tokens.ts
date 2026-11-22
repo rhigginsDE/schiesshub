@@ -20,6 +20,12 @@ export const marke = {
 
 export const radius = { s: 6, m: 10, l: 16 } as const;
 
+/**
+ * Schriftgrößen in px nach Markenhandbuch. `klein` ist die Untergrenze für alles, was man lesen
+ * muss; `label` nur für Großbuchstaben-Beschriftungen (`.h-label`).
+ */
+export const schriftgroesse = { text: 16, klein: 13, label: 12 } as const;
+
 export const schriften = {
   display: '"Exo 2", "Segoe UI", system-ui, sans-serif',
   text: '"Inter", "Segoe UI", system-ui, -apple-system, sans-serif',

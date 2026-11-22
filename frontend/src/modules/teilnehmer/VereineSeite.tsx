@@ -428,8 +428,13 @@ function ZusammenfuehrenDialog({
           onChange={setZielId}
           searchable
           nothingFoundMessage={t("vereinfeld.leer")}
-          comboboxProps={{ withinPortal: false }}
-          data-autofocus
+          // Kein Autofokus: Sonst klappt die Liste beim Öffnen sofort auf, verdeckt Erklärung und
+          // Beschriftung, und Esc schließt erst beim zweiten Mal. Die Liste klappt immer nach unten.
+          comboboxProps={{
+            withinPortal: true,
+            position: "bottom",
+            middlewares: { flip: false, shift: true },
+          }}
         />
       )}
       {ziel && verein && (
@@ -469,14 +474,16 @@ function LoeschenDialog({
   return (
     <Bestaetigung
       offen={verein !== null}
-      titel={t("vereine.loeschen_titel")}
+      titel={belegt ? t("vereine.loeschen_belegt_titel") : t("vereine.loeschen_titel")}
       text={
         belegt
           ? t("vereine.loeschen_belegt", { count: verein?.person_count ?? 0, name })
           : t("vereine.loeschen_text", { name })
       }
-      bestaetigen={belegt ? t("vereine.zusammenfuehren") : t("vereine.loeschen_bestaetigen")}
-      abbrechen={t("vereine.abbrechen")}
+      bestaetigen={
+        belegt ? t("vereine.loeschen_belegt_zusammenfuehren") : t("vereine.loeschen_bestaetigen")
+      }
+      abbrechen={belegt ? t("vereine.schliessen") : t("vereine.abbrechen")}
       ton={belegt ? "normal" : "gefahr"}
       laedt={loeschen.isPending}
       fehler={loeschen.isError ? (fehlertext(loeschen.error) ?? t("fehler.titel")) : undefined}

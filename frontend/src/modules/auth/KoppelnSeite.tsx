@@ -1,7 +1,7 @@
 import { Button, TextInput } from "@mantine/core";
 import { useMutation } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { MonitorSmartphone } from "lucide-react";
+import { ArrowLeft, MonitorSmartphone } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiSenden } from "../../api/client";
@@ -16,7 +16,7 @@ import { codeGruppiert, codeNormalisieren } from "./eingaben";
 export function KoppelnSeite({ code: vorgabe }: { code?: string }) {
   const { t } = useTranslation("auth");
   const navigate = useNavigate();
-  const { status, uebernehmen } = useAnmeldung();
+  const { status, lage, uebernehmen } = useAnmeldung();
   const [code, setCode] = useState(() => (vorgabe ? codeGruppiert(vorgabe) : ""));
   const [name, setName] = useState("");
   const [fehlerCode, setFehlerCode] = useState<string>();
@@ -64,7 +64,8 @@ export function KoppelnSeite({ code: vorgabe }: { code?: string }) {
         <TextInput
           size="lg"
           label={t("koppeln.code")}
-          placeholder={t("koppeln.code_platzhalter")}
+          description={t("koppeln.code_hinweis")}
+          inputWrapperOrder={["label", "input", "description", "error"]}
           value={code}
           onChange={(e) => setCode(e.currentTarget.value.toUpperCase())}
           error={fehlerCode}
@@ -92,6 +93,15 @@ export function KoppelnSeite({ code: vorgabe }: { code?: string }) {
         <Link to="/einrichtung" className={s.link}>
           {t("koppeln.zur_einrichtung")}
         </Link>
+      )}
+      {/* Im offenen Betrieb ist Koppeln freiwillig: immer ein Weg zurück. */}
+      {!lage.sperren && (
+        <div className={s.auswege}>
+          <p className={s.offenHinweis}>{t("koppeln.offen_hinweis")}</p>
+          <Button component={Link} to="/" variant="default" leftSection={<ArrowLeft aria-hidden />}>
+            {t("koppeln.abbrechen")}
+          </Button>
+        </div>
       )}
     </section>
   );

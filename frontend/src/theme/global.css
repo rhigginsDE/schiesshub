@@ -9,7 +9,7 @@ body {
   margin: 0;
   background: var(--sh-bg);
   color: var(--sh-text);
-  font: 400 15px / 1.5 var(--sh-font-text);
+  font: 400 var(--sh-fz-text) / 1.5 var(--sh-font-text);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -57,7 +57,7 @@ svg.lucide {
 }
 
 .h-label {
-  font: 600 11px / 1.2 var(--sh-font-text);
+  font: 600 var(--sh-fz-label) / 1.2 var(--sh-font-text);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--sh-text-gedaempft);

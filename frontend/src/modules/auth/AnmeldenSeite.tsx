@@ -21,12 +21,51 @@ export function AnmeldenSeite() {
   const { status, lage } = useAnmeldung();
   const navigate = useNavigate();
   const pfad = useRouterState({ select: (zustand) => zustand.location.pathname });
-  const personen = useQuery(anmeldePersonenAbfrage());
+  // Ohne Kopplung antwortet der Server mit 401; dann gar nicht erst fragen.
+  const gekoppelt = status ? Boolean(status.device) : true;
+  const personen = useQuery({ ...anmeldePersonenAbfrage(), enabled: gekoppelt });
   const [auswahl, setAuswahl] = useState<AuthPerson | null>(null);
 
+  const einrichtungFehlt = Boolean(status?.setup_required) && !gekoppelt;
   const nichtGekoppelt =
-    personen.error instanceof ApiFehler && personen.error.art === "nicht_angemeldet";
+    !einrichtungFehlt &&
+    (!gekoppelt ||
+      (personen.error instanceof ApiFehler && personen.error.art === "nicht_angemeldet"));
   const geraetRolle = !status?.user && status?.role ? status.role.name : null;
+  // Im offenen Betrieb (Einloggen nicht Pflicht) gibt es immer einen Weg zurück.
+  const offen = !lage.sperren;
+
+  if (nichtGekoppelt) {
+    return (
+      <section className={`panel ${s.karte}`} aria-labelledby="anmelden-titel">
+        <header className={s.kopf}>
+          <span className={s.symbol}>
+            <MonitorSmartphone aria-hidden />
+          </span>
+          <h1 className="h-display" id="anmelden-titel">
+            {t("anmelden.nicht_gekoppelt_titel")}
+          </h1>
+          <p className="gedaempft">{t("anmelden.nicht_gekoppelt_text")}</p>
+        </header>
+        <Button component={Link} to="/pair" size="lg">
+          {t("koppeln.titel")}
+        </Button>
+        {offen && (
+          <div className={s.auswege}>
+            <p className={s.offenHinweis}>{t("anmelden.nicht_gekoppelt_offen")}</p>
+            <Button
+              component={Link}
+              to="/"
+              variant="default"
+              leftSection={<ArrowLeft aria-hidden />}
+            >
+              {t("allgemein:aktion.zur_startseite")}
+            </Button>
+          </div>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section className={`panel ${s.karte} ${s.breit}`} aria-labelledby="anmelden-titel">
@@ -34,15 +73,17 @@ export function AnmeldenSeite() {
         <h1 className="h-display" id="anmelden-titel">
           {auswahl ? t("anmelden.als", { name: auswahl.name }) : t("anmelden.titel")}
         </h1>
-        <p className="gedaempft">
-          {auswahl ? null : t("anmelden.einleitung")}
-          {status?.device && !auswahl && (
-            <>
-              {" "}
-              <span>{t("anmelden.geraet", { name: status.device.name })}</span>
-            </>
-          )}
-        </p>
+        {!auswahl && (
+          <p className="gedaempft">
+            {t("anmelden.einleitung")}
+            {status?.device && (
+              <>
+                {" "}
+                <span>{t("anmelden.geraet", { name: status.device.name })}</span>
+              </>
+            )}
+          </p>
+        )}
       </header>
 
       {auswahl ? (
@@ -53,25 +94,7 @@ export function AnmeldenSeite() {
             if (pfad === "/anmelden") void navigate({ to: "/" });
           }}
         />
-      ) : personen.isPending ? (
-        <div className={s.personen} aria-busy="true">
-          {[0, 1, 2, 3].map((nr) => (
-            <Skeleton key={nr} height={112} radius="lg" />
-          ))}
-        </div>
-      ) : nichtGekoppelt ? (
-        <Leerzustand
-          icon={MonitorSmartphone}
-          titel={t("anmelden.nicht_gekoppelt_titel")}
-          text={t("anmelden.nicht_gekoppelt_text")}
-        >
-          <Button component={Link} to="/pair">
-            {t("koppeln.titel")}
-          </Button>
-        </Leerzustand>
-      ) : personen.isError ? (
-        <Fehlerzustand fehler={personen.error} onErneut={() => void personen.refetch()} />
-      ) : personen.data.length === 0 ? (
+      ) : einrichtungFehlt || (personen.isSuccess && personen.data.length === 0) ? (
         <Leerzustand icon={UserX} titel={t("anmelden.leer_titel")} text={t("anmelden.leer_text")}>
           {status?.setup_required && (
             <Button component={Link} to="/einrichtung">
@@ -79,6 +102,14 @@ export function AnmeldenSeite() {
             </Button>
           )}
         </Leerzustand>
+      ) : personen.isPending ? (
+        <div className={s.personen} aria-busy="true">
+          {[0, 1, 2, 3].map((nr) => (
+            <Skeleton key={nr} height={112} radius="lg" />
+          ))}
+        </div>
+      ) : personen.isError ? (
+        <Fehlerzustand fehler={personen.error} onErneut={() => void personen.refetch()} />
       ) : (
         <ul className={s.personen}>
           {personen.data.map((person) => (
@@ -97,9 +128,19 @@ export function AnmeldenSeite() {
         </ul>
       )}
 
-      {geraetRolle && !auswahl && !lage.pflicht && (
-        <Button variant="default" component={Link} to="/" className={s.ohne}>
-          {t("anmelden.ohne_anmeldung", { rolle: geraetRolle })}
+      {/* Mit Geräterolle geht es auch ohne Einloggen weiter (wenn es nicht Pflicht ist);
+          im offenen Betrieb sonst zurück zur Startseite. */}
+      {(geraetRolle ? !lage.pflicht : offen) && !auswahl && (
+        <Button
+          variant="default"
+          component={Link}
+          to="/"
+          className={s.ohne}
+          leftSection={geraetRolle ? undefined : <ArrowLeft aria-hidden />}
+        >
+          {geraetRolle
+            ? t("anmelden.ohne_anmeldung", { rolle: geraetRolle })
+            : t("allgemein:aktion.zur_startseite")}
         </Button>
       )}
     </section>

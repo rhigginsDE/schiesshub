@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { healthAbfrage } from "../../api/abfragen";
 import { useAnmeldung } from "../../app/anmeldung";
-import { Chip } from "../../components/Chip";
 import { Fehlerzustand } from "../../components/Zustand";
 import { formatZahl } from "../../lib/format";
 import { formatZeitpunkt } from "./format";
@@ -18,16 +17,9 @@ export function ServerBereich() {
 
   return (
     <section className="panel" aria-labelledby="server-titel">
-      <div className={s.kopfTitel}>
-        <h2 className="h-section" id="server-titel">
-          {t("server.titel")}
-        </h2>
-        {health.data && (
-          <Chip>
-            {t("server.version")} <span className="num">{health.data.version}</span>
-          </Chip>
-        )}
-      </div>
+      <h2 className="h-section" id="server-titel">
+        {t("server.titel")}
+      </h2>
       {health.isPending ? (
         <Skeleton height={220} radius="md" />
       ) : health.isError ? (
@@ -58,33 +50,29 @@ export function ServerBereich() {
             </dd>
           </div>
           {health.data.katalog && (
-            <>
-              <div>
-                <dt>{t("server.katalog_eingelesen")}</dt>
-                <dd className="num">
-                  {health.data.katalog.importiert_am
+            <div>
+              <dt>{t("server.katalog_eingelesen")}</dt>
+              <dd className={health.data.katalog.fehler.length > 0 ? s.schlecht : undefined}>
+                {t("server.katalog_eingelesen_wert", {
+                  zeit: health.data.katalog.importiert_am
                     ? formatZeitpunkt(health.data.katalog.importiert_am, sprache)
-                    : "–"}
-                </dd>
-              </div>
-              <div>
-                <dt>{t("server.katalog_zustand")}</dt>
-                <dd className={health.data.katalog.fehler.length > 0 ? s.schlecht : s.gut}>
-                  {health.data.katalog.fehler.length > 0
-                    ? t("server.katalog_fehler", {
-                        count: health.data.katalog.fehler.length,
-                        anzahl: zahl(health.data.katalog.fehler.length),
-                      })
-                    : t("server.katalog_ohne_fehler")}
-                </dd>
-              </div>
-            </>
+                    : "–",
+                  zustand:
+                    health.data.katalog.fehler.length > 0
+                      ? t("server.katalog_fehler", {
+                          count: health.data.katalog.fehler.length,
+                          anzahl: zahl(health.data.katalog.fehler.length),
+                        })
+                      : t("server.katalog_ohne_fehler"),
+                })}
+              </dd>
+            </div>
           )}
           {status && (
             <>
               <div>
                 <dt>{t("server.pruefung")}</dt>
-                <dd className={status.auth_enforced ? s.gut : s.schlecht}>
+                <dd className={status.auth_enforced ? s.gut : undefined}>
                   {status.auth_enforced ? t("server.pruefung_an") : t("server.pruefung_aus")}
                 </dd>
               </div>
@@ -97,7 +85,9 @@ export function ServerBereich() {
         </dl>
       )}
       {status && !status.auth_enforced && (
-        <p className={s.hinweis}>{t("server.pruefung_hinweis")}</p>
+        <p className={s.hinweis} title={t("server.pruefung_technik")}>
+          {t("server.pruefung_hinweis")}
+        </p>
       )}
     </section>
   );

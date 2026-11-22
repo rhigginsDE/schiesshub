@@ -70,6 +70,22 @@
     "wertung": "Wertung",
     "ungeprueft": "Noch nicht geprüft",
     "ungeprueft_hinweis": "Ablauf und Wertung dieser Gruppe sind noch nicht mit dem Regelwerk abgeglichen. Vor einem Wettkampf im Sporthandbuch nachsehen.",
+    "beschreibung": "Ablauf im Wortlaut des Katalogs",
+    "kuerzel_titel": "Abkürzungen",
+    "kuerzel": {
+      "mi": {
+        "kurz": "MI",
+        "text": "Mindestimpuls (Kurzwaffe). „max. 200“ ist die Obergrenze bei Fallscheibe."
+      },
+      "kw_patronen": {
+        "kurz": "KW-Patronen",
+        "text": "Bei Langwaffen: Kurzwaffenpatronen laut Anhang 1 des Langwaffenteils."
+      },
+      "z_scheibe": {
+        "kurz": "Z + Zahl",
+        "text": "Scheibennummer laut Scheibenverzeichnis im Sporthandbuch Teil L."
+      }
+    },
     "haftung": "Der Katalog ist eine Arbeitshilfe. Maßgeblich ist das aktuelle Regelwerk des Verbands.",
     "aushang": "Aushang drucken"
   },

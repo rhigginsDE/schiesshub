@@ -23,8 +23,8 @@
     "hinweis_getrennt": "Der Server antwortet nicht. Es wird alle paar Sekunden erneut versucht."
   },
   "breite": {
-    "zu_zentriert": "Inhalt in der Mitte bündeln",
-    "zu_voll": "Ganze Bildschirmbreite nutzen"
+    "zu_zentriert": "Schmale Ansicht",
+    "zu_voll": "Ganze Breite"
   },
   "farbschema": {
     "zu_hell": "Zum hellen Design wechseln",
@@ -36,22 +36,24 @@
   },
   "anmeldung": {
     "einrichtung_ausstehend": "Ersteinrichtung ausstehend",
-    "einrichtung_hinweis": "Noch hat niemand alle Rechte. Bitte die erste Person anlegen, bevor die Anmeldung eingeschaltet wird.",
-    "koppeln": "Gerät koppeln",
-    "anmelden": "Anmelden",
-    "menue": "Angemeldet: {{wer}}. Menü öffnen",
+    "einrichtung_hinweis": "Noch hat niemand alle Rechte. Bitte die erste Person anlegen, bevor das Einloggen Pflicht wird.",
+    "koppeln": "Dieses Gerät koppeln",
+    "anmelden": "Einloggen",
+    "menue": "Eingeloggt: {{wer}}. Menü öffnen",
     "angemeldet_als": "{{name}} · {{rolle}}",
-    "geraet_rolle": "Gerät {{name}} · {{rolle}}, niemand angemeldet",
+    "geraet_rolle": "Gerät {{name}} · {{rolle}}, niemand eingeloggt",
     "person_wechseln": "Person wechseln",
-    "abmelden": "Abmelden",
-    "abgemeldet": "Abgemeldet",
-    "abmelden_fehler": "Abmelden hat nicht geklappt"
+    "abmelden": "Ausloggen",
+    "abgemeldet": "Ausgeloggt",
+    "abmelden_fehler": "Ausloggen hat nicht geklappt",
+    "koppeln_hinweis": "Nur nötig, wenn ihr mit Personen, PIN und Rollen arbeitet. Im offenen Betrieb geht alles auch ohne.",
+    "anmelden_hinweis": "Mit Namen und PIN einloggen, z. B. für Korrekturen oder die Verwaltung. Im offenen Betrieb geht alles auch ohne."
   },
   "berechtigung": {
     "fehlt_titel": "Dafür fehlt die Berechtigung",
-    "fehlt_text": "Deine Rolle erlaubt diese Aktion nicht. Bitte eine Person mit passender Rolle anmelden oder die Rolle unter System → Personen & Rollen erweitern lassen.",
-    "seite_titel": "„{{titel}}“ ist für diese Anmeldung nicht freigegeben",
-    "seite_text": "Dafür fehlt die Berechtigung. Eine andere Person anmelden oder die Rolle unter System → Personen & Rollen erweitern lassen."
+    "fehlt_text": "Deine Rolle erlaubt diese Aktion nicht. Bitte eine Person mit passender Rolle einloggen oder die Rolle unter System → Personen & Rollen erweitern lassen.",
+    "seite_titel": "„{{titel}}“ ist für deine Rolle nicht freigegeben",
+    "seite_text": "Dafür fehlt die Berechtigung. Eine andere Person einloggen oder die Rolle unter System → Personen & Rollen erweitern lassen."
   },
   "sicherung": {
     "chip_ok": "Sicherung {{zeit}}",
@@ -67,13 +69,26 @@
     "chip_journal_sync_failed": "Mitschrift gestört",
     "chip_hinweis": "Zustand der Datensicherung. Einzelheiten unter System → Sicherung.",
     "banner_seit": "Seit",
-    "banner_hinweis": "Diese Warnung erscheint auf allen Stationen; das lässt sich unter System → Sicherung ändern.",
+    "was_tun": "Was tun:",
+    "was_tun_usb_missing": "Steck den Sicherungs-Stick in den Server und tippe dann auf „Erneut prüfen“.",
+    "was_tun_usb_not_writable": "Prüf den Schreibschutz-Schalter am Stick oder steck einen anderen Stick ein. Dann „Erneut prüfen“.",
+    "was_tun_usb_full": "Steck einen Stick mit mehr freiem Platz ein. Dann „Erneut prüfen“.",
+    "was_tun_usb_copy_failed": "Prüf, ob der Stick fest im Server steckt. Dann „Erneut prüfen“.",
+    "was_tun_journal_sync_failed": "Prüf, ob der Stick fest im Server steckt. Dann „Erneut prüfen“.",
+    "was_tun_passphrase_missing": "Leg ein Sicherungspasswort fest. Bis dahin liegen die Sicherungen nur auf dem Server.",
+    "was_tun_backup_disabled": "Schalte die automatische Sicherung unter System → Sicherung wieder ein.",
+    "was_tun_snapshot_failed": "Starte unter System → Sicherung eine neue Sicherung. Klappt es wieder nicht, prüf den Server.",
+    "was_tun_unbekannt": "Unter System → Sicherung steht, was fehlt.",
+    "was_tun_ohne_recht": "Sag der Turnierleitung Bescheid. Sie behebt das unter System → Sicherung.",
+    "passwort_festlegen": "Passwort festlegen",
+    "zur_sicherung": "Zur Sicherung",
     "erneut_pruefen": "Erneut prüfen",
-    "ausblenden": "Für 15 Min. ausblenden"
+    "ausblenden": "Für 15 Min. ausblenden",
+    "ausblenden_kurz": "Ausblenden"
   },
   "fehler": {
-    "nicht_angemeldet": "Bitte zuerst anmelden. Die Sitzung ist abgelaufen oder dieses Gerät ist nicht gekoppelt.",
-    "verboten": "Dafür fehlt die Berechtigung. Bitte eine Person mit passender Rolle anmelden.",
+    "nicht_angemeldet": "Bitte zuerst einloggen. Die Sitzung ist abgelaufen oder dieses Gerät ist nicht gekoppelt.",
+    "verboten": "Dafür fehlt die Berechtigung. Bitte eine Person mit passender Rolle einloggen.",
     "konflikt": "Das geht im aktuellen Zustand nicht. Bitte die Seite neu laden und erneut versuchen.",
     "gesperrt": "Zu viele Versuche. Bitte kurz warten und erneut versuchen."
   },
@@ -84,5 +99,8 @@
     "loeschen": "Letzte Ziffer löschen",
     "ok": "OK"
   },
-  "sichtbar_umschalten": "Eingabe zeigen oder verbergen"
+  "sichtbar_umschalten": "Eingabe zeigen oder verbergen",
+  "dialog": {
+    "schliessen": "Dialog schließen, ohne etwas zu ändern"
+  }
 }

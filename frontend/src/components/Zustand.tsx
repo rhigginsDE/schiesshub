@@ -11,12 +11,14 @@ interface LeerzustandProps {
   text: string;
   /** Aktionen, z. B. ein Button */
   children?: ReactNode;
+  /** Ohne eigenen Rahmen, z. B. in einer Fläche mit Rahmen. Direkt in `.panel` geschieht das von selbst. */
+  ohneRahmen?: boolean;
 }
 
 /** Nichts anzuzeigen: sagt, warum, und bietet wenn möglich den nächsten Schritt an. */
-export function Leerzustand({ icon: Icon, titel, text, children }: LeerzustandProps) {
+export function Leerzustand({ icon: Icon, titel, text, children, ohneRahmen }: LeerzustandProps) {
   return (
-    <div className={s.zustand}>
+    <div className={ohneRahmen ? `${s.zustand} ${s.ohneRahmen}` : s.zustand}>
       <Icon className={s.symbol} aria-hidden />
       <strong className={s.titel}>{titel}</strong>
       <p className={s.text}>{text}</p>

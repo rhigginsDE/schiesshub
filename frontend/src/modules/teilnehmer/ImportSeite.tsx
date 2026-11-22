@@ -10,7 +10,6 @@ import { Fehlerzustand } from "../../components/Zustand";
 import { formatZahl } from "../../lib/format";
 import {
   exportLaden,
-  fehlertext,
   IMPORT_MAX_BYTES,
   type ImportBericht,
   type ImportZeile,
@@ -18,6 +17,7 @@ import {
   teilnehmerSchluessel,
 } from "./api";
 import { beispielCsv, blobAnbieten, dateiAnbieten, vorschauZeilen } from "./csv";
+import { ablehnungsgrund } from "./importFehler";
 import { Kopf } from "./Kopf";
 import { TEILNEHMER_PFAD } from "./pfade";
 import s from "./teilnehmer.module.css";
@@ -144,6 +144,12 @@ function Import() {
     if (eingabe.current) eingabe.current.value = "";
   };
 
+  /** Nach einer abgelehnten Datei: zurück zum Anfang und gleich die Dateiauswahl öffnen. */
+  const andereDatei = () => {
+    zuruecksetzen();
+    eingabe.current?.click();
+  };
+
   const uebernehmen = async (gewaehlt: File | undefined) => {
     if (!gewaehlt) return;
     zuruecksetzen();
@@ -253,18 +259,15 @@ function Import() {
         </p>
       )}
 
-      {pruefen.isError && (
-        <Fehlerzustand
-          fehler={pruefen.error}
-          eigene={{
-            anfrage: {
-              titel: t("import.fehler_titel"),
-              text: fehlertext(pruefen.error) ?? "",
-            },
-          }}
-          onErneut={datei ? () => pruefen.mutate(datei.inhalt) : undefined}
-        />
-      )}
+      {pruefen.isError &&
+        (ablehnungsgrund(pruefen.error) ? (
+          <DateiFehlerHinweis fehler={pruefen.error} onAndereDatei={andereDatei} />
+        ) : (
+          <Fehlerzustand
+            fehler={pruefen.error}
+            onErneut={datei ? () => pruefen.mutate(datei.inhalt) : undefined}
+          />
+        ))}
 
       {bericht && (
         <>
@@ -320,12 +323,15 @@ function Import() {
             </tbody>
           </table>
 
-          {importieren.isError && (
-            <Fehlerzustand
-              fehler={importieren.error}
-              onErneut={() => datei && importieren.mutate(datei.inhalt)}
-            />
-          )}
+          {importieren.isError &&
+            (ablehnungsgrund(importieren.error) ? (
+              <DateiFehlerHinweis fehler={importieren.error} onAndereDatei={andereDatei} />
+            ) : (
+              <Fehlerzustand
+                fehler={importieren.error}
+                onErneut={() => datei && importieren.mutate(datei.inhalt)}
+              />
+            ))}
 
           <div className={s.zeileAktionen}>
             {bericht.new > 0 ? (
@@ -344,6 +350,51 @@ function Import() {
         </>
       )}
     </section>
+  );
+}
+
+/** Datei abgelehnt: Grund in Klartext, was zu tun ist, und der Weg zu einer anderen Datei. */
+function DateiFehlerHinweis({
+  fehler,
+  onAndereDatei,
+}: {
+  fehler: unknown;
+  onAndereDatei: () => void;
+}) {
+  const { t } = useTranslation("teilnehmer");
+  const grund = ablehnungsgrund(fehler);
+  if (!grund) return null;
+  const { art, spalte, meldung } = grund;
+  const nameInZweiSpalten =
+    art === "spalte_unbekannt" && /vor-?name|nach-?name/i.test(spalte ?? "");
+  const text =
+    art === "sonstig"
+      ? (meldung ?? t("datei_fehler.sonstig"))
+      : t(`datei_fehler.${art}`, { spalte });
+  const abhilfe = nameInZweiSpalten
+    ? t("datei_fehler.name_geteilt_abhilfe")
+    : t(`datei_fehler.${art}_abhilfe`);
+
+  return (
+    <div className={s.hinweisKrit} role="alert">
+      <strong>{t("datei_fehler.titel")}</strong>
+      <p>{text}</p>
+      <p>
+        <strong>{t("datei_fehler.abhilfe")}:</strong> {abhilfe}
+      </p>
+      <div className={s.hinweisAktionen}>
+        <Button variant="default" leftSection={<FileUp aria-hidden />} onClick={onAndereDatei}>
+          {t("datei_fehler.andere_datei")}
+        </Button>
+        <Button
+          variant="subtle"
+          leftSection={<Download aria-hidden />}
+          onClick={() => dateiAnbieten("personen-beispiel.csv", beispielCsv())}
+        >
+          {t("import.beispiel")}
+        </Button>
+      </div>
+    </div>
   );
 }
 

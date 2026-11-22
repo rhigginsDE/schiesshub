@@ -1,4 +1,11 @@
-import { createTheme, type MantineColorsTuple } from "@mantine/core";
+import {
+  ActionIcon,
+  Button,
+  createTheme,
+  Input,
+  type MantineColorsTuple,
+  rem,
+} from "@mantine/core";
 import { marke, radius, schriften } from "./tokens";
 
 const gruen: MantineColorsTuple = [
@@ -30,6 +37,31 @@ const nacht: MantineColorsTuple = [
 
 const ohneSchatten = { xs: "none", sm: "none", md: "none", lg: "none", xl: "none" };
 
+/** Kleinste Trefferfläche für Finger (Markenhandbuch, WCAG 2.5.5). */
+export const TIPPZIEL_PX = 44;
+const tippziel = rem(TIPPZIEL_PX);
+
+/**
+ * Eingabefelder starten in Größe „md“: 16 px Schrift (kein Zoom auf dem iPhone) und 44 px Höhe.
+ * Gilt für jedes Feld, das keine eigene Größe setzt.
+ */
+const FELDER = [
+  "Input",
+  "InputWrapper",
+  "InputBase",
+  "TextInput",
+  "PasswordInput",
+  "NumberInput",
+  "Textarea",
+  "Select",
+  "MultiSelect",
+  "Autocomplete",
+  "TagsInput",
+  "NativeSelect",
+  "JsonInput",
+] as const;
+const felder = Object.fromEntries(FELDER.map((name) => [name, { defaultProps: { size: "md" } }]));
+
 export const theme = createTheme({
   colors: { gruen, dark: nacht },
   primaryColor: "gruen",
@@ -39,6 +71,8 @@ export const theme = createTheme({
   luminanceThreshold: 0.3,
   black: marke.nacht,
   white: "#FFFFFF",
+  // Markenhandbuch: Text 16, klein 13; nichts Lesenswertes darunter.
+  fontSizes: { xs: rem(13), sm: rem(15), md: rem(16), lg: rem(18), xl: rem(20) },
   fontFamily: schriften.text,
   fontFamilyMonospace: schriften.mono,
   headings: { fontFamily: schriften.display, fontWeight: "700" },
@@ -53,6 +87,30 @@ export const theme = createTheme({
   shadows: ohneSchatten,
   cursorType: "pointer",
   components: {
+    ...felder,
+    // „md“ ist bei Mantine 42 px hoch; für Finger auf 44 px angehoben.
+    Input: Input.extend({
+      defaultProps: { size: "md" },
+      vars: (_theme, props) => ({
+        wrapper: { "--input-height": props.size === "md" ? tippziel : undefined },
+      }),
+    }),
+    Button: Button.extend({
+      defaultProps: { size: "md" },
+      vars: (_theme, props) => ({
+        root: { "--button-height": props.size === "md" ? tippziel : undefined },
+      }),
+    }),
+    // Ohne Größe oder mit einer Zahl unter 44 px wird ein Symbolknopf auf 44 px gebracht.
+    ActionIcon: ActionIcon.extend({
+      defaultProps: { size: TIPPZIEL_PX },
+      vars: (_theme, props) => ({
+        root: {
+          "--ai-size":
+            typeof props.size === "number" && props.size < TIPPZIEL_PX ? tippziel : undefined,
+        },
+      }),
+    }),
     Tooltip: { defaultProps: { withArrow: true, openDelay: 300 } },
   },
 });

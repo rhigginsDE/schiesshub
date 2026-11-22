@@ -41,7 +41,7 @@ import { darfMit, useRechte } from "./berechtigungen";
 import { type ModulManifest, useAlleModule, useStationen } from "./modul";
 import { useSeitenbreite } from "./seitenbreite";
 import { useServerStatus } from "./serverStatus";
-import { useSicherungsLage } from "./sicherungsLage";
+import { bannerAktion, useSicherungsLage } from "./sicherungsLage";
 
 /** Ereignisse, auf die die Shell selbst hört: Anmelde-Zustand und Sicherung. */
 const SHELL_EREIGNISSE: EreignisZuordnung = {
@@ -232,7 +232,7 @@ function Statusanzeige() {
 
   return (
     <Tooltip label={hinweis} multiline maw={260}>
-      <Chip ton={ton} punkt role="status">
+      <Chip ton={ton} punkt role="status" className={s.statusChip} data-verbindung={verbindung}>
         <span className={s.lang}>{t(`status.${verbindung}`)}</span>
         <span className={s.kurz} aria-hidden>
           {t(`status.${verbindung}_kurz`)}
@@ -268,38 +268,70 @@ function SicherungsChip() {
   );
 }
 
-/** Banner direkt unter der Kopfzeile, wenn die Sicherung eine Warnung meldet. */
+/**
+ * Banner direkt unter der Kopfzeile, wenn die Sicherung eine Warnung meldet: was los ist, was zu tun
+ * ist, und genau die Aktion, die hilft. „Erneut prüfen“ nur, wo Prüfen etwas ändern kann (Stick).
+ */
 function SicherungsBanner({ istAnzeige }: { istAnzeige: boolean }) {
   const { t, i18n } = useTranslation("shell");
   const fehlerText = useFehlerText();
-  const { warnung, pruefen, ausblenden } = useSicherungsLage(istAnzeige);
+  const { warnung, darfVerwalten, pruefen, ausblenden } = useSicherungsLage(istAnzeige);
   if (!warnung) return null;
   const seit = new Date(warnung.since);
+  const aktion = bannerAktion(warnung.code);
+  // Passwort und Einstellungen kann nur ändern, wer die Sicherung verwalten darf.
+  const nurBescheid = aktion !== "pruefen" && !darfVerwalten;
+  const wasTun = nurBescheid
+    ? t("sicherung.was_tun_ohne_recht")
+    : t(`sicherung.was_tun_${warnung.code}`, { defaultValue: t("sicherung.was_tun_unbekannt") });
 
   return (
     <div className={s.banner} role="alert">
       <TriangleAlert className={s.bannerSymbol} aria-hidden />
       <div className={s.bannerText}>
-        <strong>{warnung.message_de}</strong>
+        <strong className={s.bannerTitel}>{warnung.message_de}</strong>
+        <span className={s.bannerWasTun}>
+          <b>{t("sicherung.was_tun")}</b> {wasTun}
+        </span>
         <span className={s.bannerZeile}>
           {t("sicherung.banner_seit")}{" "}
           <span className="num">{formatUhrzeit(seit, i18n.language)}</span>
-          {" · "}
-          {t("sicherung.banner_hinweis")}
         </span>
         {pruefen.isError && <span className={s.bannerFehler}>{fehlerText(pruefen.error)}</span>}
       </div>
       <div className={s.bannerAktionen}>
+        {aktion === "pruefen" && (
+          <Button
+            variant="default"
+            leftSection={<RefreshCw aria-hidden />}
+            loading={pruefen.isPending}
+            onClick={() => pruefen.mutate()}
+          >
+            {t("sicherung.erneut_pruefen")}
+          </Button>
+        )}
+        {!nurBescheid && aktion !== "pruefen" && (
+          <Button
+            component={Link}
+            to="/system/sicherung"
+            variant="default"
+            leftSection={aktion === "passwort" ? <KeyRound aria-hidden /> : <Usb aria-hidden />}
+          >
+            {aktion === "passwort"
+              ? t("sicherung.passwort_festlegen")
+              : t("sicherung.zur_sicherung")}
+          </Button>
+        )}
         <Button
-          variant="default"
-          leftSection={<RefreshCw aria-hidden />}
-          loading={pruefen.isPending}
-          onClick={() => pruefen.mutate()}
+          variant="subtle"
+          color="gray"
+          onClick={ausblenden}
+          aria-label={t("sicherung.ausblenden")}
         >
-          {t("sicherung.erneut_pruefen")}
-        </Button>
-        <Button variant="subtle" color="gray" onClick={ausblenden}>
-          {t("sicherung.ausblenden")}
+          <span className={s.lang}>{t("sicherung.ausblenden")}</span>
+          <span className={s.kurz} aria-hidden>
+            {t("sicherung.ausblenden_kurz")}
+          </span>
         </Button>
       </div>
     </div>
@@ -328,24 +360,29 @@ function AnmeldeAnzeige() {
     );
   }
 
-  if (lage.ausstehend === "koppeln") {
+  // Offener Betrieb: Koppeln und Einloggen sind freiwillig, deshalb nur ein leiser Textknopf.
+  // Ist Einloggen Pflicht, übernimmt ohnehin die Pflichtseite.
+  if (lage.ausstehend === "koppeln" || !status.role) {
+    const koppeln = lage.ausstehend === "koppeln";
+    const text = koppeln ? t("anmeldung.koppeln") : t("anmeldung.anmelden");
     return (
-      <Button
-        component={Link}
-        to="/pair"
-        variant="default"
-        leftSection={<MonitorSmartphone aria-hidden />}
+      <Tooltip
+        label={koppeln ? t("anmeldung.koppeln_hinweis") : t("anmeldung.anmelden_hinweis")}
+        multiline
+        maw={280}
       >
-        <span className={s.chipText}>{t("anmeldung.koppeln")}</span>
-      </Button>
-    );
-  }
-
-  if (!status.role) {
-    return (
-      <Button component={Link} to="/anmelden" variant="default" leftSection={<LogIn aria-hidden />}>
-        {t("anmeldung.anmelden")}
-      </Button>
+        <Button
+          component={Link}
+          to={koppeln ? "/pair" : "/anmelden"}
+          variant="subtle"
+          color="gray"
+          className={s.leise}
+          aria-label={text}
+          leftSection={koppeln ? <MonitorSmartphone aria-hidden /> : <LogIn aria-hidden />}
+        >
+          <span className={s.leiseText}>{text}</span>
+        </Button>
+      </Tooltip>
     );
   }
 
@@ -413,7 +450,7 @@ function BreitenUmschalter() {
     <Tooltip label={beschriftung}>
       <ActionIcon
         variant="default"
-        size={40}
+        size={44}
         className={s.breitenUmschalter}
         aria-label={beschriftung}
         onClick={() => setBreite(breite === "voll" ? "zentriert" : "voll")}
@@ -434,7 +471,7 @@ function FarbschemaUmschalter() {
     <Tooltip label={beschriftung}>
       <ActionIcon
         variant="default"
-        size={40}
+        size={44}
         aria-label={beschriftung}
         onClick={() => setColorScheme(aktuell === "dark" ? "light" : "dark")}
       >

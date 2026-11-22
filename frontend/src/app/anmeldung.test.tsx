@@ -27,6 +27,32 @@ const json = (inhalt: unknown, status = 200, kopf: Record<string, string> = {}) 
   });
 
 describe("Anmelde-Zustand", () => {
+  it("im offenen Betrieb ohne Kopplung: kein Personenabruf, klare Seite mit Ausweg", async () => {
+    const attrappe = apiAttrappe({
+      "/health": HEALTH,
+      "/auth/status": status({ device: null }),
+    });
+    renderApp("/anmelden");
+    expect(
+      await screen.findByRole("heading", { name: "Erst dieses Gerät koppeln" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Wer bist du?" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Gerät koppeln" })).toHaveAttribute("href", "/pair");
+    expect(screen.getByRole("link", { name: "Zur Startseite" })).toHaveAttribute("href", "/");
+    const pfade = attrappe.mock.calls.map(([eingabe]) => String(eingabe));
+    expect(pfade.some((pfad) => pfad.includes("/auth/users"))).toBe(false);
+  });
+
+  it("Koppeln im offenen Betrieb bietet den Weg zur Startseite", async () => {
+    apiAttrappe({
+      "/health": HEALTH,
+      "/auth/status": status({ device: null }),
+    });
+    renderApp("/pair");
+    expect(await screen.findByRole("heading", { name: "Gerät koppeln" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Zur Startseite" })).toBeInTheDocument();
+  });
+
   it("ohne Durchsetzung bleibt die App benutzbar und zeigt den Hinweis zur Ersteinrichtung", async () => {
     apiAttrappe({
       "/health": HEALTH,
@@ -68,13 +94,13 @@ describe("Anmelde-Zustand", () => {
     for (const ziffer of ["1", "2", "3", "4"]) {
       await nutzer.click(screen.getByRole("button", { name: ziffer }));
     }
-    await nutzer.click(screen.getByRole("button", { name: "Anmelden" }));
+    await nutzer.click(screen.getByRole("button", { name: "Einloggen" }));
     expect(await screen.findByText("PIN stimmt nicht. Bitte erneut eingeben.")).toBeInTheDocument();
 
     for (const ziffer of ["9", "9", "9", "9"]) {
       await nutzer.click(screen.getByRole("button", { name: ziffer }));
     }
-    await nutzer.click(screen.getByRole("button", { name: "Anmelden" }));
+    await nutzer.click(screen.getByRole("button", { name: "Einloggen" }));
     expect(await screen.findByText(/noch 4:3\d Min\. gesperrt/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "5" })).toBeDisabled();
   });
@@ -118,7 +144,7 @@ describe("Anmelde-Zustand", () => {
       }),
     });
     renderApp("/");
-    const knopf = await screen.findByRole("button", { name: /Angemeldet: H\. Berger/ });
+    const knopf = await screen.findByRole("button", { name: /Eingeloggt: H\. Berger/ });
     expect(knopf).toHaveTextContent("H. Berger · Kasse");
     const navigation = screen.getByRole("navigation", { name: "Stationen" });
     expect(within(navigation).queryByText("System")).not.toBeInTheDocument();
@@ -163,4 +189,70 @@ describe("Sicherungswarnung", () => {
     await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
     expect(window.localStorage.getItem("schiesshub.sicherung.stumm")).toContain("usb_missing");
   });
+
+  it("Stick fehlt: sagt, was zu tun ist, und bietet „Erneut prüfen“", async () => {
+    apiAttrappe(sicherungsAttrappe("usb_missing", "Der Sicherungs-Stick fehlt."));
+    renderApp("/");
+    const banner = await screen.findByRole("alert");
+    expect(banner).toHaveTextContent("Steck den Sicherungs-Stick in den Server");
+    expect(within(banner).getByRole("button", { name: "Erneut prüfen" })).toBeInTheDocument();
+    expect(within(banner).queryByRole("link", { name: "Passwort festlegen" })).toBeNull();
+  });
+
+  it("Passwort fehlt: Link „Passwort festlegen“, kein „Erneut prüfen“", async () => {
+    apiAttrappe(sicherungsAttrappe("passphrase_missing", "Das Sicherungspasswort fehlt."));
+    renderApp("/");
+    const banner = await screen.findByRole("alert");
+    expect(banner).toHaveTextContent("Leg ein Sicherungspasswort fest.");
+    expect(within(banner).getByRole("link", { name: "Passwort festlegen" })).toHaveAttribute(
+      "href",
+      "/system/sicherung",
+    );
+    expect(within(banner).queryByRole("button", { name: "Erneut prüfen" })).toBeNull();
+  });
+
+  it("ohne Verwaltungsrecht: Bescheid geben statt Link", async () => {
+    apiAttrappe({
+      ...sicherungsAttrappe("passphrase_missing", "Das Sicherungspasswort fehlt."),
+      "/auth/status": status({
+        user: { id: "p1", name: "H. Berger" },
+        role: { id: "r2", name: "Kasse" },
+        permissions: ["backup.read"],
+      }),
+    });
+    renderApp("/");
+    const banner = await screen.findByRole("alert");
+    expect(banner).toHaveTextContent("Sag der Turnierleitung Bescheid.");
+    expect(within(banner).queryByRole("link", { name: "Passwort festlegen" })).toBeNull();
+  });
 });
+
+function sicherungsAttrappe(code: string, text: string) {
+  return {
+    "/health": HEALTH,
+    "/auth/status": status(),
+    "/backup/status": {
+      usb: {
+        present: code !== "usb_missing",
+        writable: true,
+        free_bytes: null,
+        last_seen_at: null,
+      },
+      last_snapshot: null,
+      last_usb_copy: null,
+      journal: { pending: 0 },
+      warning: { code, message_de: text, since: "2026-11-21T10:38:00Z" },
+      passphrase_set: code !== "passphrase_missing",
+    },
+    "/backup/settings": {
+      enabled: true,
+      usb_enabled: true,
+      snapshot_interval_minutes: 5,
+      keep_local: 20,
+      keep_usb: 20,
+      warn_all_stations: true,
+      warn_on_display: false,
+      encrypt: true,
+    },
+  };
+}

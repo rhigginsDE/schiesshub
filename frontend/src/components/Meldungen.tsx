@@ -1,6 +1,6 @@
 import { CloseButton } from "@mantine/core";
 import { CircleCheck, Info, ShieldAlert, TriangleAlert } from "lucide-react";
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import s from "./Meldungen.module.css";
 
@@ -17,7 +17,8 @@ export interface Meldung {
   dauerMs: number;
 }
 
-const STANDARD_DAUER_MS = { erfolg: 4000, info: 6000, warn: 8000, krit: 0 } as const;
+/** Lang genug auch für langsame Leser; beim Überfahren oder Berühren läuft die Zeit nicht weiter. */
+export const STANDARD_DAUER_MS = { erfolg: 6000, info: 8000, warn: 10000, krit: 0 } as const;
 
 let liste: Meldung[] = [];
 let naechsteId = 1;
@@ -79,17 +80,28 @@ export function Meldungen() {
 function MeldungKarte({ meldung }: { meldung: Meldung }) {
   const { t } = useTranslation();
   const Icon = SYMBOLE[meldung.ton];
+  const [angehalten, setAngehalten] = useState(false);
+  const rest = useRef(meldung.dauerMs);
 
   useEffect(() => {
-    if (meldung.dauerMs <= 0) return;
-    const timer = setTimeout(() => schliesseMeldung(meldung.id), meldung.dauerMs);
-    return () => clearTimeout(timer);
-  }, [meldung.id, meldung.dauerMs]);
+    if (meldung.dauerMs <= 0 || angehalten) return;
+    const start = Date.now();
+    const timer = setTimeout(() => schliesseMeldung(meldung.id), rest.current);
+    return () => {
+      clearTimeout(timer);
+      rest.current = Math.max(1000, rest.current - (Date.now() - start));
+    };
+  }, [meldung.id, meldung.dauerMs, angehalten]);
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: hält nur den Zeitgeber an, löst nichts aus
     <div
       className={`${s.karte} ${s[meldung.ton]}`}
       role={meldung.ton === "krit" ? "alert" : "status"}
+      onPointerEnter={() => setAngehalten(true)}
+      onPointerLeave={() => setAngehalten(false)}
+      onFocus={() => setAngehalten(true)}
+      onBlur={() => setAngehalten(false)}
     >
       <Icon className={s.symbol} aria-hidden />
       <div className={s.text}>

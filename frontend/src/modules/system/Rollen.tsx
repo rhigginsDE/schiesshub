@@ -348,6 +348,7 @@ function RollenKopf({ rolle }: { rolle: Rolle }) {
       setFrage(null);
       void queryClient.invalidateQueries({ queryKey: schluessel.auth.rollen });
       void queryClient.invalidateQueries({ queryKey: schluessel.auth.status });
+      zeigeMeldung({ ton: "erfolg", titel: t("rollen.umbenannt") });
     },
   });
   const loeschen = useMutation({

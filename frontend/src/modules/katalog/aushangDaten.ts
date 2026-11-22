@@ -24,6 +24,16 @@ export function nurZeitVarianten(varianten: Variante[]): boolean {
   return varianten.every((variante) => ohneZeiten(variante) === erste);
 }
 
+/**
+ * Abschnitt ohne Sollzeit und Abbruchzeit. Für die Kopfzeile im Aushang, wenn beide Werte je
+ * Variante in der Sollzeit-Tabelle stehen.
+ */
+export function ohneSollzeiten(abschnitt: Abschnitt): Abschnitt {
+  return Object.fromEntries(
+    Object.entries(abschnitt).filter(([feld]) => !ZEITFELDER.has(feld)),
+  ) as Abschnitt;
+}
+
 export interface SollzeitZeile {
   variante: string;
   sollzeit: string;

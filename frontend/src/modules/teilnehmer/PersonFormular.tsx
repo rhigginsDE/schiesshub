@@ -306,7 +306,7 @@ export function PersonFormular({
               <span className={s.feldHilfe}>{t("formular.anzeige_hilfe")}</span>
               <SegmentedControl
                 fullWidth
-                size="md"
+                size="sm"
                 orientation={schmal ? "vertical" : "horizontal"}
                 value={werte.display_mode}
                 onChange={(wert) => aendern("display_mode", wert as Anzeigeart)}

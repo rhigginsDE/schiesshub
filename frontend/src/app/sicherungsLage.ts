@@ -51,6 +51,29 @@ export function sichtbareWarnung({
   return warnung;
 }
 
+/**
+ * Was das Banner zu einer Warnung anbietet:
+ * - `pruefen`: Stick-Probleme, die sich am Server beheben lassen; danach ändert „Erneut prüfen“ etwas.
+ * - `passwort`: Sicherungspasswort festlegen (System → Sicherung).
+ * - `sicherung`: Einstellung oder Fehler, den man unter System → Sicherung behebt. Prüfen hilft hier nicht.
+ */
+export type BannerAktion = "pruefen" | "passwort" | "sicherung";
+
+const AKTION_JE_CODE: Record<SicherungsWarnung["code"], BannerAktion> = {
+  usb_missing: "pruefen",
+  usb_not_writable: "pruefen",
+  usb_full: "pruefen",
+  usb_copy_failed: "pruefen",
+  journal_sync_failed: "pruefen",
+  passphrase_missing: "passwort",
+  backup_disabled: "sicherung",
+  snapshot_failed: "sicherung",
+};
+
+export function bannerAktion(code: string): BannerAktion {
+  return AKTION_JE_CODE[code as SicherungsWarnung["code"]] ?? "sicherung";
+}
+
 /** Zustand der Sicherung für Kopfzeile und Banner; ohne `backup.read` bleibt alles leer. */
 export function useSicherungsLage(istAnzeige: boolean) {
   const queryClient = useQueryClient();
@@ -98,6 +121,8 @@ export function useSicherungsLage(istAnzeige: boolean) {
   return {
     status: darfLesen ? status.data : undefined,
     warnung,
+    /** Darf die Sicherung einstellen (Passwort, Ein/Aus); sonst hilft nur, Bescheid zu geben. */
+    darfVerwalten,
     pruefen,
     ausblenden: () => {
       if (warnung) setStumm({ bis: Date.now() + STUMM_DAUER_MS, code: warnung.code });

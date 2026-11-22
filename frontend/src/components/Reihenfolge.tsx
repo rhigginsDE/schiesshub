@@ -35,7 +35,7 @@ export function ReihenfolgeKnoepfe({
       <ActionIcon
         variant="subtle"
         color="gray"
-        size={40}
+        size={44}
         aria-label={hoch}
         title={hoch}
         disabled={gesperrt || index === 0}
@@ -46,7 +46,7 @@ export function ReihenfolgeKnoepfe({
       <ActionIcon
         variant="subtle"
         color="gray"
-        size={40}
+        size={44}
         aria-label={runter}
         title={runter}
         disabled={gesperrt || index >= anzahl - 1}

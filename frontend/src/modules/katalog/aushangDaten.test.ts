@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Abschnitt, Variante } from "../../api/typen";
-import { nurZeitVarianten, sollzeitTabelle, verwendeteHaende, zeitTabelle } from "./aushangDaten";
+import {
+  nurZeitVarianten,
+  ohneSollzeiten,
+  sollzeitTabelle,
+  verwendeteHaende,
+  zeitTabelle,
+} from "./aushangDaten";
 
 const fertigkeit: Abschnitt = {
   id: "fertigkeit",
@@ -93,5 +99,15 @@ describe("zeitTabelle", () => {
 describe("verwendeteHaende", () => {
   it("nennt die vorkommenden Hand-Abzeichen in fester Reihenfolge", () => {
     expect(verwendeteHaende(mehrdistanz[0] as Variante)).toEqual(["beidhaendig", "einhaendig"]);
+  });
+});
+
+describe("ohneSollzeiten", () => {
+  it("entfernt nur Sollzeit und Abbruchzeit, der Rest des Abschnitts bleibt", () => {
+    const ohne = ohneSollzeiten(parcours(80, 160));
+    expect(ohne.sollzeit_s).toBeUndefined();
+    expect(ohne.max_gesamtzeit_s).toBeUndefined();
+    expect(ohne.serien).toBe(4);
+    expect(ohne.positionen).toHaveLength(2);
   });
 });

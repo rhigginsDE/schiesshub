@@ -95,7 +95,11 @@
     align-items: stretch;
   }
 
+  /* position: relative macht die Spalte zum Bezugsrahmen für absolut positionierte Inhalte (z. B.
+     die nur-screenreader-Texte an den Gruppen). Ohne sie hängen diese am Dokument, ragen unten aus der
+     Spalte heraus und lassen die ganze Seite zusätzlich ins Leere scrollen (doppelter Scroll). */
   .spalten > * {
+    position: relative;
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -351,6 +355,33 @@
 .stammdaten dd {
   font-size: 14px;
   overflow-wrap: anywhere;
+}
+
+/* Erklärungen der Fachkürzel unter den Stammdaten: klein, aber lesbar und auch ohne Maus erreichbar. */
+.kuerzel {
+  display: grid;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--sh-linie);
+  font-size: 13px;
+  color: var(--sh-text-weich);
+}
+
+.kuerzel > div {
+  display: grid;
+  grid-template-columns: minmax(80px, auto) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.kuerzel dt {
+  font-weight: 600;
+  color: var(--sh-text);
+}
+
+.beschreibung {
+  font-size: 14px;
+  color: var(--sh-text-weich);
+  max-width: 75ch;
 }
 
 .varianten {

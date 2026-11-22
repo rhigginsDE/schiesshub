@@ -331,14 +331,113 @@
   align-items: center;
 }
 
+/* Breit genug für „Niemand – PIN nötig“ und längere Rollennamen */
 .auswahl {
-  width: 240px;
+  flex: 0 1 280px;
+  width: 280px;
   max-width: 100%;
+  min-width: 0;
 }
 
+/* ---------- Ersteinrichtung der Sicherung ---------- */
+.aufgaben {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.aufgabenKopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  font-size: 13px;
+}
+
+.aufgabenTitel {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--sh-text);
+}
+
+.aufgabenListe {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aufgabe {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 4px 12px;
+  padding: 8px 10px;
+  border-radius: var(--sh-radius-m);
+  font-size: 14px;
+  color: var(--sh-text-gedaempft);
+}
+
+.aufgabeSymbol {
+  margin-top: 2px;
+  font-size: 18px;
+}
+
+.aufgabeText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.aufgabeText strong {
+  font-weight: 600;
+}
+
+.aufgabeText span {
+  font-size: 13px;
+  color: var(--sh-text-weich);
+}
+
+.aufgabeZustand {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.aufgabe[data-zustand="erledigt"] .aufgabeSymbol,
+.aufgabe[data-zustand="erledigt"] .aufgabeZustand {
+  color: var(--sh-akzent-text);
+}
+
+.aufgabe[data-zustand="aktiv"] {
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text);
+}
+
+.aufgabe[data-zustand="aktiv"] .aufgabeZustand {
+  color: var(--sh-text);
+  font-weight: 600;
+}
+
+.ernstfall {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  max-width: 75ch;
+  font-size: 13px;
+  color: var(--sh-text-weich);
+}
+
+.ernstfall .warnSymbol {
+  color: var(--sh-text-gedaempft);
+}
+
+/* ---------- Verlauf der Sicherungen ---------- */
 .laufZeile {
   display: grid;
-  grid-template-columns: minmax(130px, 1fr) minmax(90px, auto) minmax(0, 2fr) auto;
+  grid-template-columns: 150px 190px minmax(0, 1fr) auto;
+  grid-template-areas: "zeit marken stand aktionen";
   align-items: center;
   gap: 6px 14px;
   padding: 10px 0;
@@ -350,19 +449,80 @@
   border-bottom: 0;
 }
 
+.laufZeit {
+  grid-area: zeit;
+}
+
+.laufMarken {
+  grid-area: marken;
+}
+
+.laufStand {
+  grid-area: stand;
+  min-width: 0;
+}
+
+.laufAktionen {
+  grid-area: aktionen;
+  justify-content: flex-end;
+}
+
 .laufFehler {
   color: var(--sh-krit);
   font-size: 13px;
   overflow-wrap: anywhere;
 }
 
+.pruefErgebnis {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pruefErgebnis summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--sh-text-weich);
+}
+
+.dialogKnoepfe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 @media (max-width: 760px) {
   .laufZeile {
     grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "zeit marken"
+      "stand stand"
+      "aktionen aktionen";
+  }
+
+  .laufAktionen {
+    justify-content: flex-start;
+  }
+
+  .laufAktionen:empty {
+    display: none;
   }
 
   .zeilen dd {
     text-align: left;
+  }
+}
+
+@media (max-width: 420px) {
+  .laufZeile {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "zeit"
+      "marken"
+      "stand"
+      "aktionen";
   }
 }
 
@@ -387,12 +547,80 @@
   overflow-wrap: anywhere;
 }
 
+.koppelSchritte {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.schritte {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.schritt {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sh-linie);
+  font-size: 14px;
+  color: var(--sh-text-weich);
+}
+
+.schritt:last-child {
+  border-bottom: 0;
+}
+
+.schrittNr {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--sh-linie);
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sh-text);
+}
+
+.schritt[data-erledigt="ja"] .schrittNr {
+  border-color: var(--sh-akzent);
+  color: var(--sh-akzent-text);
+}
+
+.schrittInhalt {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.schrittInhalt .code {
+  justify-items: start;
+  text-align: left;
+}
+
+.schrittInhalt .codeText {
+  justify-self: start;
+}
+
 /* ---------- Rollen-Matrix ---------- */
 .matrixRahmen {
   min-width: 0;
   overflow-x: auto;
   border: 1px solid var(--sh-linie);
   border-radius: var(--sh-radius-m);
+}
+
+/* Im Fenster-Layout scrollt die Inhaltsspalte; der Rahmen darf dann kein eigener Scroll-Container
+   sein, sonst klebt der Kopf der Matrix nicht oben (overflow-x würde ihn dazu machen). */
+@media (min-width: 1101px) and (min-height: 560px) {
+  .matrixRahmen {
+    overflow: visible;
+  }
 }
 
 .matrix {
@@ -417,6 +645,8 @@
 .matrix thead th {
   position: sticky;
   top: 0;
+  /* über den Kästchen der Zeilen, die darunter durchscrollen */
+  z-index: 2;
   background: var(--sh-flaeche);
   font-weight: 600;
   font-size: 13px;
@@ -527,6 +757,12 @@
   align-items: baseline;
 }
 
+/* Lange Wörter dürfen die Spalten nicht sprengen (sonst waagrechter Scroll auf dem Handy). */
+.protokollZeile > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .protokollKopf {
   font: 600 11px / 1.2 var(--sh-font-text);
   letter-spacing: 0.1em;
@@ -535,8 +771,7 @@
 }
 
 .details {
-  font-family: var(--sh-font-mono);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--sh-text-gedaempft);
   overflow-wrap: anywhere;
 }

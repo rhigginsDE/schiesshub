@@ -81,6 +81,37 @@ describe("Matrix-Hilfen", () => {
     );
   });
 
+  it("Details des Protokolls in Klartext, ohne IDs, Geld in Euro", () => {
+    const rolle = "2c22e880-61bb-488a-b3f4-954ad6a5cb91";
+    const hilfen = {
+      feld: (k: string) => ({ fee_cents: "Startgeld", role_id: "Rolle", from: "vorher" })[k] ?? k,
+      wert: (w: string) => ({ called: "aufgerufen" })[w] ?? w,
+      name: (id: string) => (id === rolle ? "Kasse" : undefined),
+      geld: (cent: number) => `${(cent / 100).toFixed(2).replace(".", ",")} €`,
+      jaNein: (w: boolean) => (w ? "ja" : "nein"),
+    };
+    expect(
+      detailsText(
+        {
+          tournament_id: "78a0a62a-fd80-4ef3-876a-3e7ad7a332b6",
+          start_ids: ["2e523d48-a9a5-495d-bae9-d7380f445b30"],
+          fee_cents: [800, 500],
+          from: "called",
+        },
+        hilfen,
+      ),
+    ).toBe("Startgeld: 8,00 € + 5,00 € · vorher: aufgerufen");
+    expect(
+      detailsText(
+        { role_id: { before: rolle, after: "11111111-2222-4333-8444-555555555555" } },
+        hilfen,
+      ),
+    ).toBe("Rolle: Kasse → –");
+    expect(detailsText({ role_id: rolle, active: false }, hilfen)).toBe(
+      "Rolle: Kasse · active: nein",
+    );
+  });
+
   it("Kopplungsadresse aus Herkunft und Pfad", () => {
     expect(kopplungsAdresse("/pair?code=ABC", "http://192.168.50.1")).toBe(
       "http://192.168.50.1/pair?code=ABC",

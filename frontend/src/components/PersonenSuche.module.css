@@ -18,7 +18,7 @@
 }
 
 .taste {
-  font: 700 12px / 1 var(--sh-font-mono);
+  font: 700 var(--sh-fz-klein) / 1 var(--sh-font-mono);
   color: var(--sh-text-gedaempft);
   border: 1px solid var(--sh-linie);
   border-radius: var(--sh-radius-s);
