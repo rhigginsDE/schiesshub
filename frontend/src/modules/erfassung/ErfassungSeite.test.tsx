@@ -295,6 +295,55 @@ describe("Erfassungsterminal", () => {
     });
   });
 
+  it("QA G-5: nach der Statuswahl kommen getippte Werte im aktiven Feld an", async () => {
+    const aufrufe = routen();
+    const user = userEvent.setup();
+    anzeigen();
+    await screen.findByRole("heading", { name: "Markus Brandt" });
+    await user.click(statusFelder()[0] as HTMLElement);
+    await user.click(
+      (await screen.findAllByRole("option", { name: /Zeitlimit/, hidden: true }))[0] as HTMLElement,
+    );
+    // Kein Klick daneben: Die Tastatur gehört nach der Wahl wieder dem Terminal.
+    expect(statusFelder()[0]).not.toHaveFocus();
+    expect(screen.getByText("Serie 1 · Stehende Scheiben")).toBeInTheDocument();
+    await user.keyboard("2");
+    expect(screen.getAllByRole("button", { name: /^Stehende Scheiben:/ })[0]).toHaveAccessibleName(
+      "Stehende Scheiben: 2, 0 bis 5",
+    );
+
+    // Status der zweiten Serie wählen, dann ein Feld antippen und tippen: kommt dort an.
+    await user.click(statusFelder()[1] as HTMLElement);
+    await user.click(
+      (await screen.findAllByRole("option", { name: /Zeitlimit/, hidden: true })).at(
+        -1,
+      ) as HTMLElement,
+    );
+    await user.click(
+      screen.getAllByRole("button", { name: /^Stehende Scheiben:/ })[1] as HTMLElement,
+    );
+    await user.keyboard("1");
+    expect(screen.getAllByRole("button", { name: /^Stehende Scheiben:/ })[1]).toHaveAccessibleName(
+      "Stehende Scheiben: 1, 0 bis 5",
+    );
+    await waitFor(
+      () =>
+        expect(aufrufe.filter((a) => a.methode === "PUT").at(-1)?.inhalt).toMatchObject({
+          raw: {
+            sections: {
+              fallscheibe: {
+                series: [
+                  { status: "time_limit", standing: 2 },
+                  { status: "time_limit", standing: 1 },
+                ],
+              },
+            },
+          },
+        }),
+      { timeout: 3000 },
+    );
+  });
+
   it("Netzfehler: Eingabe bleibt, „noch nicht gespeichert“, Abschluss gesperrt", async () => {
     routen({ [`PUT /tournaments/${T}/starts/${S}/raw`]: { status: 503, inhalt: {} } });
     const user = userEvent.setup();

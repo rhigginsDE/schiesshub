@@ -356,7 +356,10 @@ function PersonZeile({
           {name(person)}
         </b>
         <span className={s.unter}>
-          {[person.club, person.class_short, person.competition_name].filter(Boolean).join(" · ")}
+          {[person.club, person.class_short].filter(Boolean).join(" · ")}
+          {" · "}
+          {/* Kennziffer davor: 1001 und 1201 heißen beide „Pistole bis 9 mm“. */}
+          <WettbewerbTitel code={person.competition_code} name={person.competition_name} klein />
         </span>
       </span>
       {(fortschritt || person.status === "called") && (

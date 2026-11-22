@@ -2,6 +2,9 @@ import { type CSSProperties, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   gesamtTeile,
+  laengstesWort,
+  mitErgebnis,
+  mitWeiterenPlaetzen,
   podestReihenfolge,
   podestStufe,
   type RanglistenEintrag,
@@ -34,7 +37,7 @@ function spaltenVorlage(serien: number): string {
 }
 
 function Gesamt({ zeile, einheit }: { zeile: FeedZeile; einheit: string | null }) {
-  const teile = gesamtTeile(zeile.score_text, einheit);
+  const teile = gesamtTeile(mitErgebnis(zeile) ? zeile.score_text : null, einheit);
   return (
     <span className={`num ${s.gesamt}`}>
       {teile.wert}
@@ -232,6 +235,7 @@ function PodestStufe({
 }) {
   const name = useName();
   const teile = gesamtTeile(zeile.score_text, einheit);
+  const text = name(zeile);
   return (
     <div
       className={s.stufe}
@@ -239,8 +243,8 @@ function PodestStufe({
       data-stufe={podestStufe(zeile.place, rang)}
       data-erster={zeile.place === 1 || undefined}
     >
-      <div className={s.stufeName}>
-        <b className={s.stufeNameText}>{name(zeile)}</b>
+      <div className={s.stufeName} style={{ "--wort": laengstesWort(text) } as CSSProperties}>
+        <b className={s.stufeNameText}>{text}</b>
         {zeile.club && <span>{zeile.club}</span>}
       </div>
       <div className={s.sockel} style={{ "--zeichen": teile.wert.length } as CSSProperties}>
@@ -264,18 +268,27 @@ function WeitereListe({
   const { t } = useTranslation("anzeige");
   const name = useName();
   const seiten = useSeiten(zeilen, takt);
+  // Nur Abgebrochene: Sie haben keinen Platz, „Weitere Plätze“ wäre falsch.
+  const ohnePlatz = zeilen.every((zeile) => zeile.group === "unranked");
   return (
     <div className={s.weitere}>
       <div className={s.weitereKopf}>
-        <span className={s.kicker}>{t("schirm.weitere_plaetze")}</span>
+        <span className={s.kicker}>
+          {ohnePlatz ? t("schirm.ohne_platzierung") : t("schirm.weitere_plaetze")}
+        </span>
         <SeitenMarke seite={seiten.seite} seiten={seiten.seiten} />
       </div>
       <div ref={seiten.ref} className={s.weitereListe}>
         {seiten.eintraege.map((zeile) => (
-          <div key={zeile.start_id} className={s.weitereZeile} data-zeile="">
-            <span className={`num ${s.platz}`}>{zeile.place ?? "–"}</span>
+          <div
+            key={zeile.start_id}
+            className={s.weitereZeile}
+            data-zeile=""
+            data-abgebrochen={zeile.abort_reason ? "" : undefined}
+          >
+            {!zeile.abort_reason && <span className={`num ${s.platz}`}>{zeile.place ?? "–"}</span>}
             <span className={s.wer}>
-              <b>{name(zeile)}</b>
+              <b className={s.weitereName}>{name(zeile)}</b>
               {(zeile.club || zeile.abort_reason) && (
                 <span className={s.unter}>
                   {zeile.club}
@@ -288,9 +301,11 @@ function WeitereListe({
                 </span>
               )}
             </span>
-            <span className={`num ${s.gesamt} ${s.gesamtKlein}`}>
-              {gesamtTeile(zeile.score_text, einheit).wert}
-            </span>
+            {mitErgebnis(zeile) && (
+              <span className={`num ${s.gesamt} ${s.gesamtKlein}`}>
+                {gesamtTeile(zeile.score_text, einheit).wert}
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -311,7 +326,12 @@ function KlassenSieger({
 }) {
   const { podest: erste, rest } = siegerAufteilung(gruppe.rows);
   return (
-    <section className={s.klassenSieger} data-allein={allein || undefined}>
+    <section
+      className={s.klassenSieger}
+      data-allein={allein || undefined}
+      // Mehrere Klassen nebeneinander: Abgebrochene unter dem Podest statt daneben (sonst zu schmal).
+      data-gestapelt={(!allein && rest.length > 0) || undefined}
+    >
       {(gruppe.class_name || gruppe.class_short) && (
         <h3 className={s.klassenTitel}>
           {gruppe.class_name ?? gruppe.class_short}
@@ -338,8 +358,9 @@ export function Siegerliste({ szene, takt }: { szene: SzeneVon<"winners">; takt:
   const { hochkant, jetzt } = useSchirm();
   const rangliste = szene.ranking;
   const gruppen = rangliste.groups.filter((gruppe) => gruppe.rows.length > 0);
-  // Mit weiteren Plätzen oder hochkant: eine Klasse je Seite; sonst bis zu drei nebeneinander.
-  const mitRest = gruppen.some((gruppe) => gruppe.rows.length > 3);
+  // Mit weiteren Plätzen (ab Platz 4) oder hochkant: eine Klasse je Seite; sonst bis zu drei
+  // nebeneinander. Abgebrochene allein zählen nicht: Sie stehen dann unter dem Podest.
+  const mitRest = gruppen.some((gruppe) => mitWeiterenPlaetzen(gruppe.rows));
   const proSeite = hochkant || mitRest ? 1 : 3;
   const seiten = inSeiten(gruppen, proSeite);
   const seite = seiteZurZeit(takt, jetzt, seiten.length);

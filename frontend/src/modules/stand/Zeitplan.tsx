@@ -11,9 +11,10 @@ import {
   type Durchgang,
   type StationStart,
 } from "../anmeldung/api";
-import { useAnzeigename } from "./aktionen";
+import { type StandRechte, useAnzeigename } from "./aktionen";
 import { belegungDurchgang, durchgangErledigt, sortiereDurchgaenge } from "./logik";
 import s from "./stand.module.css";
+import { type Kennziffern, WettbewerbName } from "./Wettbewerb";
 
 interface ZeitplanProps {
   durchgaenge: readonly Durchgang[];
@@ -30,12 +31,15 @@ interface ZeitplanProps {
   onHerausnehmen: (start: StationStart) => void;
   onAufrufen: (start: StationStart) => void;
   onAbbrechen: (start: StationStart, grund: Abbruchgrund) => void;
+  /** Was die Person am Stand darf (Knöpfe ohne Recht fehlen) */
+  rechte: StandRechte;
+  kennziffern: Kennziffern;
 }
 
 /** Durchgänge des Stands mit Uhrzeit, Belegung je Bahn und den Aktionen der Standaufsicht. */
 export function Zeitplan(props: ZeitplanProps) {
   const { t, i18n } = useTranslation("stand");
-  const { durchgaenge, starts, beschaeftigt } = props;
+  const { durchgaenge, starts, beschaeftigt, rechte } = props;
   const [vergangene, setVergangene] = useState(false);
   const sortiert = sortiereDurchgaenge(durchgaenge);
   const erledigt = sortiert.filter((d) => durchgangErledigt(d, starts));
@@ -46,14 +50,16 @@ export function Zeitplan(props: ZeitplanProps) {
   return (
     <div className={s.zeitplan}>
       <div className={s.abschnittWerkzeug}>
-        <Button
-          variant="default"
-          size="md"
-          leftSection={<Plus aria-hidden />}
-          onClick={props.onSerie}
-        >
-          {t("zeitplan.serie")}
-        </Button>
+        {rechte.planen && (
+          <Button
+            variant="default"
+            size="md"
+            leftSection={<Plus aria-hidden />}
+            onClick={props.onSerie}
+          >
+            {t("zeitplan.serie")}
+          </Button>
+        )}
         {erledigt.length > 0 && (
           <Switch
             size="md"
@@ -69,18 +75,22 @@ export function Zeitplan(props: ZeitplanProps) {
           <h3 className="h-label" id="ohne-platz-titel">
             {t("zeitplan.ohne_platz")}
           </h3>
-          <p className="gedaempft">{t("zeitplan.ohne_platz_text")}</p>
+          <p className="gedaempft">
+            {rechte.planen ? t("zeitplan.ohne_platz_text") : t("zeitplan.ohne_platz_ohne_recht")}
+          </p>
           <ul className={s.ohnePlatzListe}>
             {ohnePlatz.map((start) => (
-              <StartZeile key={start.start_id} start={start}>
-                <Button
-                  variant="default"
-                  size="md"
-                  disabled={beschaeftigt}
-                  onClick={() => props.onPlatz(start)}
-                >
-                  {t("zeitplan.einplanen")}
-                </Button>
+              <StartZeile key={start.start_id} start={start} kennziffern={props.kennziffern}>
+                {rechte.planen && (
+                  <Button
+                    variant="default"
+                    size="md"
+                    disabled={beschaeftigt}
+                    onClick={() => props.onPlatz(start)}
+                  >
+                    {t("zeitplan.einplanen")}
+                  </Button>
+                )}
               </StartZeile>
             ))}
           </ul>
@@ -91,7 +101,7 @@ export function Zeitplan(props: ZeitplanProps) {
         <Leerzustand
           icon={CalendarClock}
           titel={t("zeitplan.leer_titel")}
-          text={t("zeitplan.leer_text")}
+          text={rechte.planen ? t("zeitplan.leer_text") : t("zeitplan.leer_text_ohne_recht")}
         />
       ) : (
         <ol className={s.durchgaenge}>
@@ -126,7 +136,7 @@ export function Zeitplan(props: ZeitplanProps) {
                   </Chip>
                   {vorbei && <Chip ton="info">{t("zeitplan.vorbei")}</Chip>}
                   <span className={s.durchgangAktionen}>
-                    {wartend && props.hauptDurchgangId !== durchgang.id && (
+                    {rechte.aufrufen && wartend && props.hauptDurchgangId !== durchgang.id && (
                       <Button
                         variant="default"
                         size="md"
@@ -137,27 +147,32 @@ export function Zeitplan(props: ZeitplanProps) {
                         {t("aktion.durchgang_aufrufen_kurz")}
                       </Button>
                     )}
-                    <Menu position="bottom-end" withinPortal>
-                      <Menu.Target>
-                        <ActionIcon
-                          variant="subtle"
-                          color="gray"
-                          size={44}
-                          aria-label={t("zeitplan.aktionen", { nummer: durchgang.number })}
-                          title={t("zeitplan.aktionen", { nummer: durchgang.number })}
-                        >
-                          <MoreVertical aria-hidden />
-                        </ActionIcon>
-                      </Menu.Target>
-                      <Menu.Dropdown>
-                        <Menu.Item onClick={() => props.onDurchgangAendern(durchgang)}>
-                          {t("zeitplan.aendern")}
-                        </Menu.Item>
-                        <Menu.Item color="red" onClick={() => props.onDurchgangLoeschen(durchgang)}>
-                          {t("zeitplan.loeschen")}
-                        </Menu.Item>
-                      </Menu.Dropdown>
-                    </Menu>
+                    {rechte.planen && (
+                      <Menu position="bottom-end" withinPortal>
+                        <Menu.Target>
+                          <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            size={44}
+                            aria-label={t("zeitplan.aktionen", { nummer: durchgang.number })}
+                            title={t("zeitplan.aktionen", { nummer: durchgang.number })}
+                          >
+                            <MoreVertical aria-hidden />
+                          </ActionIcon>
+                        </Menu.Target>
+                        <Menu.Dropdown>
+                          <Menu.Item onClick={() => props.onDurchgangAendern(durchgang)}>
+                            {t("zeitplan.aendern")}
+                          </Menu.Item>
+                          <Menu.Item
+                            color="red"
+                            onClick={() => props.onDurchgangLoeschen(durchgang)}
+                          >
+                            {t("zeitplan.loeschen")}
+                          </Menu.Item>
+                        </Menu.Dropdown>
+                      </Menu>
+                    )}
                   </span>
                 </div>
                 {belegung.every(({ start }) => start === null) ? (
@@ -194,11 +209,14 @@ function PlatzInhalt({
   onHerausnehmen,
   onAufrufen,
   onAbbrechen,
+  rechte,
+  kennziffern,
 }: { start: StationStart } & ZeitplanProps) {
   const { t } = useTranslation("stand");
   const anzeigename = useAnzeigename();
   const nr = start.start_number;
   const wartet = start.status === "registered";
+  const mitMenue = wartet && (rechte.aufrufen || rechte.planen || rechte.abbrechen);
   return (
     <>
       <span className={s.platzWer}>
@@ -206,7 +224,11 @@ function PlatzInhalt({
           <span className="num">{nr}</span> {anzeigename(start).text}
         </strong>
         <span className="gedaempft">
-          {start.competition_name} · {t("bahn.start_nr", { nr: start.attempt })}
+          <WettbewerbName
+            code={kennziffern.get(start.competition_id)}
+            name={start.competition_name}
+          />{" "}
+          · {t("bahn.start_nr", { nr: start.attempt })}
         </span>
       </span>
       {!wartet && (
@@ -218,7 +240,7 @@ function PlatzInhalt({
             : t(`status.${start.status}`)}
         </Chip>
       )}
-      {wartet && (
+      {mitMenue && (
         <Menu position="bottom-end" withinPortal>
           <Menu.Target>
             <ActionIcon
@@ -233,20 +255,30 @@ function PlatzInhalt({
             </ActionIcon>
           </Menu.Target>
           <Menu.Dropdown>
-            <Menu.Item onClick={() => onAufrufen(start)}>
-              {t("zeitplan.einzeln_aufrufen")}
-            </Menu.Item>
-            <Menu.Item onClick={() => onPlatz(start)}>{t("zeitplan.umsetzen")}</Menu.Item>
-            <Menu.Item onClick={() => onHerausnehmen(start)}>
-              {t("zeitplan.herausnehmen")}
-            </Menu.Item>
-            <Menu.Divider />
-            <Menu.Label>{t("bahn.abbrechen")}</Menu.Label>
-            {ABBRUCHGRUENDE.map((grund) => (
-              <Menu.Item key={grund} onClick={() => onAbbrechen(start, grund)}>
-                {t(`abbruch.grund.${grund}`)}
+            {rechte.aufrufen && (
+              <Menu.Item onClick={() => onAufrufen(start)}>
+                {t("zeitplan.einzeln_aufrufen")}
               </Menu.Item>
-            ))}
+            )}
+            {rechte.planen && (
+              <>
+                <Menu.Item onClick={() => onPlatz(start)}>{t("zeitplan.umsetzen")}</Menu.Item>
+                <Menu.Item onClick={() => onHerausnehmen(start)}>
+                  {t("zeitplan.herausnehmen")}
+                </Menu.Item>
+              </>
+            )}
+            {rechte.abbrechen && (
+              <>
+                {(rechte.aufrufen || rechte.planen) && <Menu.Divider />}
+                <Menu.Label>{t("bahn.abbrechen")}</Menu.Label>
+                {ABBRUCHGRUENDE.map((grund) => (
+                  <Menu.Item key={grund} onClick={() => onAbbrechen(start, grund)}>
+                    {t(`abbruch.grund.${grund}`)}
+                  </Menu.Item>
+                ))}
+              </>
+            )}
           </Menu.Dropdown>
         </Menu>
       )}
@@ -254,7 +286,15 @@ function PlatzInhalt({
   );
 }
 
-function StartZeile({ start, children }: { start: StationStart; children: ReactNode }) {
+function StartZeile({
+  start,
+  kennziffern,
+  children,
+}: {
+  start: StationStart;
+  kennziffern: Kennziffern;
+  children: ReactNode;
+}) {
   const { t } = useTranslation("stand");
   const anzeigename = useAnzeigename();
   return (
@@ -263,7 +303,11 @@ function StartZeile({ start, children }: { start: StationStart; children: ReactN
       <span className={s.platzWer}>
         <strong>{anzeigename(start).text}</strong>
         <span className="gedaempft">
-          {start.competition_name} · {t("bahn.start_nr", { nr: start.attempt })}
+          <WettbewerbName
+            code={kennziffern.get(start.competition_id)}
+            name={start.competition_name}
+          />{" "}
+          · {t("bahn.start_nr", { nr: start.attempt })}
         </span>
       </span>
       {children}

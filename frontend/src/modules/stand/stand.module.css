@@ -618,3 +618,14 @@
     width: 100%;
   }
 }
+
+/* Wettbewerb mit Kennziffer davor (1001 und 1201 können gleich heißen) */
+.wettbewerb {
+  display: inline;
+}
+
+.kennziffer {
+  margin-right: 0.4em;
+  font-weight: 700;
+  color: var(--sh-text-weich);
+}

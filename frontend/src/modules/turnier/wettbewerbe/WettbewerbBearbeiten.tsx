@@ -113,7 +113,8 @@ export function WettbewerbBearbeiten({
   const zuruecksetzen = useDefinitionZuruecksetzen(turnier.id);
   const anlegen = useWettbewerbAnlegen(turnier.id);
   const quelle = useMemo(() => ausWettbewerb(wettbewerb), [wettbewerb]);
-  const entwurf = useEntwurf<WettbewerbFormular>(quelle);
+  // Mit Speicherfunktion: Die Rückfrage beim Verlassen bietet auch „Speichern und weiter“ an.
+  const entwurf = useEntwurf<WettbewerbFormular>(quelle, { speichern: speichernVomSchutz });
   const { werte } = entwurf;
   const [geprueft, setGeprueft] = useState(false);
   const [rueckfrage, setRueckfrage] = useState<Rueckfrage>(null);
@@ -161,13 +162,36 @@ export function WettbewerbBearbeiten({
   const erweitertSichtbar = erweitertOffen || fehlerErweitert;
   const erweitertId = `erweitert-${wettbewerb.id}`;
 
-  const speichern = (mitGrund?: string) => {
+  /**
+   * Speichert und gibt `true` zurück, wenn der Server angenommen hat. Danach gilt der Entwurf als
+   * gespeichert: Er übernimmt den Stand aus der Antwort (der Server leitet z. B. Planung und
+   * Durchgangsdauer selbst ab), sonst bliebe er „geändert“ und das Verlassen fragte nach (QA G-4).
+   */
+  const speichern = async (mitGrund?: string): Promise<boolean> => {
     const daten = { ...aenderungen(werte, wettbewerb), ...(mitGrund ? { reason: mitGrund } : {}) };
-    aendern.mutate(
-      { wettbewerbId: wettbewerb.id, daten },
-      { onSuccess: () => setRueckfrage(null), onError: () => setRueckfrage(null) },
-    );
+    try {
+      const neu = await aendern.mutateAsync({ wettbewerbId: wettbewerb.id, daten });
+      entwurf.setWerte(ausWettbewerb(neu));
+      return true;
+    } catch {
+      return false;
+    } finally {
+      setRueckfrage(null);
+    }
   };
+
+  /** „Speichern und weiter“ aus der Rückfrage beim Verlassen. */
+  async function speichernVomSchutz(): Promise<boolean> {
+    setGeprueft(true);
+    if (Object.keys(pruefeFormular(werte)).length > 0) return false;
+    if (aktiv && wertungGeaendert(werte, wettbewerb)) {
+      // Ohne Grund kein Speichern: die Frage nach dem Grund öffnen, die Seite bleibt offen.
+      setGrund("");
+      setRueckfrage({ art: "speichern" });
+      return false;
+    }
+    return speichern();
+  }
 
   const zuruecksetzenFragen = () => {
     setGrund("");
@@ -201,7 +225,7 @@ export function WettbewerbBearbeiten({
           setRueckfrage({ art: "speichern" });
           return;
         }
-        speichern();
+        void speichern();
       }}
     >
       {/* Das, was fast jeder Wettbewerb braucht */}
@@ -625,7 +649,7 @@ export function WettbewerbBearbeiten({
         laedt={aendern.isPending}
         gesperrt={grund.trim().length === 0}
         onSchliessen={() => setRueckfrage(null)}
-        onBestaetigen={() => speichern(grund.trim())}
+        onBestaetigen={() => void speichern(grund.trim())}
       >
         <Textarea
           label={t("wettbewerb.grund")}

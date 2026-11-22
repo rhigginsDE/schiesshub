@@ -11,6 +11,7 @@ import type { TurnierUebersicht } from "../turnier/typen";
 import { standStartlisteAbfrage, useAnzeigename, useVolleNamen } from "./aktionen";
 import type { StandSuche } from "./pfade";
 import s from "./stand.module.css";
+import { WettbewerbName } from "./Wettbewerb";
 
 interface StartlisteProps {
   uebersicht: TurnierUebersicht;
@@ -120,14 +121,14 @@ export function Startliste({ uebersicht, suche, onSuche }: StartlisteProps) {
           </thead>
           {gruppen.map((gruppe) => {
             const wettbewerb = nachId.get(gruppe.id);
-            const titel = [wettbewerb?.catalog_code, wettbewerb?.name ?? gruppe.name]
-              .filter(Boolean)
-              .join(" ");
             return (
               <tbody key={gruppe.id}>
                 <tr className={s.gruppeZeile}>
                   <th colSpan={7} scope="colgroup">
-                    <span>{titel}</span>
+                    <WettbewerbName
+                      code={wettbewerb?.catalog_code}
+                      name={wettbewerb?.name ?? gruppe.name}
+                    />
                     <span className="gedaempft">
                       {t("startliste.gruppe_anzahl", { count: gruppe.starts.length })}
                     </span>
@@ -147,7 +148,12 @@ export function Startliste({ uebersicht, suche, onSuche }: StartlisteProps) {
                       </span>
                     </td>
                     <td data-label={spalten.klasse}>{start.class_short}</td>
-                    <td data-label={spalten.wettbewerb}>{start.competition_name}</td>
+                    <td data-label={spalten.wettbewerb}>
+                      <WettbewerbName
+                        code={nachId.get(start.competition_id)?.catalog_code}
+                        name={start.competition_name}
+                      />
+                    </td>
                     <td className={`num ${s.rechts}`} data-label={spalten.start}>
                       {start.attempt}
                     </td>

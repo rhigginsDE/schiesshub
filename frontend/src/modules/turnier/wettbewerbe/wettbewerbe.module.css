@@ -250,3 +250,11 @@
 .abschnitt {
   position: relative;
 }
+
+/* Variantenwahl: Sollzeit und Abbruchzeit als eigene Zeile (darin unterscheiden sich Varianten) */
+.varianteZeit {
+  display: block;
+  margin-top: 2px;
+  font-weight: 600;
+  color: var(--sh-text);
+}

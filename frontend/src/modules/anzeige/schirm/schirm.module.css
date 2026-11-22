@@ -207,6 +207,13 @@
   color: var(--sh-akzent-text);
 }
 
+.kennzifferKlein {
+  margin-right: 0.5em;
+  font-family: var(--sh-font-mono);
+  font-weight: 700;
+  font-style: normal;
+}
+
 .rechts {
   text-align: right;
 }
@@ -614,15 +621,17 @@
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
-  /* An Silbengrenzen trennen („Start-nummer“), nicht mitten im Wort */
-  overflow-wrap: break-word;
-  hyphens: auto;
-  font:
-    600 min(calc(3.6cqmin * var(--skala)), calc(var(--spalte) / 5.5)) / 1.15 var(--sh-font-text);
+  /* Nie mitten im Wort brechen („Startnumme r 5“): Umbruch nur zwischen Wörtern, und die Schrift
+     wird so klein, dass das längste Wort (--wort, Zeichen; Inter ≈ 0,58 em je Zeichen) in die
+     Stufe passt. */
+  overflow-wrap: normal;
+  hyphens: manual;
+  --name-max: calc(var(--spalte) / max(5.5, var(--wort, 0) * 0.58));
+  font: 600 min(calc(3.6cqmin * var(--skala)), var(--name-max)) / 1.15 var(--sh-font-text);
 }
 
 .stufe[data-stufe="1"] .stufeNameText {
-  font-size: min(calc(4.2cqmin * var(--skala)), calc(var(--spalte) / 5.5));
+  font-size: min(calc(4.2cqmin * var(--skala)), var(--name-max));
 }
 
 .stufeName span {
@@ -720,6 +729,38 @@
 
 .gesamtKlein {
   font-size: 3.6cqmin;
+}
+
+/* Abgebrochen: kein Platz, ein Teilwert höchstens klein und gedämpft (wirkt nicht wie ein Platz) */
+.weitereZeile[data-abgebrochen] {
+  background: transparent;
+  border: 0.15cqmin dashed var(--sh-linie);
+}
+
+.weitereZeile[data-abgebrochen] .gesamtKlein {
+  font-size: 2.4cqmin;
+  color: var(--sh-text-gedaempft);
+}
+
+/* Mehrere Klassen nebeneinander, dazu Abgebrochene: die Liste über dem Podest. So stehen alle
+   Podeste auf einer Linie unten, und Name und Grund haben die volle Spaltenbreite. */
+.klassenSieger[data-gestapelt] .siegerInhalt:has(.weitere) {
+  --anteil: 1;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.klassenSieger[data-gestapelt] .weitere {
+  order: -1;
+}
+
+/* Ohne Platz keine Platzspalte: der Name bekommt die Breite. */
+.weitereZeile[data-abgebrochen] {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.wer .weitereName {
+  font-size: 3cqmin;
 }
 
 /* ---------- Standanzeige ---------- */

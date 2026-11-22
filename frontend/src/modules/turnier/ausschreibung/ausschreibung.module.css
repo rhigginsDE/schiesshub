@@ -97,6 +97,17 @@
   overflow-wrap: anywhere;
 }
 
+/* Ein Wort bleibt zusammen: „15-m-Stand“ bricht nicht am Bindestrich. */
+.wort {
+  white-space: nowrap;
+}
+
+/* Kennziffer vor dem Wettbewerbsnamen (Startgeld-Tabelle), wie im Turnier-Editor */
+.kennziffer {
+  margin-right: 0.5em;
+  font-weight: 700;
+}
+
 .tabelle th {
   white-space: nowrap;
   overflow-wrap: normal;
@@ -452,6 +463,9 @@
   :global(html[data-druckansicht]),
   :global(html[data-druckansicht] body) {
     page: ausschreibung;
+    /* Papier ist weiß: Mit „Hintergrundgrafiken“ stünde sonst unter dem Inhalt der letzten Seite
+       die graue Fläche der App. */
+    background: none;
   }
 
   .druckLeiste {
@@ -496,6 +510,7 @@
     min-height: 0;
     padding: 0;
     border: 0;
+    background: none;
     font-size: 11pt;
   }
 

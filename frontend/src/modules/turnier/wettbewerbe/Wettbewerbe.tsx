@@ -28,7 +28,7 @@ import { Dialog } from "../../../components/Dialog";
 import { formatGeld } from "../../../components/geld";
 import { ReihenfolgeKnoepfe, verschiebe } from "../../../components/Reihenfolge";
 import { Fehlerzustand, Leerzustand } from "../../../components/Zustand";
-import { formatDatum, formatZahl } from "../../../lib/format";
+import { formatDatum, formatDauer, formatZahl } from "../../../lib/format";
 import { useWettbewerbAnlegen, useWettbewerbeSortieren, useWettbewerbLoeschen } from "../abfragen";
 import { fehlerText } from "../fehlertext";
 import { ablaufKurz, planungKurz, startsKurz } from "../klartext";
@@ -472,7 +472,7 @@ function Treffer({
                     key={variante.id}
                     value={variante.id}
                     label={variante.name}
-                    description={ablaufKurz(variante)}
+                    description={<VarianteText variante={variante} />}
                   />
                 ))}
               </div>
@@ -493,6 +493,36 @@ function Treffer({
 }
 
 // --- Im Turnier --------------------------------------------------------------------------------
+
+/**
+ * Ablauf einer Variante für die Variantenwahl, dazu Sollzeit und Abbruchzeit je Abschnitt: Darin
+ * unterscheiden sich die Parcours-Varianten (z. B. 1201), der übrige Ablauf ist oft gleich.
+ */
+function VarianteText({ variante }: { variante: DisziplinDetail["ablauf"]["varianten"][number] }) {
+  const { t, i18n } = useTranslation("katalog");
+  const zeiten = variante.abschnitte.flatMap((abschnitt) => {
+    const teile: string[] = [];
+    if (abschnitt.sollzeit_s != null) {
+      teile.push(t("ablauf.sollzeit", { dauer: formatDauer(abschnitt.sollzeit_s, i18n.language) }));
+    }
+    if (abschnitt.max_gesamtzeit_s != null) {
+      teile.push(
+        t("ablauf.max_gesamtzeit", {
+          dauer: formatDauer(abschnitt.max_gesamtzeit_s, i18n.language),
+        }),
+      );
+    }
+    if (teile.length === 0) return [];
+    const text = teile.join(", ");
+    return [variante.abschnitte.length > 1 ? `${abschnitt.name}: ${text}` : text];
+  });
+  return (
+    <>
+      {ablaufKurz(variante)}
+      {zeiten.length > 0 && <strong className={w.varianteZeit}>{zeiten.join(" · ")}</strong>}
+    </>
+  );
+}
 
 function ImTurnier({ turnier, gesperrt, offen, onOffen }: WettbewerbeProps) {
   const { t } = useTranslation("turnier");

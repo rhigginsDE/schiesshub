@@ -321,6 +321,24 @@ export function siegerAufteilung(zeilen: readonly FeedZeile[]): {
   };
 }
 
+/**
+ * Ob zur Zeile ein Ergebniswert gehört. „Nicht angetreten“ hat keinen (der Feed liefert künftig
+ * keinen; ein „0,00“ wäre bei „niedrigster Wert gewinnt“ irreführend).
+ */
+export function mitErgebnis(zeile: Pick<FeedZeile, "abort_reason">): boolean {
+  return zeile.abort_reason !== "dns";
+}
+
+/** Gibt es in der Gruppe Platzierte hinter dem Podest (Platz 4 und folgende)? */
+export function mitWeiterenPlaetzen(zeilen: readonly FeedZeile[]): boolean {
+  return zeilen.filter((zeile) => zeile.group !== "unranked").length > 3;
+}
+
+/** Längstes Wort eines Namens (Zeichen): Danach richtet sich die Schrift auf dem Podest. */
+export function laengstesWort(text: string): number {
+  return text.split(/\s+/).reduce((max, wort) => Math.max(max, wort.length), 0);
+}
+
 /** Podest-Reihenfolge der ersten drei: Zweiter links, Erster in der Mitte, Dritter rechts. */
 export function podestReihenfolge<T>(erste: readonly T[]): { eintrag: T; rang: number }[] {
   const [eins, zwei, drei] = erste;

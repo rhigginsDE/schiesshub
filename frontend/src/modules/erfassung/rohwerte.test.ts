@@ -15,6 +15,7 @@ import {
   setzeWert,
   uebrigeMeldungen,
   zeitenUeberGrenze,
+  zielNachStatus,
 } from "./rohwerte";
 import { FALLSCHEIBE, PRAEZISION } from "./testdaten";
 
@@ -128,6 +129,24 @@ describe("Reihenfolge der Eingabeplätze", () => {
     expect(erstesOffenes(reihenfolge(FALLSCHEIBE, e), e)?.id).toBe(
       "sections.fallscheibe.series.0.standing",
     );
+  });
+
+  it("QA G-5: nach der Statuswahl ins erste leere Feld der Serie, nie in ein Feld mit Wert", () => {
+    let e = setzeWert(leer, { abschnitt: "fallscheibe", serie: 1, key: "time_cs" }, 1500);
+    e = setzeWert(e, { abschnitt: "fallscheibe", serie: 1, key: "status" }, "time_limit");
+    // Serie 2 · Zeit entfällt mit „Zeitlimit“; leer ist dort nur noch „Stehende Scheiben“.
+    expect(zielNachStatus(reihenfolge(FALLSCHEIBE, e), e, "fallscheibe", 1)?.id).toBe(
+      "sections.fallscheibe.series.1.standing",
+    );
+    // Serie voll: das erste leere Feld überhaupt (hier Serie 1).
+    e = setzeWert(e, { abschnitt: "fallscheibe", serie: 1, key: "standing" }, 2);
+    expect(zielNachStatus(reihenfolge(FALLSCHEIBE, e), e, "fallscheibe", 1)?.id).toBe(
+      "sections.fallscheibe.series.0.time_cs",
+    );
+    // Alles gefüllt: kein Feld (ein Wert wird nur nach ausdrücklicher Auswahl geändert).
+    e = setzeWert(e, { abschnitt: "fallscheibe", serie: 0, key: "time_cs" }, 1000);
+    e = setzeWert(e, { abschnitt: "fallscheibe", serie: 0, key: "standing" }, 0);
+    expect(zielNachStatus(reihenfolge(FALLSCHEIBE, e), e, "fallscheibe", 1)).toBeNull();
   });
 });
 

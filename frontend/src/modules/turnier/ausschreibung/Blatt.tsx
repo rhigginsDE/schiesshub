@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
 import { formatDatum } from "../../../lib/format";
 import s from "./ausschreibung.module.css";
@@ -47,6 +48,19 @@ export function Blatt({ modell, erstellt }: BlattProps) {
   );
 }
 
+/** Text, der nur zwischen Wörtern umbricht (nicht an Bindestrichen wie in „15-m-Stand“). */
+function Woerter({ text }: { text: string }) {
+  const woerter = text.split(" ").filter(Boolean);
+  // Leerzeichen zwischen den Spans: nur dort darf die Zeile umbrechen.
+  return woerter.map((wort, nr) => (
+    // biome-ignore lint/suspicious/noArrayIndexKey: Wörter eines festen Textes, Stelle ist eindeutig
+    <Fragment key={nr}>
+      {nr > 0 && " "}
+      <span className={s.wort}>{wort}</span>
+    </Fragment>
+  ));
+}
+
 export function BausteinBlatt({ baustein }: { baustein: DruckBaustein }) {
   const { t } = useTranslation("turnier");
   return (
@@ -70,7 +84,7 @@ export function BausteinBlatt({ baustein }: { baustein: DruckBaustein }) {
           </thead>
           <tbody>
             {baustein.wettbewerbe.map((w) => (
-              <tr key={`${w.kennziffer}-${w.name}`}>
+              <tr key={w.id}>
                 <td className="num">{w.kennziffer}</td>
                 <td>
                   <strong>{w.name}</strong>
@@ -83,7 +97,9 @@ export function BausteinBlatt({ baustein }: { baustein: DruckBaustein }) {
                   )}
                 </td>
                 <td>{w.ablauf}</td>
-                <td>{w.stand}</td>
+                <td>
+                  <Woerter text={w.stand} />
+                </td>
                 {baustein.mitGeld && <td className={`num ${s.rechts}`}>{w.startgeld}</td>}
               </tr>
             ))}
@@ -106,8 +122,11 @@ export function BausteinBlatt({ baustein }: { baustein: DruckBaustein }) {
           </thead>
           <tbody>
             {baustein.zeilen.map((z) => (
-              <tr key={z.name}>
-                <td>{z.name}</td>
+              <tr key={z.id}>
+                <td>
+                  {z.kennziffer && <span className={`num ${s.kennziffer}`}>{z.kennziffer}</span>}
+                  {z.name}
+                </td>
                 <td className={`num ${s.rechts}`}>{z.startgeld}</td>
                 <td className={`num ${s.rechts}`}>{z.nachkauf ?? "–"}</td>
               </tr>

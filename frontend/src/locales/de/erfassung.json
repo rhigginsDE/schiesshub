@@ -197,7 +197,9 @@
   },
   "fremd": {
     "titel": "Auf einem anderen Gerät geändert",
-    "text": "Der neue Stand wurde übernommen."
+    "text": "Der neue Stand wurde übernommen.",
+    "hinweis_titel": "Um {{zeit}} auch an einem anderen Gerät bearbeitet",
+    "hinweis_text": "Sprecht ab, wer diesen Start erfasst. Die Werte des anderen Geräts sind übernommen – vor dem Abschließen prüfen."
   },
   "konflikt": {
     "titel": "Ein anderes Gerät hat diesen Start geändert",

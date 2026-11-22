@@ -260,6 +260,150 @@ describe("Stand", { timeout: 15000 }, () => {
     );
   });
 
+  it("QA G-3: zeigt die Kennziffer vor dem Wettbewerb und, mit Name, im Abbruch-Dialog", async () => {
+    routen(["queue"]);
+    const benutzer = userEvent.setup();
+    renderAnsicht(() => <StandSeite suche={{}} onSuche={() => {}} />);
+
+    const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
+    expect(within(bahn1).getByText("4401")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Startnummer 7 (4401 Selbstladeflinte, 1. Start) aufrufen",
+      }),
+    ).toBeInTheDocument();
+
+    await benutzer.click(
+      screen.getByRole("button", { name: /Weitere Aktionen für Startnummer 7/ }),
+    );
+    await benutzer.click(
+      await screen.findByRole("menuitem", { name: "Disqualifiziert", hidden: true }),
+    );
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByText("Startnummer 7 · Markus Brandt: Disqualifiziert?"),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText(/„4401 Selbstladeflinte“/)).toBeInTheDocument();
+  });
+
+  it("QA G-2: Standaufsicht ohne start.edit sieht weder „Durchgänge anlegen“ noch „Umsetzen“", async () => {
+    const eingeplant = stationStart({
+      start_id: "s-3",
+      entry_id: "e-3",
+      start_number: 9,
+      display_name: "Jana Hoffmann",
+      competition_id: W_Z,
+      competition_name: "Pistole bis 9 mm",
+      heat_id: "h-1",
+      heat_number: 1,
+      heat_starts_at: "2026-12-05T09:00:00Z",
+      lane: 1,
+    });
+    routen(["queue", "schedule"], {
+      [`GET /tournaments/${T}/ranges/${R}/heats`]: {
+        inhalt: [
+          {
+            id: "h-1",
+            range_id: R,
+            number: 1,
+            starts_at: "2099-12-05T09:00:00Z",
+            ends_at: "2099-12-05T09:15:00Z",
+            capacity: 2,
+            booked: 1,
+          },
+        ],
+      },
+      [`GET /tournaments/${T}/startlist?range_id=${R}&names=full`]: { inhalt: [eingeplant] },
+    });
+    const benutzer = userEvent.setup();
+    const rechte = {
+      offen: false,
+      erlaubt: ["start.read", "start.call", "tournament.read"],
+    } as const;
+    renderAnsicht(() => (
+      <RechteProvider value={rechte}>
+        <StandSeite suche={{}} onSuche={() => {}} />
+      </RechteProvider>
+    ));
+
+    expect(await screen.findByText("Durchgang 1")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Durchgänge anlegen" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Aktionen für Durchgang 1" })).toBeNull();
+    // Aufrufen und (Übergang: mit start.call) Abbrechen bleiben, Umsetzen fehlt.
+    await benutzer.click(screen.getByRole("button", { name: "Aktionen für Startnummer 9" }));
+    expect(await screen.findByRole("menuitem", { name: "Einzeln aufrufen" })).toBeInTheDocument();
+    // Mantine blendet das Menü ein; während der Einblendung gelten die Einträge als verborgen.
+    expect(
+      screen.getByRole("menuitem", { name: "Nicht angetreten", hidden: true }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Umsetzen", hidden: true })).toBeNull();
+    expect(
+      screen.queryByRole("menuitem", { name: "Aus dem Durchgang nehmen", hidden: true }),
+    ).toBeNull();
+  });
+
+  it("QA G-2: nur ansehen (start.read): keine Aktionen, aber ein Hinweis", async () => {
+    routen(["queue"], {
+      [`GET /tournaments/${T}/ranges/${R}/queue`]: {
+        inhalt: {
+          range_id: R,
+          lane_count: 2,
+          waiting: [wartend],
+          lanes: [
+            { lane: 1, start: aufgerufen },
+            { lane: 2, start: null },
+          ],
+        },
+      },
+      [`GET /tournaments/${T}/startlist?range_id=${R}`]: { inhalt: [] },
+    });
+    const rechte = { offen: false, erlaubt: ["start.read", "tournament.read"] } as const;
+    renderAnsicht(() => (
+      <RechteProvider value={rechte}>
+        <StandSeite suche={{}} onSuche={() => {}} />
+      </RechteProvider>
+    ));
+
+    const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
+    expect(screen.getByText(/Aufrufen ist für deine Rolle nicht freigegeben/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Nächste aufrufen/ })).toBeNull();
+    expect(within(bahn1).queryByRole("button", { name: /Abbrechen/ })).toBeNull();
+    expect(within(bahn1).queryByRole("button", { name: /Zurückstellen/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Startnummer 7 .* aufrufen/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Weitere Aktionen/ })).toBeNull();
+  });
+
+  it("QA G-2: mit dem neuen Recht start.abort allein darf man abbrechen, sonst nichts", async () => {
+    routen(["queue"], {
+      [`GET /tournaments/${T}/ranges/${R}/queue`]: {
+        inhalt: {
+          range_id: R,
+          lane_count: 2,
+          waiting: [wartend],
+          lanes: [
+            { lane: 1, start: aufgerufen },
+            { lane: 2, start: null },
+          ],
+        },
+      },
+      [`GET /tournaments/${T}/startlist?range_id=${R}`]: { inhalt: [] },
+    });
+    const rechte = {
+      offen: false,
+      erlaubt: ["start.read", "start.abort", "tournament.read"],
+    } as const;
+    renderAnsicht(() => (
+      <RechteProvider value={rechte}>
+        <StandSeite suche={{}} onSuche={() => {}} />
+      </RechteProvider>
+    ));
+
+    const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
+    expect(within(bahn1).getByRole("button", { name: /Abbrechen/ })).toBeInTheDocument();
+    expect(within(bahn1).queryByRole("button", { name: /Zurückstellen/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Nächste aufrufen/ })).toBeNull();
+  });
+
   it("legt Durchgänge als Serie an und zeigt Feldfehler des Servers", async () => {
     let versuch = 0;
     const aufrufe = routen(["schedule"], {

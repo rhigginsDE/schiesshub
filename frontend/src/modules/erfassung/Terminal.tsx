@@ -16,9 +16,11 @@ import {
   RefreshCw,
   TriangleAlert,
   Undo2,
+  Users,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
+import { healthAbfrage } from "../../api/abfragen";
 import { useDarf } from "../../app/berechtigungen";
 import { Bestaetigung } from "../../components/Bestaetigung";
 import { scrollVerhalten } from "../../components/bewegung";
@@ -89,6 +91,7 @@ import {
   voriges,
   wertAus,
   zeitenUeberGrenze,
+  zielNachStatus,
 } from "./rohwerte";
 import { Sitzung, type SitzungsZustand, sitzungsAblage } from "./sitzung";
 import { Tastenfeld } from "./Tastenfeld";
@@ -96,6 +99,21 @@ import { Verlauf } from "./Verlauf";
 
 /** Wie lange „1“ auf eine „0“ wartet, bevor sie als 1 gilt. */
 const SCHUSS_WARTEN_MS = 900;
+
+/**
+ * Nimmt den Fokus aus einem Eingabe- oder Auswahlfeld (nicht aus Dialogen), damit Ziffern und Enter
+ * wieder beim Terminal ankommen: Die Tastatur-Steuerung übergeht Tasten in solchen Feldern.
+ */
+function tastaturZurueck() {
+  const fokus = document.activeElement;
+  if (
+    fokus instanceof HTMLElement &&
+    fokus.closest("input, textarea, select, [role='listbox']") &&
+    !fokus.closest("[role='dialog']")
+  ) {
+    fokus.blur();
+  }
+}
 
 interface TerminalProps {
   turnierId: string;
@@ -209,8 +227,11 @@ function Flaeche({
   }, [wiederhergestellt, startId, t]);
 
   const fremd = zustand.fremdUebernommen;
+  // Uhrzeit der letzten Änderung von einem anderen Gerät: bleibt als Hinweis stehen (QA KLEIN 9).
+  const [fremdUm, setFremdUm] = useState<Date | null>(null);
   useEffect(() => {
     if (fremd > 0) {
+      setFremdUm(new Date());
       zeigeMeldung({
         ton: "info",
         titel: t("fremd.titel"),
@@ -226,6 +247,15 @@ function Flaeche({
     window.addEventListener("online", online);
     return () => window.removeEventListener("online", online);
   }, [sitzung]);
+
+  // Server antwortet wieder (dieselbe Abfrage wie „Server verbunden“ oben): nicht auf den nächsten
+  // Versuch warten, sonst steht kurz „verbunden“ neben „keine Verbindung“ (QA KLEIN 13).
+  const health = useQuery(healthAbfrage());
+  const serverDa = health.status === "success" && health.data.status !== "fehler";
+  const serverStandZeit = health.dataUpdatedAt;
+  useEffect(() => {
+    if (serverDa && serverStandZeit > 0 && sitzung.lesen().phase === "netzfehler") sitzung.erneut();
+  }, [serverDa, serverStandZeit, sitzung]);
 
   const [korrektur, setKorrektur] = useState(false);
   useEffect(() => {
@@ -498,6 +528,9 @@ function Flaeche({
 
   const feldWaehlen = (ref: FeldRef) => {
     if (!bearbeitbar) return;
+    // Felder nehmen beim Antippen keinen Fokus. Steht er noch in einem Auswahlfeld (z. B. eben den
+    // Ablauf der Serie gewählt), gingen getippte Ziffern dorthin statt ins angetippte Feld (QA G-5).
+    tastaturZurueck();
     gehe(erreichbar(sitzung.lesen().entwurf, ref));
   };
 
@@ -508,13 +541,10 @@ function Flaeche({
       wert,
     );
     sitzung.aendern(e);
-    const neueListe = liste(e);
-    if (aktivId && !neueListe.some((ref) => ref.id === aktivId)) {
-      const inSerie = neueListe.find(
-        (ref) => ref.abschnitt === abschnitt.id && ref.serie === serie.index,
-      );
-      gehe(inSerie ?? erstesOffenes(neueListe, e));
-    }
+    // Nach der Wahl gehört die Tastatur wieder dem Terminal (QA G-5): Fokus aus dem Auswahlfeld,
+    // und aktiv wird ein leeres Feld dieser Serie, nie eines mit Wert.
+    tastaturZurueck();
+    gehe(zielNachStatus(liste(e), e, abschnitt.id, serie.index));
   };
 
   // --- Vorgänge ---
@@ -775,6 +805,15 @@ function Flaeche({
             }}
             onMeins={() => sitzung.konfliktMeins()}
           />
+        )}
+        {fremdUm && !abgeschlossen && !abgebrochen && (
+          <div className={s.banner} data-ton="info">
+            <Users aria-hidden />
+            <div>
+              <strong>{t("fremd.hinweis_titel", { zeit: formatUhrzeit(fremdUm) })}</strong>
+              <p>{t("fremd.hinweis_text")}</p>
+            </div>
+          </div>
         )}
         {phase === "abgelehnt" && uebrigeFehler.length === 0 && zustand.feldFehler.length === 0 && (
           <div className={s.banner} data-ton="krit" role="alert">

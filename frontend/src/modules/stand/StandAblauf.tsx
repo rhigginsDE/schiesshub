@@ -29,8 +29,10 @@ import type { TurnierUebersicht } from "../turnier/typen";
 import {
   standStartlisteAbfrage,
   standWarteschlangeAbfrage,
+  useAnzeigename,
   useBahnFreigeben,
   useFehlerMelden,
+  useStandRechte,
   useVolleNamen,
 } from "./aktionen";
 import { BahnKachel } from "./Bahnen";
@@ -45,6 +47,7 @@ import {
 } from "./logik";
 import s from "./stand.module.css";
 import { Warteliste } from "./Warteliste";
+import { kennziffernAus, wettbewerbText } from "./Wettbewerb";
 import { Zeitplan } from "./Zeitplan";
 
 interface StandAblaufProps {
@@ -65,6 +68,9 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
   const mitZeitplan = wettbewerbe.filter((w) => w.planning === "schedule");
   const planungVon = new Map(wettbewerbe.map((w) => [w.id, w.planning]));
   const zeitplanIds = new Set(mitZeitplan.map((w) => w.id));
+  const kennziffern = kennziffernAus(uebersicht);
+  const rechte = useStandRechte();
+  const anzeigename = useAnzeigename();
 
   const volleNamen = useVolleNamen();
   const warteschlange = useQuery(standWarteschlangeAbfrage(turnierId, standId, volleNamen));
@@ -162,6 +168,13 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
         onError: fehlerMelden,
       },
     );
+  /** „Startnummer 7 · Karl Weiß“ (ohne Namen nur die Startnummer) */
+  const werText = (start: StationStart) => {
+    const name = anzeigename(start);
+    return name.ohne
+      ? t("abbruch.wer_nr", { nr: start.start_number })
+      : t("abbruch.wer", { nr: start.start_number, name: name.text });
+  };
   const verschiebe = (start: StationStart, wohin: Verschiebung) =>
     verschieben.mutate({ startId: start.start_id, wohin }, { onError: fehlerMelden });
 
@@ -187,8 +200,9 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
             {stand?.name ?? t("bahn.bereich")}
           </h2>
           <div className={s.haupt}>
-            {hauptHilfe && <span className="gedaempft">{hauptHilfe}</span>}
-            {haupt.art === "naechste" && (
+            {!rechte.aufrufen && <span className="gedaempft">{t("rechte.nur_ansehen")}</span>}
+            {rechte.aufrufen && hauptHilfe && <span className="gedaempft">{hauptHilfe}</span>}
+            {rechte.aufrufen && haupt.art === "naechste" && (
               <Button
                 size="lg"
                 leftSection={<PlayCircle aria-hidden />}
@@ -199,7 +213,7 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
                 {t("aktion.naechste")}
               </Button>
             )}
-            {haupt.art === "durchgang" && (
+            {rechte.aufrufen && haupt.art === "durchgang" && (
               <Button
                 size="lg"
                 leftSection={<PlayCircle aria-hidden />}
@@ -226,8 +240,12 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
               }}
               planung={bahn.start ? (planungVon.get(bahn.start.competition_id) ?? null) : null}
               beschaeftigt={beschaeftigt}
+              rechte={rechte}
+              kennziffern={kennziffern}
               onNaechsten={
-                naechsterAufrufbar ? () => startRufen(naechsterAufrufbar, bahn.lane) : undefined
+                rechte.aufrufen && naechsterAufrufbar
+                  ? () => startRufen(naechsterAufrufbar, bahn.lane)
+                  : undefined
               }
               onZurueck={zurueckstellen}
               onAbbrechen={(start, grund) => setAbbruch({ start, grund })}
@@ -254,6 +272,8 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
               wartende={wartende}
               bahnen={bahnen}
               beschaeftigt={beschaeftigt}
+              rechte={rechte}
+              kennziffern={kennziffern}
               onVerschieben={verschiebe}
               onAufrufen={startRufen}
               onAbbrechen={(start, grund) => setAbbruch({ start, grund })}
@@ -271,8 +291,12 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
             <Zeitplan
               durchgaenge={durchgaenge.data}
               starts={zeitplanStarts}
-              hauptDurchgangId={haupt.art === "durchgang" ? haupt.durchgang.id : null}
+              hauptDurchgangId={
+                rechte.aufrufen && haupt.art === "durchgang" ? haupt.durchgang.id : null
+              }
               beschaeftigt={beschaeftigt}
+              rechte={rechte}
+              kennziffern={kennziffern}
               onSerie={() => setSerieOffen(true)}
               onDurchgangAufrufen={durchgangRufen}
               onDurchgangAendern={setAendern}
@@ -318,7 +342,7 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
         titel={
           abbruch
             ? t("abbruch.titel", {
-                nr: abbruch.start.start_number,
+                wer: werText(abbruch.start),
                 grund: t(`abbruch.grund.${abbruch.grund}`),
               })
             : ""
@@ -326,7 +350,10 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
         text={
           abbruch
             ? t("abbruch.text", {
-                wettbewerb: abbruch.start.competition_name,
+                wettbewerb: wettbewerbText(
+                  kennziffern.get(abbruch.start.competition_id),
+                  abbruch.start.competition_name,
+                ),
                 versuch: abbruch.start.attempt,
               })
             : ""
@@ -351,7 +378,7 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
                 zeigeMeldung({
                   ton: "erfolg",
                   titel: t("abbruch.gemacht", {
-                    nr: start.start_number,
+                    wer: werText(start),
                     grund: t(`abbruch.grund.${grund}`),
                   }),
                 });

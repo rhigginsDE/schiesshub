@@ -238,7 +238,15 @@ function SerieKarte(props: SerieKarteProps) {
               {auswahl?.options && (
                 <Select
                   label={auswahl.label}
-                  data={auswahl.options.map((o) => ({ value: o.key, label: o.label }))}
+                  // Im Feld nur der Kern („Zeitlimit erreicht“), sonst abgeschnitten; die Liste
+                  // und die Marke am Serienwert zeigen den vollen Text (QA KLEIN 10).
+                  data={auswahl.options.map((o) => ({
+                    value: o.key,
+                    label: kurzerStatus(o.label),
+                  }))}
+                  renderOption={({ option }) =>
+                    auswahl.options?.find((o) => o.key === option.value)?.label ?? option.label
+                  }
                   value={option?.key ?? NORMAL}
                   onChange={(wert) => wert && onStatus(abschnitt, serie, wert)}
                   allowDeselect={false}
@@ -301,6 +309,11 @@ interface FeldknopfProps extends MaskeProps {
  * löst nie den zuletzt angetippten Knopf erneut aus.
  */
 const ohneFokus = (ereignis: MouseEvent) => ereignis.preventDefault();
+
+/** Status ohne Erläuterung in Klammern: „Zeitlimit erreicht (Abbruch durch …)“ → „Zeitlimit erreicht“. */
+function kurzerStatus(text: string): string {
+  return text.replace(/\s*\([^)]*\)\s*$/, "") || text;
+}
 
 function Feldknopf({
   feldRef,

@@ -373,6 +373,21 @@ export function erstesOffenes(refs: readonly FeldRef[], entwurf: Entwurf): FeldR
   );
 }
 
+/**
+ * Wohin die Eingabe nach der Wahl eines Serienstatus („Ablauf der Serie“) geht: ins erste leere Feld
+ * dieser Serie, sonst ins erste leere Feld überhaupt, sonst nirgends. Nie in ein Feld mit Wert: Die
+ * nächste Ziffer überschriebe ihn sonst ohne ausdrückliche Auswahl.
+ */
+export function zielNachStatus(
+  refs: readonly FeldRef[],
+  entwurf: Entwurf,
+  abschnitt: string,
+  serie: number,
+): FeldRef | null {
+  const inSerie = refs.filter((ref) => ref.abschnitt === abschnitt && ref.serie === serie);
+  return erstesOffenes(inSerie, entwurf) ?? erstesOffenes(refs, entwurf);
+}
+
 export function naechstes(refs: readonly FeldRef[], id: string | null): FeldRef | null {
   const index = refs.findIndex((ref) => ref.id === id);
   return index >= 0 ? (refs[index + 1] ?? null) : null;

@@ -138,6 +138,7 @@ export interface Zeile {
 }
 
 export interface DruckWettbewerb {
+  id: string;
   kennziffer: string;
   name: string;
   ablauf: string;
@@ -146,6 +147,15 @@ export interface DruckWettbewerb {
   startgeld: string | null;
   abweichend: boolean;
   abweichungen: string[];
+}
+
+export interface DruckGebuehr {
+  id: string;
+  /** Kennziffer (leer bei eigenen Wettbewerben): 1001 und 1201 heißen beide „Pistole bis 9 mm“ */
+  kennziffer: string;
+  name: string;
+  startgeld: string;
+  nachkauf: string | null;
 }
 
 interface DruckBasis {
@@ -159,7 +169,7 @@ export type DruckBaustein = DruckBasis &
     | { art: "text" }
     | { art: "wettbewerbe"; wettbewerbe: DruckWettbewerb[]; mitGeld: boolean }
     | { art: "klassen"; klassen: string[] }
-    | { art: "gebuehren"; zeilen: { name: string; startgeld: string; nachkauf: string | null }[] }
+    | { art: "gebuehren"; zeilen: DruckGebuehr[] }
     | { art: "termine"; zeilen: Zeile[] }
     | { art: "staende"; zeilen: string[] }
   );
@@ -201,6 +211,8 @@ function eckdatenZeilen(eckdaten: Eckdaten, sprache: string): Zeile[] {
 export function druckModell(
   dokument: AusschreibungDokument,
   sprache: string = aktiveSprache(),
+  /** Kennziffer je Wettbewerbs-ID, falls das Dokument keinen Wettbewerbe-Baustein hat */
+  kennziffern: ReadonlyMap<string, string | null> = new Map(),
 ): DruckModell {
   const t = i18n.getFixedT(sprache, "turnier", "ausschreibung");
   const waehrung = dokument.tournament.currency;
@@ -211,6 +223,12 @@ export function druckModell(
       g,
     ]),
   );
+
+  // Die Startgeld-Zeilen bringen keine Kennziffer mit: aus dem Wettbewerbe-Baustein ergänzen.
+  const kennzifferVon = new Map(kennziffern);
+  for (const b of dokument.blocks) {
+    for (const w of b.competitions ?? []) kennzifferVon.set(w.id, w.catalog_code);
+  }
 
   const bausteine: DruckBaustein[] = [];
   for (const b of dokument.blocks) {
@@ -229,6 +247,7 @@ export function druckModell(
         wettbewerbe: liste.map((w) => {
           const g = gebuehren.get(w.id);
           return {
+            id: w.id,
             kennziffer: w.catalog_code ?? "",
             name: w.name,
             ablauf: w.sections.map((a) => a.summary).join("; "),
@@ -254,6 +273,8 @@ export function druckModell(
     }
     if (b.kind === "fees") {
       const zeilen = (b.fees?.items ?? []).map((g) => ({
+        id: g.competition_id,
+        kennziffer: kennzifferVon.get(g.competition_id) ?? "",
         name: g.name,
         startgeld: geld(g.fee_first_cents),
         nachkauf: g.fee_repeat_cents !== null ? geld(g.fee_repeat_cents) : null,

@@ -2,7 +2,7 @@ import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiFehler, apiGet, apiSenden } from "../../api/client";
-import { useDarf } from "../../app/berechtigungen";
+import { darfMit, useDarf, useRechte } from "../../app/berechtigungen";
 import { useFehlerText } from "../../components/FehlerHinweis";
 import { zeigeMeldung } from "../../components/Meldungen";
 import {
@@ -22,6 +22,38 @@ export const VOLLE_NAMEN = ["start.call", "result.capture", "entry.read"] as con
 
 export function useVolleNamen(): boolean {
   return useDarf(VOLLE_NAMEN);
+}
+
+/**
+ * Was die Person am Stand darf, nach den Rechten, die die Endpunkte verlangen
+ * (`backend/app/modules/starts/router.py`):
+ * - `aufrufen`: aufrufen, Nächste aufrufen, Durchgang aufrufen, zurückstellen, in der Reihenfolge
+ *   verschieben, Bahn freigeben (`start.call`)
+ * - `planen`: Durchgänge anlegen, ändern, löschen; einplanen, umsetzen, aus dem Durchgang nehmen
+ *   (`start.edit`)
+ * - `abbrechen`: nicht angetreten, aufgegeben, disqualifiziert (`start.abort`, siehe unten)
+ */
+export interface StandRechte {
+  aufrufen: boolean;
+  planen: boolean;
+  abbrechen: boolean;
+}
+
+/**
+ * Abbrechen (`POST …/starts/{id}/abort`) hängt künftig am eigenen Recht `start.abort`; bisher
+ * verlangte der Endpunkt `start.call`.
+ * ÜBERGANG: Solange der Server `start.abort` noch nicht vergibt, reicht auch `start.call`. Sobald
+ * das Backend das Recht kennt und die Rollenvorlagen es enthalten, `start.call` hier streichen.
+ */
+export const RECHTE_ABBRECHEN = ["start.abort", "start.call"] as const;
+
+export function useStandRechte(): StandRechte {
+  const rechte = useRechte();
+  return {
+    aufrufen: darfMit(rechte, "start.call"),
+    planen: darfMit(rechte, "start.edit"),
+    abbrechen: darfMit(rechte, RECHTE_ABBRECHEN),
+  };
 }
 
 const kodiert = encodeURIComponent;

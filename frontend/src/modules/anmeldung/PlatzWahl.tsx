@@ -58,7 +58,10 @@ export function PlatzWahl({
   return (
     <Dialog
       onClose={onSchliessen}
-      title={t("platz.titel", { wettbewerb: wettbewerb.name })}
+      title={t("platz.titel", {
+        // Mit Kennziffer: 1001 und 1201 heißen beide „Pistole bis 9 mm“.
+        wettbewerb: [wettbewerb.catalog_code, wettbewerb.name].filter(Boolean).join(" "),
+      })}
       size="lg"
       closeButtonProps={{ "aria-label": t("platz.schliessen") }}
     >

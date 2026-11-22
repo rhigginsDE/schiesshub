@@ -70,11 +70,13 @@
       "dnf": "Aufgegeben",
       "dsq": "Disqualifiziert"
     },
-    "titel": "Startnummer {{nr}}: {{grund}}?",
+    "titel": "{{wer}}: {{grund}}?",
     "text": "Der Start in „{{wettbewerb}}“ ({{versuch}}. Start) wird abgebrochen und die Bahn frei. Das lässt sich nicht rückgängig machen.",
     "bestaetigen": "Start abbrechen",
     "zurueck": "Nicht abbrechen",
-    "gemacht": "Startnummer {{nr}}: {{grund}}"
+    "gemacht": "{{wer}}: {{grund}}",
+    "wer": "Startnummer {{nr}} · {{name}}",
+    "wer_nr": "Startnummer {{nr}}"
   },
   "warten": {
     "titel": "Als Nächstes",
@@ -126,7 +128,9 @@
     "loeschen_text": "Der Durchgang {{zeit}} wird entfernt. Das geht nur, solange niemand darin eingeplant ist.",
     "loeschen_bestaetigen": "Durchgang löschen",
     "abbrechen": "Abbrechen",
-    "geloescht": "Durchgang {{nummer}} gelöscht"
+    "geloescht": "Durchgang {{nummer}} gelöscht",
+    "ohne_platz_ohne_recht": "Diese Starts sind gebucht, haben aber noch keinen Durchgang. Einplanen kann die Turnierleitung.",
+    "leer_text_ohne_recht": "Durchgänge legt die Turnierleitung an."
   },
   "serie": {
     "titel": "Mehrere Durchgänge anlegen",
@@ -203,5 +207,8 @@
     "gruppe_anzahl_one": "{{count}} Start",
     "gruppe_anzahl_other": "{{count}} Starts"
   },
-  "anleitung": "Rufe die Wartenden auf die freien Bahnen auf – der grüne Knopf holt die Nächsten. Mit den Pfeilen änderst du die Reihenfolge."
+  "anleitung": "Rufe die Wartenden auf die freien Bahnen auf – der grüne Knopf holt die Nächsten. Mit den Pfeilen änderst du die Reihenfolge.",
+  "rechte": {
+    "nur_ansehen": "Aufrufen ist für deine Rolle nicht freigegeben – du siehst den Ablauf."
+  }
 }

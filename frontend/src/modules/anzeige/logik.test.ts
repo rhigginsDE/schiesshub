@@ -7,8 +7,11 @@ import {
   feedUhrzeit,
   gesamtTeile,
   hauptSerie,
+  laengstesWort,
   laufendeSerien,
   mitAbgebrochenenAmEnde,
+  mitErgebnis,
+  mitWeiterenPlaetzen,
   podestReihenfolge,
   podestStufe,
   ranglistenEintraege,
@@ -419,5 +422,20 @@ describe("Abgebrochene Starts", () => {
     const { podest, rest } = siegerAufteilung([eins, ab, zwei, drei, vier]);
     expect(podest.map((z) => z.start_id)).toEqual(["a", "b", "c"]);
     expect(rest.map((z) => z.start_id)).toEqual(["d", "x"]);
+  });
+
+  it("QA G-8: „nicht angetreten“ ohne Ergebniswert; Abgebrochene sind keine weiteren Plätze", () => {
+    expect(mitErgebnis({ abort_reason: "dns" })).toBe(false);
+    expect(mitErgebnis({ abort_reason: "dnf" })).toBe(true);
+    expect(mitErgebnis({ abort_reason: null })).toBe(true);
+    expect(mitWeiterenPlaetzen([eins, zwei, ab])).toBe(false);
+    expect(mitWeiterenPlaetzen([eins, zwei, drei, ab])).toBe(false);
+    expect(mitWeiterenPlaetzen([eins, zwei, drei, vier])).toBe(true);
+  });
+
+  it("QA G-8: das längste Wort bestimmt die Schrift auf dem Podest („Startnummer 5“)", () => {
+    expect(laengstesWort("Startnummer 5")).toBe(11);
+    expect(laengstesWort("Ilse Bergmann")).toBe(8);
+    expect(laengstesWort("")).toBe(0);
   });
 });

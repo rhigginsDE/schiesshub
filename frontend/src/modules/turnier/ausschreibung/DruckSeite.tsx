@@ -38,13 +38,21 @@ export function DruckSeite({ turnierId }: { turnierId: string }) {
   // Ersatz, solange das Backend `…/document` nicht kennt.
   const ersatz = dokument.isSuccess && dokument.data === null;
   const entwurf = useQuery({ ...ausschreibungAbfrage(turnierId), enabled: ersatz });
-  const turnier = useQuery({ ...uebersichtAbfrage(turnierId), enabled: ersatz });
+  // Auch mit Dokument: liefert die Kennziffern für die Startgeld-Tabelle.
+  const turnier = useQuery(uebersichtAbfrage(turnierId));
   const [erstellt] = useState(() => new Date());
 
   const modell = useMemo(() => {
-    if (dokument.data) return druckModell(dokument.data, i18n.language);
+    const kennziffern = new Map(
+      (turnier.data?.competitions ?? []).map((w) => [w.id, w.catalog_code ?? null] as const),
+    );
+    if (dokument.data) return druckModell(dokument.data, i18n.language, kennziffern);
     if (ersatz && entwurf.data && turnier.data) {
-      return druckModell(dokumentAusEntwurf(entwurf.data, turnier.data), i18n.language);
+      return druckModell(
+        dokumentAusEntwurf(entwurf.data, turnier.data),
+        i18n.language,
+        kennziffern,
+      );
     }
     return null;
   }, [dokument.data, ersatz, entwurf.data, turnier.data, i18n.language]);

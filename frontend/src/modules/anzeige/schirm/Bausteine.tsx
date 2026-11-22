@@ -32,10 +32,19 @@ export function AbschnittKopf({
 }
 
 /** Wettbewerbsname mit der Kennziffer davor (falls es eine gibt). */
-export function WettbewerbTitel({ code, name }: { code?: string | null; name: string }) {
+export function WettbewerbTitel({
+  code,
+  name,
+  klein,
+}: {
+  code?: string | null;
+  name: string;
+  /** In einer Unterzeile: Kennziffer in Zeilengröße statt Überschriftgröße */
+  klein?: boolean;
+}) {
   return (
     <>
-      {code && <span className={`num ${s.kennziffer}`}>{code}</span>}
+      {code && <span className={`num ${klein ? s.kennzifferKlein : s.kennziffer}`}>{code}</span>}
       {name}
     </>
   );

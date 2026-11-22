@@ -255,7 +255,12 @@ export function Startauswahl({
       ) : (
         <>
           {pruefliste.length > 0 && (
-            <ZuPruefen eintraege={pruefliste} offenId={offenId} onWahl={onWahl} />
+            <ZuPruefen
+              eintraege={pruefliste}
+              offenId={offenId}
+              onWahl={onWahl}
+              kennziffern={kennziffern}
+            />
           )}
           {stand ? (
             <StandListen
@@ -506,10 +511,12 @@ function ZuPruefen({
   eintraege,
   offenId,
   onWahl,
+  kennziffern,
 }: {
   eintraege: PruefEintrag[];
   offenId: string | null;
   onWahl: (startId: string) => void;
+  kennziffern: ReadonlyMap<string, string | null>;
 }) {
   const { t } = useTranslation("erfassung");
   return (
@@ -531,6 +538,9 @@ function ZuPruefen({
               <span className={s.zeileText}>
                 <strong>{eintrag.display_name ?? t("auswahl.ohne_name")}</strong>
                 <span className="gedaempft">
+                  {kennziffern.get(eintrag.competition_id) && (
+                    <span className="num">{kennziffern.get(eintrag.competition_id)} </span>
+                  )}
                   {eintrag.competition_name} · {eintrag.review_reason}
                 </span>
                 <span className={s.zeileChip}>

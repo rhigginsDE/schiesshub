@@ -8,6 +8,7 @@ import { MitTurnier, TurnierWechsel } from "../../components/TurnierWahl";
 import { Fehlerzustand, Leerzustand } from "../../components/Zustand";
 import { uebersichtAbfrage } from "../turnier/abfragen";
 import type { Turnier, TurnierUebersicht } from "../turnier/typen";
+import { useStandRechte } from "./aktionen";
 import { bestimmeStand, type StandWahl } from "./logik";
 import type { StandSuche } from "./pfade";
 import { StandAblauf } from "./StandAblauf";
@@ -70,6 +71,7 @@ function StandMitTurnier({ turnier, onWechseln, suche, onSuche }: StandMitTurnie
   const standId = bestimmeStand(staende, wahl, turnier.id);
   const waehlen = (id: string) => setWahl((alt) => ({ ...(alt ?? {}), [turnier.id]: id }));
   const startliste = suche.ansicht === "startliste";
+  const rechte = useStandRechte();
 
   return (
     <div className={s.seite}>
@@ -78,7 +80,7 @@ function StandMitTurnier({ turnier, onWechseln, suche, onSuche }: StandMitTurnie
           <Titel />
           <TurnierWechsel turnier={turnier} onWechseln={onWechseln} />
         </div>
-        {!startliste && <p className={s.anleitung}>{t("anleitung")}</p>}
+        {!startliste && rechte.aufrufen && <p className={s.anleitung}>{t("anleitung")}</p>}
         <div className={s.kopfZeile}>
           <SegmentedControl
             size="md"

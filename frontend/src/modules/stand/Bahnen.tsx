@@ -8,8 +8,9 @@ import { Chip } from "../../components/Chip";
 import { formatUhrzeit } from "../../lib/format";
 import { ABBRUCHGRUENDE, type Abbruchgrund, type Bahn, type StationStart } from "../anmeldung/api";
 import { ERFASSUNG_PFAD } from "../erfassung/pfade";
-import { useAnzeigename } from "./aktionen";
+import { type StandRechte, useAnzeigename } from "./aktionen";
 import s from "./stand.module.css";
+import { type Kennziffern, WettbewerbName } from "./Wettbewerb";
 
 interface BahnKachelProps {
   bahn: Bahn;
@@ -22,6 +23,9 @@ interface BahnKachelProps {
   /** „Bahn freigeben“ (Rückfrage stellt der Aufrufer): Start mit angefangenem Ergebnis */
   onFreigeben: (start: StationStart) => void;
   beschaeftigt: boolean;
+  /** Was die Person am Stand darf (Knöpfe ohne Recht fehlen) */
+  rechte: StandRechte;
+  kennziffern: Kennziffern;
 }
 
 /** Eine Bahn als große Kachel: frei oder belegt mit Startnummer, Name, Wettbewerb und seit wann. */
@@ -33,6 +37,8 @@ export function BahnKachel({
   onAbbrechen,
   onFreigeben,
   beschaeftigt,
+  rechte,
+  kennziffern,
 }: BahnKachelProps) {
   const { t, i18n } = useTranslation("stand");
   const anzeigename = useAnzeigename();
@@ -79,7 +85,10 @@ export function BahnKachel({
             </span>
           </div>
           <p className={s.bahnWas}>
-            <span>{start.competition_name}</span>
+            <WettbewerbName
+              code={kennziffern.get(start.competition_id)}
+              name={start.competition_name}
+            />
             <span className="gedaempft">
               {start.class_short} · {t("bahn.start_nr", { nr: start.attempt })}
             </span>
@@ -121,7 +130,7 @@ export function BahnKachel({
                 {t("bahn.ergebnis")}
               </Button>
             )}
-            {inErfassung ? (
+            {!rechte.aufrufen ? null : inErfassung ? (
               <Button
                 variant="default"
                 size="md"
@@ -165,7 +174,9 @@ export function BahnKachel({
                 </Menu.Dropdown>
               </Menu>
             )}
-            <AbbruchMenue disabled={beschaeftigt} onWahl={(grund) => onAbbrechen(start, grund)} />
+            {rechte.abbrechen && (
+              <AbbruchMenue disabled={beschaeftigt} onWahl={(grund) => onAbbrechen(start, grund)} />
+            )}
           </div>
         </>
       ) : (

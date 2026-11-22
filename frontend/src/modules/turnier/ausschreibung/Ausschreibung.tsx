@@ -133,7 +133,15 @@ function Editor({
     () => dokumentAusEntwurf(werte, turnier, server.data, i18n.language),
     [werte, turnier, server.data, i18n.language],
   );
-  const modell = useMemo(() => druckModell(dokument, i18n.language), [dokument, i18n.language]);
+  const modell = useMemo(
+    () =>
+      druckModell(
+        dokument,
+        i18n.language,
+        new Map(turnier.competitions.map((w) => [w.id, w.catalog_code ?? null] as const)),
+      ),
+    [dokument, i18n.language, turnier.competitions],
+  );
 
   const felder = [
     "title",

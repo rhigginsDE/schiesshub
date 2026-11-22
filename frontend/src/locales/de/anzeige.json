@@ -42,6 +42,7 @@
       "gesamt": "Gesamt"
     },
     "weitere_plaetze": "Weitere Plätze",
+    "ohne_platzierung": "Ohne Platzierung",
     "platz": {
       "durchgang_bahn": "Durchgang {{nummer}} · {{zeit}} · Bahn {{bahn}}",
       "durchgang": "Durchgang {{nummer}} · {{zeit}}",
