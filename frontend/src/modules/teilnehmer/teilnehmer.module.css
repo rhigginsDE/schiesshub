@@ -660,7 +660,7 @@
 .tabellenKopf {
   border-top: 0;
   padding-block: 0 8px;
-  font: 600 11px / 1.2 var(--sh-font-text);
+  font: 600 var(--sh-fz-label) / 1.2 var(--sh-font-text);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--sh-text-gedaempft);
@@ -681,7 +681,7 @@
 }
 
 .zeileVerein {
-  font-size: 12px;
+  font-size: var(--sh-fz-klein);
   overflow-wrap: anywhere;
 }
 

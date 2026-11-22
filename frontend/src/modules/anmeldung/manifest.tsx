@@ -17,7 +17,7 @@ const route = createRoute({
 export const anmeldung: ModulManifest = {
   id: ANMELDUNG_ID,
   namensraum: ANMELDUNG_ID,
-  navigation: { art: "station", pfad: PFAD, icon: UserPlus, reihenfolge: 10 },
+  navigation: { art: "station", pfad: PFAD, icon: UserPlus, reihenfolge: 20 },
   berechtigung: "anmeldung.nutzen",
   routen: [route],
   ereignisse: startsEreignisse,

@@ -7,7 +7,7 @@ import { turnierRouten } from "./routen";
 export const turnier: ModulManifest = {
   id: TURNIER_ID,
   namensraum: TURNIER_ID,
-  navigation: { art: "station", pfad: TURNIER_PFAD, icon: Trophy, reihenfolge: 20 },
+  navigation: { art: "station", pfad: TURNIER_PFAD, icon: Trophy, reihenfolge: 10 },
   berechtigung: "tournament.read",
   routen: turnierRouten,
   ereignisse: turnierEreignisse,

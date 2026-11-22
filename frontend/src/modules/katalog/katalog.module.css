@@ -62,7 +62,7 @@
   padding-left: 18px;
   list-style: disc;
   font-family: var(--sh-font-mono);
-  font-size: 12px;
+  font-size: var(--sh-fz-klein);
   overflow-wrap: anywhere;
 }
 
@@ -196,7 +196,7 @@
 }
 
 .anzahl {
-  font-size: 12px;
+  font-size: var(--sh-fz-klein);
   color: var(--sh-text-gedaempft);
 }
 
@@ -268,7 +268,7 @@
 }
 
 .disziplinText span {
-  font-size: 12px;
+  font-size: var(--sh-fz-klein);
   color: var(--sh-text-gedaempft);
   overflow-wrap: anywhere;
 }
@@ -348,7 +348,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--sh-fz-klein);
   color: var(--sh-text-gedaempft);
 }
 
@@ -405,7 +405,7 @@
 }
 
 .gesamt {
-  font-size: 12px;
+  font-size: var(--sh-fz-klein);
   color: var(--sh-text-gedaempft);
   margin-left: auto;
 }
@@ -421,7 +421,7 @@
 }
 
 .abschnittName {
-  font: 600 11px / 1.2 var(--sh-font-text);
+  font: 600 var(--sh-fz-label) / 1.2 var(--sh-font-text);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--sh-text-gedaempft);

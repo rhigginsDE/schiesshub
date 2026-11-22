@@ -31,8 +31,80 @@
     "zu_dunkel": "Zum dunklen Design wechseln"
   },
   "start": {
-    "ueberschrift": "Station wählen",
-    "einleitung": "Jedes Gerät im Schützenhaus öffnet die Station, an der es steht."
+    "ueberschrift": "So läuft dein Turnier",
+    "einleitung": "Fünf Schritte vom Turnier bis zur Siegerliste. Der markierte Schritt ist als Nächstes dran.",
+    "stationen_ueberschrift": "Station wählen",
+    "stationen_einleitung": "Jedes Gerät im Schützenhaus öffnet die Station, an der es steht.",
+    "auswahl_hinweis": "Der Ablauf und die Stationen auf diesem Gerät arbeiten in diesem Turnier.",
+    "weitere": "Weitere Bereiche",
+    "offline": "Keine Verbindung zum Server. Du siehst den zuletzt geladenen Stand; er aktualisiert sich von selbst, sobald der Server wieder antwortet.",
+    "laden": "Ablauf wird geladen"
+  },
+  "ablauf": {
+    "titel": "Ablauf",
+    "naechster": "Als Nächstes",
+    "schritt": {
+      "turnier": "Turnier einrichten",
+      "anmeldung": "Schützen anmelden",
+      "erfassung": "Am Stand aufrufen und Ergebnisse erfassen",
+      "anzeige": "Ergebnisse zeigen",
+      "sicherung": "Daten sichern"
+    },
+    "stand": {
+      "offen": "Offen",
+      "in_arbeit": "Läuft",
+      "erledigt": "Erledigt",
+      "ok": "In Ordnung",
+      "wartet": "Noch nicht möglich",
+      "gestoert": "Gestört",
+      "unbekannt": "Keine Angabe"
+    },
+    "text": {
+      "turnier_keins": "Noch kein Turnier angelegt. Leg es an und wähl die Wettbewerbe aus dem Katalog.",
+      "turnier_entwurf": "Entwurf „{{name}}“, noch nicht gestartet.",
+      "turnier_entwurf_offen_zero": "Entwurf „{{name}}“. Noch offen: {{punkt}}",
+      "turnier_entwurf_offen_one": "Entwurf „{{name}}“. Noch offen: {{punkt}} Dazu ein weiterer Punkt.",
+      "turnier_entwurf_offen_other": "Entwurf „{{name}}“. Noch offen: {{punkt}} Dazu {{count}} weitere Punkte.",
+      "turnier_entwurf_fertig": "Entwurf „{{name}}“ ist vollständig. Starte das Turnier, dann kann die Anmeldung beginnen.",
+      "turnier_laeuft": "„{{name}}“ ist gestartet.",
+      "turnier_laeuft_wettbewerbe_one": "„{{name}}“ ist gestartet, 1 Wettbewerb.",
+      "turnier_laeuft_wettbewerbe_other": "„{{name}}“ ist gestartet, {{count}} Wettbewerbe.",
+      "turnier_abgeschlossen": "„{{name}}“ ist abgeschlossen.",
+      "wartet_auf_start": "Geht, sobald das Turnier gestartet ist.",
+      "wartet_auf_starts": "Geht, sobald Starts gebucht sind.",
+      "anmeldung_offen": "Die Anmeldung ist geöffnet.",
+      "anmeldung_beendet": "Die Anmeldung ist beendet.",
+      "anmeldung_keine": "Noch niemand angemeldet.",
+      "anmeldung_zahl_one": "{{schuetzen}} angemeldet, 1 Start gebucht.",
+      "anmeldung_zahl_other": "{{schuetzen}} angemeldet, {{count}} Starts gebucht.",
+      "erfassung_zahl_one": "1 Start offen, {{abgeschlossen}} abgeschlossen.",
+      "erfassung_zahl_other": "{{count}} Starts offen, {{abgeschlossen}} abgeschlossen.",
+      "erfassung_fertig_one": "Der Start ist abgeschlossen.",
+      "erfassung_fertig_other": "Alle {{count}} Starts sind abgeschlossen.",
+      "erfassung_beendet": "Das Turnier ist abgeschlossen.",
+      "erfassung_unbekannt": "Aufgerufen wird am Stand, erfasst am Erfassungsterminal.",
+      "anzeige_bereit": "Zeigt Startliste und Live-Wertung auf dem großen Bildschirm.",
+      "anzeige_live_one": "Die Live-Wertung läuft, 1 Ergebnis steht fest.",
+      "anzeige_live_other": "Die Live-Wertung läuft, {{count}} Ergebnisse stehen fest.",
+      "anzeige_siegerliste": "Alle Ergebnisse stehen fest. Zeit für die Siegerliste.",
+      "sicherung_ok": "Zuletzt gesichert um {{zeit}} Uhr.",
+      "sicherung_keine": "Noch keine Sicherung gelaufen.",
+      "sicherung_warnung": "{{was}}.",
+      "sicherung_unbekannt": "Den Zustand der Sicherung sieht die Turnierleitung unter System → Sicherung."
+    },
+    "aktion": {
+      "turnier_anlegen": "Turnier anlegen",
+      "turnier_einrichten": "Turnier weiter einrichten",
+      "turnier_starten": "Prüfen und starten",
+      "zur_anmeldung": "Zur Anmeldung",
+      "ergebnisse_erfassen": "Ergebnisse erfassen",
+      "anzeige_oeffnen": "Anzeige öffnen",
+      "siegerliste": "Siegerliste zeigen",
+      "passwort_festlegen": "Passwort festlegen",
+      "zur_sicherung": "Sicherung prüfen"
+    },
+    "stand_link": "Ablauf am Stand",
+    "ohne_recht": "Das übernimmt jemand mit passender Rolle."
   },
   "anmeldung": {
     "einrichtung_ausstehend": "Ersteinrichtung ausstehend",

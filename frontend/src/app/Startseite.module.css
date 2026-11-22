@@ -1,5 +1,175 @@
+.seite {
+  display: grid;
+  gap: 20px;
+  align-content: start;
+}
+
 .kopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding: 8px 4px 0;
+}
+
+.kopfText {
   display: grid;
   gap: 4px;
-  padding: 8px 4px 0;
+  min-width: 0;
+}
+
+.offline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid var(--sh-warn-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-warn-flaeche);
+  color: var(--sh-text);
+}
+
+.offline svg {
+  color: var(--sh-warn);
+}
+
+/* Aufgabenliste: eine Zeile je Schritt, der nächste ist hervorgehoben. */
+.ablauf {
+  display: grid;
+  background: var(--sh-flaeche);
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-l);
+  overflow: hidden;
+}
+
+.schritt {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  min-height: 76px;
+  border-top: 1px solid var(--sh-linie);
+}
+
+.schritt:first-child {
+  border-top: 0;
+}
+
+.naechster {
+  background: var(--sh-akzent-flaeche);
+  outline: 1px solid var(--sh-akzent);
+  outline-offset: -1px;
+}
+
+.nummer {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--sh-linie-stark);
+  font: 600 16px / 1 var(--sh-font-mono);
+  color: var(--sh-text-weich);
+}
+
+.naechster .nummer {
+  border-color: var(--sh-akzent);
+  color: var(--sh-akzent-text);
+}
+
+.nummerErledigt {
+  border-color: var(--sh-linie);
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text-gedaempft);
+}
+
+.inhalt {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.titel {
+  font: 600 17px / 1.3 var(--sh-font-text);
+}
+
+.titelLink {
+  text-decoration: none;
+}
+
+.titelLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.text {
+  color: var(--sh-text-weich);
+  font-size: 15px;
+}
+
+.wartet .titel,
+.wartet .text {
+  color: var(--sh-text-gedaempft);
+}
+
+.nebenLink {
+  color: var(--sh-akzent-text);
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.hinweis {
+  color: var(--sh-text-gedaempft);
+  font-size: var(--sh-fz-klein);
+}
+
+.rechts {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.marke {
+  font: 600 var(--sh-fz-label) / 1.2 var(--sh-font-text);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sh-akzent-text);
+}
+
+.weitere {
+  display: grid;
+  gap: 10px;
+}
+
+.weitere > h2 {
+  padding: 0 4px;
+}
+
+@media (max-width: 760px) {
+  .schritt {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 10px 14px;
+    padding: 14px 16px;
+  }
+
+  .rechts {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+
+  .rechts > a,
+  .rechts > button {
+    width: 100%;
+  }
+
+  .nummer {
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+  }
 }

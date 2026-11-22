@@ -299,7 +299,7 @@
 }
 
 .eintragKnopf span {
-  font-size: 12px;
+  font-size: var(--sh-fz-klein);
   color: var(--sh-text-gedaempft);
 }
 

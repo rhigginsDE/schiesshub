@@ -398,7 +398,7 @@
   align-items: center;
   gap: 6px;
   color: var(--sh-warn);
-  font-size: 11px;
+  font-size: var(--sh-fz-klein);
   font-weight: 600;
 }
 
@@ -642,7 +642,7 @@
 }
 
 .anzahl {
-  font-size: 12px;
+  font-size: var(--sh-fz-klein);
   color: var(--sh-text-gedaempft);
 }
 
@@ -674,7 +674,7 @@
 }
 
 .eigen {
-  font: 600 11px / 1.2 var(--sh-font-text);
+  font: 600 var(--sh-fz-label) / 1.2 var(--sh-font-text);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--sh-text-gedaempft);
@@ -695,7 +695,7 @@
 }
 
 .katalogFuss {
-  font-size: 12px;
+  font-size: var(--sh-fz-klein);
   color: var(--sh-text-gedaempft);
 }
 
@@ -795,7 +795,7 @@
 }
 
 .geaendertMarke {
-  font: 600 12px / 1 var(--sh-font-text);
+  font: 600 var(--sh-fz-klein) / 1 var(--sh-font-text);
   padding: 6px 10px;
   border-radius: 999px;
   background: var(--sh-info-flaeche);
@@ -885,7 +885,7 @@
 
 .abschnittName {
   padding: 0 6px;
-  font: 600 11px / 1.2 var(--sh-font-text);
+  font: 600 var(--sh-fz-label) / 1.2 var(--sh-font-text);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--sh-text-gedaempft);
@@ -948,7 +948,7 @@
 }
 
 .kennzahlen dt {
-  font-size: 12px;
+  font-size: var(--sh-fz-klein);
   color: var(--sh-text-gedaempft);
 }
 

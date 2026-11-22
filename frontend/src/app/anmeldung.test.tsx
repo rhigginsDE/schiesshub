@@ -57,9 +57,12 @@ describe("Anmelde-Zustand", () => {
     apiAttrappe({
       "/health": HEALTH,
       "/auth/status": status({ setup_required: true, device: null }),
+      "/tournaments": [],
     });
     renderApp("/");
-    expect(await screen.findByRole("heading", { name: "Station wählen" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "So läuft dein Turnier" }),
+    ).toBeInTheDocument();
     expect(await screen.findByText("Ersteinrichtung ausstehend")).toBeInTheDocument();
   });
 
@@ -178,6 +181,7 @@ describe("Sicherungswarnung", () => {
         warn_on_display: false,
         encrypt: true,
       },
+      "/tournaments": [],
     });
     const nutzer = userEvent.setup();
     renderApp("/");
@@ -231,6 +235,7 @@ function sicherungsAttrappe(code: string, text: string) {
   return {
     "/health": HEALTH,
     "/auth/status": status(),
+    "/tournaments": [],
     "/backup/status": {
       usb: {
         present: code !== "usb_missing",
