@@ -21,6 +21,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { useTranslation } from "react-i18next";
 import { useDarf } from "../../app/berechtigungen";
 import { Bestaetigung } from "../../components/Bestaetigung";
+import { scrollVerhalten } from "../../components/bewegung";
 import { Chip } from "../../components/Chip";
 import { useFehlerText } from "../../components/FehlerHinweis";
 import { zeigeMeldung } from "../../components/Meldungen";
@@ -319,7 +320,7 @@ function Flaeche({
   useEffect(() => {
     if (!sichtbarId) return;
     const element = document.querySelector(`[data-feld="${sichtbarId}"]`);
-    element?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+    element?.scrollIntoView?.({ block: "nearest", behavior: scrollVerhalten() });
   }, [sichtbarId]);
 
   const liste = useCallback(
@@ -1216,22 +1217,20 @@ function Gesamtstand({
   if (wertung.deduction !== null && Number(wertung.deduction) !== 0) {
     nebenwerte.push({ name: t("gesamt.abzug"), wert: formatWert(wertung.deduction) });
   }
+  const rechnet = korrektur ? korrekturGeaendert && !vorschauAktuell : berechnet;
   return (
     <section className={s.gesamt} aria-live="polite" aria-labelledby="erf-gesamt">
       <div className={s.gesamtZeile}>
-        <div
-          className={s.gesamtHaupt}
-          data-veraltet={
-            (korrektur ? korrekturGeaendert && !vorschauAktuell : berechnet) ||
-            !wertung.complete ||
-            undefined
-          }
-        >
+        <div className={s.gesamtHaupt} data-veraltet={rechnet || !wertung.complete || undefined}>
           <span className="h-label" id="erf-gesamt">
             {t("gesamt.titel")}
           </span>
           <strong className="num">{nochNichts ? "–" : formatWert(wertung.score)}</strong>
           <span className={s.gesamtEinheit}>{wertung.unit}</span>
+          {/* Nicht nur blasser: auch in Worten, dass die Zahl gleich neu kommt. */}
+          {rechnet && wertung.complete && !nochNichts && (
+            <span className={s.gesamtEinheit}>{t("gesamt.wird_berechnet")}</span>
+          )}
         </div>
         {nebenwerte.length > 0 && (
           <dl className={s.nebenwerte}>

@@ -1,4 +1,4 @@
-import { Button, Modal } from "@mantine/core";
+import { Button } from "@mantine/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CircleCheck, Info, type LucideIcon, X } from "lucide-react";
@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useBereiche } from "../../app/modul";
 import { Bestaetigung } from "../../components/Bestaetigung";
 import { Chip } from "../../components/Chip";
+import { Dialog } from "../../components/Dialog";
 import { formatGeld } from "../../components/geld";
 import { PersonenSuche } from "../../components/PersonenSuche";
 import { MitTurnier, TurnierWechsel } from "../../components/TurnierWahl";
@@ -70,7 +71,7 @@ function Kopf({ station, icon: Icon, turnier, onWechseln }: KopfProps) {
                 to={modul.navigation.pfad}
                 variant="subtle"
                 color="gray"
-                size="compact-md"
+                size="md"
                 leftSection={<BereichIcon aria-hidden />}
               >
                 {t(`${modul.namensraum}:titel`)}
@@ -275,7 +276,7 @@ function Station({ station, icon, turnier, onWechseln }: StationProps) {
               <Button
                 variant="subtle"
                 color="gray"
-                size="compact-sm"
+                size="md"
                 aria-label={t("fertig.ausblenden")}
                 onClick={() => setBestaetigt(null)}
               >
@@ -356,13 +357,15 @@ function Station({ station, icon, turnier, onWechseln }: StationProps) {
         />
       </div>
 
-      <Modal
+      <Dialog
         opened={neuePerson !== null}
         onClose={() => setNeuePerson(null)}
         withCloseButton={false}
         size="xl"
         padding={0}
-        aria-label={t("schuetze.neu")}
+        // Der Name des Dialogs kommt aus dem Titel; sichtbar ist die Überschrift des Formulars.
+        title={t("schuetze.neu")}
+        classNames={{ header: "nur-screenreader" }}
       >
         {neuePerson && (
           <PersonFormular
@@ -383,7 +386,7 @@ function Station({ station, icon, turnier, onWechseln }: StationProps) {
             onUngespeichert={() => undefined}
           />
         )}
-      </Modal>
+      </Dialog>
 
       <Bestaetigung
         offen={ausstehend !== null}

@@ -351,7 +351,13 @@
       "competition_definition_changed": "Wettbewerb geändert",
       "result_recomputed": "Ergebnisse neu berechnet",
       "role_reconciled": "Startrolle angeglichen",
-      "role_permissions_removed": "Veraltete Rechte entfernt"
+      "role_permissions_removed": "Veraltete Rechte entfernt",
+      "display_created": "Anzeige angelegt",
+      "display_updated": "Anzeige geändert",
+      "display_config_changed": "Anzeige eingestellt",
+      "display_deleted": "Anzeige gelöscht",
+      "result_finalized": "Ergebnis abgeschlossen",
+      "result_corrected": "Ergebnis korrigiert"
     },
     "gegenstaende": {
       "user_account": "Person",
@@ -361,7 +367,9 @@
       "entry": "Anmeldung",
       "start": "Start",
       "competition": "Wettbewerb",
-      "heat": "Durchgang"
+      "heat": "Durchgang",
+      "display": "Anzeige",
+      "tournament": "Turnier"
     },
     "felder": {
       "name": "Name",
@@ -389,7 +397,12 @@
       "trigger": "Anlass",
       "before": "vorher",
       "after": "nachher",
-      "starter_key": "Startrolle"
+      "starter_key": "Startrolle",
+      "score": "Ergebnis",
+      "score_before": "Ergebnis vorher",
+      "competition_code": "Kennziffer",
+      "competition_name": "Wettbewerb",
+      "scenes": "Ansichten"
     },
     "werte": {
       "registered": "angemeldet",
@@ -406,9 +419,15 @@
       "draft": "Entwurf",
       "active": "aktiv",
       "closed": "abgeschlossen",
-      "definition": "Wertung"
+      "definition": "Wertung",
+      "live_ranking": "Live-Wertung",
+      "startlist": "Startliste",
+      "winners": "Siegerliste",
+      "range": "Standanzeige",
+      "notice": "Hinweis"
     },
-    "euro": "{{betrag}} €"
+    "euro": "{{betrag}} €",
+    "person_geraet": "{{person}} ({{geraet}})"
   },
   "server": {
     "titel": "Server",

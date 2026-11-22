@@ -1,4 +1,4 @@
-import { ActionIcon, Popover, Select, Skeleton, Switch, TextInput } from "@mantine/core";
+import { ActionIcon, Button, Popover, Select, Skeleton, Switch, TextInput } from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -68,6 +68,8 @@ interface StartauswahlProps {
   namen: Namen;
   kennziffern: ReadonlyMap<string, string | null>;
   pruefliste: PruefEintrag[];
+  /** Alle Starts erledigt: kein Aufruf-Hinweis mehr */
+  alleErledigt?: boolean;
   offenId: string | null;
   onWahl: (startId: string) => void;
 }
@@ -82,6 +84,7 @@ export function Startauswahl({
   namen,
   kennziffern,
   pruefliste,
+  alleErledigt = false,
   offenId,
   onWahl,
 }: StartauswahlProps) {
@@ -118,6 +121,9 @@ export function Startauswahl({
 
   const starts = startliste.data;
   const treffer = suche(starts, text, namen, nurOffene);
+  // Findet die Suche nur wegen „Nur offene Starts“ nichts, sagt sie das (z. B. zum Korrigieren).
+  const erledigteTreffer =
+    nurOffene && treffer.length === 0 ? suche(starts, text, namen, false).length : 0;
   const suchtGerade = text.trim() !== "";
   // Nur bei genau einem Treffer direkt öffnen. Mehrere Starts (zwei Wettbewerbe, 2. Start):
   // Liste zeigen, der Mensch wählt mit Wettbewerb und Startnummer vor Augen.
@@ -186,7 +192,7 @@ export function Startauswahl({
               <Grid3x3 aria-hidden />
             </ActionIcon>
           </Popover.Target>
-          <Popover.Dropdown>
+          <Popover.Dropdown aria-label={t("suche.ziffernfeld")}>
             <Ziffernfeld
               wert={/^\d*$/.test(text) ? text : ""}
               onChange={setText}
@@ -216,7 +222,14 @@ export function Startauswahl({
               {t("suche.mehrere", { count: treffer.length })}
             </p>
           )}
-          {treffer.length === 0 ? (
+          {erledigteTreffer > 0 ? (
+            <div className={s.leerHinweis} role="status">
+              <p>{t("suche.nur_offene_erledigt", { count: erledigteTreffer })}</p>
+              <Button variant="default" fullWidth onClick={() => setNurOffene(false)}>
+                {t("suche.auch_erledigte")}
+              </Button>
+            </div>
+          ) : treffer.length === 0 ? (
             <p className="gedaempft">{t("suche.keine")}</p>
           ) : (
             <ul className={s.zeilen}>
@@ -253,6 +266,7 @@ export function Startauswahl({
               offenId={offenId}
               onWahl={onWahl}
               nurOffene={nurOffene}
+              alleErledigt={alleErledigt}
             />
           ) : (
             staende.length > 0 && <p className="gedaempft">{t("stand.text")}</p>
@@ -278,6 +292,7 @@ interface ListenProps {
   offenId: string | null;
   onWahl: (startId: string) => void;
   nurOffene: boolean;
+  alleErledigt: boolean;
 }
 
 function StandListen({
@@ -288,6 +303,7 @@ function StandListen({
   offenId,
   onWahl,
   nurOffene,
+  alleErledigt,
 }: ListenProps) {
   const { t } = useTranslation("erfassung");
   const belegung = bahnenAmStand(starts, stand.id, stand.lane_count);
@@ -302,7 +318,7 @@ function StandListen({
         <h2 className="h-label" id="erf-am-stand">
           {t("auswahl.am_stand", { count: amStand.length })}
         </h2>
-        {amStand.length === 0 && (
+        {amStand.length === 0 && !alleErledigt && (
           <div className={s.leerHinweis}>
             <p>
               <strong>{t("auswahl.am_stand_leer")}</strong> {t("auswahl.am_stand_leer_text")}

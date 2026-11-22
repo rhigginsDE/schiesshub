@@ -1,6 +1,7 @@
-import { Button, Modal, NumberInput, Select, TextInput } from "@mantine/core";
+import { Button, NumberInput, Select, TextInput } from "@mantine/core";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Dialog } from "../../components/Dialog";
 import { FehlerHinweis } from "../../components/FehlerHinweis";
 import { zeigeMeldung } from "../../components/Meldungen";
 import { formatUhrzeit } from "../../lib/format";
@@ -62,7 +63,7 @@ interface SerieDialogProps {
 export function SerieDialog(props: SerieDialogProps) {
   const { t } = useTranslation("stand");
   return (
-    <Modal
+    <Dialog
       opened={props.offen}
       onClose={props.onSchliessen}
       title={t("serie.titel")}
@@ -71,7 +72,7 @@ export function SerieDialog(props: SerieDialogProps) {
       closeButtonProps={{ "aria-label": t("dialog_schliessen") }}
     >
       {props.offen && <SerieFormular {...props} />}
-    </Modal>
+    </Dialog>
   );
 }
 
@@ -192,7 +193,7 @@ export function DurchgangDialog(props: DurchgangDialogProps) {
   const { t } = useTranslation("stand");
   const { durchgang } = props;
   return (
-    <Modal
+    <Dialog
       opened={durchgang !== null}
       onClose={props.onSchliessen}
       title={durchgang ? t("durchgang_form.titel", { nummer: durchgang.number }) : ""}
@@ -201,7 +202,7 @@ export function DurchgangDialog(props: DurchgangDialogProps) {
       closeButtonProps={{ "aria-label": t("dialog_schliessen") }}
     >
       {durchgang && <DurchgangFormular key={durchgang.id} {...props} durchgang={durchgang} />}
-    </Modal>
+    </Dialog>
   );
 }
 
@@ -325,7 +326,7 @@ export function PlatzDialog(props: PlatzDialogProps) {
       })
     : "";
   return (
-    <Modal
+    <Dialog
       opened={start !== null}
       onClose={props.onSchliessen}
       title={titel}
@@ -334,7 +335,7 @@ export function PlatzDialog(props: PlatzDialogProps) {
       closeButtonProps={{ "aria-label": t("dialog_schliessen") }}
     >
       {start && <PlatzFormular key={start.start_id} {...props} start={start} />}
-    </Modal>
+    </Dialog>
   );
 }
 

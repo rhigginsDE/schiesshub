@@ -73,7 +73,7 @@
   border-left: 0.15cqmin solid var(--sh-linie);
 }
 
-.titel h1 {
+.titel .titelText {
   font: italic 700 5cqmin / 1.1 var(--sh-font-display);
   white-space: nowrap;
   overflow: hidden;

@@ -290,7 +290,7 @@ export function AnmeldungFormular({
         <Button
           variant="subtle"
           color="gray"
-          size="compact-md"
+          size="md"
           leftSection={<ArrowLeft aria-hidden />}
           onClick={onZurueck}
         >
@@ -362,6 +362,8 @@ export function AnmeldungFormular({
           error={klasseFehlt ? t("klasse.fehlt") : anmeldeFehler.class_id}
           required
           comboboxProps={{ withinPortal: true }}
+          // Tippziele: Feld und jede Klasse in der Liste mindestens 44 px hoch.
+          styles={{ input: { minHeight: 44 }, option: { minHeight: 44 } }}
         />
         <NumberInput
           size="md"
@@ -699,7 +701,7 @@ function WettbewerbZeile({
           )}
           <Button
             variant="default"
-            size="compact-sm"
+            size="md"
             leftSection={<Pencil aria-hidden />}
             onClick={onPlatzWaehlen}
           >
@@ -709,7 +711,7 @@ function WettbewerbZeile({
             <Button
               variant="subtle"
               color="gray"
-              size="compact-sm"
+              size="md"
               leftSection={<Undo2 aria-hidden />}
               onClick={onPlatzZuruecksetzen}
             >
@@ -798,7 +800,7 @@ function GebuchteStarts({
                 <span className={`num ${s.startPreis}`}>{geld(start.fee_cents)}</span>
                 <Button
                   variant="default"
-                  size="compact-md"
+                  size="md"
                   className={s.stornoKnopf}
                   disabled={sperre !== null}
                   onClick={() => onStornieren(start)}

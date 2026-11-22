@@ -171,7 +171,8 @@
     "leer_titel": "Noch niemand angemeldet",
     "leer_text": "Such links den ersten Schützen, wähle die Klasse und buche Starts. Gespeicherte Anmeldungen erscheinen hier.",
     "keine_titel": "Keine Anmeldung gefunden",
-    "keine_text": "Andere Schreibweise oder die Startnummer versuchen."
+    "keine_text": "Andere Schreibweise oder die Startnummer versuchen.",
+    "mal": "×{{count}}"
   },
   "anleitung": "Schützen suchen oder neu anlegen, Klasse wählen, Starts buchen – dann den angezeigten Betrag kassieren."
 }

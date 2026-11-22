@@ -7,6 +7,22 @@ import type { Turnier } from "../modules/turnier/typen";
 /** Gerätespeicher: nur die ID des gewählten Turniers, nie Namen. */
 export const TURNIER_SPEICHER = "schiesshub.turnier";
 
+/**
+ * Merkt ein Turnier als Wahl dieses Geräts, auch außerhalb von `useAktivesTurnier` (z. B. direkt
+ * nach dem Anlegen). Offene Stationen im selben Fenster übernehmen die Wahl sofort.
+ */
+export function merkeTurnier(id: string): void {
+  try {
+    window.localStorage.setItem(TURNIER_SPEICHER, JSON.stringify(id));
+  } catch {
+    return;
+  }
+  // Dasselbe Ereignis, mit dem `useLocalStorage` (Mantine) Hooks im selben Fenster abgleicht.
+  window.dispatchEvent(
+    new CustomEvent("mantine-local-storage", { detail: { key: TURNIER_SPEICHER, value: id } }),
+  );
+}
+
 const STATUS_RANG: Record<Turnier["status"], number> = { active: 0, draft: 1, closed: 2 };
 
 /** Aktive zuerst, dann Entwürfe, dann abgeschlossene; je Gruppe das jüngste Datum zuerst. */

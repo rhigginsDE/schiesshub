@@ -71,7 +71,7 @@ export function SchirmAnsicht({
     >
       <SchirmKontext.Provider value={lage}>
         {feed && feed.scenes.length > 0 ? (
-          <SchirmInhalt feed={feed} getrenntSeit={zustand.getrenntSeit} />
+          <SchirmInhalt feed={feed} getrenntSeit={zustand.getrenntSeit} vorschau={vorschau} />
         ) : zustand.sperre ? (
           <Sperre sperre={zustand.sperre} quelle={quelle} />
         ) : zustand.laedt ? (
@@ -141,7 +141,16 @@ function useRotation(szenen: FeedSzene[]): { szene: FeedSzene; index: number; ta
   return { szene, index, takt: { start: rotation.start, dauer } };
 }
 
-function SchirmInhalt({ feed, getrenntSeit }: { feed: Feed; getrenntSeit: Date | null }) {
+function SchirmInhalt({
+  feed,
+  getrenntSeit,
+  vorschau,
+}: {
+  feed: Feed;
+  getrenntSeit: Date | null;
+  /** Eingebettet in die Verwaltung: ohne eigene Hauptlandmarke und ohne h1 */
+  vorschau: boolean;
+}) {
   const { t } = useTranslation("anzeige");
   const { szene, index, takt } = useRotation(feed.scenes);
   const warnungen = feed.warnings.filter((warnung) => warnung.code !== "provisional");
@@ -150,11 +159,12 @@ function SchirmInhalt({ feed, getrenntSeit }: { feed: Feed; getrenntSeit: Date |
     eintrag.parts > 1
       ? t("schirm.szene_teil", { titel: eintrag.title, teil: eintrag.part, teile: eintrag.parts })
       : eintrag.title;
+  const Flaeche = vorschau ? "div" : "main";
   const naechste = feed.scenes.length > 1 ? feed.scenes[(index + 1) % feed.scenes.length] : null;
 
   return (
     <div className={s.schirm} data-ticker={feed.ticker ? "" : undefined}>
-      <Kopf kopf={feed.header} szene={titelVon(szene)} />
+      <Kopf kopf={feed.header} szene={titelVon(szene)} vorschau={vorschau} />
       {warnungen.length > 0 && (
         <div className={s.warnungen} role="alert">
           {warnungen.map((warnung) => (
@@ -165,11 +175,11 @@ function SchirmInhalt({ feed, getrenntSeit }: { feed: Feed; getrenntSeit: Date |
           ))}
         </div>
       )}
-      <main className={s.flaeche}>
+      <Flaeche className={s.flaeche}>
         <div key={`${szenenSchluessel(szene)}@${takt.start}`} className={s.einblenden}>
           <SzenenInhalt szene={szene} kopf={feed.header} takt={takt} />
         </div>
-      </main>
+      </Flaeche>
       <Fuss
         index={index}
         anzahl={feed.scenes.length}
@@ -226,7 +236,8 @@ function zeitraum(kopf: FeedKopf, sprache: string): string | null {
   return von === bis ? von : `${von} – ${bis}`;
 }
 
-function Kopf({ kopf, szene }: { kopf: FeedKopf; szene: string }) {
+function Kopf({ kopf, szene, vorschau }: { kopf: FeedKopf; szene: string; vorschau: boolean }) {
+  const Titel = vorschau ? "strong" : "h1";
   const { sprache } = useSchirm();
   const zeit = useServerZeit();
   const unter = [kopf.organizer, zeitraum(kopf, sprache)].filter(Boolean).join(" · ");
@@ -239,7 +250,7 @@ function Kopf({ kopf, szene }: { kopf: FeedKopf; szene: string }) {
         </b>
       </div>
       <div className={s.titel}>
-        <h1>{kopf.title}</h1>
+        <Titel className={s.titelText}>{kopf.title}</Titel>
         {unter && <span>{unter}</span>}
       </div>
       <div className={s.jetzt}>

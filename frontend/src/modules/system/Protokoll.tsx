@@ -43,6 +43,22 @@ const ROH: DetailsHilfen = {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Nur solche Werte sind Fachbegriffe des Servers (`dns`, `called`), alles andere bleibt, wie es ist. */
 const CODE = /^[a-z][a-z_.*]*$/;
+/** Interne Zähler ohne Aussage für Menschen (laufende Nummer eines Ereignisses). */
+const AUSGEBLENDET: ReadonlySet<string> = new Set(["seq"]);
+
+/**
+ * Name des Vorgangs: der Klartext des Servers (`action_text`); nur wenn der Server keinen hat
+ * (er liefert dann den Fachschlüssel zurück), die eigene Übersetzung.
+ */
+export function vorgangText(
+  eintrag: Pick<AuditEintrag, "action" | "action_text">,
+  eigene: (action: string) => string | undefined,
+  sonstig: string,
+): string {
+  const server = eintrag.action_text?.trim();
+  if (server && server !== eintrag.action) return server;
+  return eigene(eintrag.action) ?? sonstig;
+}
 
 function leer(wert: unknown): boolean {
   return (
@@ -81,7 +97,14 @@ function wertText(wert: unknown, h: DetailsHilfen, geld: boolean): string | null
  * ein Name bekannt ist; Startgeld in Euro.
  */
 export function detailsText(details: Record<string, unknown>, h: DetailsHilfen = ROH): string {
-  return Object.entries(details)
+  // Ergebnis vorher und nachher stehen als eine Angabe „44,00 → 54,00“.
+  const zusammen: Record<string, unknown> = { ...details };
+  if ("score_before" in zusammen && "score" in zusammen) {
+    zusammen.score = { before: zusammen.score_before, after: zusammen.score };
+    delete zusammen.score_before;
+  }
+  return Object.entries(zusammen)
+    .filter(([schluessel]) => !AUSGEBLENDET.has(schluessel))
     .map(([schluessel, wert]) => {
       const text = wertText(wert, h, schluessel.endsWith("_cents"));
       // IDs ohne bekannten Namen fallen in `wertText` weg; sie sagen niemandem etwas.
@@ -130,11 +153,15 @@ export function ProtokollBereich({
   };
 
   const wer = (eintrag: AuditEintrag) => {
-    if (eintrag.user_id) return namen.get(eintrag.user_id) ?? t("protokoll.unbekannt");
-    if (eintrag.device_id)
-      return t("protokoll.geraet", {
-        name: namen.get(eintrag.device_id) ?? t("protokoll.unbekannt"),
-      });
+    const person = eintrag.user_name ?? (eintrag.user_id ? namen.get(eintrag.user_id) : undefined);
+    const geraet =
+      eintrag.device_name ?? (eintrag.device_id ? namen.get(eintrag.device_id) : undefined);
+    if (person && geraet) return t("protokoll.person_geraet", { person, geraet });
+    if (person) return person;
+    if (eintrag.user_id) return t("protokoll.unbekannt");
+    if (eintrag.device_id || geraet) {
+      return t("protokoll.geraet", { name: geraet ?? t("protokoll.unbekannt") });
+    }
     return t("protokoll.system");
   };
 
@@ -177,9 +204,14 @@ export function ProtokollBereich({
                 <span>
                   {/* Unbekannte Vorgänge (neues Modul) lesbar benennen; der Fachschlüssel steht im Tooltip. */}
                   <strong title={eintrag.action}>
-                    {t(`protokoll.aktionen.${textSchluessel(eintrag.action)}`, {
-                      defaultValue: t("protokoll.aktion_sonstig"),
-                    })}
+                    {vorgangText(
+                      eintrag,
+                      (action) => {
+                        const schluessel = `protokoll.aktionen.${textSchluessel(action)}`;
+                        return i18n.exists(`system:${schluessel}`) ? t(schluessel) : undefined;
+                      },
+                      t("protokoll.aktion_sonstig"),
+                    )}
                   </strong>
                   <span className="gedaempft" title={eintrag.entity}>
                     {" · "}

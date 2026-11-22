@@ -50,6 +50,8 @@ export function rangliste(): FeedRangliste {
     direction: "absteigend",
     unit: "Ringe",
     combined: false,
+    deviates: false,
+    deviations: [],
     groups: [
       {
         class_id: "k1",
@@ -101,6 +103,7 @@ function person(teil: Partial<FeedPerson> & Pick<FeedPerson, "start_id">): FeedP
     lane: null,
     heat_number: null,
     heat_starts_at: null,
+    heat_starts_at_local: null,
     ...teil,
   };
 }
@@ -147,6 +150,8 @@ export const szenen: Record<FeedSzene["kind"], FeedSzene> = {
         person({ start_id: "p2", start_number: 6, display_name: null, club: null }),
       ],
       more: 4,
+      deviates: false,
+      deviations: [],
     },
   },
   range: {
@@ -171,6 +176,7 @@ export const szenen: Record<FeedSzene["kind"], FeedSzene> = {
           notes: ["−1 Ring je volle Sekunde über der Sollzeit"],
           deviates: true,
           deviations: ["Sollzeit 60 s statt 50 s"],
+          current: [],
           sections: [
             {
               id: "parcours",
@@ -231,6 +237,8 @@ export const szenen: Record<FeedSzene["kind"], FeedSzene> = {
         number: 4,
         starts_at: "2026-11-22T13:20:00Z",
         ends_at: "2026-11-22T13:35:00Z",
+        starts_at_local: "2026-11-22T14:20:00+01:00",
+        ends_at_local: "2026-11-22T14:35:00+01:00",
       },
       next: [person({ start_id: "p4", display_name: "Dora Nächste", lane: 1, heat_number: 4 })],
     },
@@ -272,6 +280,7 @@ export function beispielFeed(teil: Partial<Feed> = {}): Feed {
       date_to: "2026-11-22",
       tournament_status: "active",
       tournament_mode: "auto",
+      timezone: "Europe/Berlin",
     },
     scenes: [szenen.live_ranking],
     skipped: [],

@@ -90,6 +90,7 @@ function start(id: string, attempt: number, fee: number): Start {
     id,
     entry_id: "a1",
     called_at: null,
+    on_lane: false,
     competition_id: W,
     attempt,
     fee_cents: fee,

@@ -30,6 +30,7 @@ export const erfassung: ModulManifest = {
   id: ERFASSUNG_ID,
   namensraum: ERFASSUNG_ID,
   navigation: { art: "station", pfad: ERFASSUNG_PFAD, icon: Target, reihenfolge: 30 },
+  titelTurnier: "aktiv",
   berechtigung: ["result.capture", "result.read"],
   routen: [route],
   ereignisse: erfassungEreignisse,

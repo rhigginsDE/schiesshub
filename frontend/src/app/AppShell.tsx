@@ -240,7 +240,7 @@ function Statusanzeige() {
   const ton = (
     {
       pruefe: "neutral",
-      verbunden: "gruen",
+      verbunden: "neutral",
       eingeschraenkt: "warn",
       gestoert: "krit",
       getrennt: "krit",
@@ -250,7 +250,13 @@ function Statusanzeige() {
 
   return (
     <Tooltip label={hinweis} multiline maw={260}>
-      <Chip ton={ton} punkt role="status" className={s.statusChip} data-verbindung={verbindung}>
+      <Chip
+        ton={ton}
+        punkt
+        role="status"
+        className={[s.statusChip, ton === "neutral" && s.ruhig].filter(Boolean).join(" ")}
+        data-verbindung={verbindung}
+      >
         <span className={s.lang}>{t(`status.${verbindung}`)}</span>
         <span className={s.kurz} aria-hidden>
           {t(`status.${verbindung}_kurz`)}
@@ -273,12 +279,14 @@ function SicherungsChip() {
     : letzte
       ? t("sicherung.chip_ok", { zeit: formatUhrzeit(letzte, i18n.language) })
       : t("sicherung.chip_keine");
-  const ton = warnung ? "krit" : letzte ? "gruen" : "neutral";
+  // Im Normalfall ruhig (gedämpfter Text); Farbe erst bei einer Warnung. Grün gehört der
+  // Hauptaktion der Ansicht.
+  const ton = warnung ? "krit" : "neutral";
 
   return (
     <Tooltip label={warnung?.message_de ?? t("sicherung.chip_hinweis")} multiline maw={280}>
       <Link to="/system/sicherung" className={s.chipLink}>
-        <Chip ton={ton} icon={Usb}>
+        <Chip ton={ton} icon={Usb} className={warnung ? undefined : s.ruhig}>
           <span className={s.chipText}>{text}</span>
         </Chip>
       </Link>

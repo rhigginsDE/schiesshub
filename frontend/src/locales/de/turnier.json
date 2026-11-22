@@ -468,9 +468,11 @@
     "offen_titel": "Bevor das Turnier startet, fehlt noch:",
     "status_text": {
       "draft": "Starte das Turnier, wenn alles passt. Danach können Anmeldung und Erfassung beginnen; Einstellungen bleiben änderbar.",
-      "active": "Das Turnier läuft: Anmeldung und Erfassung sind offen. Nach dem letzten Ergebnis schließt du es ab.",
+      "active": "Anmeldung und Erfassung sind offen. Nach dem letzten Ergebnis schließt du das Turnier hier ab.",
       "closed": "Das Turnier ist abgeschlossen."
-    }
+    },
+    "laeuft_titel": "Das Turnier läuft. Als Nächstes: Schützen anmelden.",
+    "zur_anmeldung": "Zur Anmeldung"
   },
   "pruefung": {
     "pflicht": "Bitte ausfüllen.",

@@ -36,6 +36,7 @@ export const stand: ModulManifest = {
     icon: LayoutGrid,
     reihenfolge: 10,
   },
+  titelTurnier: "aktiv",
   berechtigung: ["start.read", "start.call"],
   routen: [route],
   ereignisse: startsEreignisse,

@@ -1,7 +1,8 @@
-import { Button, Modal, Skeleton } from "@mantine/core";
+import { Button, Skeleton } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarX } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Dialog } from "../../components/Dialog";
 import { Fehlerzustand, Leerzustand } from "../../components/Zustand";
 import { formatUhrzeit } from "../../lib/format";
 import type { Stand, Wettbewerb } from "../turnier/typen";
@@ -55,8 +56,7 @@ export function PlatzWahl({
   const bahnen = Array.from({ length: stand?.lane_count ?? 0 }, (_, i) => i + 1);
 
   return (
-    <Modal
-      opened
+    <Dialog
       onClose={onSchliessen}
       title={t("platz.titel", { wettbewerb: wettbewerb.name })}
       size="lg"
@@ -118,6 +118,6 @@ export function PlatzWahl({
           </ul>
         )}
       </div>
-    </Modal>
+    </Dialog>
   );
 }

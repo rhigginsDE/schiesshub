@@ -70,8 +70,11 @@ export interface StartZaehlung {
 export type SicherungEingabe =
   | { art: "ok"; zeit: string }
   | { art: "keine" }
-  /** `behebbar`: Das Gerät bzw. die Person darf die Sicherung einstellen. */
-  | { art: "warnung"; code: string; behebbar: boolean };
+  /**
+   * `behebbar`: Das Gerät bzw. die Person darf die Sicherung einstellen.
+   * `nieGesichert`: Es gibt noch keine gelungene Sicherung.
+   */
+  | { art: "warnung"; code: string; behebbar: boolean; nieGesichert?: boolean };
 
 export interface AblaufEingaben {
   turnier: Pick<Turnier, "name" | "status"> | null;
@@ -88,6 +91,11 @@ export interface Ablauf {
   schritte: AblaufSchritt[];
   naechster: SchrittId;
   aktion: AblaufAktion;
+  /**
+   * Gestörte Sicherung, die (noch) nicht der nächste Schritt ist: ihre eigene, nachrangige Aktion
+   * in der Zeile der Sicherung. Sonst `undefined`.
+   */
+  sicherungAktion?: AblaufAktion;
 }
 
 const OFFEN: ReadonlySet<StationStart["status"]> = new Set(["registered", "called", "captured"]);
@@ -242,19 +250,23 @@ function sicherungSchritt({ sicherung }: AblaufEingaben): AblaufSchritt {
 
 /**
  * Welcher Schritt als Nächstes dran ist:
- * - kein Turnier oder Entwurf: das Turnier einrichten (eine gestörte Sicherung zeigt ihren
- *   Zustand, drängt sich aber erst vor, wenn Daten anfallen)
- * - Turnier läuft oder ist abgeschlossen und die Sicherung ist gestört (und behebbar): Sicherung
+ * - kein Turnier oder Entwurf: das Turnier einrichten
  * - läuft ohne Starts: Anmeldung; mit offenen Starts: Erfassung; alles abgeschlossen: Anzeige
+ *
+ * Eine gestörte Sicherung (die diese Person beheben darf) verdrängt die Arbeit am Stand nicht; sie
+ * zeigt ihren Zustand mit eigener Aktion. Sie wird erst der nächste Schritt,
+ * - wenn schon Ergebnisse erfasst sind und noch nie gesichert wurde (Daten sind gefährdet), oder
+ * - wenn sonst nichts mehr ansteht (alle Starts erledigt oder Turnier abgeschlossen).
  */
 function naechsterSchritt(e: AblaufEingaben): SchrittId {
   const { turnier, starts, sicherung } = e;
   if (!turnier || turnier.status === "draft") return "turnier";
-  if (sicherung?.art === "warnung" && sicherung.behebbar) return "sicherung";
-  if (turnier.status === "closed") return "anzeige";
+  const gestoert = sicherung?.art === "warnung" && sicherung.behebbar;
+  if (gestoert && sicherung.nieGesichert && starts && starts.ergebnisse > 0) return "sicherung";
+  if (turnier.status === "closed") return gestoert ? "sicherung" : "anzeige";
   if (!starts || starts.starts === 0) return "anmeldung";
   if (starts.offen > 0) return "erfassung";
-  return "anzeige";
+  return gestoert ? "sicherung" : "anzeige";
 }
 
 function aktionFuer(id: SchrittId, e: AblaufEingaben, schritt: AblaufSchritt): AblaufAktion {
@@ -286,5 +298,15 @@ export function ablauf(eingaben: AblaufEingaben): Ablauf {
   ];
   const naechster = naechsterSchritt(eingaben);
   const schritt = schritte.find((x) => x.id === naechster) as AblaufSchritt;
-  return { schritte, naechster, aktion: aktionFuer(naechster, eingaben, schritt) };
+  const sicherung = schritte[4] as AblaufSchritt;
+  const nebenbei =
+    naechster !== "sicherung" &&
+    eingaben.sicherung?.art === "warnung" &&
+    eingaben.sicherung.behebbar;
+  return {
+    schritte,
+    naechster,
+    aktion: aktionFuer(naechster, eingaben, schritt),
+    sicherungAktion: nebenbei ? aktionFuer("sicherung", eingaben, sicherung) : undefined,
+  };
 }

@@ -30,6 +30,59 @@ export function anzeigeAnlegen(name: string, sort?: number) {
   return apiSenden<Anzeige>("POST", pfad.liste, { name, sort });
 }
 
+/** Szenen einer neuen Anzeige für ein Turnier: Live-Wertung, Startliste, Siegerliste. */
+export function turnierSzenen(): NonNullable<AnzeigeKonfig["scenes"]> {
+  const basis = { seconds: 20, title: null, competition_ids: [] };
+  return [
+    {
+      ...basis,
+      id: "live",
+      kind: "live_ranking",
+      class_ids: [],
+      rows: 10,
+      show_running: true,
+      show_aborted: false,
+    },
+    {
+      ...basis,
+      id: "startliste",
+      kind: "startlist",
+      seconds: 15,
+      range_ids: [],
+      rows: 12,
+      include_finished: false,
+    },
+    {
+      ...basis,
+      id: "sieger",
+      kind: "winners",
+      class_ids: [],
+      top: 3,
+      include_provisional: true,
+      show_aborted: false,
+    },
+  ];
+}
+
+/**
+ * Neue Anzeige, fest auf ein Turnier eingestellt, mit Live-Wertung, Startliste und Siegerliste.
+ * Ohne Turnier wählt der Server das laufende Turnier selbst.
+ */
+export function anzeigeFuerTurnierAnlegen(name: string, turnierId: string | null, sort?: number) {
+  return apiSenden<Anzeige>("POST", pfad.liste, {
+    name,
+    sort,
+    tournament_id: turnierId,
+    config: {
+      scenes: turnierSzenen(),
+      name_mode: "as_person",
+      show_club: "as_person",
+      show_provisional_note: true,
+      theme: "dark",
+    } satisfies AnzeigeKonfig,
+  });
+}
+
 export function standardAnlegen() {
   return apiSenden<Anzeige>("POST", `${pfad.liste}/defaults`);
 }

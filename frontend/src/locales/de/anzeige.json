@@ -283,5 +283,11 @@
     "fehler_verboten": "Für diesen Export fehlt die Berechtigung.",
     "fehler_nicht_gefunden": "Turnier, Wettbewerb oder Klasse wurde nicht gefunden.",
     "gespeichert_text": "{{name}} – öffne die Datei aus dem Download-Ordner, um sie zu drucken."
+  },
+  "einrichten": {
+    "titel": "Für „{{name}}“ gibt es noch keine Anzeige",
+    "text": "Eine Anzeige zeigt dieses Turnier auf dem großen Bildschirm: Live-Wertung, Startliste und Siegerliste im Wechsel. Alles Weitere stellst du danach ein. Für den Aushang kannst du die Siegerliste auch drucken.",
+    "knopf": "Anzeige für „{{name}}“ einrichten",
+    "drucken": "Siegerliste drucken"
   }
 }

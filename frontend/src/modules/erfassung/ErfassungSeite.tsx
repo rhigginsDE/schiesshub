@@ -2,17 +2,18 @@ import { Button } from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ListChecks, type LucideIcon, Target } from "lucide-react";
+import { ArrowRight, CheckCheck, ListChecks, type LucideIcon, Target } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useBereiche } from "../../app/modul";
+import { useBereiche, useModule } from "../../app/modul";
+import { ExportKnoepfe } from "../../components/ExportKnoepfe";
 import { MitTurnier, TurnierWechsel } from "../../components/TurnierWahl";
 import { Leerzustand } from "../../components/Zustand";
 import { anmeldungenAbfrage, startlisteAbfrage } from "../anmeldung/api";
 import { uebersichtAbfrage } from "../turnier/abfragen";
-import type { Turnier } from "../turnier/typen";
+import type { Turnier, TurnierUebersicht } from "../turnier/typen";
 import { prueflisteAbfrage } from "./api";
-import { bestimmeStand, naechsterOffener, namenAus } from "./auswahl";
+import { bestimmeStand, istOffen, naechsterOffener, namenAus } from "./auswahl";
 import s from "./erfassung.module.css";
 import type { ErfassungSuche } from "./pfade";
 import { Startauswahl } from "./Startauswahl";
@@ -124,6 +125,12 @@ function Station({ station, icon, turnier, onWechseln, suche, onSuche }: Station
     [uebersicht.data],
   );
   const startId = suche.start ?? null;
+  // Alles erledigt und nichts zu prüfen: Abschluss statt „Start wählen“.
+  const alleErledigt =
+    startliste.isSuccess &&
+    starts.length > 0 &&
+    !starts.some(istOffen) &&
+    (pruefliste.data?.length ?? 0) === 0;
 
   const oeffnen = (id: string) => {
     setAuswahlOffen(false);
@@ -175,6 +182,7 @@ function Station({ station, icon, turnier, onWechseln, suche, onSuche }: Station
           namen={namen}
           kennziffern={kennziffern}
           pruefliste={pruefliste.data ?? []}
+          alleErledigt={alleErledigt}
           offenId={startId}
           onWahl={oeffnen}
         />
@@ -190,6 +198,8 @@ function Station({ station, icon, turnier, onWechseln, suche, onSuche }: Station
             namen={namen}
             onOeffnen={oeffnen}
           />
+        ) : alleErledigt ? (
+          <AlleErfasst turnier={turnier} anzahl={starts.length} uebersicht={uebersicht.data} />
         ) : (
           <section className={`panel ${s.leer}`} aria-label={t("leer.titel")}>
             <Leerzustand icon={Target} titel={t("leer.titel")} text={t("leer.text")} />
@@ -197,5 +207,50 @@ function Station({ station, icon, turnier, onWechseln, suche, onSuche }: Station
         )}
       </div>
     </div>
+  );
+}
+
+/** Alle Starts erledigt: das sagen und den nächsten Schritt anbieten (Ergebnisse zeigen, drucken). */
+function AlleErfasst({
+  turnier,
+  anzahl,
+  uebersicht,
+}: {
+  turnier: Turnier;
+  anzahl: number;
+  uebersicht: TurnierUebersicht | undefined;
+}) {
+  const { t } = useTranslation("erfassung");
+  const anzeige = useModule().some((modul) => modul.id === "anzeige");
+  return (
+    <section className={`panel ${s.leer}`} aria-labelledby="erf-fertig-titel">
+      <div className={s.fertig} role="status">
+        <span className={s.fertigSymbol}>
+          <CheckCheck aria-hidden />
+        </span>
+        <h2 className="h-section" id="erf-fertig-titel">
+          {t("fertig.titel", { count: anzahl })}
+        </h2>
+        <p className="gedaempft">{t("fertig.text")}</p>
+        <div className={s.fertigAktionen}>
+          {anzeige && (
+            <Button
+              rightSection={<ArrowRight aria-hidden />}
+              renderRoot={(props) => (
+                <Link {...props} to="/anzeige" search={{ turnier: turnier.id }} />
+              )}
+            >
+              {t("fertig.zeigen")}
+            </Button>
+          )}
+          <ExportKnoepfe
+            turnierId={turnier.id}
+            uebersicht={uebersicht}
+            knopfText={t("fertig.drucken")}
+            nur="winners"
+          />
+        </div>
+      </div>
+    </section>
   );
 }

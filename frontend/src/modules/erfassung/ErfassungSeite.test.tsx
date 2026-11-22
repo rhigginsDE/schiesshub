@@ -211,10 +211,10 @@ describe("Erfassungsterminal", () => {
     await user.keyboard("2,00{Enter}");
     const zeiten = screen.getAllByRole("button", { name: /^Zeit:/ });
     const stehend = screen.getAllByRole("button", { name: /^Stehende Scheiben:/ });
-    expect(zeiten[0]).toHaveAccessibleName("Zeit: 12,34");
-    expect(stehend[0]).toHaveAccessibleName("Stehende Scheiben: 1");
-    expect(zeiten[1]).toHaveAccessibleName("Zeit: 10,50");
-    expect(stehend[1]).toHaveAccessibleName("Stehende Scheiben: 0");
+    expect(zeiten[0]).toHaveAccessibleName("Zeit: 12,34 s");
+    expect(stehend[0]).toHaveAccessibleName("Stehende Scheiben: 1, 0 bis 5");
+    expect(zeiten[1]).toHaveAccessibleName("Zeit: 10,50 s");
+    expect(stehend[1]).toHaveAccessibleName("Stehende Scheiben: 0, 0 bis 5");
     expect(screen.getByText("Kein Feld aktiv. Feld antippen.")).toBeInTheDocument();
   });
 

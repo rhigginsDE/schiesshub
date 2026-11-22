@@ -28,7 +28,7 @@
     "weitere_one": "Weitere Starts · {{count}}",
     "weitere_other": "Weitere Starts · {{count}}",
     "durchgang": "Durchgang {{nummer}}, {{zeit}}",
-    "platz": "Platz {{platz}}",
+    "platz": "Nr. {{platz}} in der Reihenfolge",
     "versuch": "{{nr}}. Start",
     "bahn_kurz": "Bahn",
     "am_stand_leer": "Noch niemand aufgerufen.",
@@ -53,7 +53,10 @@
     "treffer_other": "{{count}} Treffer",
     "keine": "Kein passender Start.",
     "mehrere_one": "{{count}} Start passt.",
-    "mehrere_other": "{{count}} Starts passen. Wähl den richtigen: Wettbewerb und Startnummer mit dem Startzettel vergleichen."
+    "mehrere_other": "{{count}} Starts passen. Wähl den richtigen: Wettbewerb und Startnummer mit dem Startzettel vergleichen.",
+    "nur_offene_erledigt_one": "Kein offener Start passt, aber 1 erledigter. Gerade werden nur offene Starts durchsucht.",
+    "nur_offene_erledigt_other": "Kein offener Start passt, aber {{count}} erledigte. Gerade werden nur offene Starts durchsucht.",
+    "auch_erledigte": "Auch erledigte durchsuchen"
   },
   "filter": {
     "nur_offene": "Nur offene Starts"
@@ -120,7 +123,8 @@
     "entfaellt": "entfällt",
     "freiwillig": "freiwillig",
     "bereich": "{{min}} bis {{max}}",
-    "leer_wert": "leer"
+    "leer_wert": "leer",
+    "fehler": "Fehler"
   },
   "schuss": {
     "reihe": "Schüsse {{serie}}",
@@ -160,7 +164,8 @@
       "neuner_abwaerts": "Anzahl Neuner, Achter und weiter abwärts (nur mit Einzelschuss)",
       "parcours_zeit": "Parcourszeit",
       "unbekannt": "eine weitere Angabe"
-    }
+    },
+    "wird_berechnet": "wird neu berechnet"
   },
   "fortschritt": {
     "schuss_one": "{{anzahl}} von {{count}} Schuss",
@@ -227,7 +232,7 @@
   "abbruch": {
     "knopf": "Start abbrechen",
     "titel": "Start abbrechen?",
-    "text": "{{wer}}: Der Start wird als abgebrochen vermerkt. Erfasste Werte bleiben im Verlauf. Wie ein abgebrochener Start in der Wertung erscheint, legt die Wertung des Servers fest.",
+    "text": "{{wer}}: Der Start wird mit dem gewählten Grund als abgebrochen vermerkt. Erfasste Werte bleiben im Verlauf.",
     "art": "Grund",
     "grund": "Bemerkung (freiwillig)",
     "bestaetigen": "Start abbrechen",
@@ -259,7 +264,7 @@
     "bestaetigen": "Korrektur speichern",
     "erledigt": "Korrektur gespeichert",
     "aenderungen": "Geändert (alt → neu)",
-    "server_rechnet": "Das neue Ergebnis rechnet der Server beim Speichern; es erscheint danach oben unter „Gesamt“.",
+    "server_rechnet": "Das neue Ergebnis gilt ab dem Speichern und steht dann oben unter „Gesamt“.",
     "alt_neu": "{{vorher}} → {{nachher}}"
   },
   "oeffnen": {
@@ -307,5 +312,12 @@
   "wiederhergestellt": {
     "titel": "Eingabe zurückgeholt",
     "text": "Werte, die der Server noch nicht bestätigt hatte, sind wieder da und werden gespeichert."
+  },
+  "fertig": {
+    "titel_one": "Der Start ist erfasst",
+    "titel_other": "Alle {{count}} Starts sind erfasst",
+    "text": "Alle Ergebnisse sind abgeschlossen. Als Nächstes zeigst du sie auf dem großen Bildschirm oder druckst die Siegerliste für den Aushang. Zum Korrigieren such links den Start.",
+    "zeigen": "Ergebnisse zeigen",
+    "drucken": "Siegerliste drucken"
   }
 }

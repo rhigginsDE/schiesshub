@@ -105,33 +105,80 @@ describe("Ablauf der Startseite", () => {
     expect(a.schritte[2]?.stand).toBe("erledigt");
   });
 
-  it("Sicherung gestört: am Wettkampftag zuerst beheben, beim Einrichten nur anzeigen", () => {
-    const warnung = { art: "warnung", code: "passphrase_missing", behebbar: true } as const;
+  it("Sicherung gestört: verdrängt die Anmeldung nicht, zeigt aber Zustand und eigene Aktion", () => {
+    const warnung = {
+      art: "warnung",
+      code: "passphrase_missing",
+      behebbar: true,
+      nieGesichert: true,
+    } as const;
     const amTag = ablauf({ turnier: laeuft, starts: zaehleStarts([]), sicherung: warnung });
-    expect(amTag.naechster).toBe("sicherung");
-    expect(amTag.aktion).toBe("passwort_festlegen");
+    expect(amTag.naechster).toBe("anmeldung");
+    expect(amTag.aktion).toBe("zur_anmeldung");
+    expect(amTag.sicherungAktion).toBe("passwort_festlegen");
     expect(amTag.schritte[4]).toMatchObject({
       stand: "gestoert",
       werte: { code: "passphrase_missing" },
     });
 
-    const stick = ablauf({
+    // Starts gebucht, aber noch kein Ergebnis: weiter erfassen.
+    const gebucht = ablauf({
       turnier: laeuft,
-      sicherung: { art: "warnung", code: "usb_missing", behebbar: true },
+      starts: zaehleStarts([{ entry_id: "a", status: "registered" }]),
+      sicherung: warnung,
     });
-    expect(stick.aktion).toBe("zur_sicherung");
+    expect(gebucht.naechster).toBe("erfassung");
+    expect(gebucht.sicherungAktion).toBe("passwort_festlegen");
 
     const beimEinrichten = ablauf({ turnier: null, sicherung: warnung });
     expect(beimEinrichten.naechster).toBe("turnier");
     expect(beimEinrichten.schritte[4]?.stand).toBe("gestoert");
+  });
+
+  it("Sicherung gestört: nächster Schritt, wenn Ergebnisse ungesichert sind", () => {
+    const warnung = {
+      art: "warnung",
+      code: "passphrase_missing",
+      behebbar: true,
+      nieGesichert: true,
+    } as const;
+    const starts = zaehleStarts([
+      { entry_id: "a", status: "final" },
+      { entry_id: "b", status: "registered" },
+    ]);
+    const a = ablauf({ turnier: laeuft, starts, sicherung: warnung });
+    expect(a.naechster).toBe("sicherung");
+    expect(a.aktion).toBe("passwort_festlegen");
+    expect(a.sicherungAktion).toBeUndefined();
+
+    // Schon einmal gesichert (z. B. nur der Stick fehlt): die Erfassung bleibt dran.
+    const frueher = ablauf({
+      turnier: laeuft,
+      starts,
+      sicherung: { art: "warnung", code: "usb_missing", behebbar: true, nieGesichert: false },
+    });
+    expect(frueher.naechster).toBe("erfassung");
+    expect(frueher.sicherungAktion).toBe("zur_sicherung");
+  });
+
+  it("Sicherung gestört: nächster Schritt, wenn sonst nichts mehr ansteht", () => {
+    const stick = { art: "warnung", code: "usb_missing", behebbar: true } as const;
+    const fertig = zaehleStarts([{ entry_id: "a", status: "final" }]);
+    const a = ablauf({ turnier: laeuft, starts: fertig, sicherung: stick });
+    expect(a.naechster).toBe("sicherung");
+    expect(a.aktion).toBe("zur_sicherung");
+
+    const zu = ablauf({ turnier: { name: "Alt", status: "closed" }, sicherung: stick });
+    expect(zu.naechster).toBe("sicherung");
 
     // Wer die Sicherung nicht einstellen darf, sieht den Zustand, bekommt aber den nächsten Schritt.
     const ohneRecht = ablauf({
       turnier: laeuft,
-      starts: zaehleStarts([]),
-      sicherung: { ...warnung, behebbar: false },
+      starts: fertig,
+      sicherung: { ...stick, behebbar: false },
     });
-    expect(ohneRecht.naechster).toBe("anmeldung");
+    expect(ohneRecht.naechster).toBe("anzeige");
+    expect(ohneRecht.sicherungAktion).toBeUndefined();
   });
 
   it("ohne Zahlen (keine Berechtigung) bleibt der Ablauf benutzbar", () => {

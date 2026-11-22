@@ -18,6 +18,7 @@ export const anmeldung: ModulManifest = {
   id: ANMELDUNG_ID,
   namensraum: ANMELDUNG_ID,
   navigation: { art: "station", pfad: PFAD, icon: UserPlus, reihenfolge: 20 },
+  titelTurnier: "aktiv",
   berechtigung: "anmeldung.nutzen",
   routen: [route],
   ereignisse: startsEreignisse,

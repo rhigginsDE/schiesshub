@@ -1,11 +1,14 @@
 import { Button } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { ArrowRight, CircleCheck, TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { disziplinAbfrage } from "../../../api/abfragen";
+import { useModule } from "../../../app/modul";
 import { Chip } from "../../../components/Chip";
 import { ExportKnoepfe } from "../../../components/ExportKnoepfe";
 import { formatGeld } from "../../../components/geld";
+import { merkeTurnier } from "../../../components/useAktivesTurnier";
 import { formatZahl } from "../../../lib/format";
 import { katalogDiffAbfrage } from "../abfragen";
 import a from "../aufgaben.module.css";
@@ -48,6 +51,7 @@ export function Zusammenfassung({
   const offen = ersterOffenerSchritt(zustaende, schritte);
   const entwurf = turnier.status === "draft";
   const fehlt = entwurf && punkte.length > 0;
+  const mitAnmeldung = useModule().some((modul) => modul.id === "anmeldung");
 
   return (
     <div className={s.bereich}>
@@ -102,13 +106,41 @@ export function Zusammenfassung({
                 {t("zusammenfassung.vollstaendig")}
               </p>
             )}
-            <p>{t(`zusammenfassung.status_text.${turnier.status}`)}</p>
-            <StatusAktionen
-              turnier={turnier}
-              darstellung="knoepfe"
-              startenPrimaer
-              hinweiseVorStart={hinweise}
-            />
+            {turnier.status === "active" ? (
+              // Gestartet: klar sagen, dass es läuft, und den nächsten Schritt anbieten. Abschließen
+              // und Zurück in den Entwurf bleiben nachrangig.
+              <>
+                <p className={s.okText} role="status">
+                  <CircleCheck aria-hidden />
+                  {t("zusammenfassung.laeuft_titel")}
+                </p>
+                <p>{t("zusammenfassung.status_text.active")}</p>
+                <div className={a.naechsterAktionen}>
+                  {mitAnmeldung && (
+                    <Button
+                      size="md"
+                      rightSection={<ArrowRight aria-hidden />}
+                      renderRoot={(props) => (
+                        <Link {...props} to="/anmeldung" onClick={() => merkeTurnier(turnier.id)} />
+                      )}
+                    >
+                      {t("zusammenfassung.zur_anmeldung")}
+                    </Button>
+                  )}
+                  <StatusAktionen turnier={turnier} darstellung="knoepfe" />
+                </div>
+              </>
+            ) : (
+              <>
+                <p>{t(`zusammenfassung.status_text.${turnier.status}`)}</p>
+                <StatusAktionen
+                  turnier={turnier}
+                  darstellung="knoepfe"
+                  startenPrimaer
+                  hinweiseVorStart={hinweise}
+                />
+              </>
+            )}
           </>
         )}
       </section>

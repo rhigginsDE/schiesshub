@@ -51,6 +51,10 @@ interface ExportKnoepfeProps {
   vorbelegung?: { wettbewerb?: string; stand?: string };
   /** `abschnitt`: eigenes Panel mit Überschrift; `knopf`: nur der Knopf (z. B. im Panel-Kopf) */
   darstellung?: "knopf" | "abschnitt";
+  /** Eigene Beschriftung des Knopfs, z. B. „Siegerliste drucken“ */
+  knopfText?: string;
+  /** Nur diese Liste anbieten (z. B. die Siegerliste von der Startseite aus) */
+  nur?: ExportArt;
 }
 
 /**
@@ -62,6 +66,8 @@ export function ExportKnoepfe({
   uebersicht,
   vorbelegung,
   darstellung = "knopf",
+  knopfText,
+  nur,
 }: ExportKnoepfeProps) {
   const { t } = useTranslation("anzeige");
   const darf = useDarf("export.read");
@@ -70,7 +76,7 @@ export function ExportKnoepfe({
 
   const knopf = (
     <Button variant="default" leftSection={<Download aria-hidden />} onClick={() => setOffen(true)}>
-      {t("export.knopf")}
+      {knopfText ?? t("export.knopf")}
     </Button>
   );
   const dialog = offen && (
@@ -78,6 +84,7 @@ export function ExportKnoepfe({
       turnierId={turnierId}
       uebersicht={uebersicht}
       vorbelegung={vorbelegung}
+      nur={nur}
       onSchliessen={() => setOffen(false)}
     />
   );
@@ -114,11 +121,13 @@ function ExportDialog({
   turnierId,
   uebersicht,
   vorbelegung,
+  nur,
   onSchliessen,
 }: {
   turnierId: string;
   uebersicht?: TurnierUebersicht;
   vorbelegung?: { wettbewerb?: string; stand?: string };
+  nur?: ExportArt;
   onSchliessen: () => void;
 }) {
   const { t } = useTranslation("anzeige");
@@ -217,20 +226,21 @@ function ExportDialog({
     </div>
   );
 
-  const block = (art: ExportArt, inhalt: ReactNode) => (
-    <section className={`inset ${s.block}`} aria-labelledby={`export-${art}`}>
-      <h4 className={s.blockTitel} id={`export-${art}`}>
-        {t(`export.${art}.titel`)}
-      </h4>
-      <p className={s.hilfe}>{t(`export.${art}.text`)}</p>
-      {inhalt}
-      {fehler?.art === art && (
-        <p className={s.fehler} role="alert">
-          {fehler.text}
-        </p>
-      )}
-    </section>
-  );
+  const block = (art: ExportArt, inhalt: ReactNode) =>
+    nur && nur !== art ? null : (
+      <section className={`inset ${s.block}`} aria-labelledby={`export-${art}`}>
+        <h4 className={s.blockTitel} id={`export-${art}`}>
+          {t(`export.${art}.titel`)}
+        </h4>
+        <p className={s.hilfe}>{t(`export.${art}.text`)}</p>
+        {inhalt}
+        {fehler?.art === art && (
+          <p className={s.fehler} role="alert">
+            {fehler.text}
+          </p>
+        )}
+      </section>
+    );
 
   return (
     <Dialog opened onClose={onSchliessen} title={t("export.dialog_titel")} size="xl" centered>

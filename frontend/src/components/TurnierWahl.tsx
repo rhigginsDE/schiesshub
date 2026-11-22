@@ -1,9 +1,11 @@
 import { Button, Skeleton } from "@mantine/core";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, CalendarDays, Flag, Repeat, Trophy } from "lucide-react";
-import type { ReactNode } from "react";
+import { ArrowRight, CalendarDays, Flag, Plus, Repeat, Trophy } from "lucide-react";
+import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useDarf } from "../app/berechtigungen";
 import { formatDatum } from "../lib/format";
+import { TurnierAnlegen } from "../modules/turnier/TurnierAnlegen";
 import type { Turnier } from "../modules/turnier/typen";
 import { Chip, type ChipTon } from "./Chip";
 import s from "./TurnierWahl.module.css";
@@ -51,6 +53,8 @@ export function TurnierAuswahl({
   hinweis,
 }: TurnierAuswahlProps) {
   const { t, i18n } = useTranslation("turnierwahl");
+  const darfAnlegen = useDarf("tournament.edit");
+  const [anlegen, setAnlegen] = useState(false);
   // Am Wettkampftag arbeiten die Stationen im gestarteten Turnier. Gibt es noch keins, sagt die
   // Auswahl, was als Nächstes zu tun ist, statt nur Entwürfe aufzulisten.
   const keinAktives = turniere.length > 0 && !turniere.some((x) => x.status === "active");
@@ -126,6 +130,18 @@ export function TurnierAuswahl({
           ))}
         </ul>
       )}
+      {darfAnlegen && turniere.length > 0 && (
+        <div>
+          <Button
+            variant="default"
+            leftSection={<Plus aria-hidden />}
+            onClick={() => setAnlegen(true)}
+          >
+            {t("neu")}
+          </Button>
+        </div>
+      )}
+      {anlegen && <TurnierAnlegen offen onSchliessen={() => setAnlegen(false)} />}
     </section>
   );
 }

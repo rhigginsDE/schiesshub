@@ -11,19 +11,27 @@ const PFAD = "/anzeige";
 
 interface VerwaltungSuche {
   anzeige?: string;
+  /** Einstieg für ein Turnier (z. B. „Ergebnisse zeigen“ auf der Startseite): dessen Anzeige */
+  turnier?: string;
 }
+
+const text = (wert: unknown) => (typeof wert === "string" && wert ? wert : undefined);
 
 const verwaltungRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: PFAD,
-  validateSearch: (suche: Record<string, unknown>): VerwaltungSuche =>
-    typeof suche.anzeige === "string" && suche.anzeige ? { anzeige: suche.anzeige } : {},
+  validateSearch: (suche: Record<string, unknown>): VerwaltungSuche => {
+    const anzeige = text(suche.anzeige);
+    const turnier = text(suche.turnier);
+    return { ...(anzeige && { anzeige }), ...(turnier && { turnier }) };
+  },
   component: function AnzeigeVerwaltung() {
-    const { anzeige } = verwaltungRoute.useSearch();
+    const { anzeige, turnier } = verwaltungRoute.useSearch();
     const navigate = verwaltungRoute.useNavigate();
     return (
       <VerwaltungSeite
         auswahl={anzeige}
+        turnierId={turnier}
         onAuswahl={(id) => void navigate({ search: { anzeige: id }, replace: true })}
       />
     );
@@ -51,6 +59,7 @@ export const anzeige: ModulManifest = {
   id: ID,
   namensraum: ID,
   navigation: { art: "station", pfad: PFAD, icon: MonitorPlay, reihenfolge: 40 },
+  titelTurnier: "aktiv",
   // Verwaltung braucht `display.control`, der Bildschirm `display.read`; eins reicht für die Station.
   berechtigung: ["display.control", "display.read"],
   routen: [verwaltungRoute, geraetSchirmRoute, anzeigeSchirmRoute],

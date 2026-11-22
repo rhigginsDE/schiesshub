@@ -112,6 +112,7 @@ export function neueSzene(
         class_ids: [],
         rows: 10,
         show_running: true,
+        show_aborted: false,
       };
     case "startlist":
       return {
@@ -131,6 +132,7 @@ export function neueSzene(
         class_ids: [],
         top: 3,
         include_provisional: true,
+        show_aborted: false,
       };
     case "range":
       return { ...basis, kind: art, range_id: standId ?? "", next_count: 4, show_procedure: true };

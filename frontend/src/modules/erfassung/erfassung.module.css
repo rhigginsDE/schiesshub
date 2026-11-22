@@ -83,6 +83,40 @@
   align-content: center;
 }
 
+/* Alle Starts erledigt: Abschluss mit nächstem Schritt statt „Start wählen“. */
+.fertig {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  max-width: 52ch;
+  margin: 0 auto;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.fertigSymbol {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--sh-akzent-flaeche);
+  color: var(--sh-akzent-text);
+}
+
+.fertigSymbol svg {
+  width: 24px;
+  height: 24px;
+}
+
+.fertigAktionen {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
 @media (min-width: 1280px) {
   .auswahlKnopf {
     display: none;
@@ -194,7 +228,7 @@
 }
 
 .klein {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--sh-text-gedaempft);
 }
 
@@ -275,7 +309,7 @@
   flex-wrap: wrap;
   gap: 4px 8px;
   min-width: 0;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--sh-text-gedaempft);
 }
 
@@ -339,7 +373,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0 8px;
-  font-size: 12px;
+  font-size: 13px;
   min-width: 0;
 }
 
@@ -552,7 +586,7 @@
 }
 
 .wettbewerbText span {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .wettbewerbText .klasse {
@@ -666,7 +700,7 @@
 }
 
 .hinweise {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--sh-text-gedaempft);
   min-width: 0;
 }
@@ -738,7 +772,7 @@
 }
 
 .gestrichenMarke {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--sh-text-gedaempft);
 }
@@ -825,8 +859,16 @@
   background: transparent;
 }
 
+.feldFehlerSymbol {
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
+  vertical-align: -2px;
+  color: var(--sh-krit);
+}
+
 .feldName {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--sh-text-gedaempft);
 }
@@ -850,7 +892,7 @@
 }
 
 .feldBereich {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--sh-text-gedaempft);
 }
 
@@ -964,12 +1006,12 @@
 }
 
 .zusatz {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--sh-text-gedaempft);
 }
 
 .statusMarke {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--sh-warn);
 }
@@ -1074,7 +1116,7 @@
 }
 
 .nebenwerte dt {
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--sh-text-gedaempft);
@@ -1172,7 +1214,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 12px;
+  font-size: 13px;
   overflow-wrap: anywhere;
 }
 
@@ -1255,7 +1297,7 @@
 }
 
 .taste small {
-  font: 500 11px / 1 var(--sh-font-text);
+  font: 500 13px / 1 var(--sh-font-text);
   color: var(--sh-text-gedaempft);
 }
 
@@ -1630,9 +1672,9 @@
 
 /* Zuletzt, damit es die Grundregeln überstimmt. */
 .serienWert[data-veraltet] strong {
-  opacity: 0.5;
+  color: var(--sh-text-gedaempft);
 }
 
 .gesamtHaupt[data-veraltet] strong {
-  opacity: 0.55;
+  color: var(--sh-text-gedaempft);
 }

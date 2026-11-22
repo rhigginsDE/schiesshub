@@ -113,13 +113,14 @@ export function Angemeldet({ uebersicht, abfrage, aktivPersonId, onAuswahl }: An
                       </span>
                       {anmeldung.starts.length > 0 && (
                         <span className={s.startChips}>
-                          {anmeldung.starts.map((start) => {
+                          {startGruppen(anmeldung.starts).map(({ start, anzahl }) => {
                             const wettbewerb = wettbewerbe.get(start.competition_id);
                             const anzeige = statusAnzeige(start);
                             return (
                               <Chip key={start.id} ton={anzeige.ton}>
                                 <span className="num">
                                   {wettbewerb ? kennziffer(wettbewerb) : "—"}
+                                  {anzahl > 1 && ` ${t("liste.mal", { count: anzahl })}`}
                                 </span>
                                 {anzeige.schluessel !== "angemeldet" &&
                                   ` · ${t(`status.${anzeige.schluessel}`)}`}
@@ -141,4 +142,21 @@ export function Angemeldet({ uebersicht, abfrage, aktivPersonId, onAuswahl }: An
       </div>
     </section>
   );
+}
+
+/**
+ * Starts im selben Wettbewerb mit demselben Stand zusammengefasst (Nachkauf: „4401 ×2“ statt
+ * „4401 4401“). Reihenfolge wie gebucht.
+ */
+function startGruppen<
+  T extends Parameters<typeof statusAnzeige>[0] & { id: string; competition_id: string },
+>(starts: readonly T[]): { start: T; anzahl: number }[] {
+  const gruppen = new Map<string, { start: T; anzahl: number }>();
+  for (const start of starts) {
+    const schluessel = `${start.competition_id}|${statusAnzeige(start).schluessel}`;
+    const gruppe = gruppen.get(schluessel);
+    if (gruppe) gruppe.anzahl += 1;
+    else gruppen.set(schluessel, { start, anzahl: 1 });
+  }
+  return [...gruppen.values()];
 }

@@ -1,17 +1,19 @@
-import { ActionIcon, Button, Menu, Modal, TextInput } from "@mantine/core";
+import { ActionIcon, Button, Menu, TextInput } from "@mantine/core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, MonitorPlay, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiFehler, serverMeldung } from "../../../api/client";
 import { Bestaetigung } from "../../../components/Bestaetigung";
+import { Dialog } from "../../../components/Dialog";
 import { FehlerHinweis, useFehlerText } from "../../../components/FehlerHinweis";
 import { zeigeMeldung } from "../../../components/Meldungen";
 import { verschiebe } from "../../../components/Reihenfolge";
+import { useAktivesTurnier } from "../../../components/useAktivesTurnier";
 import type { Turnier } from "../../turnier/typen";
 import {
   anzeigeAendern,
-  anzeigeAnlegen,
+  anzeigeFuerTurnierAnlegen,
   anzeigeLoeschen,
   anzeigeSchluessel,
   standardAnlegen,
@@ -29,6 +31,7 @@ interface AnzeigeListeProps {
 /** Linke Spalte: alle Anzeigen, anlegen, umbenennen, löschen, Reihenfolge. */
 export function AnzeigeListe({ anzeigen, aktivId, turniere, onWahl }: AnzeigeListeProps) {
   const { t } = useTranslation("anzeige");
+  const neuAnlegen = useNeueAnzeige(anzeigen.length);
   const queryClient = useQueryClient();
   const [anlegen, setAnlegen] = useState(false);
   const neuLaden = () => queryClient.invalidateQueries({ queryKey: anzeigeSchluessel.alle });
@@ -58,7 +61,6 @@ export function AnzeigeListe({ anzeigen, aktivId, turniere, onWahl }: AnzeigeLis
         <h1 className="h-section">{t("titel")}</h1>
         <Button
           variant="default"
-          size="compact-md"
           leftSection={<Plus aria-hidden />}
           onClick={() => setAnlegen(true)}
         >
@@ -92,7 +94,7 @@ export function AnzeigeListe({ anzeigen, aktivId, turniere, onWahl }: AnzeigeLis
         <NameDialog
           titel={t("liste.neu_titel")}
           start=""
-          speichern={(name) => anzeigeAnlegen(name)}
+          speichern={neuAnlegen}
           onFertig={(neu) => {
             setAnlegen(false);
             if (neu) onWahl(neu.id);
@@ -103,9 +105,19 @@ export function AnzeigeListe({ anzeigen, aktivId, turniere, onWahl }: AnzeigeLis
   );
 }
 
+/**
+ * Neue Anzeige gleich brauchbar: fest auf das Turnier dieses Geräts (sonst wählt der Server das
+ * laufende), mit Live-Wertung, Startliste und Siegerliste.
+ */
+function useNeueAnzeige(sort: number) {
+  const { turnier } = useAktivesTurnier();
+  return (name: string) => anzeigeFuerTurnierAnlegen(name, turnier?.id ?? null, sort);
+}
+
 /** Ohne Anzeige: Standard anlegen oder eine neue. */
 export function KeineAnzeige({ onWahl }: { onWahl: (id: string) => void }) {
   const { t } = useTranslation("anzeige");
+  const neuAnlegen = useNeueAnzeige(0);
   const queryClient = useQueryClient();
   const [anlegen, setAnlegen] = useState(false);
   const standard = useMutation({
@@ -132,7 +144,7 @@ export function KeineAnzeige({ onWahl }: { onWahl: (id: string) => void }) {
         <NameDialog
           titel={t("liste.neu_titel")}
           start=""
-          speichern={(name) => anzeigeAnlegen(name)}
+          speichern={neuAnlegen}
           onFertig={(neu) => {
             setAnlegen(false);
             if (neu) onWahl(neu.id);
@@ -273,7 +285,7 @@ function NameDialog({
   };
 
   return (
-    <Modal opened onClose={() => onFertig()} title={titel} centered>
+    <Dialog onClose={() => onFertig()} title={titel} centered>
       <form onSubmit={abschicken} style={{ display: "grid", gap: 16 }}>
         <TextInput
           label={t("liste.name")}
@@ -293,6 +305,6 @@ function NameDialog({
           </Button>
         </div>
       </form>
-    </Modal>
+    </Dialog>
   );
 }

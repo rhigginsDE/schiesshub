@@ -44,6 +44,7 @@
 }
 
 .schritt {
+  position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -86,7 +87,6 @@
 }
 
 .inhalt {
-  position: relative;
   display: grid;
   gap: 2px;
   min-width: 0;
@@ -100,14 +100,21 @@
   text-decoration: none;
 }
 
-/* Tippziel: Titel und Beschreibung des Schritts führen zum Ziel (mindestens 44 px hoch). */
+/* Tippziel: die ganze Zeile des Schritts führt zum Ziel (mindestens 76 px hoch). Knöpfe und
+   Nebenlinks liegen darüber und bleiben eigene Ziele, nichts ist ineinander verschachtelt. */
 .titelLink::after {
   content: "";
   position: absolute;
   inset: 0;
-  min-height: 44px;
 }
 
+.rechts :is(a, button),
+.text a {
+  position: relative;
+  z-index: 1;
+}
+
+.schritt:hover .titelLink,
 .titelLink:hover {
   text-decoration: underline;
   text-underline-offset: 3px;

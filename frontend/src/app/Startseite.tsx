@@ -3,9 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { TFunction } from "i18next";
 import { ArrowRight, Check, Unplug } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Chip, type ChipTon } from "../components/Chip";
+import { ExportKnoepfe } from "../components/ExportKnoepfe";
 import { Kachel, KachelRaster } from "../components/Kachel";
 import { TurnierAuswahl, TurnierWechsel } from "../components/TurnierWahl";
 import { useAktivesTurnier } from "../components/useAktivesTurnier";
@@ -105,6 +106,13 @@ function AblaufSeite() {
   const [anlegen, setAnlegen] = useState(false);
 
   const turnier = turnierFuerAblauf(wahl.turnier, wahl.turniere);
+  // Startseite und Stationen meinen dasselbe Turnier: Was die Startseite zeigt, wird die Wahl
+  // dieses Geräts, sobald keine (gültige) gespeichert ist. Die Stationen fragen dann nicht erneut.
+  const vermutetId = wahl.turnier ? null : (turnier?.id ?? null);
+  const { waehlen } = wahl;
+  useEffect(() => {
+    if (vermutetId) waehlen(vermutetId);
+  }, [vermutetId, waehlen]);
   const uebersicht = useQuery({
     ...uebersichtAbfrage(turnier?.id ?? ""),
     enabled: turnier !== null,
@@ -141,7 +149,12 @@ function AblaufSeite() {
   const sicherung: SicherungEingabe | undefined = !status
     ? undefined
     : status.warning
-      ? { art: "warnung", code: status.warning.code, behebbar: sicherungsLage.darfVerwalten }
+      ? {
+          art: "warnung",
+          code: status.warning.code,
+          behebbar: sicherungsLage.darfVerwalten,
+          nieGesichert: letzte === null,
+        }
       : letzte
         ? { art: "ok", zeit: formatUhrzeit(letzte, i18n.language) }
         : { art: "keine" };
@@ -167,19 +180,27 @@ function AblaufSeite() {
         if (sichtbar.has("erfassung")) return { pfad: "/erfassung" };
         return sichtbar.has("stand") ? { pfad: "/erfassung/stand" } : null;
       case "anzeige":
-        return sichtbar.has("anzeige") ? { pfad: "/anzeige" } : null;
+        // Die Anzeige dieses Turniers (oder deren Einrichtung), nicht irgendeine.
+        if (!sichtbar.has("anzeige")) return null;
+        return turnier
+          ? { pfad: "/anzeige", suche: { turnier: turnier.id } }
+          : { pfad: "/anzeige" };
       case "sicherung":
         return darfSicherung ? { pfad: "/system/sicherung" } : null;
     }
   };
 
-  /** Die Hauptaktion des nächsten Schritts, sofern die Rolle sie erlaubt. */
-  const hauptaktion = (aktion: AblaufAktion) => {
+  /**
+   * Die Aktion eines Schritts, sofern die Rolle sie erlaubt: grün nur für den nächsten Schritt,
+   * sonst nachrangig (z. B. eine gestörte Sicherung, die noch nicht dran ist).
+   */
+  const schrittAktion = (id: SchrittId, aktion: AblaufAktion, haupt: boolean) => {
     const text = t(`ablauf.aktion.${aktion}`);
     const pfeil = <ArrowRight aria-hidden />;
+    const variante = haupt ? undefined : "default";
     if (aktion === "turnier_anlegen") {
       return darfEinrichten ? (
-        <Button size="md" rightSection={pfeil} onClick={() => setAnlegen(true)}>
+        <Button size="md" variant={variante} rightSection={pfeil} onClick={() => setAnlegen(true)}>
           {text}
         </Button>
       ) : null;
@@ -188,12 +209,13 @@ function AblaufSeite() {
       return null;
     }
     if (aktion === "passwort_festlegen" && !sicherungsLage.darfVerwalten) return null;
-    const z = ziel(lage.naechster);
+    const z = ziel(id);
     if (!z) return null;
-    const suche = aktion === "turnier_starten" ? { bereich: "zusammenfassung" } : undefined;
+    const suche = aktion === "turnier_starten" ? { bereich: "zusammenfassung" } : z.suche;
     return (
       <Button
         size="md"
+        variant={variante}
         rightSection={pfeil}
         renderRoot={(props) => <Link {...props} to={z.pfad} search={suche} />}
       >
@@ -236,7 +258,16 @@ function AblaufSeite() {
           {lage.schritte.map((schritt, index) => {
             const naechster = schritt.id === lage.naechster;
             const z = ziel(schritt.id);
-            const aktion = naechster ? hauptaktion(lage.aktion) : null;
+            const aktion = naechster
+              ? schrittAktion(schritt.id, lage.aktion, true)
+              : schritt.id === "sicherung" && lage.sicherungAktion
+                ? schrittAktion(schritt.id, lage.sicherungAktion, false)
+                : null;
+            // Zum Aushang: die Siegerliste drucken, sobald es Ergebnisse gibt (leiser Weg).
+            const drucken =
+              schritt.id === "anzeige" &&
+              turnier !== null &&
+              (schritt.text === "anzeige_siegerliste" || schritt.text === "anzeige_live");
             const titel = t(`ablauf.schritt.${schritt.id}`);
             const erledigt = schritt.stand === "erledigt" || schritt.stand === "ok";
             return (
@@ -259,7 +290,7 @@ function AblaufSeite() {
                 <div className={s.inhalt}>
                   <h3 className={s.titel}>
                     {z ? (
-                      <Link to={z.pfad} className={s.titelLink}>
+                      <Link to={z.pfad} search={z.suche} className={s.titelLink}>
                         {titel}
                       </Link>
                     ) : (
@@ -291,6 +322,14 @@ function AblaufSeite() {
                   {naechster && <span className={s.marke}>{t("ablauf.naechster")}</span>}
                   {schritt.stand !== "unbekannt" && (
                     <Chip ton={STAND_TON[schritt.stand]}>{t(`ablauf.stand.${schritt.stand}`)}</Chip>
+                  )}
+                  {drucken && (
+                    <ExportKnoepfe
+                      turnierId={turnier.id}
+                      uebersicht={uebersicht.data}
+                      knopfText={t("ablauf.siegerliste_drucken")}
+                      nur="winners"
+                    />
                   )}
                   {aktion}
                 </div>

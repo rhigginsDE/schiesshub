@@ -406,12 +406,12 @@
 }
 
 .tasten {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--sh-text-gedaempft);
 }
 
 .tasten kbd {
-  font: 700 11px / 1 var(--sh-font-mono);
+  font: 700 13px / 1 var(--sh-font-mono);
   border: 1px solid var(--sh-linie);
   border-radius: 4px;
   padding: 3px 5px;
@@ -473,7 +473,7 @@
 }
 
 .stornoKnopf {
-  min-height: 40px;
+  min-height: 44px;
 }
 
 .loeschenZeile {

@@ -104,7 +104,8 @@
       "zur_sicherung": "Sicherung prüfen"
     },
     "stand_link": "Ablauf am Stand",
-    "ohne_recht": "Das übernimmt jemand mit passender Rolle."
+    "ohne_recht": "Das übernimmt jemand mit passender Rolle.",
+    "siegerliste_drucken": "Siegerliste drucken"
   },
   "anmeldung": {
     "einrichtung_ausstehend": "Ersteinrichtung ausstehend",

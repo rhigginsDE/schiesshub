@@ -1,8 +1,9 @@
-import { Button, Checkbox, Loader, Modal, Radio, Stack, Textarea } from "@mantine/core";
+import { Button, Checkbox, Loader, Radio, Stack, Textarea } from "@mantine/core";
 import { CheckCheck, CircleAlert, TriangleAlert } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Bestaetigung } from "../../components/Bestaetigung";
+import { Dialog } from "../../components/Dialog";
 import { useFehlerText } from "../../components/FehlerHinweis";
 import { formatWert, serienAnzeige } from "./anzeige";
 import {
@@ -87,7 +88,7 @@ export function PruefDialog({
   const bereit = stand !== null && !standLaedt && !sperre && (warnungen.length === 0 || geprueft);
 
   return (
-    <Modal
+    <Dialog
       opened={offen}
       onClose={onSchliessen}
       title={t("abschluss.titel")}
@@ -200,7 +201,7 @@ export function PruefDialog({
           </Button>
         </div>
       </div>
-    </Modal>
+    </Dialog>
   );
 }
 

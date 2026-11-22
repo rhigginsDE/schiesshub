@@ -317,7 +317,19 @@ function Feldknopf({
   const istAktiv = aktiv && aktivId === feldRef.id;
   const wert = wertAus(entwurf, feldRef);
   const text = istAktiv && !eingabe.frisch ? eingabe.text : wertText(feld, wert);
-  const hatFehler = meldungenFuer(fehler, feldRef.id).length > 0;
+  const feldFehler = meldungenFuer(fehler, feldRef.id);
+  const hatFehler = feldFehler.length > 0;
+  // Der Name beginnt mit dem sichtbaren Text (Feld, Wert, Einheit, Bereich), damit Sprachsteuerung
+  // trifft; dazu „leer“ und ein Fehler am Feld.
+  const einheit = aktiv && feld.kind === "time" && text !== "" ? ` ${t("einheit.sekunden")}` : "";
+  const bereich =
+    aktiv && feld.max != null && feld.kind === "integer"
+      ? `, ${t("feld.bereich", { min: feld.min ?? 0, max: feld.max })}`
+      : "";
+  const freiwillig = !feld.required && aktiv ? ` · ${t("feld.freiwillig")}` : "";
+  const wertName = !aktiv ? t("feld.entfaellt") : text || t("feld.leer");
+  const fehlerName = feldFehler.map((m) => `, ${t("feld.fehler")}: ${m.meldung}`).join("");
+  const name = `${feld.label}${freiwillig}: ${wertName}${einheit}${bereich}${fehlerName}`;
   return (
     <button
       type="button"
@@ -329,11 +341,12 @@ function Feldknopf({
       data-entfaellt={!aktiv || undefined}
       disabled={!aktiv || !bearbeitbar}
       aria-pressed={istAktiv}
-      aria-label={`${feld.label}: ${!aktiv ? t("feld.entfaellt") : text || t("feld.leer")}`}
+      aria-label={name}
       onMouseDown={ohneFokus}
       onClick={() => onFeld(feldRef)}
     >
       <span className={s.feldName}>
+        {hatFehler && <CircleAlert aria-hidden className={s.feldFehlerSymbol} />}
         {feld.label}
         {!feld.required && aktiv && <span className={s.freiwillig}> · {t("feld.freiwillig")}</span>}
       </span>

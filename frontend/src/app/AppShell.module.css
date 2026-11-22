@@ -117,6 +117,14 @@
   min-width: 0;
 }
 
+/* Status im Normalfall: gedämpfter Text mit Punkt bzw. Symbol, ohne Fläche und ohne Farbe. */
+.ruhig.ruhig {
+  background: transparent;
+  color: var(--sh-text-gedaempft);
+  font-weight: 500;
+  padding-inline: 6px;
+}
+
 /* Koppeln/Einloggen im offenen Betrieb: freiwillig, deshalb leise */
 .leise {
   min-width: 44px;

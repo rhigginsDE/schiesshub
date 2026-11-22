@@ -484,7 +484,7 @@
 
 .tabelle th {
   text-align: left;
-  font: 600 11px / 1.2 var(--sh-font-text);
+  font: 600 12px / 1.2 var(--sh-font-text);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--sh-text-gedaempft);
@@ -565,7 +565,7 @@
 
   .tabelle td::before {
     content: attr(data-label);
-    font: 600 11px / 1.6 var(--sh-font-text);
+    font: 600 12px / 1.6 var(--sh-font-text);
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--sh-text-gedaempft);

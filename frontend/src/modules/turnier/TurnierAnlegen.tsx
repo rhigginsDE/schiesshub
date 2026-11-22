@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Dialog } from "../../components/Dialog";
+import { merkeTurnier } from "../../components/useAktivesTurnier";
 import { useTurnierAnlegen } from "./abfragen";
 import a from "./aufgaben.module.css";
 import { EINRICHTEN_PFAD } from "./pfade";
@@ -85,6 +86,8 @@ export function TurnierAnlegen({ offen, onSchliessen }: TurnierAnlegenProps) {
             anlageAusFormular({ ...werte, date_to: mehrtaegig ? werte.date_to : "" }),
             {
               onSuccess: (turnier) => {
+                // Das neue Turnier ist ab jetzt das dieses Geräts (Startseite und Stationen).
+                merkeTurnier(turnier.id);
                 onSchliessen();
                 // Ohne Bereich öffnet die Einrichtung den ersten Schritt, in dem noch etwas fehlt.
                 void navigate({
