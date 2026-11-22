@@ -23,13 +23,26 @@ interface VereinFeldProps {
   onAendern: (id: string | null) => void;
   label: string;
   description?: string;
+  /**
+   * Meldet, ob gerade ein neuer Verein angelegt wird. Das Formular darf erst danach speichern,
+   * sonst ginge die Person ohne Verein an den Server.
+   */
+  onAnlegenStatus?: (status: VereinAnlegenStatus) => void;
 }
+
+export type VereinAnlegenStatus = "idle" | "pending" | "success" | "error";
 
 /**
  * Vereinsauswahl mit Suche. Passt kein Verein, lässt sich der getippte Name direkt als neuer
  * Verein anlegen; er ist danach gewählt.
  */
-export function VereinFeld({ wert, onAendern, label, description }: VereinFeldProps) {
+export function VereinFeld({
+  wert,
+  onAendern,
+  label,
+  description,
+  onAnlegenStatus,
+}: VereinFeldProps) {
   const { t } = useTranslation("teilnehmer");
   const queryClient = useQueryClient();
   const vereine = useQuery(vereineAbfrage());
@@ -57,6 +70,10 @@ export function VereinFeld({ wert, onAendern, label, description }: VereinFeldPr
       onAendern(verein.id);
     },
   });
+
+  useEffect(() => {
+    onAnlegenStatus?.(anlegen.status);
+  }, [anlegen.status, onAnlegenStatus]);
 
   const alle = vereine.data ?? [];
   const gewaehlt = alle.find((verein) => verein.id === wert);

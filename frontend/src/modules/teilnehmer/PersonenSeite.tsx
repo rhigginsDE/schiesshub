@@ -34,8 +34,22 @@ export function PersonenSeite({ adresse, onAdresse }: PersonenSeiteProps) {
   // Vereine früh laden, damit die Vereinsauswahl sofort Treffer hat.
   useQuery(vereineAbfrage());
 
+  // Wird gerade gespeichert, ist nichts „ungespeichert“: Der Wechsel wartet dann ohne Rückfrage, bis
+  // der Server geantwortet hat. Scheitert das Speichern, kommt die Rückfrage doch noch.
+  const speichert = useRef(false);
+  const nachSpeichern = useRef<(() => void) | null>(null);
+
   const merkeUngespeichert = useCallback((wert: boolean) => {
     ungespeichert.current = wert;
+  }, []);
+
+  const merkeSpeichert = useCallback((laeuft: boolean) => {
+    speichert.current = laeuft;
+    if (laeuft || !nachSpeichern.current) return;
+    const aktion = nachSpeichern.current;
+    nachSpeichern.current = null;
+    if (ungespeichert.current) setAusstehend(() => aktion);
+    else aktion();
   }, []);
 
   /** Wechselt die Ansicht; mit ungespeicherten Eingaben erst nach Rückfrage. */
@@ -47,7 +61,8 @@ export function PersonenSeite({ adresse, onAdresse }: PersonenSeiteProps) {
         onAdresse(ziel);
       };
       if (ungespeichert.current && !(gleich(ziel, adresse) && !vorher)) {
-        setAusstehend(() => ausfuehren);
+        if (speichert.current) nachSpeichern.current = ausfuehren;
+        else setAusstehend(() => ausfuehren);
       } else {
         ausfuehren();
       }
@@ -76,6 +91,7 @@ export function PersonenSeite({ adresse, onAdresse }: PersonenSeiteProps) {
   const formularProps = {
     onSchliessen: schliessen,
     onUngespeichert: merkeUngespeichert,
+    onSpeichert: merkeSpeichert,
     onOeffnen: (id: string) => gehe({ person: id }),
     onGeloescht: () => {
       ungespeichert.current = false;
@@ -83,6 +99,13 @@ export function PersonenSeite({ adresse, onAdresse }: PersonenSeiteProps) {
     },
     onAngelegt: (person: Person) => {
       ungespeichert.current = false;
+      // Während des Speicherns wurde schon etwas anderes gewählt: dorthin statt zur neuen Person.
+      const aktion = nachSpeichern.current;
+      nachSpeichern.current = null;
+      if (aktion) {
+        aktion();
+        return;
+      }
       setMeldung(t("formular.angelegt"));
       onAdresse({ person: person.id });
     },

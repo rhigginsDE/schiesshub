@@ -28,16 +28,31 @@ import {
   type Berechtigungsgruppe,
   gleicheEintraege,
   gruppieren,
+  rechtTaetigkeit,
   textSchluessel,
   ueberMuster,
   umschalten,
 } from "./rollenMatrix";
 import s from "./system.module.css";
 
-/** Verständlicher Name einer Berechtigung, Rückfall auf den technischen Namen. */
+/**
+ * Verständlicher Name einer Berechtigung. Kennt die Sprachdatei sie nicht (neues Modul), entsteht
+ * der Name aus Bereich und Tätigkeit („Anzeige: steuern“) statt aus dem technischen Namen.
+ */
 function useRechtName() {
   const { t } = useTranslation("system");
-  return (name: string) => t(`berechtigungen.${textSchluessel(name)}`, { defaultValue: name });
+  const berechtigungen = useQuery(berechtigungenAbfrage());
+  return (name: string) => {
+    const bekannt = t(`berechtigungen.${textSchluessel(name)}`, { defaultValue: "" });
+    if (bekannt) return bekannt;
+    const eintrag = berechtigungen.data?.find((b) => b.permission === name);
+    const bereich = eintrag?.module_title ?? t("rollen.rueckfall_bereich");
+    const taetigkeit = rechtTaetigkeit(name);
+    const verb = taetigkeit ? t(`rollen.taetigkeit.${taetigkeit}`, { defaultValue: "" }) : "";
+    return verb
+      ? t("rollen.rueckfall", { bereich, taetigkeit: verb })
+      : t("rollen.rueckfall_weiteres", { bereich });
+  };
 }
 
 export function RollenPanel() {
@@ -179,12 +194,23 @@ function RechtZelle({
 }) {
   const { t } = useTranslation("system");
   const rechtName = useRechtName();
+  const berechtigungen = useQuery(berechtigungenAbfrage());
   const an = rolle.is_system || gewaehrt(eintraege, recht);
   const muster = rolle.is_system ? null : ueberMuster(eintraege, recht);
   const beschriftung = t(an ? "rollen.hat" : "rollen.hat_nicht", {
     rolle: rolle.name,
     recht: rechtName(recht),
   });
+  // Muster wie `start.*` in Klartext: „alle Rechte im Bereich Anmeldung und Starts“.
+  const musterKurz = muster === "*" ? t("rollen.muster_alles_kurz") : t("rollen.muster_kurz");
+  const musterLang =
+    muster === "*"
+      ? t("rollen.muster_alles")
+      : t("rollen.muster_bereich", {
+          bereich:
+            berechtigungen.data?.find((b) => b.permission === recht)?.module_title ??
+            t("rollen.rueckfall_bereich"),
+        });
   const feld = (
     <span className={s.zelle}>
       <Checkbox
@@ -194,10 +220,14 @@ function RechtZelle({
         aria-label={beschriftung}
         onChange={(e) => setzen(rolle, recht, e.currentTarget.checked)}
       />
-      {muster && <span className={`${s.muster} num`}>{muster}</span>}
+      {muster && <span className={s.muster}>{musterKurz}</span>}
     </span>
   );
-  return muster ? <Tooltip label={t("rollen.ueber_muster", { muster })}>{feld}</Tooltip> : feld;
+  return muster ? (
+    <Tooltip label={t("rollen.ueber_muster", { muster: musterLang })}>{feld}</Tooltip>
+  ) : (
+    feld
+  );
 }
 
 function RollenMatrix({
@@ -235,9 +265,8 @@ function RollenMatrix({
             <GruppeZeilen key={gruppe.modul} gruppe={gruppe} spalten={rollen.length + 1}>
               {gruppe.berechtigungen.map((recht) => (
                 <tr key={recht}>
-                  <th scope="row" className={s.rechtName}>
+                  <th scope="row" className={s.rechtName} title={recht}>
                     <span>{rechtName(recht)}</span>
-                    <small>{recht}</small>
                   </th>
                   {rollen.map((rolle) => (
                     <td key={rolle.id}>
@@ -315,9 +344,8 @@ function RollenListe({ rollen, gruppen, eintraegeVon, setzen }: AnsichtProps) {
           <ul className={s.rechteListe}>
             {gruppe.berechtigungen.map((recht) => (
               <li key={recht}>
-                <span className={s.rechtName}>
+                <span className={s.rechtName} title={recht}>
                   <span>{rechtName(recht)}</span>
-                  <small>{recht}</small>
                 </span>
                 <RechtZelle
                   rolle={rolle}

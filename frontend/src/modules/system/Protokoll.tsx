@@ -117,7 +117,8 @@ export function ProtokollBereich({
   }, [personen.data, geraete.data, rollen.data]);
 
   const hilfen: DetailsHilfen = {
-    feld: (schluessel) => t(`protokoll.felder.${schluessel}`, { defaultValue: schluessel }),
+    feld: (schluessel) =>
+      t(`protokoll.felder.${schluessel}`, { defaultValue: t("protokoll.feld_sonstig") }),
     wert: (wert) =>
       t(`protokoll.werte.${wert}`, {
         defaultValue: t(`berechtigungen.${textSchluessel(wert)}`, { defaultValue: wert }),
@@ -174,15 +175,16 @@ export function ProtokollBereich({
               >
                 <span className="num">{formatZeitpunkt(eintrag.at, sprache)}</span>
                 <span>
-                  <strong>
+                  {/* Unbekannte Vorgänge (neues Modul) lesbar benennen; der Fachschlüssel steht im Tooltip. */}
+                  <strong title={eintrag.action}>
                     {t(`protokoll.aktionen.${textSchluessel(eintrag.action)}`, {
-                      defaultValue: eintrag.action,
+                      defaultValue: t("protokoll.aktion_sonstig"),
                     })}
                   </strong>
-                  <span className="gedaempft">
+                  <span className="gedaempft" title={eintrag.entity}>
                     {" · "}
                     {t(`protokoll.gegenstaende.${eintrag.entity}`, {
-                      defaultValue: eintrag.entity,
+                      defaultValue: t("protokoll.gegenstand_sonstig"),
                     })}
                     {eintrag.entity_id && namen.has(eintrag.entity_id)
                       ? ` ${namen.get(eintrag.entity_id)}`

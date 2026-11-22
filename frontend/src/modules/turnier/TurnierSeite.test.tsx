@@ -226,6 +226,30 @@ describe("Turnier einrichten", () => {
     expect(await screen.findByText("höchstens 10 Serien")).toBeInTheDocument();
   });
 
+  it("zeigt an der Wettbewerbskarte, worin der Wettbewerb vom Katalog abweicht", async () => {
+    const turnier = beispielTurnier("active");
+    api({
+      ...grundlage(turnier),
+      [`GET ${T}/competitions/${WETTBEWERB_ID}/catalog-diff`]: {
+        deviates: true,
+        catalog_available: true,
+        differences: [
+          {
+            path: "variant.abschnitte[0].serien_gewertet",
+            text: "Fallscheibe: 3 von 4 Serien gewertet statt 4 von 4",
+            section_id: "fallscheibe",
+          },
+        ],
+      },
+    });
+    renderApp(`/turnier/${TURNIER_ID}?bereich=wettbewerbe`);
+    expect(
+      await screen.findByText(
+        "Weicht vom Katalog ab: Fallscheibe: 3 von 4 Serien gewertet statt 4 von 4",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("blendet die Ausschreibung aus, wenn das Backend sie nicht kennt", async () => {
     api(grundlage());
     renderApp(`/turnier/${TURNIER_ID}?bereich=stammdaten`);
@@ -272,8 +296,8 @@ describe("Ausschreibung als Blatt", () => {
                 max_starts: 1,
                 multi_start_rule: "best",
                 multi_start_text: "Ein Start je Teilnehmer",
-                deviates_from_catalog: false,
-                deviations: [],
+                deviates_from_catalog: true,
+                deviations: ["Fallscheibe: 3 von 4 Serien gewertet statt 4 von 4"],
               },
             ],
           },
@@ -305,6 +329,12 @@ describe("Ausschreibung als Blatt", () => {
     expect(screen.queryByText("Sicherheit")).not.toBeInTheDocument();
     const zeile = screen.getAllByRole("row").find((z) => within(z).queryByText("4403"));
     expect(zeile && within(zeile).getByText(/7,00/)).toBeTruthy();
+    expect(
+      zeile &&
+        within(zeile).getByText(
+          "Abweichend vom Katalog: Fallscheibe: 3 von 4 Serien gewertet statt 4 von 4",
+        ),
+    ).toBeTruthy();
     expect(screen.getByText("Stand 22.11.2026")).toBeInTheDocument();
     expect(screen.getByText("erstellt mit Schiesshub")).toBeInTheDocument();
   });

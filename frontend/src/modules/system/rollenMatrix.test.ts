@@ -5,6 +5,7 @@ import { detailsText } from "./Protokoll";
 import {
   gleicheEintraege,
   gruppieren,
+  rechtTaetigkeit,
   textSchluessel,
   ueberMuster,
   umschalten,
@@ -73,6 +74,13 @@ describe("Matrix-Hilfen", () => {
   it("macht Sprachschlüssel aus Namen", () => {
     expect(textSchluessel("backup.read")).toBe("backup_read");
     expect(textSchluessel("auth.login_failed")).toBe("auth_login_failed");
+  });
+
+  it("findet die Tätigkeit einer Berechtigung für den lesbaren Rückfall", () => {
+    expect(rechtTaetigkeit("display.control")).toBe("control");
+    expect(rechtTaetigkeit("export.full_names")).toBe("full_names");
+    expect(rechtTaetigkeit("entry.*")).toBe("alle");
+    expect(rechtTaetigkeit("x.Komisch-1")).toBeNull();
   });
 
   it("Details des Protokolls kurz", () => {

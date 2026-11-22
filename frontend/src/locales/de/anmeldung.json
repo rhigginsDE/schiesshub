@@ -140,7 +140,7 @@
     "knopf": "Stornieren",
     "knopf_lang": "{{nr}}. Start in {{wettbewerb}} stornieren",
     "titel": "Start stornieren?",
-    "text": "Der {{versuch}}. Start in „{{wettbewerb}}“ ({{betrag}}) wird entfernt. Weitere Starts rücken nach und behalten ihren Betrag.",
+    "text": "Der {{versuch}}. Start in „{{wettbewerb}}“ ({{betrag}}) wird entfernt. Weitere Starts rücken nach; ihr Betrag wird neu berechnet (wer nachrückt, zahlt als 1. Start das Startgeld statt des Nachkaufs).",
     "bestaetigen": "Stornieren",
     "abbrechen": "Behalten"
   },

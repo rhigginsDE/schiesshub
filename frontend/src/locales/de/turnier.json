@@ -266,7 +266,7 @@
     "kurz": "Kurzname",
     "kurz_platzhalter": "z. B. Sen",
     "kennung": "Kennung",
-    "kennung_hilfe": "Interner Schlüssel, eindeutig und ohne Leerzeichen. Leer lassen: Er wird aus dem Kurznamen gebildet.",
+    "kennung_hilfe": "Daran erkennt Schiesshub die Klasse wieder, etwa beim Nachladen aus dem Katalog. Jede Klasse braucht eine andere, ohne Leerzeichen. Am besten leer lassen: Sie wird dann aus dem Kurznamen gebildet.",
     "zusammenlegen": "Kommt die Klasse nicht zustande, werten mit",
     "nicht_zusammenlegen": "Keiner anderen Klasse",
     "zusammen_in": "Kommt sie nicht zustande: zusammen mit {{name}}",
@@ -346,6 +346,8 @@
     "gemeinsam_hilfe": "Eine Rangliste für alle zugelassenen Klassen",
     "abweichungen_one": "{{count}} Abweichung vom Katalog",
     "abweichungen_other": "{{count}} Abweichungen vom Katalog",
+    "weicht_ab": "Weicht vom Katalog ab: {{punkte}}",
+    "weicht_ab_ohne": "Weicht vom Katalog ab.",
     "wie_katalog": "Wie im Katalog",
     "ablauf_zweck": "So wird geschossen: Serien, Schuss, Zeiten und Zuschläge. Die Werte kommen aus dem Katalog und passen für die meisten Turniere. Ändere sie nur, wenn deine Ausschreibung etwas anderes festlegt.",
     "ablauf_zweck_eigen": "So wird geschossen: Serien, Schuss, Zeiten und Zuschläge. Bei einem abgewandelten Wettbewerb sind alle Werte frei einstellbar.",
@@ -572,7 +574,7 @@
       "startgeld": "Startgeld / Nachkauf",
       "erster_start": "Erster Start",
       "nachkauf": "Nachkauf",
-      "abweichend": "abweichend vom Sporthandbuch"
+      "abweichend": "Abweichend vom Katalog"
     }
   }
 }

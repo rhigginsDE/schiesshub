@@ -754,6 +754,22 @@
   overflow-wrap: anywhere;
 }
 
+/* „Weicht vom Katalog ab: …“ an der Karte und in der Zusammenfassung; Punkte in Klartext vom Server. */
+.wettbewerbText > .katalogAbweichung,
+.zeileText > .katalogAbweichung {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--sh-info);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.katalogAbweichungIcon {
+  flex: none;
+  margin-top: 2px;
+}
+
 .wettbewerbMeta {
   display: flex;
   flex-wrap: wrap;

@@ -21,7 +21,7 @@ import {
   vereineAbfrage,
 } from "./api";
 import s from "./teilnehmer.module.css";
-import { VereinFeld } from "./VereinFeld";
+import { type VereinAnlegenStatus, VereinFeld } from "./VereinFeld";
 
 export interface Werte {
   name: string;
@@ -81,6 +81,8 @@ interface PersonFormularProps {
   entfernt?: boolean;
   /** Meldet, ob ungespeicherte Eingaben im Formular stehen. */
   onUngespeichert: (ungespeichert: boolean) => void;
+  /** Meldet, ob gerade gespeichert wird (die Eingaben sind dann unterwegs, nicht offen). */
+  onSpeichert?: (laeuft: boolean) => void;
 }
 
 /** Anlegen und Ändern einer Person, mit Live-Vorschau der Anzeige und Dublettenhinweis. */
@@ -94,6 +96,7 @@ export function PersonFormular({
   onOeffnen,
   onSchliessen,
   onUngespeichert,
+  onSpeichert,
 }: PersonFormularProps) {
   const { t } = useTranslation("teilnehmer");
   const queryClient = useQueryClient();
@@ -108,6 +111,8 @@ export function PersonFormular({
   const [gespeichert, setGespeichert] = useState<string | null>(meldung ?? null);
   const [nameFehlt, setNameFehlt] = useState(false);
   const [loeschenOffen, setLoeschenOffen] = useState(false);
+  const [vereinStatus, setVereinStatus] = useState<VereinAnlegenStatus>("idle");
+  const [wartetAufVerein, setWartetAufVerein] = useState(false);
 
   const ausgang = werteAus(basis, basis ? "" : vorschlag);
   const diff = aenderungen(ausgang, werte);
@@ -142,10 +147,15 @@ export function PersonFormular({
   };
 
   const speichern = useMutation({
-    mutationFn: async (trotzdem: boolean) => {
+    // Die Werte werden beim Absenden mitgegeben, nicht aus dem letzten Render gelesen: Wartet das
+    // Speichern auf einen neu angelegten Verein, steht dessen ID erst danach in `werte`.
+    mutationFn: async ({ trotzdem, stand }: { trotzdem: boolean; stand: Werte }) => {
       if (!basis)
-        return { neu: true as const, ergebnis: await personAnlegen(neuAus(werte), trotzdem) };
-      return { neu: false as const, person: await personAendern(basis.id, diff) };
+        return { neu: true as const, ergebnis: await personAnlegen(neuAus(stand), trotzdem) };
+      return {
+        neu: false as const,
+        person: await personAendern(basis.id, aenderungen(ausgang, stand)),
+      };
     },
     onSuccess: (antwort) => {
       if (antwort.neu) {
@@ -186,10 +196,31 @@ export function PersonFormular({
       setNameFehlt(true);
       return;
     }
-    if (basis && !ungespeichert) return;
     setDublette(null);
-    speichern.mutate(false);
+    // Wird gerade ein neuer Verein angelegt, erst danach speichern (mit dessen ID).
+    if (vereinStatus === "pending") {
+      setWartetAufVerein(true);
+      return;
+    }
+    if (basis && !ungespeichert) return;
+    speichern.mutate({ trotzdem: false, stand: werte });
   };
+
+  // Verein ist fertig angelegt: aufgeschobenes Speichern jetzt ausführen. Scheitert das Anlegen,
+  // bleibt die Fehlermeldung am Vereinsfeld stehen und es wird nichts gespeichert.
+  useEffect(() => {
+    if (!wartetAufVerein || vereinStatus === "pending") return;
+    setWartetAufVerein(false);
+    if (vereinStatus === "error") return;
+    if (basis && !ungespeichert) return;
+    speichern.mutate({ trotzdem: false, stand: werte });
+  }, [wartetAufVerein, vereinStatus, basis, ungespeichert, speichern, werte]);
+
+  const speichertGerade = speichern.isPending || wartetAufVerein;
+  useEffect(() => {
+    onSpeichert?.(speichertGerade);
+  }, [speichertGerade, onSpeichert]);
+  useEffect(() => () => onSpeichert?.(false), [onSpeichert]);
 
   const verwerfen = () => {
     setBasis(person ?? basis);
@@ -283,6 +314,7 @@ export function PersonFormular({
               label={t("formular.verein")}
               wert={werte.club_id}
               onAendern={(id) => aendern("club_id", id)}
+              onAnlegenStatus={setVereinStatus}
             />
             <TextInput
               size="md"
@@ -371,7 +403,7 @@ export function PersonFormular({
               <Button
                 variant="default"
                 loading={speichern.isPending}
-                onClick={() => speichern.mutate(true)}
+                onClick={() => speichern.mutate({ trotzdem: true, stand: werte })}
               >
                 {t("dublette.trotzdem")}
               </Button>
@@ -415,7 +447,7 @@ export function PersonFormular({
           <Button
             type="submit"
             size="md"
-            loading={speichern.isPending}
+            loading={speichern.isPending || wartetAufVerein}
             disabled={(basis !== undefined && !ungespeichert) || dublette !== null || entfernt}
           >
             {basis ? t("formular.speichern") : t("formular.anlegen")}

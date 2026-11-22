@@ -33,6 +33,7 @@ import { fehlerText } from "../fehlertext";
 import { ablaufKurz, planungKurz, startsKurz } from "../klartext";
 import s from "../turnier.module.css";
 import type { TurnierUebersicht, Wettbewerb } from "../typen";
+import { KatalogAbweichung } from "./KatalogAbweichung";
 import { gruppenNachWaffenart, sucheImKatalog } from "./katalogSuche";
 import { WettbewerbBearbeiten } from "./WettbewerbBearbeiten";
 import w from "./wettbewerbe.module.css";
@@ -601,6 +602,7 @@ function WettbewerbKarte({
               {formatGeld(wettbewerb.fee_first_cents, turnier.settings.currency, sprache)}
             </span>
           </span>
+          <KatalogAbweichung turnierId={turnier.id} wettbewerb={wettbewerb} />
         </button>
         <span className={s.zeilenAktionen}>
           <ReihenfolgeKnoepfe

@@ -19,6 +19,7 @@ import {
   type OffenerPunkt,
   type SchrittZustand,
 } from "../vollstaendigkeit";
+import { KatalogAbweichung } from "../wettbewerbe/KatalogAbweichung";
 import { abweichungen } from "../wettbewerbFormular";
 import { BereichKopf } from "./Bausteine";
 
@@ -222,6 +223,7 @@ function ZusammenfassungZeile({
           {stand ? stand.name : t("wettbewerb.ohne_stand")} · {planungKurz(wettbewerb, sprache)} ·{" "}
           {startsKurz(wettbewerb, sprache)}
         </span>
+        <KatalogAbweichung turnierId={turnier.id} wettbewerb={wettbewerb} />
       </span>
       <span className={`num ${s.zfGeld}`}>
         {formatGeld(wettbewerb.fee_first_cents, waehrung, sprache)}

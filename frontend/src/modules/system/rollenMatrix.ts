@@ -73,6 +73,17 @@ export function gleicheEintraege(a: readonly string[], b: readonly string[]): bo
   return b.every((eintrag) => menge.has(eintrag));
 }
 
+/**
+ * Tätigkeit einer Berechtigung für den Rückfall-Namen: der Teil nach dem letzten Punkt
+ * (`display.control` → `control`, `export.full_names` → `full_names`), `*` → `alle`.
+ * Nur Buchstaben und Unterstriche, damit daraus ein gültiger Schlüssel der Sprachdatei wird.
+ */
+export function rechtTaetigkeit(name: string): string | null {
+  const teil = name.split(".").pop() ?? "";
+  if (teil === "*") return "alle";
+  return /^[a-z_]+$/.test(teil) ? teil : null;
+}
+
 /** Schlüssel in der Sprachdatei: Punkte trennen dort Ebenen, darum `backup.read` → `backup_read`. */
 export function textSchluessel(name: string): string {
   return name.replace(/\./g, "_").replace(/\*/g, "alle");

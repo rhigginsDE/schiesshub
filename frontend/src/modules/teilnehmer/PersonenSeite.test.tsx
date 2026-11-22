@@ -1,7 +1,7 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { teilnehmerSchluessel } from "./api";
 import { PersonenSeite } from "./PersonenSeite";
 import type { PersonenAdresse } from "./pfade";
@@ -133,6 +133,84 @@ describe("Personen", () => {
       display_mode: "short",
       show_club: true,
     });
+  });
+
+  it("speichert mit dem neu angelegten Verein, auch wenn sofort nach der Vereinswahl abgeschickt wird", async () => {
+    const neuerVerein = {
+      ...VEREIN_HUBERTUS,
+      id: "33333333-3333-4333-8333-333333333333",
+      name: "SG Probe 1920",
+      person_count: 0,
+    };
+    const neu = person("eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", "Aylin Demir", {
+      club_id: neuerVerein.id,
+      club_name: neuerVerein.name,
+      display_club: neuerVerein.name,
+    });
+    const aufrufe = serverAttrappe({
+      [LISTE]: { inhalt: [] },
+      "GET /clubs": VEREINE,
+      "POST /clubs": { status: 201, inhalt: neuerVerein },
+      "POST /persons": { status: 201, inhalt: neu },
+      [`GET /persons/${neu.id}`]: { inhalt: neu },
+    });
+    // Das Anlegen des Vereins dauert, bis `freigeben` aufgerufen wird.
+    let freigeben: () => void = () => {};
+    const tor = new Promise<void>((weiter) => {
+      freigeben = weiter;
+    });
+    const attrappe = globalThis.fetch;
+    vi.stubGlobal("fetch", async (eingabe: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "POST" && String(eingabe).endsWith("/clubs")) await tor;
+      return attrappe(eingabe, init);
+    });
+    renderAnsicht(() => <Seite start={{ neu: true }} />);
+
+    await userEvent.type(await screen.findByRole("textbox", { name: /^Name/ }), "Aylin Demir");
+    await userEvent.click(screen.getByPlaceholderText("Verein suchen oder neu anlegen"));
+    await userEvent.keyboard("SG Probe 1920");
+    await userEvent.click(await screen.findByText("„SG Probe 1920“ als neuen Verein anlegen"));
+    // Noch bevor der Server den Verein bestätigt hat
+    await userEvent.click(screen.getByRole("button", { name: "Person anlegen" }));
+    expect(aufrufe.some((a) => a.methode === "POST" && a.pfad === "/persons")).toBe(false);
+
+    await act(async () => freigeben());
+    expect(await screen.findByText("Person angelegt.")).toBeInTheDocument();
+    const anlegen = aufrufe.filter((a) => a.methode === "POST" && a.pfad === "/persons");
+    expect(anlegen).toHaveLength(1);
+    expect(anlegen[0]?.inhalt).toMatchObject({ name: "Aylin Demir", club_id: neuerVerein.id });
+  });
+
+  it("fragt nicht nach ungespeicherten Änderungen, während die neue Person gespeichert wird", async () => {
+    const neu = person("ffffffff-ffff-4fff-8fff-ffffffffffff", "Bernd Krause");
+    serverAttrappe({
+      [LISTE]: { inhalt: [] },
+      "GET /clubs": VEREINE,
+      "POST /persons": { status: 201, inhalt: neu },
+      [`GET /persons/${neu.id}`]: { inhalt: neu },
+    });
+    let freigeben: () => void = () => {};
+    const tor = new Promise<void>((weiter) => {
+      freigeben = weiter;
+    });
+    const attrappe = globalThis.fetch;
+    vi.stubGlobal("fetch", async (eingabe: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "POST" && String(eingabe).endsWith("/persons")) await tor;
+      return attrappe(eingabe, init);
+    });
+    renderAnsicht(() => <Seite start={{ neu: true }} />);
+
+    await userEvent.type(await screen.findByRole("textbox", { name: /^Name/ }), "Bernd Krause");
+    await userEvent.click(screen.getByRole("button", { name: "Person anlegen" }));
+    // Speichern läuft noch; gleich die nächste Person beginnen
+    await userEvent.click(screen.getByRole("button", { name: "Neue Person anlegen" }));
+    expect(screen.queryByText("Änderungen verwerfen?")).not.toBeInTheDocument();
+
+    await act(async () => freigeben());
+    // Nach dem Speichern öffnet sich das leere Formular für die nächste Person
+    await waitFor(() => expect(screen.getByRole("textbox", { name: /^Name/ })).toHaveValue(""));
+    expect(screen.queryByText("Änderungen verwerfen?")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Neue Person" })).toBeInTheDocument();
   });
 
   it("ändert nur die geänderten Felder und zeigt einen Widerspruch beim Löschen verständlich", async () => {

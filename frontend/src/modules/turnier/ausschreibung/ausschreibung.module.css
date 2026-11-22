@@ -443,8 +443,25 @@
 }
 
 @media print {
+  /* Nur das Blatt drucken. Jedes andere Element im body (z. B. leere Portale der App) hätte die
+     Seitenvorlage „auto“; der Wechsel der benannten Seite erzwingt dann eine leere Extraseite. */
+  :global(html[data-druckansicht] body > :not([data-aushang])) {
+    display: none;
+  }
+
+  :global(html[data-druckansicht]),
+  :global(html[data-druckansicht] body) {
+    page: ausschreibung;
+  }
+
   .druckLeiste {
     display: none;
+  }
+
+  /* Die Fußzeile nicht allein auf eine neue Seite stellen. */
+  .blattFuss {
+    break-before: avoid;
+    page-break-before: avoid;
   }
 
   .druckSeite {
@@ -457,6 +474,22 @@
   .druckPapier {
     width: auto;
     margin: 0;
+  }
+
+  /* Beim Drucken kein Grid um die Tabellen: Chromium streckt ein Grid mit Tabelle beim
+     Seitenumbruch auf Seitenhöhe (leere Seiten, Fußzeile allein auf der nächsten Seite).
+     Gleiche Abstände daher über margin, wie beim Katalog-Aushang. */
+  .druckPapier .blatt,
+  .druckPapier .abschnitt {
+    display: block;
+  }
+
+  .druckPapier .blatt > * + * {
+    margin-top: 18px;
+  }
+
+  .druckPapier .abschnitt > * + * {
+    margin-top: 8px;
   }
 
   .druckPapier .blatt {

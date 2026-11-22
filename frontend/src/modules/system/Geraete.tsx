@@ -8,6 +8,7 @@ import {
   Pencil,
   QrCode as QrSymbol,
   Trash2,
+  TriangleAlert,
   Unlock,
 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
@@ -269,6 +270,41 @@ export function kopplungsAdresse(
   return `${herkunft}${pairPath.startsWith("/") ? "" : "/"}${pairPath}`;
 }
 
+/**
+ * Zeigt die Adresse nur auf dieses Gerät selbst (localhost, 127.x, ::1)? Dann kann ein anderes
+ * Gerät den QR-Code nicht nutzen: Es würde sich selbst statt den Server aufrufen.
+ */
+export function istNurDiesesGeraet(herkunft: string = window.location.origin): boolean {
+  let host: string;
+  try {
+    host = new URL(herkunft).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  return (
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    /^127(\.\d{1,3}){3}$/.test(host) ||
+    host === "[::1]" ||
+    host === "::1" ||
+    host === "0.0.0.0"
+  );
+}
+
+function LokaleAdresseWarnung() {
+  const { t } = useTranslation("system");
+  if (!istNurDiesesGeraet()) return null;
+  return (
+    <div className={s.warnkasten} role="alert">
+      <TriangleAlert className={s.warnSymbol} aria-hidden />
+      <div>
+        <strong>{t("geraete.lokal_titel", { adresse: window.location.host })}</strong>
+        <p>{t("geraete.lokal_text")}</p>
+      </div>
+    </div>
+  );
+}
+
 function KoppelDialog({
   rollen,
   onSchliessen,
@@ -328,6 +364,7 @@ function KoppelDialog({
       {!code ? (
         <form className={s.formular} onSubmit={absenden}>
           <p className={s.einleitung}>{t("geraete.code_einleitung")}</p>
+          <LokaleAdresseWarnung />
           <TextInput
             size="md"
             label={t("geraete.code_name")}
@@ -363,6 +400,7 @@ function KoppelDialog({
         </form>
       ) : (
         <div className={s.koppelSchritte}>
+          <LokaleAdresseWarnung />
           <h3 className={s.aufgabenTitel}>{t("geraete.schritte")}</h3>
           <ol className={s.schritte}>
             <li className={s.schritt}>
