@@ -1,0 +1,259 @@
+import { describe, expect, it } from "vitest";
+import { csvIstLeer, exportPfad } from "../../components/ExportKnoepfe";
+import { ereignisseZumNachladen, passtEreignis } from "./ereignisse";
+import {
+  alsPosition,
+  gesamtTeile,
+  podestReihenfolge,
+  ranglistenEintraege,
+  ranglistenSeiten,
+  serienAnzahl,
+  serienBreite,
+  serienPassen,
+  serienWert,
+} from "./format";
+import {
+  indexNachWechsel,
+  inSeiten,
+  naechsterIndex,
+  restSekunden,
+  seiteZurZeit,
+  teilTakt,
+  zeilenProSeite,
+} from "./rotation";
+import { beispielFeed, rangliste } from "./testdaten";
+import {
+  type Entwurf,
+  fehlerZu,
+  gleicherEntwurf,
+  neueSzene,
+  neueSzenenId,
+  speicherSchritte,
+  uebrigeFehler,
+} from "./verwaltung/entwurf";
+
+describe("Szenenwechsel", () => {
+  const a = { scene_id: "live", part: 1 };
+  const b = { scene_id: "live", part: 2 };
+  const c = { scene_id: "start", part: 1 };
+
+  it("bleibt bei derselben Seite, wenn es sie im neuen Feed noch gibt", () => {
+    expect(indexNachWechsel([a, b, c], [c, a, b], 1)).toBe(2);
+  });
+
+  it("behält die Stelle, wenn die Seite fehlt, sonst von vorn", () => {
+    expect(indexNachWechsel([a, b, c], [a, c], 1)).toBe(1);
+    expect(indexNachWechsel([a, b, c], [a], 2)).toBe(0);
+    expect(indexNachWechsel([a], [], 0)).toBe(0);
+  });
+
+  it("geht im Kreis; eine einzelne Szene steht still", () => {
+    expect(naechsterIndex(0, 3)).toBe(1);
+    expect(naechsterIndex(2, 3)).toBe(0);
+    expect(naechsterIndex(0, 1)).toBe(0);
+  });
+});
+
+describe("Zeitscheiben und Seiten", () => {
+  const takt = { start: 1000, dauer: 30000 };
+
+  it("verteilt Seiten gleichmäßig auf die Dauer und beginnt danach von vorn", () => {
+    expect(seiteZurZeit(takt, 1000, 3)).toBe(0);
+    expect(seiteZurZeit(takt, 11000, 3)).toBe(1);
+    expect(seiteZurZeit(takt, 30999, 3)).toBe(2);
+    expect(seiteZurZeit(takt, 31000, 3)).toBe(0);
+    expect(seiteZurZeit(takt, 50000, 1)).toBe(0);
+  });
+
+  it("teilt eine Zeitscheibe in gleiche Teile", () => {
+    expect(teilTakt(takt, 1, 3)).toEqual({ start: 11000, dauer: 10000 });
+    expect(teilTakt(takt, 0, 1)).toBe(takt);
+  });
+
+  it("zählt die Restsekunden aufgerundet", () => {
+    expect(restSekunden(takt, 1000)).toBe(30);
+    expect(restSekunden(takt, 30500)).toBe(1);
+    expect(restSekunden(takt, 99999)).toBe(0);
+  });
+
+  it("berechnet Zeilen je Seite aus der Höhe; ohne Messung null", () => {
+    expect(zeilenProSeite(800, 72, 8)).toBe(10);
+    expect(zeilenProSeite(50, 72, 8)).toBe(1);
+    expect(zeilenProSeite(0, 72)).toBeNull();
+    expect(zeilenProSeite(800, 0)).toBeNull();
+  });
+
+  it("teilt Listen in Seiten, immer mindestens eine", () => {
+    expect(inSeiten([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+    expect(inSeiten([1, 2], null)).toEqual([[1, 2]]);
+    expect(inSeiten([], 3)).toEqual([[]]);
+  });
+});
+
+describe("Server-Ereignisse", () => {
+  it("löst Muster mit * gegen die bekannten Namen auf", () => {
+    expect(passtEreignis("start.*", "start.booked")).toBe(true);
+    expect(passtEreignis("start.*", "starts.x")).toBe(false);
+    const namen = ereignisseZumNachladen(
+      ["display.changed", "heat.*", "neu.ereignis"],
+      ["heat.created", "heat.deleted", "start.booked"],
+    );
+    expect(namen).toEqual(["display.changed", "heat.created", "heat.deleted", "neu.ereignis"]);
+  });
+
+  it("deckt die Liste des Backends ab", () => {
+    const namen = ereignisseZumNachladen(beispielFeed().reload_on);
+    expect(namen).toContain("result.finalized");
+    expect(namen).toContain("start.status_changed");
+    expect(namen).toContain("backup.status");
+  });
+});
+
+describe("Formatierung", () => {
+  it("zeigt Ringe, sonst Zeit mit Zuschlag in Hundertsteln mit Dezimalkomma", () => {
+    const basis = {
+      section_id: "a",
+      number: 1,
+      struck: false,
+      status: "normal",
+      rings: null,
+      time_cs: null,
+      standing: null,
+      total_cs: null,
+    };
+    expect(serienWert({ ...basis, rings: 95 }, "de")).toBe("95");
+    expect(serienWert({ ...basis, time_cs: 1290, total_cs: 2290 }, "de")).toBe("22,90");
+    expect(serienWert({ ...basis, time_cs: 1420 }, "de")).toBe("14,20");
+    expect(serienWert(basis, "de")).toBe("–");
+    expect(serienWert(undefined, "de")).toBe("–");
+  });
+
+  it("richtet die Serienspalten nach dem längsten Wert und lässt sie weg, wenn sie nicht passen", () => {
+    expect(serienBreite(rangliste(), "de")).toBe(9);
+    const zeit = rangliste();
+    const serie = zeit.groups[0]?.rows[0]?.series[0];
+    if (serie) Object.assign(serie, { rings: null, total_cs: 12345 });
+    expect(serienBreite(zeit, "de")).toBe(12.3);
+    expect(serienPassen(4, 12.3, false)).toBe(true);
+    expect(serienPassen(4, 12.3, true)).toBe(false);
+    expect(serienPassen(3, 9, true)).toBe(true);
+  });
+
+  it("trennt die Einheit vom Gesamtergebnis", () => {
+    expect(gesamtTeile("183 Ringe", "Ringe")).toEqual({ wert: "183", einheit: "Ringe" });
+    expect(gesamtTeile("147,15 s", "s")).toEqual({ wert: "147,15", einheit: "s" });
+    expect(gesamtTeile("DNF", "s")).toEqual({ wert: "DNF", einheit: null });
+    expect(gesamtTeile(null, "s")).toEqual({ wert: "–", einheit: null });
+  });
+
+  it("zählt Serienspalten und baut Einträge mit Klassenköpfen", () => {
+    const liste = rangliste();
+    expect(serienAnzahl(liste)).toBe(2);
+    const eintraege = ranglistenEintraege(liste);
+    expect(eintraege.map((e) => e.art)).toEqual([
+      "klasse",
+      "zeile",
+      "zeile",
+      "zeile",
+      "mehr",
+      "klasse",
+      "zeile",
+    ]);
+  });
+
+  it("lässt keinen Klassenkopf allein unten auf einer Seite", () => {
+    const seiten = ranglistenSeiten(ranglistenEintraege(rangliste()), 5);
+    expect(seiten.map((seite) => seite.map((e) => e.art))).toEqual([
+      ["klasse", "zeile", "zeile", "zeile", "mehr"],
+      ["klasse", "zeile"],
+    ]);
+    const enger = ranglistenSeiten(ranglistenEintraege(rangliste()), 6);
+    expect(enger[0]?.at(-1)?.art).toBe("mehr");
+    expect(enger[1]?.[0]?.art).toBe("klasse");
+  });
+
+  it("ordnet das Podest 2 – 1 – 3", () => {
+    expect(podestReihenfolge(["a", "b", "c"]).map((x) => x.eintrag)).toEqual(["b", "a", "c"]);
+    expect(podestReihenfolge(["a"])).toEqual([{ eintrag: "a", rang: 1 }]);
+  });
+
+  it("wandelt Positionen des Feeds für den Positions-Ablauf", () => {
+    expect(
+      alsPosition({
+        nr: 6,
+        distance_m: 15,
+        target: 2,
+        text: "",
+        stances: [{ haltung: "kniend", hand: "beidhaendig", text: "" }],
+      }),
+    ).toEqual({
+      nr: 6,
+      distanz_m: 15,
+      scheibe: 2,
+      anschlaege: [{ haltung: "kniend", hand: "beidhaendig" }],
+    });
+  });
+});
+
+describe("Entwurf der Verwaltung", () => {
+  const konfig = {
+    scenes: [],
+    name_mode: "as_person" as const,
+    show_club: "as_person" as const,
+    show_provisional_note: true,
+    theme: "dark" as const,
+  };
+  const server: Entwurf = { tournament_id: "t1", device_id: null, konfig };
+
+  it("vergibt freie Szenen-IDs", () => {
+    expect(neueSzenenId("startlist", [])).toBe("startliste");
+    expect(neueSzenenId("startlist", ["startliste", "startliste-2"])).toBe("startliste-3");
+    const stand = neueSzene("range", [], "r1", "Hinweis");
+    expect(stand).toMatchObject({ id: "stand", kind: "range", range_id: "r1", next_count: 4 });
+  });
+
+  it("erkennt Änderungen normalisiert (leere Laufzeile = keine)", () => {
+    expect(gleicherEntwurf(server, { ...server, konfig: { ...konfig, ticker: "  " } })).toBe(true);
+    expect(gleicherEntwurf(server, { ...server, konfig: { ...konfig, theme: "light" } })).toBe(
+      false,
+    );
+  });
+
+  it("speichert beim Turnierwechsel über „automatisch“", () => {
+    const neu: Entwurf = {
+      tournament_id: "t2",
+      device_id: "g1",
+      konfig: { ...konfig, ticker: "Hallo" },
+    };
+    expect(speicherSchritte(server, neu)).toEqual([
+      { art: "turnier", wert: null },
+      { art: "konfig" },
+      { art: "turnier", wert: "t2" },
+      { art: "geraet", wert: "g1" },
+    ]);
+    expect(speicherSchritte(server, { ...server, tournament_id: null })).toEqual([
+      { art: "turnier", wert: null },
+    ]);
+    expect(speicherSchritte(server, server)).toEqual([]);
+  });
+
+  it("ordnet Feldfehler des Servers zu", () => {
+    const felder = [
+      { feld: "scenes.1.competition_ids.0", meldung: "Wettbewerb nicht gefunden" },
+      { feld: "config.scenes.1.rows", meldung: "zu groß" },
+      { feld: "irgendwas", meldung: "Allgemein" },
+    ];
+    expect(fehlerZu(felder, "scenes.1.competition_ids")).toBe("Wettbewerb nicht gefunden");
+    expect(fehlerZu(felder, "scenes.1")).toBe("Wettbewerb nicht gefunden · zu groß");
+    expect(fehlerZu(felder, "scenes.0")).toBeUndefined();
+    expect(uebrigeFehler(felder, (f) => f.startsWith("scenes."))).toEqual(["Allgemein"]);
+  });
+});
+
+describe("Export", () => {
+  it("baut Pfade und erkennt leere CSV-Dateien", () => {
+    expect(exportPfad("t 1", "winners", "pdf")).toBe("/tournaments/t%201/export/winners.pdf");
+    expect(csvIstLeer("﻿Nr;Name\r\n")).toBe(true);
+    expect(csvIstLeer("Nr;Name\n1;Anna\n")).toBe(false);
+  });
+});

@@ -1,0 +1,284 @@
+/* Verwaltung der Anzeigen: Liste | Einstellungen | Vorschau (Fenster-Layout ab 1101 px). */
+.seite {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.spalten {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1.1fr) minmax(320px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.spalte {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+
+@media (min-width: 1101px) and (min-height: 560px) {
+  .seite {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .spalten {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+  }
+
+  .spalten > * {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sh-linie) transparent;
+  }
+
+  .spalte {
+    padding-right: 2px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .spalten {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1800px) {
+  .spalten {
+    grid-template-columns: 300px minmax(0, 1fr) minmax(0, 1.1fr);
+  }
+}
+
+/* ---------- Liste ---------- */
+.liste {
+  gap: 12px;
+}
+
+.listeKopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.eintraege {
+  display: grid;
+  gap: 4px;
+}
+
+.eintrag {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--sh-radius-m);
+}
+
+.eintrag[aria-current="true"] {
+  background: var(--sh-flaeche-2);
+  box-shadow: inset 3px 0 0 var(--sh-akzent);
+}
+
+.eintragKnopf {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--sh-radius-m);
+  background: transparent;
+  color: var(--sh-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.eintragKnopf:hover {
+  background: var(--sh-flaeche-2);
+}
+
+.eintragKnopf strong {
+  font-weight: 600;
+  font-size: 14px;
+  overflow-wrap: break-word;
+}
+
+.eintragKnopf span {
+  font-size: 12px;
+  color: var(--sh-text-gedaempft);
+}
+
+.eintragAktionen {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ---------- Einstellungen ---------- */
+.leiste {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.leisteTitel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.leisteTitel h2 {
+  overflow-wrap: anywhere;
+}
+
+.leisteAktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.feldgruppe {
+  display: grid;
+  gap: 14px;
+}
+
+.zweispaltig {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 14px 16px;
+  align-items: start;
+}
+
+.hilfe {
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
+.fehlerListe {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--sh-krit-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-krit-flaeche);
+  color: var(--sh-text);
+  font-size: 14px;
+}
+
+/* ---------- Szenen ---------- */
+.szenen {
+  display: grid;
+  gap: 10px;
+}
+
+.szene {
+  display: grid;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.szeneKopf {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.szeneArt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: auto;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.szeneArt > svg {
+  color: var(--sh-akzent-text);
+}
+
+.szeneId {
+  font-size: 12px;
+  color: var(--sh-text-gedaempft);
+}
+
+.szeneNr {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 99px;
+  background: var(--sh-flaeche-2);
+  font-size: 13px;
+}
+
+/* ---------- Vorschau ---------- */
+.rahmen {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--sh-linie-stark);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-bg);
+}
+
+.adresse {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-bg);
+}
+
+.adresse code {
+  flex: 1;
+  min-width: 0;
+  font: 500 14px / 1.4 var(--sh-font-mono);
+  overflow-wrap: anywhere;
+}
+
+.uebersprungen {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--sh-text-weich);
+}
+
+.uebersprungen li {
+  display: flex;
+  gap: 8px;
+}
+
+.uebersprungen strong {
+  font-weight: 600;
+  color: var(--sh-text);
+}
+
+.vorschauHinweis {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--sh-warn);
+}

@@ -4,6 +4,7 @@ import { ArrowRight, CircleCheck, TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { disziplinAbfrage } from "../../../api/abfragen";
 import { Chip } from "../../../components/Chip";
+import { ExportKnoepfe } from "../../../components/ExportKnoepfe";
 import { formatGeld } from "../../../components/geld";
 import { formatZahl } from "../../../lib/format";
 import { katalogDiffAbfrage } from "../abfragen";
@@ -176,6 +177,8 @@ export function Zusammenfassung({
           </ul>
         )}
       </section>
+
+      <ExportKnoepfe turnierId={turnier.id} uebersicht={turnier} darstellung="abschnitt" />
     </div>
   );
 }

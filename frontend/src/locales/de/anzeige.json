@@ -1,4 +1,280 @@
 {
   "titel": "Anzeige",
-  "zweck": "Startliste, Live-Wertung und Siegerliste für den Bildschirm im Schützenhaus."
+  "zweck": "Startliste, Live-Wertung und Siegerliste für den Bildschirm im Schützenhaus.",
+  "aktion": {
+    "speichern": "Speichern",
+    "abbrechen": "Abbrechen"
+  },
+  "art": {
+    "live_ranking": "Live-Wertung",
+    "startlist": "Startliste",
+    "winners": "Siegerliste",
+    "range": "Standanzeige",
+    "notice": "Hinweis"
+  },
+  "status": {
+    "registered": "angemeldet",
+    "called": "aufgerufen",
+    "captured": "erfasst",
+    "final": "abgeschlossen",
+    "aborted": "abgebrochen"
+  },
+  "abbruch": {
+    "dns": "nicht angetreten",
+    "dnf": "aufgegeben",
+    "dsq": "disqualifiziert"
+  },
+  "schirm": {
+    "seitentitel": "Anzeige – Schiesshub",
+    "seite": "Seite {{seite}}/{{seiten}}",
+    "laeuft": "läuft",
+    "nur_startnummer": "Startnummer {{nummer}}",
+    "geteilt": "geteilt",
+    "versuch": "{{nr}}. Start",
+    "vorlaeufig": "vorläufig",
+    "weitere_one": "+ {{count}} weiterer Platz",
+    "weitere_other": "+ {{count}} weitere Plätze",
+    "gemeinsame_wertung": "Gemeinsame Wertung aller Klassen",
+    "spalte": {
+      "platz": "Platz",
+      "name": "Name",
+      "serie": "Serie {{nr}}",
+      "gesamt": "Gesamt"
+    },
+    "weitere_plaetze": "Weitere Plätze",
+    "platz": {
+      "durchgang_bahn": "Durchgang {{nummer}} · {{zeit}} · Bahn {{bahn}}",
+      "durchgang": "Durchgang {{nummer}} · {{zeit}}",
+      "bahn": "Bahn {{bahn}}"
+    },
+    "weitere_starts_one": "+ {{count}} weiterer Start",
+    "weitere_starts_other": "+ {{count}} weitere Starts",
+    "ablauf": {
+      "kicker": "Disziplin am Stand",
+      "gewertet": "Es zählen {{gewertet}} von {{gesamt}} Serien",
+      "sollzeit": "Sollzeit {{zeit}}",
+      "serie": "Serie {{nr}}",
+      "schuss_one": "{{count}} Schuss",
+      "schuss_other": "{{count}} Schuss",
+      "gestrichen": "gestrichen – zählt nicht",
+      "trefferaufnahme": "Trefferaufnahme",
+      "abschnitt_abweichend": "Abweichend vom Sporthandbuch: {{text}}",
+      "abweichend": "Abweichend vom Sporthandbuch"
+    },
+    "stand": {
+      "am_stand": "Am Stand",
+      "als_naechstes": "Als Nächstes",
+      "durchgang": "Durchgang {{nummer}}",
+      "reihenfolge": "Reihenfolge",
+      "frei": "frei",
+      "niemand": "Niemand wartet."
+    },
+    "szene_teil": "{{titel}} · {{teil}}/{{teile}}",
+    "rotation": "{{nr}}/{{anzahl}} · als Nächstes {{naechste}} in {{sekunden}} s",
+    "getrennt": "Verbindung unterbrochen seit {{zeit}}",
+    "verbinde": "Verbindung zum Server wird aufgebaut …",
+    "laedt": "Anzeige wird geladen …",
+    "sperre": {
+      "geraet_nicht_gefunden": "Dieser Bildschirm ist keiner Anzeige zugewiesen – in Anzeige → Bildschirm zuweisen.",
+      "geraet_nicht_angemeldet": "Dieser Bildschirm ist nicht gekoppelt – in System → Geräte koppeln und danach in Anzeige → Bildschirm zuweisen.",
+      "geraet_verboten": "Diesem Gerät fehlt das Recht, Anzeigen zu zeigen – in System → Geräte die Rolle „Anzeige“ geben.",
+      "anzeige_nicht_gefunden": "Diese Anzeige gibt es nicht (mehr) – in Anzeige eine Anzeige wählen und „Anzeige öffnen“.",
+      "anzeige_nicht_angemeldet": "Dieser Bildschirm ist nicht gekoppelt – in System → Geräte koppeln.",
+      "anzeige_verboten": "Diesem Gerät fehlt das Recht, Anzeigen zu zeigen – in System → Geräte die Rolle „Anzeige“ geben.",
+      "hinweis": "Der Bildschirm prüft von selbst weiter und zeigt die Anzeige, sobald es passt."
+    }
+  },
+  "liste": {
+    "titel": "Anzeigen",
+    "neu": "Neue Anzeige",
+    "neu_titel": "Neue Anzeige anlegen",
+    "name": "Name",
+    "turnier_auto": "Turnier automatisch",
+    "turnier_fest": "Festes Turnier",
+    "szenen_one": "{{count}} Szene",
+    "szenen_other": "{{count}} Szenen",
+    "mit_geraet": "Bildschirm zugewiesen",
+    "nach_oben": "Nach oben",
+    "nach_unten": "Nach unten",
+    "aktionen": "Aktionen für {{name}}",
+    "umbenennen": "Umbenennen",
+    "umbenennen_titel": "Anzeige umbenennen",
+    "loeschen": "Löschen",
+    "loeschen_titel": "„{{name}}“ löschen?",
+    "loeschen_text": "Die Anzeige und ihre Szenen werden gelöscht. Das lässt sich nicht rückgängig machen.",
+    "loeschen_text_geraet": "Die Anzeige und ihre Szenen werden gelöscht. Der zugewiesene Bildschirm zeigt danach den Hinweis, dass er keiner Anzeige zugewiesen ist.",
+    "loeschen_konflikt": "Die Anzeige lässt sich gerade nicht löschen. {{grund}}",
+    "loeschen_fehler": "Löschen hat nicht geklappt. Bitte erneut versuchen.",
+    "geloescht": "„{{name}}“ gelöscht"
+  },
+  "leer": {
+    "titel": "Noch keine Anzeige",
+    "text": "Eine Anzeige legt fest, was ein Bildschirm im Schützenhaus zeigt. Die Standard-Anzeige zeigt Live-Wertung und Startliste.",
+    "standard": "Standard anlegen"
+  },
+  "ohne_recht": {
+    "titel": "Anzeigen einstellen ist hier nicht erlaubt",
+    "text": "Dieses Gerät darf Anzeigen zeigen, aber nicht einstellen. Zum Einstellen mit einer Rolle anmelden, die Anzeigen steuern darf (z. B. Turnierleitung).",
+    "schirm": "Bildschirm dieses Geräts öffnen"
+  },
+  "bearbeiten": {
+    "leiste": "Speichern und Verwerfen",
+    "ungespeichert": "Ungespeicherte Änderungen",
+    "verwerfen": "Verwerfen",
+    "gespeichert": "Anzeige gespeichert",
+    "fehler_titel": "Nicht gespeichert:",
+    "felder_pruefen": "Bitte die markierten Felder prüfen.",
+    "verwerfen_titel": "Änderungen verwerfen?",
+    "verwerfen_text": "An dieser Anzeige gibt es ungespeicherte Änderungen. Beim Wechsel gehen sie verloren."
+  },
+  "turnier": {
+    "titel": "Turnier",
+    "auto": "Automatisch",
+    "fest": "Festes Turnier",
+    "wahl": "Turnier",
+    "wahl_platzhalter": "Turnier wählen",
+    "wahl_fehlt": "Bitte ein Turnier wählen.",
+    "auto_hilfe": "Zeigt das einzige aktive Turnier, zurzeit „{{name}}“. Die Auswahlfelder der Szenen beziehen sich darauf.",
+    "auto_keins": "Zeigt das einzige aktive Turnier. Zurzeit ist keins (oder mehr als eins) aktiv; der Bildschirm zeigt dann einen ruhigen Hinweis."
+  },
+  "geraet": {
+    "titel": "Bildschirm",
+    "wahl": "Gerät",
+    "keins": "Kein Gerät",
+    "hilfe": "Das Gerät öffnet die Adresse für den zugewiesenen Bildschirm (siehe Vorschau) und zeigt dann diese Anzeige.",
+    "gesperrt": "gesperrt",
+    "zeigt": "zeigt „{{name}}“",
+    "unbekannt": "Unbekanntes Gerät",
+    "loesen": "Gerät lösen",
+    "liste_fehler": "Geräteliste nicht lesbar: {{grund}}"
+  },
+  "darstellung": {
+    "titel": "Darstellung",
+    "namen": "Namen",
+    "namen_person": "Wie bei der Person eingestellt",
+    "namen_kurz": "Alle abgekürzt",
+    "verein": "Verein",
+    "verein_person": "Wie bei der Person eingestellt",
+    "verein_nie": "Nie zeigen",
+    "thema": "Farben",
+    "dunkel": "Dunkel",
+    "hell": "Hell",
+    "sicherung": "Warnung der Sicherung",
+    "sicherung_hilfe": "Erscheint nur, wenn die Sicherung eine Warnung meldet (z. B. Stick fehlt).",
+    "sicherung_standard": "Wie in der Sicherung eingestellt",
+    "sicherung_ja": "Auf dieser Anzeige zeigen",
+    "sicherung_nein": "Nie zeigen",
+    "vorlaeufig": "Hinweis „Ergebnisse vorläufig“",
+    "vorlaeufig_hilfe": "Solange gezeigte Ergebnisse in der Einspruchsfrist sind.",
+    "laufzeile": "Laufzeile",
+    "laufzeile_hilfe": "Läuft am unteren Rand durch; leer = keine."
+  },
+  "szenen": {
+    "titel": "Szenen",
+    "hinzufuegen": "Szene hinzufügen",
+    "hilfe": "Der Bildschirm zeigt die Szenen nacheinander, jede so lange wie eingestellt. Szenen ohne Inhalt (z. B. noch keine Ergebnisse) überspringt er; lange Listen blättert er innerhalb der Dauer um.",
+    "leer": "Keine Szene – der Bildschirm zeigt dann nur den Turniernamen."
+  },
+  "szene": {
+    "hoch": "{{art}} ({{nr}}) nach oben",
+    "runter": "{{art}} ({{nr}}) nach unten",
+    "loeschen": "{{art}} ({{nr}}) entfernen",
+    "ueberschrift": "Überschrift",
+    "ueberschrift_hilfe": "Leer = passende Überschrift vom Server",
+    "dauer": "Dauer",
+    "dauer_hilfe": "5 bis 600 Sekunden",
+    "unbekannt": "Nicht in diesem Turnier",
+    "wettbewerbe": "Wettbewerbe",
+    "alle_wettbewerbe": "Alle Wettbewerbe",
+    "klassen": "Klassen",
+    "alle_klassen": "Alle Klassen",
+    "zeilen": "Zeilen je Klasse",
+    "zeilen_hilfe": "Höchstens so viele Plätze je Klasse",
+    "laufende": "Laufende Starts zeigen",
+    "laufende_hilfe": "Zwischenstände mit Live-Punkt",
+    "staende": "Stände",
+    "alle_staende": "Alle Stände",
+    "starts": "Starts je Wettbewerb",
+    "starts_hilfe": "Der Rest erscheint als Anzahl",
+    "abgeschlossene": "Auch erledigte Starts zeigen",
+    "abgeschlossene_hilfe": "Sonst nur angemeldete und aufgerufene",
+    "top": "Plätze je Klasse",
+    "top_hilfe": "Die ersten 1 bis 20 Plätze",
+    "vorlaeufige": "Vorläufige Ergebnisse zeigen",
+    "vorlaeufige_hilfe": "Ergebnisse in der Einspruchsfrist, gekennzeichnet",
+    "stand": "Stand",
+    "stand_waehlen": "Stand wählen",
+    "stand_fehlt": "Bitte einen Stand wählen.",
+    "naechste": "Starter unter „Als Nächstes“",
+    "naechste_hilfe": "0 bis 30",
+    "ablauf": "Ablauf der Disziplin zeigen",
+    "ablauf_hilfe": "Serien, Positionen und Zeiten",
+    "hinweis_vorgabe": "Hinweis",
+    "hinweis_ueberschrift": "Überschrift des Hinweises",
+    "hinweis_ueberschrift_fehlt": "Bitte eine Überschrift eingeben.",
+    "hinweis_text": "Text"
+  },
+  "vorschau": {
+    "titel": "Vorschau",
+    "oeffnen": "Anzeige öffnen",
+    "gespeicherter_stand": "Die Vorschau zeigt den gespeicherten Stand. Nach dem Speichern erscheinen die Änderungen hier und auf dem Bildschirm.",
+    "hilfe": "So sieht der Bildschirm gerade aus. Er lädt bei jeder Änderung von selbst neu.",
+    "uebersprungen": "Gerade übersprungen",
+    "adresse": "Adresse dieser Anzeige",
+    "adresse_geraet": "Adresse für den zugewiesenen Bildschirm",
+    "kopieren": "Adresse kopieren",
+    "kopiert": "Kopiert"
+  },
+  "export": {
+    "knopf": "Exportieren",
+    "titel": "Listen exportieren",
+    "einleitung": "Startliste und Siegerliste als PDF zum Aushängen oder als CSV für die Tabellenkalkulation, dazu alle Ergebnisse als Rohdaten.",
+    "dialog_titel": "Listen exportieren",
+    "namen": "Namen",
+    "namen_oeffentlich": "Wie von der Person gewählt",
+    "namen_voll": "Volle Namen (intern)",
+    "datenschutz": "Volle Namen nur für den internen Gebrauch, z. B. für Urkunden oder die Abrechnung: nicht aushängen und nicht weitergeben – manche Personen haben ihren vollen Namen nicht freigegeben.",
+    "wettbewerb": "Wettbewerb",
+    "alle_wettbewerbe": "Alle Wettbewerbe",
+    "stand": "Stand",
+    "alle_staende": "Alle Stände",
+    "klasse": "Klasse",
+    "alle_klassen": "Alle Klassen",
+    "sortierung": "Sortierung",
+    "sortierung_wettbewerb": "Je Wettbewerb",
+    "sortierung_startnummer": "Nach Startnummer",
+    "sortierung_stand": "Je Stand nach Uhrzeit",
+    "top": "Nur die ersten Plätze",
+    "top_hilfe": "Leer = alle Plätze",
+    "zusammen": "Klassen zusammenlegen",
+    "zusammen_hilfe": "Eine Wertung über alle Klassen",
+    "vorlaeufig": "Vorläufige einschließen",
+    "vorlaeufig_hilfe": "Ergebnisse in der Einspruchsfrist, gekennzeichnet",
+    "format": {
+      "pdf": "PDF",
+      "csv": "CSV"
+    },
+    "startlist": {
+      "titel": "Startliste",
+      "text": "Alle Starts, wahlweise eines Wettbewerbs oder Stands."
+    },
+    "winners": {
+      "titel": "Siegerliste",
+      "text": "Platzierungen je Wettbewerb und Klasse aus abgeschlossenen Ergebnissen."
+    },
+    "results": {
+      "titel": "Ergebnisse (Rohexport)",
+      "text": "Je Start eine Zeile mit allen Teilwerten je Serie – für eigene Auswertungen."
+    },
+    "datei": {
+      "startlist": "Startliste",
+      "winners": "Siegerliste",
+      "results": "Ergebnisse"
+    },
+    "gespeichert": "Datei gespeichert",
+    "leer_titel": "Die Datei ist leer",
+    "leer_text": "{{name}} enthält noch keine Einträge – dafür gibt es noch keine Starts oder Ergebnisse.",
+    "fehler_verboten": "Für diesen Export fehlt die Berechtigung.",
+    "fehler_nicht_gefunden": "Turnier, Wettbewerb oder Klasse wurde nicht gefunden."
+  }
 }

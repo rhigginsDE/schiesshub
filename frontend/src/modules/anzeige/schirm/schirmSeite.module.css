@@ -1,0 +1,25 @@
+/* Der Bildschirm liegt als eigene Ebene über der App; die App ist so lange ausgeblendet. */
+:global(html[data-anzeige-schirm] #root) {
+  display: none;
+}
+
+:global(html[data-anzeige-schirm]),
+:global(html[data-anzeige-schirm] body) {
+  overflow: hidden;
+}
+
+.vollbild {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.vollbild[data-zeiger="aus"],
+.vollbild[data-zeiger="aus"] * {
+  cursor: none;
+}
