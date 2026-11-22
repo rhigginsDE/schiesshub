@@ -845,15 +845,6 @@
   color: var(--sh-text-weich);
 }
 
-.abweichendMarke {
-  padding: 0.4cqmin 1.4cqmin;
-  border: 0.15cqmin solid var(--sh-warn-linie);
-  border-radius: 99cqmin;
-  background: var(--sh-warn-flaeche);
-  color: var(--sh-warn);
-  font-weight: 600;
-}
-
 .hinweisListe {
   display: grid;
   gap: 0.6cqmin;
@@ -864,11 +855,6 @@
 .hinweisListe li {
   padding-left: 1.4cqmin;
   border-left: 0.3cqmin solid var(--sh-linie-stark);
-}
-
-.hinweisListe li[data-art="abweichung"] {
-  border-left-color: var(--sh-warn);
-  color: var(--sh-warn);
 }
 
 .abschnitte {
@@ -903,12 +889,6 @@
 .fakt {
   color: var(--sh-info);
   font-weight: 600;
-}
-
-.abweichungText {
-  font-size: 2cqmin;
-  font-weight: 600;
-  color: var(--sh-warn);
 }
 
 .skaliert {
@@ -1471,21 +1451,4 @@
   .laufband span + span {
     display: none;
   }
-}
-
-/* Wettbewerb weicht vom Katalog ab: Marke und Punkte in einer Zeile unter dem Titel. */
-.katalogAbweichung {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.8cqmin 1.6cqmin;
-  min-width: 0;
-  font-size: 1.9cqmin;
-}
-
-.katalogAbweichung .hinweisListe {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6cqmin 1.6cqmin;
-  font-size: inherit;
 }

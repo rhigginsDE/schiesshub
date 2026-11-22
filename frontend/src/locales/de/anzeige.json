@@ -59,8 +59,6 @@
       "schuss_other": "{{count}} Schuss",
       "gestrichen": "gestrichen – zählt nicht",
       "trefferaufnahme": "Trefferaufnahme",
-      "abschnitt_abweichend": "Abweichend vom Katalog: {{text}}",
-      "abweichend": "Abweichend vom Katalog",
       "jetzt": "Jetzt",
       "jetzt_kurz": "Jetzt · {{bahnen}}",
       "bahnen_one": "Bahn {{bahnen}}",

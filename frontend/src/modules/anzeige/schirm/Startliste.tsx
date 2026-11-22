@@ -3,14 +3,7 @@ import { useTranslation } from "react-i18next";
 import { feedUhrzeit } from "../format";
 import type { Takt } from "../rotation";
 import type { FeedPerson, SzeneVon } from "../typen";
-import {
-  AbschnittKopf,
-  KatalogAbweichung,
-  LivePunkt,
-  SeitenMarke,
-  useName,
-  WettbewerbTitel,
-} from "./Bausteine";
+import { AbschnittKopf, LivePunkt, SeitenMarke, useName, WettbewerbTitel } from "./Bausteine";
 import { useSchirm, useSeiten } from "./messen";
 import s from "./schirm.module.css";
 
@@ -64,7 +57,6 @@ export function StartlistenSzene({ szene, takt }: { szene: SzeneVon<"startlist">
     <section className={s.szeneStartliste} aria-label={szene.title}>
       <AbschnittKopf
         titel={<WettbewerbTitel code={liste.competition_code} name={liste.competition_name} />}
-        zusatz={<KatalogAbweichung deviates={liste.deviates} deviations={liste.deviations} />}
         meta={
           <>
             {liste.range_name && <span>{liste.range_name}</span>}

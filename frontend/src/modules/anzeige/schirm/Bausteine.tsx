@@ -11,20 +11,16 @@ export function AbschnittKopf({
   kicker,
   titel,
   meta,
-  zusatz,
 }: {
   kicker?: string;
   titel: ReactNode;
   meta?: ReactNode;
-  /** Unter dem Titel, z. B. „Abweichend vom Katalog“ */
-  zusatz?: ReactNode;
 }) {
   return (
     <header className={s.abschnittKopf}>
       <div className={s.abschnittTitel}>
         {kicker && <span className={s.kicker}>{kicker}</span>}
         <h2>{titel}</h2>
-        {zusatz}
       </div>
       {meta && <div className={s.meta}>{meta}</div>}
     </header>
@@ -47,40 +43,6 @@ export function WettbewerbTitel({
       {code && <span className={`num ${klein ? s.kennzifferKlein : s.kennziffer}`}>{code}</span>}
       {name}
     </>
-  );
-}
-
-/** Die Marke „Abweichend vom Katalog“ (gleich in Standanzeige, Wertung und Startliste). */
-export function AbweichendMarke() {
-  const { t } = useTranslation("anzeige");
-  return <span className={s.abweichendMarke}>{t("schirm.ablauf.abweichend")}</span>;
-}
-
-/**
- * Wettbewerb weicht vom Katalog ab: Marke und die abweichenden Punkte in einer Zeile, dezent unter
- * dem Titel. Nichts, wenn der Wettbewerb dem Katalog entspricht.
- */
-export function KatalogAbweichung({
-  deviates,
-  deviations,
-}: {
-  deviates: boolean;
-  deviations: readonly string[];
-}) {
-  if (!deviates && deviations.length === 0) return null;
-  return (
-    <div className={s.katalogAbweichung}>
-      <AbweichendMarke />
-      {deviations.length > 0 && (
-        <ul className={s.hinweisListe}>
-          {deviations.map((text) => (
-            <li key={text} data-art="abweichung">
-              {text}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
   );
 }
 

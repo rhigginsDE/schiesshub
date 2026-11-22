@@ -68,7 +68,7 @@ describe("Bildschirm", () => {
     expect(within(liste).getByText("+ 4 weitere Starts")).toBeVisible();
   });
 
-  it("Live-Wertung: Kennziffer vor dem Namen, Abweichung vom Katalog, Abgebrochene im Block „Ohne Platzierung“", () => {
+  it("Live-Wertung: Kennziffer vor dem Namen, kein Hinweis auf Katalog-Abweichung, Abgebrochene im Block „Ohne Platzierung“", () => {
     const basis = rangliste();
     const klasse = basis.groups[0];
     if (!klasse) throw new Error("Testdaten");
@@ -108,8 +108,9 @@ describe("Bildschirm", () => {
     zeige(beispielFeed({ scenes: [{ ...live, ranking }] }));
     const liste = screen.getByRole("region", { name: "Live-Wertung" });
     expect(within(liste).getByRole("heading", { name: "1201Pistole bis 9 mm" })).toBeVisible();
-    expect(within(liste).getByText("Abweichend vom Katalog")).toBeVisible();
-    expect(within(liste).getByText("Sollzeit 60 s statt 50 s")).toBeVisible();
+    // Abweichungen vom Katalog gehören in die Turnierverwaltung, nicht an den Schirm.
+    expect(within(liste).queryByText(/Katalog/)).toBeNull();
+    expect(within(liste).queryByText("Sollzeit 60 s statt 50 s")).toBeNull();
     expect(within(liste).queryByText(/Sporthandbuch/)).toBeNull();
     expect(within(liste).getByText("Ohne Platzierung")).toBeVisible();
     const ohne = Array.from(liste.querySelectorAll<HTMLElement>("[data-ohne-platz]"));
@@ -165,7 +166,7 @@ describe("Bildschirm", () => {
     expect(within(region).getByText("disqualifiziert")).toBeVisible();
   });
 
-  it("Startliste: Grund des Abbruchs statt „abgebrochen“, Kennziffer und Abweichung", () => {
+  it("Startliste: Grund des Abbruchs statt „abgebrochen“, Kennziffer, kein Hinweis auf Katalog-Abweichung", () => {
     const start = szenen.startlist as SzeneVon<"startlist">;
     const startlist = {
       ...start.startlist,
@@ -186,7 +187,8 @@ describe("Bildschirm", () => {
     zeige(beispielFeed({ scenes: [{ ...start, startlist }] }));
     const liste = screen.getByRole("region", { name: "Startliste" });
     expect(within(liste).getByRole("heading", { name: "1201Pistole bis 9 mm" })).toBeVisible();
-    expect(within(liste).getByText("Abweichend vom Katalog")).toBeVisible();
+    expect(within(liste).queryByText(/Katalog/)).toBeNull();
+    expect(within(liste).queryByText("Sollzeit 60 s statt 50 s")).toBeNull();
     expect(within(liste).getByText("nicht angetreten")).toBeVisible();
     expect(within(liste).queryByText("abgebrochen")).toBeNull();
   });
@@ -195,8 +197,8 @@ describe("Bildschirm", () => {
     zeige(beispielFeed({ scenes: [szenen.range] }));
     const stand = screen.getByRole("region", { name: "25-m-Stand" });
     expect(within(stand).getByRole("heading", { name: "1201Pistole bis 9 mm" })).toBeVisible();
-    expect(within(stand).getByText("Abweichend vom Katalog")).toBeVisible();
-    expect(within(stand).getByText("Sollzeit 60 s statt 50 s")).toBeVisible();
+    expect(within(stand).queryByText(/Katalog/)).toBeNull();
+    expect(within(stand).queryByText(/Sollzeit 60 s statt 50 s/)).toBeNull();
     expect(within(stand).getByRole("list", { name: "Parcours" })).toBeVisible();
     expect(within(stand).getByText("Es zählen 2 von 3 Serien")).toBeVisible();
     expect(within(stand).getByText("gestrichen – zählt nicht")).toBeVisible();

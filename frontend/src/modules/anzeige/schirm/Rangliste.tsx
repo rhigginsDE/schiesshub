@@ -18,14 +18,7 @@ import {
 } from "../format";
 import { inSeiten, seiteZurZeit, type Takt, teilTakt } from "../rotation";
 import type { FeedGruppe, FeedZeile, SzeneVon } from "../typen";
-import {
-  AbschnittKopf,
-  KatalogAbweichung,
-  LivePunkt,
-  SeitenMarke,
-  useName,
-  WettbewerbTitel,
-} from "./Bausteine";
+import { AbschnittKopf, LivePunkt, SeitenMarke, useName, WettbewerbTitel } from "./Bausteine";
 import { useSchirm, useSeiten } from "./messen";
 import s from "./schirm.module.css";
 
@@ -207,9 +200,6 @@ export function LiveWertung({ szene, takt }: { szene: SzeneVon<"live_ranking">; 
       <AbschnittKopf
         titel={
           <WettbewerbTitel code={rangliste.competition_code} name={rangliste.competition_name} />
-        }
-        zusatz={
-          <KatalogAbweichung deviates={rangliste.deviates} deviations={rangliste.deviations} />
         }
         meta={
           <>
@@ -426,9 +416,6 @@ export function Siegerliste({ szene, takt }: { szene: SzeneVon<"winners">; takt:
       <AbschnittKopf
         titel={
           <WettbewerbTitel code={rangliste.competition_code} name={rangliste.competition_name} />
-        }
-        zusatz={
-          <KatalogAbweichung deviates={rangliste.deviates} deviations={rangliste.deviations} />
         }
         meta={
           <>

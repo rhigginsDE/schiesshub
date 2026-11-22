@@ -25,14 +25,7 @@ import type {
   FeedPerson,
   SzeneVon,
 } from "../typen";
-import {
-  AbschnittKopf,
-  AbweichendMarke,
-  LivePunkt,
-  SeitenMarke,
-  useName,
-  WettbewerbTitel,
-} from "./Bausteine";
+import { AbschnittKopf, LivePunkt, SeitenMarke, useName, WettbewerbTitel } from "./Bausteine";
 import { useGroesse, useSchirm, useSeiten } from "./messen";
 import s from "./schirm.module.css";
 
@@ -208,14 +201,9 @@ function Abschnitt({
   nr: number;
   ablauf: FeedAblauf;
 }) {
-  const { t } = useTranslation("anzeige");
   const laufend = laufendeSerien(ablauf, abschnitt.id);
   const haupt = hauptSerie(laufend);
   const aktivIndex = abschnitt.series.findIndex((serie) => serie.number === haupt);
-  const abweichung =
-    abschnitt.deviations.length > 0
-      ? t("schirm.ablauf.abschnitt_abweichend", { text: abschnitt.deviations.join(" · ") })
-      : undefined;
   return (
     <section className={s.abschnitt}>
       <AbschnittFakten abschnitt={abschnitt} />
@@ -232,17 +220,13 @@ function Abschnitt({
               zeitJeSerieS={abschnitt.time_per_series_s}
               aktivIndex={aktivIndex >= 0 ? aktivIndex : null}
               ton={nr % 2 === 0 ? "a" : "b"}
-              hinweis={abweichung}
               label={abschnitt.name}
             />
           </Skaliert>
           <JetztZeile laufend={laufend} />
         </>
       ) : (
-        <>
-          {abweichung && <p className={s.abweichungText}>{abweichung}</p>}
-          <SerienFolge abschnitt={abschnitt} laufend={laufend} />
-        </>
+        <SerienFolge abschnitt={abschnitt} laufend={laufend} />
       )}
     </section>
   );
@@ -279,15 +263,9 @@ function AblaufBlock({ ablauf, takt }: { ablauf: FeedAblauf; takt: Takt }) {
       <p className={s.ablaufMeta}>
         <span>{ablauf.variant_name}</span>
         <span>{ablauf.scoring}</span>
-        {ablauf.deviates && <AbweichendMarke />}
       </p>
-      {(ablauf.deviations.length > 0 || ablauf.notes.length > 0) && (
+      {ablauf.notes.length > 0 && (
         <ul className={s.hinweisListe}>
-          {ablauf.deviations.map((text) => (
-            <li key={`a-${text}`} data-art="abweichung">
-              {text}
-            </li>
-          ))}
           {ablauf.notes.map((text) => (
             <li key={`n-${text}`}>{text}</li>
           ))}
