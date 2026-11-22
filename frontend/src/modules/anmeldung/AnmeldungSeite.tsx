@@ -1,7 +1,7 @@
 import { Button, Modal } from "@mantine/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { CircleCheck, type LucideIcon, X } from "lucide-react";
+import { CircleCheck, Info, type LucideIcon, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useBereiche } from "../../app/modul";
@@ -19,8 +19,9 @@ import type { Turnier } from "../turnier/typen";
 import { Angemeldet } from "./Angemeldet";
 import { AnmeldungFormular, type Schuetze } from "./AnmeldungFormular";
 import s from "./AnmeldungSeite.module.css";
-import { type Anmeldung, anmeldungenAbfrage } from "./api";
+import { type Anmeldung, type AnmeldungAenderung, anmeldungenAbfrage } from "./api";
 import type { BuchungsErgebnis } from "./buchen";
+import { type BestaetigungsArt, bestaetigungsArt } from "./logik";
 
 interface AnmeldungSeiteProps {
   station: string;
@@ -78,6 +79,7 @@ function Kopf({ station, icon: Icon, turnier, onWechseln }: KopfProps) {
           })}
         </nav>
       )}
+      <p className={s.anleitung}>{t("anmeldung:anleitung")}</p>
     </header>
   );
 }
@@ -103,12 +105,14 @@ function schuetzeAusAnmeldung(anmeldung: Anmeldung): Schuetze {
 }
 
 interface Bestaetigt {
+  art: BestaetigungsArt;
   startnummer: number;
   name: string;
-  neu: boolean;
   starts: number;
   cents: number;
   waehrung: string;
+  /** Nur bei „geaendert“: was geändert wurde, als Klartext (z. B. „Klasse D1“) */
+  aenderungen: string[];
 }
 
 interface StationProps {
@@ -172,15 +176,32 @@ function Station({ station, icon, turnier, onWechseln }: StationProps) {
     return () => window.removeEventListener("keydown", beiTaste);
   }, [auswahl, zurSuche]);
 
-  const fertig = (ergebnis: BuchungsErgebnis, schuetze: Schuetze) => {
+  const fertig = (
+    ergebnis: BuchungsErgebnis,
+    aenderung: AnmeldungAenderung,
+    schuetze: Schuetze,
+  ) => {
     ungespeichert.current = false;
+    const aenderungen: string[] = [];
+    if (aenderung.class_id) {
+      const klasse = uebersicht.data?.classes.find((k) => k.id === aenderung.class_id);
+      aenderungen.push(t("fertig.aenderung_klasse", { klasse: klasse?.short ?? "" }));
+    }
+    if (aenderung.start_number != null) {
+      aenderungen.push(
+        t("fertig.aenderung_startnummer", {
+          nr: formatZahl(aenderung.start_number, {}, i18n.language),
+        }),
+      );
+    }
     setBestaetigt({
+      art: bestaetigungsArt(ergebnis.neu, ergebnis.starts.length),
       startnummer: ergebnis.anmeldung.start_number,
       name: schuetze.name,
-      neu: ergebnis.neu,
       starts: ergebnis.starts.length,
       cents: ergebnis.starts.reduce((n, start) => n + start.fee_cents, 0),
       waehrung: uebersicht.data?.settings.currency ?? "EUR",
+      aenderungen,
     });
     setAuswahl(null);
     setDurchlauf((n) => n + 1);
@@ -209,25 +230,47 @@ function Station({ station, icon, turnier, onWechseln }: StationProps) {
       <div className={s.spalten}>
         <section className={s.links} aria-label={t("schuetze.bereich")}>
           {bestaetigt && !auswahl && (
-            <div className={`panel ${s.bestaetigt}`} role="status">
-              <CircleCheck aria-hidden className={s.bestaetigtSymbol} />
+            <div
+              className={`panel ${s.bestaetigt}`}
+              role="status"
+              data-ton={
+                bestaetigt.art === "angemeldet" || bestaetigt.art === "gebucht"
+                  ? "erfolg"
+                  : "hinweis"
+              }
+            >
+              <div className={s.bestaetigtNr}>
+                <span className="h-label">{t("fertig.startnummer")}</span>
+                <b className="num">{formatZahl(bestaetigt.startnummer, {}, sprache)}</b>
+              </div>
               <div className={s.bestaetigtText}>
                 <strong>
-                  {t(bestaetigt.neu ? "fertig.angemeldet" : "fertig.gebucht", {
+                  {bestaetigt.art === "angemeldet" || bestaetigt.art === "gebucht" ? (
+                    <CircleCheck aria-hidden className={s.bestaetigtSymbol} />
+                  ) : (
+                    <Info aria-hidden className={s.bestaetigtSymbol} />
+                  )}
+                  {t(`fertig.${bestaetigt.art}`, {
                     name: bestaetigt.name,
+                    was: bestaetigt.aenderungen.join(", "),
                   })}
                 </strong>
-                <span>
-                  {t("fertig.startnummer")}{" "}
-                  <b className="num">{formatZahl(bestaetigt.startnummer, {}, sprache)}</b>
-                  {" · "}
-                  {t("fertig.starts", { count: bestaetigt.starts })}
-                  {" · "}
-                  {t("fertig.zu_zahlen")}{" "}
-                  <b className="num">
-                    {formatGeld(bestaetigt.cents, bestaetigt.waehrung, sprache)}
-                  </b>
-                </span>
+                {bestaetigt.art === "ohne_start" ? (
+                  <span>{t("fertig.ohne_start_text")}</span>
+                ) : bestaetigt.art === "geaendert" ? (
+                  <span>{t("fertig.geaendert_text")}</span>
+                ) : (
+                  <span>
+                    {t("fertig.starts", { count: bestaetigt.starts })}
+                    {" · "}
+                    {t("fertig.zu_zahlen")}{" "}
+                    <b className="num">
+                      {formatGeld(bestaetigt.cents, bestaetigt.waehrung, sprache)}
+                    </b>
+                    {bestaetigt.aenderungen.length > 0 &&
+                      ` · ${t("fertig.auch_geaendert", { was: bestaetigt.aenderungen.join(", ") })}`}
+                  </span>
+                )}
               </div>
               <Button
                 variant="subtle"
@@ -248,7 +291,7 @@ function Station({ station, icon, turnier, onWechseln }: StationProps) {
               schuetze={auswahl}
               anmeldung={anmeldung}
               anmeldungen={liste}
-              onFertig={(ergebnis) => fertig(ergebnis, auswahl)}
+              onFertig={(ergebnis, aenderung) => fertig(ergebnis, aenderung, auswahl)}
               onZurueck={zurSuche}
               onGeloescht={() => {
                 ungespeichert.current = false;
@@ -259,7 +302,10 @@ function Station({ station, icon, turnier, onWechseln }: StationProps) {
             />
           ) : (
             <div className={`panel ${s.suchPanel}`}>
-              <h2 className="h-section">{t("schuetze.titel")}</h2>
+              <div className={s.suchKopf}>
+                <h2 className="h-section">{t("schuetze.titel")}</h2>
+                <p className="gedaempft">{t("schuetze.suche_hinweis")}</p>
+              </div>
               <PersonenSuche
                 key={durchlauf}
                 autoFokus={durchlauf > 0}
@@ -342,7 +388,7 @@ function Station({ station, icon, turnier, onWechseln }: StationProps) {
       <Bestaetigung
         offen={ausstehend !== null}
         titel={t("verwerfen.titel")}
-        text={t("verwerfen.text")}
+        text={anmeldung ? t("verwerfen.text_vorhanden") : t("verwerfen.text")}
         bestaetigen={t("verwerfen.bestaetigen")}
         abbrechen={t("verwerfen.weiter")}
         ton="gefahr"

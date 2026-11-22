@@ -89,6 +89,8 @@ const aufgerufen = stationStart({
   competition_name: "Selbstladeflinte",
   status: "called",
   lane: 1,
+  // Ortszeit 09:05 – die Kachel zeigt die Aufrufzeit des Servers, nicht die des Browsers.
+  called_at: new Date(2026, 10, 22, 9, 5).toISOString(),
 });
 
 function routen(
@@ -135,6 +137,7 @@ describe("Stand", () => {
     const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
     expect(within(bahn1).getByText("Name nicht angezeigt")).toBeInTheDocument();
     expect(within(bahn1).getByText("8")).toBeInTheDocument();
+    expect(within(bahn1).getByText("seit 09:05")).toBeInTheDocument();
     expect(screen.getByText("Herbstpokal")).toBeInTheDocument();
     expect(screen.getByText("Markus Brandt")).toBeInTheDocument();
 

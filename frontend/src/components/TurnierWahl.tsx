@@ -1,6 +1,6 @@
 import { Button, Skeleton } from "@mantine/core";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, CalendarDays, Repeat, Trophy } from "lucide-react";
+import { ArrowRight, CalendarDays, Flag, Repeat, Trophy } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { formatDatum } from "../lib/format";
@@ -51,6 +51,10 @@ export function TurnierAuswahl({
   hinweis,
 }: TurnierAuswahlProps) {
   const { t, i18n } = useTranslation("turnierwahl");
+  // Am Wettkampftag arbeiten die Stationen im gestarteten Turnier. Gibt es noch keins, sagt die
+  // Auswahl, was als Nächstes zu tun ist, statt nur Entwürfe aufzulisten.
+  const keinAktives = turniere.length > 0 && !turniere.some((x) => x.status === "active");
+  const entwurf = turniere.find((x) => x.status === "draft");
   return (
     <section className={`panel ${s.auswahl}`} aria-labelledby="turnierwahl-titel">
       <div className="panel-kopf">
@@ -64,6 +68,32 @@ export function TurnierAuswahl({
         )}
       </div>
       <p className="gedaempft">{hinweis ?? t("hinweis")}</p>
+      {keinAktives && (
+        <div className={s.nichtGestartet} role="note">
+          <Flag aria-hidden className={s.nichtGestartetSymbol} />
+          <div className={s.nichtGestartetText}>
+            <strong>{t("nicht_gestartet_titel")}</strong>
+            <span>{t("nicht_gestartet_text")}</span>
+          </div>
+          <Button
+            renderRoot={(props) =>
+              entwurf ? (
+                <Link
+                  {...props}
+                  to={`/turnier/${entwurf.id}`}
+                  search={{ bereich: "zusammenfassung" }}
+                />
+              ) : (
+                <Link {...props} to="/turnier" />
+              )
+            }
+            variant="default"
+            rightSection={<ArrowRight aria-hidden />}
+          >
+            {t("nicht_gestartet_link")}
+          </Button>
+        </div>
+      )}
       {turniere.length === 0 ? (
         <Leerzustand icon={Trophy} titel={t("leer_titel")} text={t("leer_text")}>
           <Button component={Link} to="/turnier" variant="default">

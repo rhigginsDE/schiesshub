@@ -22,6 +22,12 @@ describe("PersonenSuche", () => {
 
     const feld = await screen.findByRole("searchbox", { name: "Person suchen" });
     await screen.findByText("Markus Brandt");
+    // Enter im leeren Feld öffnet niemanden, sondern springt nur in die Liste.
+    await userEvent.click(feld);
+    await userEvent.keyboard("{Enter}");
+    expect(onAuswahl).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /Markus Brandt/ })).toHaveFocus();
+
     await userEvent.click(feld);
     await userEvent.keyboard("{ArrowDown}{ArrowDown}{Enter}");
     expect(onAuswahl).toHaveBeenCalledWith(MAIER);

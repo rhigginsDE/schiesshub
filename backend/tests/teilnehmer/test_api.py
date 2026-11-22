@@ -544,19 +544,142 @@ async def test_import_creates_persons_and_missing_clubs(
 async def test_import_rejects_unusable_files(api: httpx.AsyncClient) -> None:
     cases = {
         b"": "Die Datei ist leer.",
-        b"Name;Geburtsjahr\nMarkus;1980\n": "Die Spalte „Geburtsjahr“ ist unbekannt.",
-        b"Verein;Mitgliedsnummer\nSV;1\n": "Die Kopfzeile braucht eine Spalte „name“ oder „Name“.",
+        b"Verein;Mitgliedsnummer\nSV;1\n": "Die Kopfzeile braucht eine Spalte „Name“",
+        b"Mitgliederliste 2026\nMarkus Brandt\n": "Die Kopfzeile braucht eine Spalte „Name“",
         b"name;Name\nA;B\n": "Die Spalte „Name“ kommt doppelt vor.",
-        "Name\nKöhler\n".encode("latin-1"): "Die Datei ist nicht in UTF-8 kodiert.",
+        b"Verein;Vereinsname;Name\nA;B;C\n": "Die Spalten „Verein“ und „Vereinsname“ meinen",
+        b"Vorname;Verein\nMarkus;SV\n": "Zur Spalte „Vorname“ fehlt die Spalte „Nachname“.",
+        b"Nachname;Verein\nBrandt;SV\n": "Zur Spalte „Nachname“ fehlt die Spalte „Vorname“.",
+        b"Name;Vorname;Nachname\nA;B;C\n": "Die Spalten „Name“ und „Nachname“ meinen",
+        b"Vor- und Nachname;Vorname;Nachname\nA;B;C\n": "Die Datei hat eine Spalte",
+        # 0x81 ist auch in Windows-1252 kein Zeichen.
+        b"Name\nK\x81hler\n": "Die Datei enthält Zeichen, die sich nicht lesen lassen.",
     }
     for content, message in cases.items():
         response = await import_csv(api, content)
         assert response.status_code == 400, content
-        assert response.json()["detail"].startswith(message), content
+        assert response.json()["detail"].startswith(message), (content, response.json())
 
     too_many = await import_csv(api, b"name\nA;B\n")
     assert too_many.status_code == 200
     assert too_many.json()["rows"][0]["status"] == "error"
+    assert too_many.json()["rows"][0]["message"].startswith("Die Zeile hat 2 Werte")
+
+
+async def test_import_reads_windows_1252(api: httpx.AsyncClient) -> None:
+    # So speichert Excel unter Windows „CSV (Trennzeichen-getrennt)“: cp1252, Semikolon, CRLF.
+    content = "Name;Verein\r\nJürgen Köhler;Schützengilde Groß-Gerau\r\nÉlodie Maß;\r\n".encode(
+        "cp1252"
+    )
+    with pytest.raises(UnicodeDecodeError):
+        content.decode("utf-8")
+
+    report = (await import_csv(api, content)).json()
+
+    assert report["new"] == 2
+    assert [(row["name"], row["club"]) for row in report["rows"]] == [
+        ("Jürgen Köhler", "Schützengilde Groß-Gerau"),
+        ("Élodie Maß", None),
+    ]
+    assert report["new_clubs"] == ["Schützengilde Groß-Gerau"]
+    assert sorted(await search(api, "koehler")) == ["Jürgen Köhler"]
+    # UTF-8 mit und ohne BOM bleibt, wie es war.
+    for bom in (False, True):
+        again = await import_csv(api, csv_body("Name\nJürgen Köhler\n", bom=bom), dry_run=True)
+        assert again.json()["rows"][0]["name"] == "Jürgen Köhler"
+
+
+async def test_import_ignores_unknown_columns(
+    api: httpx.AsyncClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.DEBUG)
+    content = csv_body(
+        "Mitglieds-Nr.;Anrede;Vorname;Nachname;Straße;PLZ;E-Mail;Geburtsdatum;Geburtsjahr;"
+        "Verein;\n"
+        "4711;Herr;Markus;Brandt;Lindenweg 3;12345;markus@example.org;01.02.1980;1980;"
+        "SV Tell;\n"
+    )
+
+    report = (await import_csv(api, content)).json()
+
+    assert report["ignored_columns"] == [
+        "Anrede",
+        "Straße",
+        "PLZ",
+        "E-Mail",
+        "Geburtsdatum",
+        "Geburtsjahr",
+    ]
+    assert report["new"] == 1
+    assert report["rows"][0]["name"] == "Markus Brandt"
+    (person,) = (await api.get(f"{API}/persons")).json()
+    assert (person["name"], person["member_no"], person["club_name"]) == (
+        "Markus Brandt",
+        "4711",
+        "SV Tell",
+    )
+    # Die Werte der ignorierten Spalten stehen nirgends: nicht in Antwort, Person oder Protokoll.
+    stored = json.dumps([report, person], ensure_ascii=False)
+    app_logs = "\n".join(
+        r.getMessage() for r in caplog.records if not r.name.startswith(("httpx", "httpcore"))
+    )
+    # (Reine Ziffernfolgen wie PLZ oder Jahr nicht prüfen: Sie können zufällig in UUIDs stehen.)
+    for value in ("Herr", "Lindenweg", "markus@example.org", "01.02.1980"):
+        assert value not in stored
+        assert value not in app_logs
+    # Nur bekannte Spalten: nichts ignoriert.
+    plain = (await import_csv(api, csv_body("Name\nAnna Bergmann\n"), dry_run=True)).json()
+    assert plain["ignored_columns"] == []
+
+
+async def test_import_joins_first_and_last_name(api: httpx.AsyncClient) -> None:
+    club = await make_club(api, "SV Tell")
+    await make_person(api, "Markus Brandt", club_id=club["id"])
+    content = csv_body(
+        "VORNAME ; Familienname ;vereinsname;Mitgliedsnummer\n"
+        "Markus;Brandt;sv tell;1\n"  # Dublette in der Datenbank
+        "Hans-Peter;von der Leyen;SV Tell;2\n"
+        "  Anna  ;  Bergmann ;;3\n"
+        ";;SV Tell;4\n"  # Fehler: kein Name
+        "Cher;;;5\n"  # nur ein Name: erlaubt
+    )
+
+    report = (await import_csv(api, content)).json()
+
+    assert [(row["line"], row["status"], row["name"]) for row in report["rows"]] == [
+        (2, "duplicate", "Markus Brandt"),
+        (3, "new", "Hans-Peter von der Leyen"),
+        (4, "new", "Anna Bergmann"),
+        (5, "error", None),
+        (6, "new", "Cher"),
+    ]
+    assert report["rows"][3]["message"] == "Vorname und Nachname fehlen."
+    assert report["rows"][3]["club"] == "SV Tell"
+    persons = {p["name"]: p for p in (await api.get(f"{API}/persons")).json()}
+    assert persons["Hans-Peter von der Leyen"]["club_id"] == club["id"]
+    assert persons["Hans-Peter von der Leyen"]["display_name"] == "Hans-Peter von der Leyen"
+    assert persons["Anna Bergmann"]["club_id"] is None
+
+    # „Name“ neben „Vorname“ ist der Nachname.
+    other = (await import_csv(api, csv_body("Vorname,Name\nJürgen,Köhler\n"), dry_run=True)).json()
+    assert other["rows"][0]["name"] == "Jürgen Köhler"
+
+
+async def test_import_detects_delimiter(api: httpx.AsyncClient) -> None:
+    variants = {
+        "Semikolon": 'Name;Verein\n"Brandt; Markus";SV Tell, Nord\n',
+        "Komma": 'Name,Verein\n"Brandt, Markus","SV Tell, Nord"\n',
+        "Tabulator": "Name\tVerein\nBrandt, Markus\tSV Tell, Nord\n",
+    }
+    expected = {"Semikolon": "Brandt; Markus"}
+    for label, content in variants.items():
+        report = (await import_csv(api, csv_body(content), dry_run=True)).json()
+        assert report["error"] == 0, label
+        row = report["rows"][0]
+        assert (row["name"], row["club"]) == (
+            expected.get(label, "Brandt, Markus"),
+            "SV Tell, Nord",
+        ), label
 
 
 async def test_import_limits_file_size(api: httpx.AsyncClient) -> None:

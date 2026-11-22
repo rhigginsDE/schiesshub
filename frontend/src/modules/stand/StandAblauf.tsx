@@ -1,6 +1,7 @@
 import { Button, Skeleton } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
-import { PlayCircle } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ArrowRight, PlayCircle } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Bestaetigung } from "../../components/Bestaetigung";
@@ -28,7 +29,7 @@ import {
 } from "../anmeldung/api";
 import type { TurnierUebersicht } from "../turnier/typen";
 import { useFehlerMelden } from "./aktionen";
-import { BahnKachel, useAufrufZeiten } from "./Bahnen";
+import { BahnKachel } from "./Bahnen";
 import { DurchgangDialog, PlatzDialog, SerieDialog } from "./Dialoge";
 import {
   besetzteAnmeldungen,
@@ -64,7 +65,6 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
   const warteschlange = useQuery(warteschlangeAbfrage(turnierId, standId));
   const durchgaenge = useQuery(durchgaengeAbfrage(turnierId, standId));
   const startliste = useQuery(startlisteAbfrage(turnierId, { stand: standId }));
-  const aufrufZeiten = useAufrufZeiten(warteschlange.data?.lanes);
 
   const naechste = useNaechsteAufrufen(turnierId);
   const aufrufen = useStartAufrufen(turnierId);
@@ -213,7 +213,6 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
               key={bahn.lane}
               bahn={bahn}
               planung={bahn.start ? (planungVon.get(bahn.start.competition_id) ?? null) : null}
-              seit={bahn.start ? aufrufZeiten.get(bahn.start.start_id) : undefined}
               beschaeftigt={beschaeftigt}
               onNaechsten={
                 naechsterAufrufbar ? () => startRufen(naechsterAufrufbar, bahn.lane) : undefined
@@ -287,8 +286,17 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
         )}
 
         {mitReihenfolge.length === 0 && mitZeitplan.length === 0 && wartende.length === 0 && (
-          <div className="panel">
+          <div className={`panel ${s.leerHinweis}`}>
             <p className="gedaempft">{t("warten.keine_reihenfolge")}</p>
+            <Button
+              renderRoot={(props) => (
+                <Link {...props} to={`/turnier/${turnierId}`} search={{ bereich: "wettbewerbe" }} />
+              )}
+              variant="default"
+              rightSection={<ArrowRight aria-hidden />}
+            >
+              {t("warten.keine_link")}
+            </Button>
           </div>
         )}
       </div>

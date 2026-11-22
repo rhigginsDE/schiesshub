@@ -222,6 +222,68 @@ describe("Station Anmeldung", () => {
     expect(screen.getByRole("button", { name: "Starts buchen" })).toBeDisabled();
   });
 
+  it("meldet eine Anmeldung ohne Start neutral, nicht als Erfolg", async () => {
+    const user = userEvent.setup();
+    serverAttrappe({
+      ...grundRouten(),
+      [`POST /tournaments/${T}/entries`]: { status: 201, inhalt: anmeldung() },
+    });
+    zeigen();
+    const suche = await screen.findByRole("searchbox", { name: SUCHE });
+    await user.type(suche, "Brandt{Enter}");
+    await screen.findByRole("form", { name: "Markus Brandt" });
+    await user.type(screen.getByRole("combobox", { name: "Klasse" }), "Sch{Enter}");
+    expect(screen.getByText(/Noch kein Start gewählt/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Anmelden" }));
+
+    const titel = await screen.findByText(
+      "Markus Brandt ist angemeldet – noch kein Start gebucht.",
+    );
+    const meldung = titel.closest("[role=status]") as HTMLElement;
+    expect(meldung).toHaveAttribute("data-ton", "hinweis");
+    expect(within(meldung).getByText(/nichts zu zahlen/)).toBeInTheDocument();
+    expect(within(meldung).queryByText("0,00 €")).toBeNull();
+  });
+
+  it("meldet eine reine Änderung als Änderung, nicht als gebuchte Starts", async () => {
+    const user = userEvent.setup();
+    const vorhanden = anmeldung({ starts: [start("s1", 1, 800)], fee_total_cents: 800 });
+    serverAttrappe({
+      ...grundRouten([vorhanden]),
+      [`PATCH /tournaments/${T}/entries/a1`]: { inhalt: { ...vorhanden, start_number: 12 } },
+    });
+    zeigen();
+    const suche = await screen.findByRole("searchbox", { name: SUCHE });
+    await user.type(suche, "Brandt{Enter}");
+    await screen.findByText("Schon angemeldet");
+    const nummer = screen.getByRole("textbox", { name: "Startnummer" });
+    await user.clear(nummer);
+    await user.type(nummer, "12");
+    await user.click(screen.getByRole("button", { name: "Speichern" }));
+
+    const titel = await screen.findByText("Anmeldung von Markus Brandt geändert (Startnummer 12).");
+    expect(titel.closest("[role=status]")).toHaveAttribute("data-ton", "hinweis");
+    expect(screen.queryByText(/Starts für Markus Brandt gebucht/)).toBeNull();
+  });
+
+  it("zählt gewählte Starts mit und nennt die Grenze, wenn „+“ gesperrt ist", async () => {
+    const user = userEvent.setup();
+    serverAttrappe(
+      grundRouten([anmeldung({ starts: [start("s1", 1, 800)], fee_total_cents: 800 })]),
+    );
+    zeigen();
+    const suche = await screen.findByRole("searchbox", { name: SUCHE });
+    await user.type(suche, "Brandt{Enter}");
+    await screen.findByText("Schon angemeldet");
+    expect(screen.getByText("noch 2 möglich")).toBeInTheDocument();
+    const mehr = screen.getByRole("button", { name: "4401 Selbstladeflinte: ein Start mehr" });
+    await user.click(mehr);
+    expect(screen.getByText("noch 1 möglich")).toBeInTheDocument();
+    await user.click(mehr);
+    expect(screen.getByText("Höchstens 3 Starts erreicht")).toBeInTheDocument();
+    expect(mehr).toBeDisabled();
+  });
+
   it("zeigt den Konflikt der Startnummer direkt am Feld", async () => {
     const user = userEvent.setup();
     serverAttrappe({

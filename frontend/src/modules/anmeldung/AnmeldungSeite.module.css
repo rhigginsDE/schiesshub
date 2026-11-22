@@ -39,6 +39,13 @@
   margin-left: auto;
 }
 
+/* Was hier zu tun ist – eine Zeile unter dem Titel, für Erstnutzer */
+.anleitung {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--sh-text-weich);
+}
+
 .spalten {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
@@ -60,29 +67,72 @@
   min-height: 0;
 }
 
+.suchKopf {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.suchKopf p {
+  margin: 0;
+  max-width: 75ch;
+}
+
 .bestaetigt {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
-  border-color: var(--sh-akzent);
-  background: var(--sh-akzent-flaeche);
+  gap: 12px 16px;
   padding: 14px 16px;
 }
 
+.bestaetigt[data-ton="erfolg"] {
+  border-color: var(--sh-akzent);
+  background: var(--sh-akzent-flaeche);
+}
+
+/* Angemeldet ohne Start oder nur geändert: Hinweis, kein Erfolg */
+.bestaetigt[data-ton="hinweis"] {
+  border-color: var(--sh-info);
+  background: var(--sh-info-flaeche);
+}
+
+.bestaetigtNr {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  min-width: 84px;
+  padding: 8px 12px;
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-bg);
+}
+
+.bestaetigtNr b {
+  font-size: 34px;
+  line-height: 1;
+}
+
 .bestaetigtSymbol {
-  font-size: 26px;
+  font-size: 22px;
   color: var(--sh-akzent-text);
+}
+
+.bestaetigt[data-ton="hinweis"] .bestaetigtSymbol {
+  color: var(--sh-info);
 }
 
 .bestaetigtText {
   display: grid;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
 
 .bestaetigtText strong {
-  font-size: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 17px;
+  overflow-wrap: break-word;
 }
 
 .bestaetigtText b {
@@ -161,7 +211,7 @@
 }
 
 .nr b {
-  font-size: 26px;
+  font-size: 40px;
   line-height: 1;
 }
 
@@ -172,8 +222,8 @@
 }
 
 .wer strong {
-  font: italic 700 22px / 1.15 var(--sh-font-display);
-  overflow-wrap: anywhere;
+  font: italic 700 26px / 1.15 var(--sh-font-display);
+  overflow-wrap: break-word;
 }
 
 .fakten {
@@ -237,9 +287,11 @@
   min-width: 0;
 }
 
+/* Lange Wettbewerbsnamen („Selbstladeflinte“) an Silbengrenzen trennen, nie mitten im Wort */
 .zeileName strong {
   font-weight: 600;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .zeileName > span {
@@ -260,9 +312,22 @@
 
 .menge small,
 .preis small {
-  font-size: 12px;
+  font-size: var(--sh-fz-klein);
   color: var(--sh-text-gedaempft);
   white-space: nowrap;
+}
+
+/* Der Hinweis nimmt die Breite von „− n +“ und bricht um, statt die Spalte zu verbreitern. */
+.menge small {
+  width: 0;
+  min-width: 100%;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.menge small[data-grenze] {
+  color: var(--sh-text-weich);
 }
 
 .preis {
@@ -288,14 +353,34 @@
   grid-column: 2 / -1;
 }
 
+.leerHinweis {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.leerHinweis p {
+  margin: 0;
+}
+
 /* ---------- Summe ---------- */
+/* Betrag und Hauptknopf bleiben unten sichtbar, auch wenn die Starts länger sind als der Bildschirm. */
+.formular {
+  --formular-rand: 20px;
+}
+
 .kasse {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 14px 24px;
   align-items: end;
-  padding-top: 16px;
+  margin-inline: calc(-1 * var(--formular-rand));
+  padding: 14px var(--formular-rand);
   border-top: 1px solid var(--sh-linie);
+  background: var(--sh-flaeche);
 }
 
 .summe {
@@ -530,7 +615,7 @@
 
 .anmeldungText strong {
   font-weight: 600;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .anmeldungText > span {
@@ -617,6 +702,12 @@
   }
 }
 
+@media (max-width: 640px) {
+  .formular {
+    --formular-rand: 16px;
+  }
+}
+
 @media (max-width: 720px) {
   .zeile {
     grid-template-columns: 48px minmax(0, 1fr) auto;
@@ -643,16 +734,15 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* Leiste unten bleibt einzeilig: Betrag links, Knopf rechts – so bleibt Platz für die Starts. */
   .kasse {
-    grid-template-columns: minmax(0, 1fr);
+    align-items: center;
+    gap: 10px 16px;
+    padding-block: 10px;
   }
 
-  .aktionen {
-    justify-content: stretch;
-  }
-
-  .aktionen button {
-    flex: 1 1 100%;
+  .summe b {
+    font-size: 28px;
   }
 
   .tasten {
@@ -683,14 +773,20 @@
     margin-left: 0;
   }
 
-  .bestaetigt {
-    grid-template-columns: auto minmax(0, 1fr);
+  .nr b {
+    font-size: 34px;
   }
 
-  .bestaetigt > button {
-    grid-column: 2;
-    justify-self: end;
-    grid-row: 1;
+  .wer strong {
+    font-size: 22px;
+  }
+
+  .bestaetigtNr {
+    min-width: 72px;
+  }
+
+  .bestaetigtNr b {
+    font-size: 28px;
   }
 }
 

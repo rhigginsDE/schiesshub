@@ -1,7 +1,9 @@
 import { Button, NumberInput, Select } from "@mantine/core";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
+  ArrowRight,
   Clock,
   IdCard,
   MapPin,
@@ -41,6 +43,7 @@ import {
   betragVorschau,
   gebuchteStarts,
   loeschbar,
+  mengenHinweis,
   naechsteStartnummer,
   nochBuchbar,
   type Sperre,
@@ -67,7 +70,8 @@ interface AnmeldungFormularProps {
   /** Vorhandene Anmeldung der Person im Turnier (live vom Server) */
   anmeldung: Anmeldung | null;
   anmeldungen: readonly Anmeldung[];
-  onFertig: (ergebnis: BuchungsErgebnis) => void;
+  /** Gespeichert; `aenderung` = was an Klasse/Startnummer einer vorhandenen Anmeldung geändert wurde */
+  onFertig: (ergebnis: BuchungsErgebnis, aenderung: AnmeldungAenderung) => void;
   onZurueck: () => void;
   onGeloescht: () => void;
   onUngespeichert: (ungespeichert: boolean) => void;
@@ -218,7 +222,7 @@ export function AnmeldungFormular({
           platz: plaetze[z.wettbewerb.id] ?? undefined,
         })),
       });
-      onFertig(ergebnis);
+      onFertig(ergebnis, aenderung);
     } catch (fehlerWert) {
       if (!(fehlerWert instanceof BuchungsFehler)) throw fehlerWert;
       // Was gebucht ist, aus den Eingaben nehmen; der Rest bleibt für den nächsten Versuch.
@@ -388,7 +392,18 @@ export function AnmeldungFormular({
           {t("buchen.titel")}
         </h3>
         {wettbewerbe.length === 0 ? (
-          <p className="gedaempft">{t("buchen.keine")}</p>
+          <div className={s.leerHinweis}>
+            <p className="gedaempft">{t("buchen.keine")}</p>
+            <Button
+              renderRoot={(props) => (
+                <Link {...props} to={`/turnier/${turnierId}`} search={{ bereich: "wettbewerbe" }} />
+              )}
+              variant="default"
+              rightSection={<ArrowRight aria-hidden />}
+            >
+              {t("buchen.keine_link")}
+            </Button>
+          </div>
         ) : (
           <ul className={s.zeilen}>
             {zeilen.map((zeile) => (
@@ -426,7 +441,7 @@ export function AnmeldungFormular({
           <b className="num" aria-live="polite">
             {geld(gesamt.cents)}
           </b>
-          <span className="gedaempft">{summenText(t, gesamt, neueStarts)}</span>
+          <span className="gedaempft">{summenText(t, gesamt, neueStarts, !vorhanden)}</span>
         </div>
         <div className={s.aktionen}>
           <span className={s.tasten}>
@@ -530,8 +545,8 @@ export function AnmeldungFormular({
 
 type T = ReturnType<typeof useTranslation>["t"];
 
-function summenText(t: T, gesamt: Betrag, neu: number): string {
-  if (neu === 0) return t("summe.nichts");
+function summenText(t: T, gesamt: Betrag, neu: number, neueAnmeldung: boolean): string {
+  if (neu === 0) return t(neueAnmeldung ? "summe.nichts_neu" : "summe.nichts");
   const teile = [t("summe.starts", { count: neu })];
   if (gesamt.nachkauf > 0) teile.push(t("summe.davon_nachkauf", { count: gesamt.nachkauf }));
   return teile.join(" · ");
@@ -604,6 +619,7 @@ function WettbewerbZeile({
   const name = `${kennziffer(wettbewerb)} ${wettbewerb.name}`;
   const gewaehlterDurchgang = platz ? durchgaenge.get(platz.durchgangId) : undefined;
   const gebucht = bereits > 0;
+  const hinweis = mengenHinweis(wettbewerb, bereits, neu);
 
   return (
     <li
@@ -637,7 +653,13 @@ function WettbewerbZeile({
           weniger={t("buchen.weniger", { name })}
           mehr={t("buchen.mehr", { name })}
         />
-        <small>{sperre ? t("buchen.gesperrt") : t("buchen.noch", { count: frei })}</small>
+        <small data-grenze={(!sperre && hinweis.art === "grenze") || undefined}>
+          {sperre
+            ? t("buchen.gesperrt")
+            : hinweis.art === "noch"
+              ? t("buchen.noch", { count: hinweis.anzahl })
+              : t("buchen.grenze", { count: hinweis.grenze })}
+        </small>
       </div>
       <div className={s.preis}>
         <b className="num">{geld(betrag.cents)}</b>

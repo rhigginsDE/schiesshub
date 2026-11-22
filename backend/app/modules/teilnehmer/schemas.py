@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Annotated, Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, StrictBool, StringConstraints, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StringConstraints, model_validator
 
 from app.modules.teilnehmer.names import DisplayMode
 
@@ -134,6 +134,10 @@ class ImportRowOut(BaseModel):
     # new: angelegte Person (null bei dry_run) · duplicate: vorhandene Person (null, wenn die
     # Dublette weiter oben in derselben Datei steht).
     person_id: UUID | None = None
+    # Name und Verein, wie der Server sie aus der Zeile gelesen hat (Vorname und Nachname schon
+    # zusammengesetzt); null, wenn die Zeile keinen enthält.
+    name: str | None = None
+    club: str | None = None
 
 
 class ImportReportOut(BaseModel):
@@ -143,4 +147,7 @@ class ImportReportOut(BaseModel):
     error: int
     # Vereine, die fehlten und angelegt wurden (bei dry_run: angelegt würden).
     new_clubs: list[str]
+    # Spaltennamen der Datei, die nicht übernommen werden (z. B. Straße, E-Mail, Geburtsdatum).
+    # Ihre Werte werden weder gespeichert noch protokolliert.
+    ignored_columns: list[str] = Field(default_factory=list)
     rows: list[ImportRowOut]

@@ -459,9 +459,17 @@ async def import_persons(
     report: list[ImportRowOut] = []
     to_create: list[tuple[int, Person, str | None]] = []
 
-    for row in parsed:
+    for row in parsed.rows:
         if isinstance(row, csvio.ImportRowError):
-            report.append(ImportRowOut(line=row.line, status="error", message=row.message))
+            report.append(
+                ImportRowOut(
+                    line=row.line,
+                    status="error",
+                    message=row.message,
+                    name=row.name,
+                    club=row.club,
+                )
+            )
             continue
         club_key = row.club.casefold() if row.club else None
         existing_club = clubs_by_name.get(club_key) if club_key else None
@@ -473,6 +481,8 @@ async def import_persons(
                     line=row.line,
                     status="duplicate",
                     message="Dieselbe Person steht weiter oben in der Datei.",
+                    name=row.name,
+                    club=row.club,
                 )
             )
             continue
@@ -485,6 +495,8 @@ async def import_persons(
                     status="duplicate",
                     message="Eine Person mit diesem Namen gibt es in diesem Verein schon.",
                     person_id=candidates[0],
+                    name=row.name,
+                    club=row.club,
                 )
             )
             continue
@@ -503,7 +515,7 @@ async def import_persons(
             show_club=row.show_club,
         )
         to_create.append((len(report), person, club_key if club is not None else None))
-        report.append(ImportRowOut(line=row.line, status="new"))
+        report.append(ImportRowOut(line=row.line, status="new", name=row.name, club=row.club))
 
     if not dry_run and to_create:
         session.add_all(new_clubs.values())
@@ -540,5 +552,6 @@ async def import_persons(
         duplicate=counts["duplicate"],
         error=counts["error"],
         new_clubs=sorted((club.name for club in new_clubs.values()), key=str.casefold),
+        ignored_columns=parsed.ignored_columns,
         rows=report,
     )

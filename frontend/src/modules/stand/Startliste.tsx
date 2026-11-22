@@ -50,6 +50,8 @@ export function Startliste({ uebersicht, suche, onSuche }: StartlisteProps) {
       : t(`status.${start.status}`);
 
   const spalten = t("startliste.spalte", { returnObjects: true }) as Record<string, string>;
+  const gruppen = gruppiereNachWettbewerb(abfrage.data ?? []);
+  const nachId = new Map(uebersicht.competitions.map((w) => [w.id, w]));
 
   return (
     <section className={`panel ${s.startliste}`} aria-labelledby="startliste-titel">
@@ -114,34 +116,70 @@ export function Startliste({ uebersicht, suche, onSuche }: StartlisteProps) {
               <th>{spalten.status}</th>
             </tr>
           </thead>
-          <tbody>
-            {abfrage.data.map((start) => (
-              <tr key={start.start_id}>
-                <td className={`num ${s.rechts} ${s.zelleNr}`} data-label={spalten.nr}>
-                  {start.start_number}
-                </td>
-                <td className={s.zelleName} data-label={spalten.name}>
-                  <span className={s.nameInhalt}>
-                    <strong data-ohne-name={start.display_name === null || undefined}>
-                      {anzeigename(start)}
-                    </strong>
-                    {start.club && <span className="gedaempft">{start.club}</span>}
-                  </span>
-                </td>
-                <td data-label={spalten.klasse}>{start.class_short}</td>
-                <td data-label={spalten.wettbewerb}>{start.competition_name}</td>
-                <td className={`num ${s.rechts}`} data-label={spalten.start}>
-                  {start.attempt}
-                </td>
-                <td data-label={spalten.platz}>{platz(start)}</td>
-                <td data-label={spalten.status}>
-                  <Chip ton={STATUS_TON[start.status]}>{status(start)}</Chip>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+          {gruppen.map((gruppe) => {
+            const wettbewerb = nachId.get(gruppe.id);
+            const titel = [wettbewerb?.catalog_code, wettbewerb?.name ?? gruppe.name]
+              .filter(Boolean)
+              .join(" ");
+            return (
+              <tbody key={gruppe.id}>
+                <tr className={s.gruppeZeile}>
+                  <th colSpan={7} scope="colgroup">
+                    <span>{titel}</span>
+                    <span className="gedaempft">
+                      {t("startliste.gruppe_anzahl", { count: gruppe.starts.length })}
+                    </span>
+                  </th>
+                </tr>
+                {gruppe.starts.map((start) => (
+                  <tr key={start.start_id}>
+                    <td className={`num ${s.rechts} ${s.zelleNr}`} data-label={spalten.nr}>
+                      {start.start_number}
+                    </td>
+                    <td className={s.zelleName} data-label={spalten.name}>
+                      <span className={s.nameInhalt}>
+                        <strong data-ohne-name={start.display_name === null || undefined}>
+                          {anzeigename(start)}
+                        </strong>
+                        {start.club && <span className="gedaempft">{start.club}</span>}
+                      </span>
+                    </td>
+                    <td data-label={spalten.klasse}>{start.class_short}</td>
+                    <td data-label={spalten.wettbewerb}>{start.competition_name}</td>
+                    <td className={`num ${s.rechts}`} data-label={spalten.start}>
+                      {start.attempt}
+                    </td>
+                    <td data-label={spalten.platz}>{platz(start)}</td>
+                    <td data-label={spalten.status}>
+                      <Chip ton={STATUS_TON[start.status]}>{status(start)}</Chip>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            );
+          })}
         </table>
       )}
     </section>
   );
+}
+
+interface Gruppe {
+  id: string;
+  name: string;
+  starts: StationStart[];
+}
+
+/** Starts je Wettbewerb, in der Reihenfolge des ersten Auftretens; innerhalb wie geliefert. */
+export function gruppiereNachWettbewerb(starts: readonly StationStart[]): Gruppe[] {
+  const gruppen = new Map<string, Gruppe>();
+  for (const start of starts) {
+    let gruppe = gruppen.get(start.competition_id);
+    if (!gruppe) {
+      gruppe = { id: start.competition_id, name: start.competition_name, starts: [] };
+      gruppen.set(start.competition_id, gruppe);
+    }
+    gruppe.starts.push(start);
+  }
+  return [...gruppen.values()];
 }

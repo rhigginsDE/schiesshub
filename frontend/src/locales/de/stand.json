@@ -14,8 +14,8 @@
     "bahnen": "{{count}} Bahn",
     "bahnen_other": "{{count}} Bahnen",
     "leer_titel": "Kein Stand angelegt",
-    "leer_text": "Im Turnier gibt es noch keinen Stand. Stände legt die Turnierleitung an.",
-    "leer_link": "Zum Turnier"
+    "leer_text": "Im Turnier gibt es noch keinen Stand. Lege unter Turnier → Stände einen Stand mit seinen Bahnen an.",
+    "leer_link": "Stand anlegen"
   },
   "dialog_schliessen": "Schließen",
   "laden_fehler": "Daten des Stands konnten nicht geladen werden.",
@@ -70,18 +70,21 @@
     "anzahl": "{{count}} wartet",
     "anzahl_other": "{{count}} warten",
     "leer_titel": "Niemand wartet",
-    "leer_text": "Neue Starts kommen aus der Anmeldung hinten in die Reihenfolge.",
-    "keine_reihenfolge": "Auf diesem Stand läuft kein Wettbewerb nach Reihenfolge.",
+    "leer_text": "Neue Starts kommen aus der Anmeldung hinten in die Reihenfolge. Gebucht wird an der Station Anmeldung.",
+    "keine_reihenfolge": "Auf diesem Stand ist noch kein Wettbewerb eingeplant. Wettbewerbe ordnet die Turnierleitung einem Stand zu.",
     "position": "Platz {{nr}}",
-    "hoch": "Startnummer {{nr}} nach oben",
-    "runter": "Startnummer {{nr}} nach unten",
-    "anfang": "Startnummer {{nr}} an den Anfang",
+    "hoch": "{{wer}} nach oben",
+    "runter": "{{wer}} nach unten",
+    "anfang": "{{wer}} an den Anfang",
     "aufrufen": "Aufrufen",
-    "aufrufen_lang": "Startnummer {{nr}} aufrufen",
+    "aufrufen_lang": "{{wer}} aufrufen",
     "auf_bahn": "Auf Bahn {{bahn}}",
     "keine_bahn_frei": "Keine Bahn frei",
     "schon_am_stand": "Steht schon auf Bahn {{bahn}}",
-    "mehr": "Weitere Aktionen für Startnummer {{nr}}"
+    "mehr": "Weitere Aktionen für {{wer}}",
+    "wer": "Startnummer {{nr}} ({{wettbewerb}}, {{versuch}}. Start)",
+    "leer_link": "Zur Anmeldung",
+    "keine_link": "Wettbewerbe einrichten"
   },
   "zeitplan": {
     "titel": "Durchgänge",
@@ -185,6 +188,9 @@
     "platz_durchgang_ohne_bahn": "D {{nummer}} · {{zeit}}",
     "platz_reihenfolge": "Platz {{nr}} in der Reihenfolge",
     "platz_bahn": "Bahn {{bahn}}",
-    "platz_offen": "noch kein Platz"
-  }
+    "platz_offen": "noch kein Platz",
+    "gruppe_anzahl_one": "{{count}} Start",
+    "gruppe_anzahl_other": "{{count}} Starts"
+  },
+  "anleitung": "Rufe die Wartenden auf die freien Bahnen auf – der grüne Knopf holt die Nächsten. Mit den Pfeilen änderst du die Reihenfolge."
 }

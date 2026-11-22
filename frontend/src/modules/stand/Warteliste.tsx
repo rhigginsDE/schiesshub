@@ -1,5 +1,6 @@
 import { ActionIcon, Button, Menu } from "@mantine/core";
-import { ChevronDown, ChevronsUp, MoreVertical, PlayCircle, Users } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ChevronDown, ChevronsUp, MoreVertical, PlayCircle, UserPlus, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Chip } from "../../components/Chip";
 import { ReihenfolgeKnoepfe } from "../../components/Reihenfolge";
@@ -37,13 +38,30 @@ export function Warteliste({
   const bahnVon = (entryId: string) => bahnen.find((b) => b.start?.entry_id === entryId)?.lane;
 
   if (wartende.length === 0) {
-    return <Leerzustand icon={Users} titel={t("warten.leer_titel")} text={t("warten.leer_text")} />;
+    return (
+      <Leerzustand icon={Users} titel={t("warten.leer_titel")} text={t("warten.leer_text")}>
+        <Button
+          component={Link}
+          to="/anmeldung"
+          variant="default"
+          leftSection={<UserPlus aria-hidden />}
+        >
+          {t("warten.leer_link")}
+        </Button>
+      </Leerzustand>
+    );
   }
 
   return (
     <ol className={s.warteliste}>
       {wartende.map((start, index) => {
         const nr = start.start_number;
+        // Wer mehrere Starts hat, steht mehrfach in der Liste: Wettbewerb und Start gehören ins Label.
+        const wer = t("warten.wer", {
+          nr,
+          wettbewerb: start.competition_name,
+          versuch: start.attempt,
+        });
         const steht = besetzt.has(start.entry_id) ? bahnVon(start.entry_id) : undefined;
         return (
           <li key={start.start_id} className={s.warteZeile}>
@@ -68,8 +86,8 @@ export function Warteliste({
               <ReihenfolgeKnoepfe
                 index={index}
                 anzahl={wartende.length}
-                hoch={t("warten.hoch", { nr })}
-                runter={t("warten.runter", { nr })}
+                hoch={t("warten.hoch", { wer })}
+                runter={t("warten.runter", { wer })}
                 gesperrt={beschaeftigt}
                 onVerschieben={(richtung) =>
                   onVerschieben(start, { direction: richtung < 0 ? "up" : "down" })
@@ -78,9 +96,9 @@ export function Warteliste({
               <ActionIcon
                 variant="subtle"
                 color="gray"
-                size={40}
-                aria-label={t("warten.anfang", { nr })}
-                title={t("warten.anfang", { nr })}
+                size={44}
+                aria-label={t("warten.anfang", { wer })}
+                title={t("warten.anfang", { wer })}
                 disabled={beschaeftigt || index === 0}
                 onClick={() => onVerschieben(start, { position: 1 })}
               >
@@ -91,11 +109,11 @@ export function Warteliste({
                   <Button
                     variant="default"
                     size="sm"
-                    h={40}
+                    h={44}
                     leftSection={<PlayCircle aria-hidden />}
                     rightSection={<ChevronDown aria-hidden />}
                     disabled={beschaeftigt || frei.length === 0 || steht !== undefined}
-                    aria-label={t("warten.aufrufen_lang", { nr })}
+                    aria-label={t("warten.aufrufen_lang", { wer })}
                     title={
                       steht !== undefined
                         ? t("warten.schon_am_stand", { bahn: steht })
@@ -120,9 +138,9 @@ export function Warteliste({
                   <ActionIcon
                     variant="subtle"
                     color="gray"
-                    size={40}
-                    aria-label={t("warten.mehr", { nr })}
-                    title={t("warten.mehr", { nr })}
+                    size={44}
+                    aria-label={t("warten.mehr", { wer })}
+                    title={t("warten.mehr", { wer })}
                     disabled={beschaeftigt}
                   >
                     <MoreVertical aria-hidden />

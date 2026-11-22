@@ -101,14 +101,14 @@
 
 .trefferText strong {
   font-weight: 600;
-  font-size: 15px;
-  overflow-wrap: anywhere;
+  font-size: 16px;
+  overflow-wrap: break-word;
 }
 
 .trefferText > span {
   font-size: 13px;
   color: var(--sh-text-gedaempft);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .begrenzt {

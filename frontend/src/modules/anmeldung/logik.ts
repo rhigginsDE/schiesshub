@@ -51,6 +51,40 @@ export function nochBuchbar(
   return Math.max(0, startGrenze(wettbewerb) - bereits);
 }
 
+export type MengenHinweis =
+  /** Es können noch `anzahl` Starts dazukommen (die gerade gewählten schon abgezogen) */
+  | { art: "noch"; anzahl: number }
+  /** Mit den gewählten Starts ist die Höchstzahl erreicht; „+“ ist deshalb gesperrt */
+  | { art: "grenze"; grenze: number };
+
+/**
+ * Text unter „− n +“: wie viele Starts nach den gerade gewählten noch gehen. Ist die Grenze
+ * erreicht, sagt der Hinweis das, statt „noch 0 möglich“ neben einem grauen „+“ zu zeigen.
+ */
+export function mengenHinweis(
+  wettbewerb: Pick<Wettbewerb, "multi_start" | "max_starts">,
+  bereits: number,
+  neu: number,
+): MengenHinweis {
+  const rest = nochBuchbar(wettbewerb, bereits) - Math.max(0, neu);
+  if (rest > 0) return { art: "noch", anzahl: rest };
+  return { art: "grenze", grenze: startGrenze(wettbewerb) };
+}
+
+/**
+ * Welche Meldung nach dem Speichern passt:
+ * - `angemeldet`: neu angemeldet, mit Starts (Erfolg)
+ * - `ohne_start`: neu angemeldet, aber noch kein Start gebucht (neutraler Hinweis, kein Erfolg)
+ * - `gebucht`: weitere Starts für eine vorhandene Anmeldung (Erfolg)
+ * - `geaendert`: nur Klasse oder Startnummer geändert, nichts zu zahlen
+ */
+export type BestaetigungsArt = "angemeldet" | "ohne_start" | "gebucht" | "geaendert";
+
+export function bestaetigungsArt(neu: boolean, starts: number): BestaetigungsArt {
+  if (neu) return starts > 0 ? "angemeldet" : "ohne_start";
+  return starts > 0 ? "gebucht" : "geaendert";
+}
+
 export interface Betrag {
   cents: number;
   /** 1, wenn der erste Start der Person im Wettbewerb dabei ist */

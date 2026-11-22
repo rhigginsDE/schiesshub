@@ -42,6 +42,21 @@
   min-width: 220px;
 }
 
+/* Was hier zu tun ist – eine Zeile unter dem Titel, für Erstnutzer */
+.anleitung {
+  max-width: 75ch;
+  margin: 0;
+  color: var(--sh-text-weich);
+}
+
+.leerHinweis {
+  justify-items: start;
+}
+
+.leerHinweis p {
+  margin: 0;
+}
+
 /* ---------- Stand wählen ---------- */
 .standAuswahl {
   max-width: 880px;
@@ -157,7 +172,7 @@
 }
 
 .bahnNummer {
-  font-size: 44px;
+  font-size: 52px;
   font-weight: 700;
   line-height: 1;
 }
@@ -169,8 +184,9 @@
 }
 
 .bahnWer strong {
-  font-size: 18px;
-  overflow-wrap: anywhere;
+  font-size: 22px;
+  line-height: 1.2;
+  overflow-wrap: break-word;
 }
 
 [data-ohne-name] {
@@ -182,7 +198,9 @@
 .bahnWas {
   display: grid;
   gap: 2px;
-  font-size: 14px;
+  font-size: 15px;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .bahnZeit {
@@ -251,7 +269,7 @@
 }
 
 .warteNummer {
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 700;
   text-align: center;
   padding: 4px 6px;
@@ -266,8 +284,15 @@
   min-width: 0;
 }
 
+.warteWer strong {
+  font-size: 17px;
+  overflow-wrap: break-word;
+}
+
 .warteWer > span {
-  font-size: 13px;
+  font-size: var(--sh-fz-klein);
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .warteAktionen {
@@ -377,7 +402,7 @@
 }
 
 .platzWer strong {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .platzWer > span {
@@ -443,13 +468,31 @@
 }
 
 .zelleNr {
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 700;
 }
 
 .nameInhalt {
   display: grid;
   gap: 1px;
+  overflow-wrap: break-word;
+}
+
+/* Zwischenüberschrift je Wettbewerb */
+.gruppeZeile th {
+  padding: 18px 10px 8px;
+  font: italic 700 17px / 1.2 var(--sh-font-display);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--sh-text);
+  border-bottom: 1px solid var(--sh-linie-stark);
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.gruppeZeile th > span + span {
+  margin-left: 12px;
+  font: 500 var(--sh-fz-klein) / 1.2 var(--sh-font-text);
 }
 
 /* Schmal: jede Zeile wird eine Karte, damit nichts seitlich scrollt. */
@@ -507,6 +550,18 @@
   .tabelle td.zelleName::before {
     content: none;
   }
+
+  .tabelle tr.gruppeZeile {
+    display: block;
+    padding: 8px 0 0;
+    border: 0;
+    background: none;
+  }
+
+  .gruppeZeile th {
+    display: block;
+    padding: 0 0 6px;
+  }
 }
 
 @media (max-width: 640px) {
@@ -520,7 +575,7 @@
   }
 
   .bahnNummer {
-    font-size: 38px;
+    font-size: 44px;
   }
 
   .standSelect {

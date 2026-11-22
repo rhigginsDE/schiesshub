@@ -22,6 +22,12 @@ describe("ablehnungsgrund", () => {
       spalte: "Name",
     });
     expect(ablehnungsgrund(abgelehnt("Die Datei ist leer."))?.art).toBe("leer");
+    expect(
+      ablehnungsgrund(abgelehnt("Die Datei enthält Zeichen, die sich nicht lesen lassen. …"))?.art,
+    ).toBe("kodierung");
+    expect(
+      ablehnungsgrund(abgelehnt("Die Kopfzeile braucht eine Spalte „Name“ (oder …)."))?.art,
+    ).toBe("name_fehlt");
   });
 
   it("gibt unbekannte Meldungen des Servers weiter", () => {

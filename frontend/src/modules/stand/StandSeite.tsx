@@ -78,6 +78,7 @@ function StandMitTurnier({ turnier, onWechseln, suche, onSuche }: StandMitTurnie
           <Titel />
           <TurnierWechsel turnier={turnier} onWechseln={onWechseln} />
         </div>
+        {!startliste && <p className={s.anleitung}>{t("anleitung")}</p>}
         <div className={s.kopfZeile}>
           <SegmentedControl
             size="md"
@@ -139,7 +140,12 @@ function StandAuswahl({
           titel={t("stand_wahl.leer_titel")}
           text={t("stand_wahl.leer_text")}
         >
-          <Button component={Link} to={`/turnier/${uebersicht.id}`} variant="default">
+          <Button
+            renderRoot={(props) => (
+              <Link {...props} to={`/turnier/${uebersicht.id}`} search={{ bereich: "staende" }} />
+            )}
+            variant="default"
+          >
             {t("stand_wahl.leer_link")}
           </Button>
         </Leerzustand>

@@ -5,13 +5,14 @@
   "turnier_hinweis": "Die Anmeldung arbeitet in einem Turnier. Die Wahl gilt für dieses Gerät.",
   "schuetze": {
     "bereich": "Schütze",
-    "titel": "Schütze anmelden",
+    "titel": "Schütze suchen",
     "neu": "Neue Person",
     "andere": "Anderer Schütze",
     "angemeldet": "Schon angemeldet",
     "neue_anmeldung": "Neue Anmeldung",
     "angemeldet_nr": "Nr. {{nr}}",
-    "treffer_startnummer": "Treffer über die Startnummer – Enter öffnet"
+    "treffer_startnummer": "Treffer über die Startnummer – Enter öffnet",
+    "suche_hinweis": "Namen oder Startnummer eintippen und Enter drücken. Wer noch nicht in der Liste steht: „Neue Person anlegen“."
   },
   "person": {
     "startnummer": "Startnummer",
@@ -27,11 +28,11 @@
     "platzhalter": "Klasse wählen",
     "fehlt": "Bitte eine Klasse wählen.",
     "nichts": "Keine passende Klasse",
-    "keine": "Im Turnier sind noch keine Klassen angelegt."
+    "keine": "Im Turnier sind noch keine Klassen angelegt. Das geht unter Turnier → Klassen."
   },
   "buchen": {
     "titel": "Starts buchen",
-    "keine": "Im Turnier gibt es noch keine Wettbewerbe.",
+    "keine": "Im Turnier gibt es noch keine Wettbewerbe. Ohne Wettbewerb lassen sich keine Starts buchen.",
     "ohne_stand": "ohne Stand",
     "reihenfolge": "Reihenfolge",
     "zeitplan": "Zeitplan",
@@ -53,7 +54,10 @@
     "start_und_nachkauf_one": "1 Start + {{count}} Nachkauf",
     "start_und_nachkauf_other": "1 Start + {{count}} Nachkäufe",
     "nachkauf_one": "{{count}} Nachkauf",
-    "nachkauf_other": "{{count}} Nachkäufe"
+    "nachkauf_other": "{{count}} Nachkäufe",
+    "keine_link": "Wettbewerbe einrichten",
+    "grenze_one": "Nur ein Start je Person",
+    "grenze_other": "Höchstens {{count}} Starts erreicht"
   },
   "platz": {
     "titel": "Platz wählen: {{wettbewerb}}",
@@ -80,7 +84,8 @@
     "starts_one": "{{count}} Start",
     "starts_other": "{{count}} Starts",
     "davon_nachkauf_one": "davon {{count}} Nachkauf",
-    "davon_nachkauf_other": "davon {{count}} Nachkäufe"
+    "davon_nachkauf_other": "davon {{count}} Nachkäufe",
+    "nichts_neu": "Noch kein Start gewählt – Starts lassen sich auch später buchen."
   },
   "aktion": {
     "anmelden": "Anmelden",
@@ -91,7 +96,14 @@
   },
   "fertig": {
     "angemeldet": "{{name}} ist angemeldet.",
+    "ohne_start": "{{name}} ist angemeldet – noch kein Start gebucht.",
+    "ohne_start_text": "Es ist nichts zu zahlen. Starts später über die Liste „Angemeldet“ nachbuchen.",
     "gebucht": "Starts für {{name}} gebucht.",
+    "geaendert": "Anmeldung von {{name}} geändert ({{was}}).",
+    "geaendert_text": "Keine neuen Starts, nichts zu zahlen.",
+    "auch_geaendert": "geändert: {{was}}",
+    "aenderung_klasse": "Klasse {{klasse}}",
+    "aenderung_startnummer": "Startnummer {{nr}}",
     "startnummer": "Startnummer",
     "starts_one": "{{count}} Start",
     "starts_other": "{{count}} Starts",
@@ -145,7 +157,8 @@
     "titel": "Eingaben verwerfen?",
     "text": "Für diesen Schützen ist noch nichts gespeichert.",
     "bestaetigen": "Verwerfen",
-    "weiter": "Weiter bearbeiten"
+    "weiter": "Weiter bearbeiten",
+    "text_vorhanden": "Die neuen Starts und Änderungen an dieser Anmeldung sind noch nicht gespeichert."
   },
   "liste": {
     "titel": "Angemeldet",
@@ -156,8 +169,9 @@
     "suche_platzhalter": "Startnr., Name oder Verein",
     "suche_leeren": "Suche leeren",
     "leer_titel": "Noch niemand angemeldet",
-    "leer_text": "Angemeldete Schützen erscheinen hier, sobald sie gespeichert sind.",
+    "leer_text": "Such links den ersten Schützen, wähle die Klasse und buche Starts. Gespeicherte Anmeldungen erscheinen hier.",
     "keine_titel": "Keine Anmeldung gefunden",
     "keine_text": "Andere Schreibweise oder die Startnummer versuchen."
-  }
+  },
+  "anleitung": "Schützen suchen oder neu anlegen, Klasse wählen, Starts buchen – dann den angezeigten Betrag kassieren."
 }

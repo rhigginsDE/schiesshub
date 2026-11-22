@@ -27,7 +27,7 @@ export interface DateiFehler {
 export function ablehnungsgrund(fehler: unknown): DateiFehler | null {
   if (!(fehler instanceof ApiFehler) || fehler.art !== "anfrage") return null;
   const meldung = fehlertext(fehler) ?? "";
-  if (/UTF-8|kodiert/i.test(meldung)) return { art: "kodierung" };
+  if (/UTF-8|kodiert|nicht lesen lassen/i.test(meldung)) return { art: "kodierung" };
   const unbekannt = /Spalte „([^“]+)“ ist unbekannt/.exec(meldung);
   if (unbekannt) return { art: "spalte_unbekannt", spalte: unbekannt[1] };
   const doppelt = /Spalte „([^“]+)“ kommt doppelt vor/.exec(meldung);

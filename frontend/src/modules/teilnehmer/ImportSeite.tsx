@@ -28,6 +28,15 @@ interface Datei {
   text: string;
 }
 
+/** Wie der Server: UTF-8, sonst Windows-1252 (Excel „CSV (Trennzeichen-getrennt)“). */
+function dateiText(inhalt: ArrayBuffer): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(inhalt);
+  } catch {
+    return new TextDecoder("windows-1252").decode(inhalt);
+  }
+}
+
 const STATUS_TON: Record<ImportZeile["status"], ChipTon> = {
   new: "gruen",
   duplicate: "warn",
@@ -162,7 +171,7 @@ function Import() {
       return;
     }
     const inhalt = await gewaehlt.arrayBuffer();
-    const text = new TextDecoder("utf-8").decode(inhalt);
+    const text = dateiText(inhalt);
     setDatei({ name: gewaehlt.name, inhalt, text });
     pruefen.mutate(inhalt);
   };
@@ -275,6 +284,14 @@ function Import() {
             <h3 className="h-label">{t("import.vorschau_titel")}</h3>
             <Zusammenfassung bericht={bericht} />
             <p className="gedaempft">{t("import.hinweis_ueberspringen")}</p>
+            {(bericht.ignored_columns?.length ?? 0) > 0 && (
+              <p className="gedaempft">
+                {t("import.ignoriert", {
+                  count: bericht.ignored_columns?.length,
+                  spalten: bericht.ignored_columns?.join(", "),
+                })}
+              </p>
+            )}
           </div>
 
           {bericht.rows.length > 0 && (bericht.duplicate > 0 || bericht.error > 0) && (
@@ -296,7 +313,11 @@ function Import() {
             </thead>
             <tbody>
               {sichtbareZeilen.map((zeile) => {
+                // Der Server liefert Name und Verein so, wie er sie gelesen hat (auch bei
+                // getrennten Spalten Vorname/Nachname); die eigene Auswertung ist nur Rückfall.
                 const daten = zeilen.get(zeile.line);
+                const name = zeile.name ?? daten?.name;
+                const verein = zeile.club ?? daten?.verein;
                 const meldung =
                   zeile.message ??
                   (zeile.status === "duplicate"
@@ -308,8 +329,8 @@ function Import() {
                   <tr key={zeile.line} className={s.tabellenZeile} data-status={zeile.status}>
                     <td className={`num ${s.zeileNr}`}>{zahl(zeile.line)}</td>
                     <td className={s.zeilePerson}>
-                      <strong>{daten?.name || "—"}</strong>
-                      {daten?.verein && <span className={s.zeileVerein}>{daten.verein}</span>}
+                      <strong>{name || "—"}</strong>
+                      {verein && <span className={s.zeileVerein}>{verein}</span>}
                     </td>
                     <td className={s.zeileErgebnis}>
                       <Chip ton={STATUS_TON[zeile.status]}>

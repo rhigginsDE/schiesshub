@@ -18,7 +18,8 @@ const SUCHE_VERZOEGERUNG_MS = 200;
  * Anmeldung (Starts buchen).
  *
  * Schnittstelle:
- * - `onAuswahl(person)`: Person gewählt (Klick/Tippen oder Enter im Suchfeld = erster Treffer).
+ * - `onAuswahl(person)`: Person gewählt (Klick/Tippen oder Enter im Suchfeld mit Suchtext =
+ *   erster Treffer).
  * - `onNeu(name)`: optional. Zeigt „Neue Person anlegen“; `name` ist der getippte Suchtext
  *   (bereinigt, ggf. leer) als Vorschlag für das Namensfeld.
  * - `aktivId`: ID der gerade geöffneten Person; wird in der Liste markiert.
@@ -33,7 +34,8 @@ const SUCHE_VERZOEGERUNG_MS = 200;
  * - `enterVorrang(text)`: optional. Enter im Suchfeld fragt zuerst hier; `true` = erledigt.
  * - `autoFokus`: Suchfeld beim Einblenden fokussieren (z. B. nach dem Speichern neu einblenden).
  *
- * Tastatur: „/“ fokussiert, Enter öffnet den ersten Treffer, ↓/↑ wandern durch die Treffer.
+ * Tastatur: „/“ fokussiert, Enter öffnet den ersten Treffer (nur mit Suchtext; im leeren Feld
+ * springt Enter in die Liste, ohne jemanden zu öffnen), ↓/↑ wandern durch die Treffer.
  * Datenschutz: Der Suchtext bleibt im Zustand der Komponente – nicht in der Adresse, nicht im
  * Browser-Speicher, nicht im Protokoll.
  *
@@ -125,6 +127,12 @@ export function PersonenSuche({
     if (ereignis.key === "Enter") {
       ereignis.preventDefault();
       const text = eingabe.trim();
+      // Ohne Suchtext öffnet Enter niemanden (typischer Fehlgriff „Enter zum Absenden“):
+      // höchstens in die Liste springen, damit die Wahl bewusst bleibt.
+      if (!text) {
+        trefferFokussieren(0);
+        return;
+      }
       if (enterVorrang?.(text)) return;
       if (text !== suchtext || !aktuell) {
         verzoegert.cancel();

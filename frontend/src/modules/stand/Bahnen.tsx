@@ -1,6 +1,6 @@
 import { Button, Menu } from "@mantine/core";
 import { Ban, ChevronDown, Clock, PlayCircle, Undo2 } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Chip } from "../../components/Chip";
 import { formatUhrzeit } from "../../lib/format";
@@ -15,40 +15,10 @@ import s from "./stand.module.css";
  */
 export const ERGEBNIS_ERFASSEN_PFAD: ((start: StationStart) => string) | null = null;
 
-/**
- * Wann ein Start auf die Bahn kam. Der Server liefert dafür (noch) keinen Zeitpunkt; die Seite
- * merkt sich deshalb, wann sie einen Aufruf selbst gesehen hat. Was schon beim Laden auf der Bahn
- * stand, bleibt ohne Zeit (`null`), statt eine falsche Uhrzeit zu zeigen.
- */
-export function useAufrufZeiten(
-  bahnen: readonly Bahn[] | undefined,
-): ReadonlyMap<string, Date | null> {
-  const zeiten = useRef(new Map<string, Date | null>());
-  const erstesMal = useRef(true);
-  const [, setStand] = useState(0);
-
-  useEffect(() => {
-    if (!bahnen) return;
-    const karte = zeiten.current;
-    let neu = false;
-    for (const bahn of bahnen) {
-      if (bahn.start && !karte.has(bahn.start.start_id)) {
-        karte.set(bahn.start.start_id, erstesMal.current ? null : new Date());
-        neu = true;
-      }
-    }
-    erstesMal.current = false;
-    if (neu) setStand((n) => n + 1);
-  }, [bahnen]);
-
-  return zeiten.current;
-}
-
 interface BahnKachelProps {
   bahn: Bahn;
   /** Planung des Wettbewerbs des Starts auf der Bahn */
   planung: "queue" | "schedule" | null;
-  seit: Date | null | undefined;
   /** „Nächsten auf Bahn n“; fehlt, wenn niemand aufrufbar ist */
   onNaechsten?: () => void;
   onZurueck: (start: StationStart, position: "front" | "back") => void;
@@ -60,7 +30,6 @@ interface BahnKachelProps {
 export function BahnKachel({
   bahn,
   planung,
-  seit,
   onNaechsten,
   onZurueck,
   onAbbrechen,
@@ -77,8 +46,9 @@ export function BahnKachel({
       nummer: start.heat_number,
       zeit: formatUhrzeit(new Date(start.heat_starts_at), i18n.language),
     });
-  } else if (seit) {
-    zeit = t("bahn.seit", { zeit: formatUhrzeit(seit, i18n.language) });
+  } else if (start?.called_at) {
+    // Aufrufzeit vom Server: gleich auf jedem Gerät und auch nach dem Neuladen.
+    zeit = t("bahn.seit", { zeit: formatUhrzeit(new Date(start.called_at), i18n.language) });
   }
 
   return (

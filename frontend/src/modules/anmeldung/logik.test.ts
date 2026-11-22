@@ -3,10 +3,12 @@ import { bestimmeTurnier, sortiereTurniere } from "../../components/useAktivesTu
 import type { Turnier } from "../turnier/typen";
 import type { Anmeldung, Start } from "./api";
 import {
+  bestaetigungsArt,
   betragVorschau,
   gebuchteStarts,
   kennzahlen,
   loeschbar,
+  mengenHinweis,
   naechsteStartnummer,
   nochBuchbar,
   sperreFuer,
@@ -70,6 +72,32 @@ describe("Betragsvorschau (wie start_fee im Server)", () => {
   it("summiert Zeilen", () => {
     const gesamt = summe([betragVorschau(W, 0, 2), { cents: 600, erste: 1, nachkauf: 0 }]);
     expect(gesamt).toEqual({ cents: 1900, erste: 2, nachkauf: 1 });
+  });
+});
+
+describe("Meldung nach dem Speichern", () => {
+  it("unterscheidet Anmeldung, Anmeldung ohne Start, Nachbuchen und reine Änderung", () => {
+    expect(bestaetigungsArt(true, 2)).toBe("angemeldet");
+    expect(bestaetigungsArt(true, 0)).toBe("ohne_start");
+    expect(bestaetigungsArt(false, 1)).toBe("gebucht");
+    expect(bestaetigungsArt(false, 0)).toBe("geaendert");
+  });
+});
+
+describe("Hinweis unter der Anzahl", () => {
+  it("zieht die gerade gewählten Starts ab", () => {
+    expect(mengenHinweis(W, 0, 0)).toEqual({ art: "noch", anzahl: 3 });
+    expect(mengenHinweis(W, 0, 2)).toEqual({ art: "noch", anzahl: 1 });
+    expect(mengenHinweis(W, 2, 0)).toEqual({ art: "noch", anzahl: 1 });
+  });
+
+  it("nennt die Grenze, sobald „+“ gesperrt ist", () => {
+    expect(mengenHinweis(W, 1, 2)).toEqual({ art: "grenze", grenze: 3 });
+    expect(mengenHinweis(W, 0, 3)).toEqual({ art: "grenze", grenze: 3 });
+    expect(mengenHinweis({ multi_start: false, max_starts: 3 }, 0, 1)).toEqual({
+      art: "grenze",
+      grenze: 1,
+    });
   });
 });
 

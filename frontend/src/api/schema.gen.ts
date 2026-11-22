@@ -3839,6 +3839,8 @@ export interface components {
             error: number;
             /** New Clubs */
             new_clubs: string[];
+            /** Ignored Columns */
+            ignored_columns?: string[];
             /** Rows */
             rows: components["schemas"]["ImportRowOut"][];
         };
@@ -3855,6 +3857,10 @@ export interface components {
             message?: string | null;
             /** Person Id */
             person_id?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Club */
+            club?: string | null;
         };
         /** InitializeUsbIn */
         InitializeUsbIn: {
