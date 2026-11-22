@@ -228,12 +228,31 @@ DeviceManager = Annotated[Actor, Depends(authorized("device.manage"))]
 )
 async def create_pairing_code(
     body: PairingCodeIn,
+    request: Request,
     actor: DeviceManager,
     session: SessionDep,
     settings: SettingsDep,
     events: EventHubDep,
 ) -> PairingCodeOut:
-    return await service.create_pairing_code(session, actor, settings, events, body)
+    created = await service.create_pairing_code(session, actor, settings, events, body)
+    configured = getattr(request.app.state.settings, "public_base_url", "")
+    created.server_urls = server_urls(configured, request)
+    return created
+
+
+def server_urls(configured: str, request: Request) -> list[str]:
+    """Adressen für den Kopplungs-QR-Code: die eingestellten (`PUBLIC_BASE_URL`, mit Komma
+    getrennt) oder die Herkunft der Anfrage, wie der Proxy sie weiterreicht. Keine
+    Netzwerk-Erkundung."""
+    urls = [url.strip().rstrip("/") for url in configured.split(",") if url.strip()]
+    if urls:
+        return urls
+    headers = request.headers
+    host = (headers.get("x-forwarded-host") or headers.get("host") or "").split(",")[0].strip()
+    if not host:
+        return []
+    proto = (headers.get("x-forwarded-proto") or request.url.scheme).split(",")[0].strip()
+    return [f"{proto}://{host}"]
 
 
 @devices_router.get("", summary="Gekoppelte Geräte")

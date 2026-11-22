@@ -109,7 +109,7 @@ def test_form_and_capture_mode_make_no_difference() -> None:
     assert shot.sections == series.sections
     first = shot.sections[0].series[0]
     assert [(f.key, f.kind, f.min, f.max) for f in first.fields] == [
-        ("time_cs", "time", 1, None),
+        ("time_cs", "time", 1, 18000),  # Plausibilitätsgrenze: 3 × 60 s
         ("standing", "integer", 0, 5),
     ]
     assert first.hints == [

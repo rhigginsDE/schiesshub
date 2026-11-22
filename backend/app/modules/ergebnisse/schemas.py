@@ -38,6 +38,11 @@ class RawPut(StrictModel):
 
 class FinalizeRequest(StrictModel):
     base_seq: Seq
+    # Optional: Stand, den der Mensch gesehen hat. Weicht der Server davon ab (andere
+    # Sequenznummer oder anderes Ergebnis), wird nicht abgeschlossen (409 mit aktuellem Stand).
+    expected_seq: Seq | None = None
+    # Als Zahl oder Text („40.00“) wie `score` in den Antworten.
+    expected_score: Annotated[Decimal, Field(strict=False)] | None = None
 
 
 class ReopenRequest(StrictModel):
@@ -211,7 +216,8 @@ class RankingRow(BaseModel):
     place: int | None
     tied: bool
     tie_unresolved: bool
-    # ranked: regulär; last: unvollständig oder aufgegeben, hinten; unranked: ohne Platz.
+    # ranked: regulär; last: unvollständig (live), hinten; unranked: ohne Platz (abgebrochen,
+    # unvollständig in einer endgültigen Liste, prüfen).
     group: Literal["ranked", "last", "unranked"]
     start_id: UUID
     entry_id: UUID
@@ -247,6 +253,8 @@ class RankingGroup(BaseModel):
 class RankingOut(BaseModel):
     competition_id: UUID
     competition_name: str
+    # Kennziffer aus dem Katalog („4401“); null bei eigenen Wettbewerben.
+    competition_code: str | None = None
     scope: Literal["final", "live"]
     include_provisional: bool
     merged: bool

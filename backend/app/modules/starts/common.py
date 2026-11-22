@@ -90,6 +90,19 @@ class StartContext:
     entry: Entry
     competition: Competition
 
+    def audit_details(self, **extra: object) -> dict[str, object]:
+        """Angaben für das System-Protokoll: Startnummer und Wettbewerb, nie der Name."""
+        return {
+            "tournament_id": str(self.entry.tournament_id),
+            "entry_id": str(self.entry.id),
+            "competition_id": str(self.competition.id),
+            "competition_code": self.competition.catalog_code,
+            "competition_name": self.competition.name,
+            "start_number": self.entry.start_number,
+            "attempt": self.start.attempt,
+            **extra,
+        }
+
 
 async def get_start(
     session: AsyncSession, tournament_id: uuid.UUID, start_id: uuid.UUID

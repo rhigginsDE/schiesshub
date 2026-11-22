@@ -374,7 +374,7 @@ class DeviationOut(BaseModel):
 class CatalogDiffOut(BaseModel):
     """Vergleich der aktuellen Definition mit der Katalog-Variante, aus der sie stammt."""
 
-    # Mindestens eine Abweichung („abweichend vom Sporthandbuch“).
+    # Mindestens eine Abweichung („abweichend vom Katalog“).
     deviates: bool
     # Herkunft; alles leer bei eigenen Wettbewerben ohne Katalog.
     federation: str | None = None

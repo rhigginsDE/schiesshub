@@ -1,0 +1,106 @@
+"""Abgebrochene Starts (DNS, DNF, DSQ) bekommen nie einen Platz und stehen nie vor Gewerteten.
+
+Befund aus dem Audit: Ein aufgegebener Start (Fallscheibe, niedriger ist besser) mit
+unvollständiger, kleinster Summe stand als „1.“ auf der Siegerliste.
+"""
+
+from typing import Any
+
+import pytest
+
+from app.scoring import Contender, RankPolicy, best_of, rank
+
+
+def c(ident: str, *key: int | None, **extra: Any) -> Contender:
+    return Contender(id=ident, key=list(key), **extra)
+
+
+def places(placements: list) -> list[tuple]:
+    return [(p.id, p.place, p.group) for p in placements]
+
+
+def test_dnf_with_better_partial_time_never_gets_a_place() -> None:
+    # Zeitwertung: Schlüssel ist die negierte Zeit; 40,00 s (2 von 4 Serien) wäre „besser“.
+    contenders = [
+        c("fertig", -4800),
+        c("aufgegeben", -4000, complete=False, abort_reason="dnf"),
+    ]
+    assert places(rank(contenders)) == [
+        ("fertig", 1, "ranked"),
+        ("aufgegeben", None, "unranked"),
+    ]
+
+
+def test_dnf_alone_in_its_class_is_not_first() -> None:
+    assert places(rank([c("allein", -4000, complete=False, abort_reason="dnf")])) == [
+        ("allein", None, "unranked")
+    ]
+
+
+def test_ring_scoring_dnf_with_higher_partial_is_not_placed() -> None:
+    # Ringwertung (höher ist besser): Auch wenn ein Teilergebnis vorn wäre, kein Platz.
+    contenders = [c("fertig", 9000), c("aufgegeben", 9900, abort_reason="dnf")]
+    assert places(rank(contenders)) == [("fertig", 1, "ranked"), ("aufgegeben", None, "unranked")]
+
+
+def test_default_lists_every_abort_at_the_end_in_fixed_order() -> None:
+    contenders = [
+        Contender(id="disq", abort_reason="dsq"),
+        Contender(id="nicht_da", abort_reason="dns"),
+        c("aufgegeben", 50, abort_reason="dnf"),
+        c("fertig", 10),
+    ]
+    assert places(rank(contenders)) == [
+        ("fertig", 1, "ranked"),
+        ("aufgegeben", None, "unranked"),
+        ("nicht_da", None, "unranked"),
+        ("disq", None, "unranked"),
+    ]
+
+
+def test_aborted_can_be_left_out() -> None:
+    contenders = [c("fertig", 10), c("aufgegeben", 50, abort_reason="dnf")]
+    policy = RankPolicy.for_list(final=True, include_aborted=False)
+    assert places(rank(contenders, policy)) == [("fertig", 1, "ranked")]
+
+
+def test_aborted_policy_cannot_grant_a_place() -> None:
+    for value in ("normal", "last"):
+        with pytest.raises(ValueError, match="dnf"):
+            RankPolicy(dnf=value)  # type: ignore[arg-type]
+
+
+def test_final_list_does_not_place_incomplete_results() -> None:
+    contenders = [c("fertig", -4800), c("offen", -2000, complete=False)]
+    assert places(rank(contenders, RankPolicy.for_list(final=True))) == [
+        ("fertig", 1, "ranked"),
+        ("offen", None, "unranked"),
+    ]
+    # Live: unvollständig hinten, aber nie vor den Vollständigen.
+    assert places(rank(contenders, RankPolicy.for_list(final=False))) == [
+        ("fertig", 1, "ranked"),
+        ("offen", 2, "last"),
+    ]
+
+
+def test_best_of_never_prefers_an_aborted_attempt() -> None:
+    attempts = [
+        c("dieter-1", -4000, entry_id="dieter", attempt=1, complete=False, abort_reason="dnf"),
+        c("dieter-2", -4800, entry_id="dieter", attempt=2),
+    ]
+    assert [s.id for s in best_of(attempts, "best")] == ["dieter-2"]
+    assert [s.id for s in best_of(attempts, "first")] == ["dieter-2"]
+    policy = RankPolicy.for_list(final=True)
+    assert [s.id for s in best_of(attempts, "best", policy)] == ["dieter-2"]
+
+
+def test_person_with_only_aborted_attempts_stands_at_the_end() -> None:
+    starts = [
+        c("anna-1", 9000, entry_id="anna"),
+        c("ben-1", 9500, entry_id="ben", attempt=1, abort_reason="dnf"),
+        Contender(id="ben-2", entry_id="ben", attempt=2, abort_reason="dns"),
+    ]
+    chosen = best_of(starts, "best")
+    assert places(rank(chosen)) == [("anna-1", 1, "ranked"), ("ben-1", None, "unranked")]
+    left_out = RankPolicy.for_list(final=True, include_aborted=False)
+    assert places(rank(best_of(starts, "best", left_out), left_out)) == [("anna-1", 1, "ranked")]

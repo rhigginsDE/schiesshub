@@ -133,7 +133,8 @@ async def test_counted_series_six_to_four_after_start(api: Api, engine: AsyncEng
     rows = (await api.ranking(setup.tid, setup.cid))["groups"][0]["rows"]
     assert [(r["start_id"], r["place"], r["status"], r["group"]) for r in rows] == [
         (a, 1, "final", "ranked"),
-        (b, 2, "review", "last"),
+        # Endgültige Liste: unvollständig heißt ohne Platz (Audit 22.11.2026).
+        (b, None, "review", "unranked"),
     ]
     summary = await api.ok("GET", f"/tournaments/{setup.tid}/ranking-summary")
     assert summary["competitions"][0]["needs_review"] == 1

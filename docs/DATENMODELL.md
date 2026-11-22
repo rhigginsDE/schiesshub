@@ -113,6 +113,10 @@ Erlaubte Statuswechsel:
 
 **`heat`**: `range_id`, `number`, `starts_at`, `ends_at`.
 
+**Reihenfolge der Startliste** (`GET …/startlist`, Anzeige, Export „nach Wettbewerb“): je Wettbewerb nach Durchgang (Uhrzeit, darin die gebuchte Bahn), sonst nach Platz in der Reihenfolge, dann Startnummer, dann Versuch. Die Bahn eines Starts ohne Durchgang ist nur die zuletzt benutzte und zählt für die Sortierung nicht; so steht der 1. Versuch einer Person immer vor ihrem 2.
+
+**Volle Namen am Stand:** `GET …/startlist`, `…/ranges/{id}/queue` und `…/ranges/{id}/now` liefern Namen nach Anzeige-Einstellung. Mit `names=full` (nur mit `start.call`, `result.capture` oder `entry.read`, sonst 403) kommen `full_name` und `full_club` dazu; die öffentlichen Felder bleiben unverändert.
+
 ## Ergebnisse
 
 Ergebnisse werden nie überschrieben.
@@ -130,6 +134,15 @@ Ergebnisse werden nie überschrieben.
 **`result_current`**: `start_id`, `competition_id`, `raw` (JSONB), `computed` (JSONB), `score`, `rank_keys` (JSONB), `is_final`, `finalized_at`, `provisional_until`, `last_seq` (Nummer des letzten Ereignisses), `definition_revision` (Revision der Wertung, mit der gerechnet wurde), `needs_review` und `review_reason` (abgeschlossen, aber nach einer Änderung der Wertung unvollständig oder nicht wertbar).
 
 `result_current` wird in derselben Transaktion wie das Ereignis geschrieben und lässt sich jederzeit aus den Ereignissen neu aufbauen.
+
+**Reihenfolge der Eingaben:** Jeder schreibende Vorgang außer dem Abbruch verlangt `base_seq` (die letzte bekannte `seq`, beim Wiederöffnen optional); weicht sie ab, antwortet der Server mit 409 und dem aktuellen Stand (`current`), nichts wird geschrieben. Gleichzeitige Anfragen werden über Zeilensperren nacheinander abgearbeitet; von zwei Anfragen mit demselben `base_seq` geht genau eine durch. Derselbe `Idempotency-Key` mit demselben Inhalt liefert den aktuellen Stand ohne neues Ereignis, mit anderem Inhalt 422. `POST …/finalize` nimmt zusätzlich `expected_seq` und `expected_score` (der Stand, den der Mensch bestätigt hat); weicht der Server ab, 409 ohne Abschluss.
+
+**Rangliste** (`GET …/competitions/{id}/ranking`, dieselbe Regel für Anzeige und Export, `RankPolicy.for_list` in `app.scoring`):
+
+- Abgebrochene Starts (`dns`, `dnf`, `dsq`) bekommen nie einen Platz und stehen nie vor gewerteten Ergebnissen, gleich ob ihr Teilergebnis nach der Wertungsrichtung besser wäre. Sie stehen am Ende ihrer Gruppe ohne Platz (`group: unranked`, `abort_reason`), in der Reihenfolge aufgegeben, nicht angetreten, disqualifiziert. `include_aborted=false` lässt sie weg. Voreinstellung: aufführen (Rangliste, Export); auf dem Bildschirm nur mit der Option `show_aborted` der Ansicht (Standard aus).
+- `scope=final`: Ein unvollständiges Ergebnis (etwa nach einer Änderung der Wertung) steht ohne Platz da. `scope=live`: unvollständige (laufende) stehen mit Platz hinter allen vollständigen.
+- Mehrfachstart: Ein abgebrochener Versuch wird nie einem gewerteten oder laufenden vorgezogen (`best` und `first`). Wer nur abgebrochene Versuche hat, steht einmal am Ende.
+- Der Export zeigt bei Abgebrochenen kein Ergebnis, nur den Grund.
 
 ### Rohwerte
 
@@ -156,7 +169,8 @@ Ergebnisse werden nie überschrieben.
 
 - `shots`: Ringwerte 0 bis 10, `"X"` ist ein Innenzehner.
 - `sum`: Seriensumme, wenn nicht einzeln erfasst wird; `tens` und `inner_tens` optional für den Gleichstand.
-- `time_cs`: gemessene Zeit. `standing`: stehende Scheiben.
+- `time_cs`: gemessene Zeit in Hundertstelsekunden, größer 0. Braucht der Status keine gemessene Zeit (Zeitlimit, Abbruch, Störung), wird eine 0 ignoriert. **Plausibilität:** Eine gemessene Zeit, die zählt, darf höchstens das Dreifache des Zeitlimits betragen (`max_zeit_je_serie_s` bzw. `max_gesamtzeit_s` für die Gesamtzeit), ohne Limit höchstens 3600 s; darüber ist es ein Fehler („Serie 2: 9999,00 s ist unplausibel – höchstens 180 s; …“). Je Abschnitt überschreibbar mit `zeit_plausibel_faktor` (ab 1) oder `zeit_plausibel_max_s` (feste Grenze). Die Eingabemaske nennt die Grenze als `max` des Zeitfelds. Gespeicherte Ergebnisse über der Grenze werden bei der nächsten Neuberechnung „prüfen“ (`needs_review`), nicht unlesbar. Zwischen Zeitlimit und Grenze gibt es nur eine Warnung.
+- `standing`: stehende Scheiben.
 - `status` je Serie, optional: `normal` (Standard), `unfinished` (nicht beendet), `time_limit` (Zeitlimit erreicht), `aborted_by_shooter` (vom Schützen abgebrochen), `malfunction_before_first_shot` (Waffenstörung vor dem ersten Wertungsschuss). Die Wertung setzt dafür die Katalogwerte ein, etwa `zeit_bei_abbruch_s` oder `zuschlag_stoerung_vor_erstem_schuss_s`.
 - `time_cs` auf Abschnittsebene (neben `series`): Gesamtzeit eines Parcours mit Sollzeit (`sollzeit_s`).
 - Gestrichene Serien: Ist `serien_gewertet` gesetzt, werden alle Serien erfasst, gewertet aber nur die ersten N.
@@ -181,6 +195,6 @@ Berechtigungen sind Texte wie `tournament.edit`, `entry.edit`, `result.capture`,
 
 **`backup_run`**: `started_at`, `finished_at`, `kind` (`snapshot`, `journal`), `target` (`local`, `usb`), `file_name`, `size_bytes`, `sha256`, `ok`, `error`.
 
-**`audit_log`**: `at`, `user_id`, `device_id`, `action`, `entity`, `entity_id`, `details` (JSONB). Für alles außerhalb der Ergebnisse, zum Beispiel Änderungen an Turnier-Einstellungen oder Rollen.
+**`audit_log`**: `at`, `user_id`, `device_id`, `action`, `entity`, `entity_id`, `details` (JSONB). Für Änderungen an Turnier-Einstellungen, Rollen, Anmeldungen und Starts. Ergebnisvorgänge stehen zusätzlich zum Ergebnisprotokoll hier, damit das System-Protokoll sie zeigt: `result.finalized`, `result.corrected`, `start.reopened`, `start.aborted`, `result.recomputed`; ebenso Änderungen am Ablauf am Stand: `start.moved`, `start.returned`, `start.lane_released`, `start.slot_assigned`, `start.slot_cleared`, `heat.created`, `heat.updated`, `heat.deleted`. `details` nennt Startnummer, Versuch, Kennziffer und Name des Wettbewerbs, Grund und Ergebnis, nie den Namen der Person.
 
 Die Katalog-Tabellen (`catalog_*`) werden beim Start aus `catalog/` gefüllt und sind in der App nur lesbar.

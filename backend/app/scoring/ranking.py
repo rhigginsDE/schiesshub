@@ -14,14 +14,18 @@ nach Wettkampfart vergeben: 1, 2, 2, 4.
 
 **Unvollständige und abgebrochene Starts** (`RankPolicy`):
 
-- `incomplete` (Rohwerte unvollständig, kein Abbruch) und `dnf` (aufgegeben):
+- Abgebrochene Starts (`dns` nicht angetreten, `dnf` aufgegeben, `dsq` disqualifiziert) bekommen
+  **nie** einen Platz und stehen nie vor gewerteten Ergebnissen – gleich, ob ihr Teilergebnis
+  nach der Wertungsrichtung besser wäre. `"unranked"` – am Ende ohne Platz aufgeführt (in der
+  Reihenfolge aufgegeben, nicht angetreten, disqualifiziert); `"exclude"` – nicht in der Liste.
+- `incomplete` (Rohwerte unvollständig, kein Abbruch, etwa ein laufender Start):
   `"normal"` – mit dem bisherigen Ergebnis regulär einsortiert;
   `"last"` – hinter allen regulären Starts, untereinander nach Ergebnis, Plätze laufen weiter;
-  `"exclude"` – nicht in der Liste.
-- `dns` (nicht angetreten) und `dsq` (disqualifiziert):
-  `"unranked"` – am Ende ohne Platz aufgeführt; `"exclude"` – nicht in der Liste.
+  `"unranked"` – ohne Platz am Ende (vor den Abgebrochenen); `"exclude"` – nicht in der Liste.
 
-Voreinstellung: unvollständig und DNF hinten, DNS und DSQ nicht in der Liste.
+Voreinstellung (`RankPolicy()`): unvollständig hinten, Abgebrochene ohne Platz am Ende.
+`RankPolicy.for_list(final=…, include_aborted=…)` liefert die Regel einer Liste: In endgültigen
+Listen werden auch unvollständige Ergebnisse nicht platziert.
 """
 
 from collections.abc import Mapping, Sequence
@@ -63,11 +67,24 @@ class Contender(_Frozen):
         return self.entry_id or self.id
 
 
+AbortedSetting = Literal["unranked", "exclude"]
+
+
 class RankPolicy(_Frozen):
-    incomplete: Literal["normal", "last", "exclude"] = "last"
-    dnf: Literal["normal", "last", "exclude"] = "last"
-    dns: Literal["unranked", "exclude"] = "exclude"
-    dsq: Literal["unranked", "exclude"] = "exclude"
+    incomplete: Literal["normal", "last", "unranked", "exclude"] = "last"
+    # Abgebrochene: nie mit Platz (es gibt bewusst keine Einstellung dafür).
+    dnf: AbortedSetting = "unranked"
+    dns: AbortedSetting = "unranked"
+    dsq: AbortedSetting = "unranked"
+
+    @classmethod
+    def for_list(cls, *, final: bool, include_aborted: bool = True) -> RankPolicy:
+        """Endgültige Liste (`final`): Unvollständige ohne Platz; sonst (live) hinten.
+        `include_aborted=False` lässt abgebrochene Starts ganz weg."""
+        aborted: AbortedSetting = "unranked" if include_aborted else "exclude"
+        return cls(
+            incomplete="unranked" if final else "last", dnf=aborted, dns=aborted, dsq=aborted
+        )
 
 
 class Placement(_Frozen):
@@ -137,9 +154,12 @@ def rank(contenders: Sequence[Contender], policy: RankPolicy | None = None) -> l
                 for member in members
             )
             next_place += len(members)
+    # Ohne Platz: erst Unvollständige, dann aufgegeben, nicht angetreten, disqualifiziert;
+    # innerhalb gleicher Art in der Reihenfolge der Eingabe.
+    unranked = sorted(groups["unranked"], key=lambda c: UNRANKED_ORDER[c.abort_reason])
     placements.extend(
         Placement(id=c.id, place=None, tied=False, tie_unresolved=False, group="unranked")
-        for c in groups["unranked"]
+        for c in unranked
     )
     return placements
 
@@ -152,9 +172,11 @@ def best_of(
     """Wählt bei Mehrfachstart je Teilnehmer (`entry_id`) die Starts, die in die Wertung gehen.
 
     - `all`: jeder Start zählt für sich.
-    - `first`: der Start mit der kleinsten `attempt`-Nummer; ein DNS wird übersprungen, solange
-      es einen anderen Start gibt (ein nicht angetretener Start hat kein Ergebnis).
+    - `first`: der Start mit der kleinsten `attempt`-Nummer, der nicht abgebrochen ist; gibt es
+      nur abgebrochene, der erste davon, der angetreten ist (sonst der erste).
     - `best`: der Start, der nach `policy` am weitesten vorn stünde; bei Gleichheit der frühere.
+
+    Ein abgebrochener Versuch wird nie einem gewerteten (oder laufenden) vorgezogen.
     """
     if rule == "all":
         return list(contenders)
@@ -169,14 +191,16 @@ def best_of(
     for attempts in by_participant.values():
         ordered = sorted(attempts, key=lambda c: c.attempt)
         if rule == "first":
+            scored = [c for c in ordered if c.abort_reason is None]
             started = [c for c in ordered if c.abort_reason != "dns"]
-            chosen.append((started or ordered)[0])
+            chosen.append((scored or started or ordered)[0])
         else:
             chosen.append(min(ordered, key=cmp_to_key(lambda a, b: _compare(a, b, policy))))
     return chosen
 
 
 GROUP_ORDER: dict[RankGroup | None, int] = {"ranked": 0, "last": 1, "unranked": 2, None: 3}
+UNRANKED_ORDER: dict[AbortReason | None, int] = {None: 0, "dnf": 1, "dns": 2, "dsq": 3}
 GROUP_FOR_SETTING: dict[str, RankGroup] = {
     "normal": "ranked",
     "last": "last",
@@ -224,9 +248,17 @@ def _tiers(members: list[Contender], level: int) -> list[tuple[list[Contender], 
 
 def _compare(a: Contender, b: Contender, policy: RankPolicy) -> int:
     """< 0, wenn `a` vor `b` stünde (für `best_of`)."""
+    # Abgebrochene stehen hinter allem, was gewertet wird oder noch läuft – auch wenn die
+    # Regel sie ganz weglässt.
+    aborted_a, aborted_b = a.abort_reason is not None, b.abort_reason is not None
+    if aborted_a != aborted_b:
+        return 1 if aborted_a else -1
     group_a, group_b = GROUP_ORDER[_group(a, policy)], GROUP_ORDER[_group(b, policy)]
     if group_a != group_b:
         return group_a - group_b
+    if group_a >= GROUP_ORDER["unranked"]:
+        # Ohne Platz zählt das Teilergebnis nicht: der frühere Versuch.
+        return a.attempt - b.attempt
     for value_a, value_b in zip(a.key or [], b.key or [], strict=False):
         if value_a is None or value_b is None:
             break

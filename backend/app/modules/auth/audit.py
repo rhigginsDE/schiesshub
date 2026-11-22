@@ -49,9 +49,18 @@ ACTION_TEXTS: dict[str, str] = {
     "start.booked": "Starts gebucht",
     "start.cancelled": "Start storniert",
     "start.aborted": "Start abgebrochen",
-    "start.reopened": "Abgeschlossenen Start wieder geöffnet",
+    "start.reopened": "Abgeschlossenes Ergebnis wieder geöffnet",
+    "start.moved": "Reihenfolge am Stand geändert",
+    "start.returned": "Start zurückgestellt",
+    "start.lane_released": "Bahn freigegeben",
+    "start.slot_assigned": "Start einem Durchgang und einer Bahn zugewiesen",
+    "start.slot_cleared": "Start aus dem Durchgang genommen",
+    "heat.created": "Durchgang angelegt",
+    "heat.updated": "Durchgang geändert",
     "heat.deleted": "Durchgang gelöscht",
     # Ergebnisse
+    "result.finalized": "Ergebnis abgeschlossen",
+    "result.corrected": "Ergebnis korrigiert",
     "result.recomputed": "Ergebnisse neu berechnet",
 }
 

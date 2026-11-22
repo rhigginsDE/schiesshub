@@ -16,8 +16,9 @@ from app.core.localtime import DEFAULT_TIMEZONE, zone
 
 NamesMode = Literal["public", "full"]
 StartlistSort = Literal["start_number", "competition", "range"]
-# Wie eine Zeile der Siegerliste gewertet ist: regulär, hinten (unvollständig/aufgegeben),
-# ohne Platz (prüfen) oder nicht angetreten/disqualifiziert (am Ende, ohne Platz).
+# Wie eine Zeile der Siegerliste gewertet ist (wie die Rangliste): regulär, hinten
+# (unvollständig, nur live) oder ohne Platz (abgebrochen, unvollständig, prüfen).
+# „aborted“ gibt es nicht mehr; der Wert bleibt für ältere Aufrufer erlaubt.
 WinnerGroup = Literal["ranked", "last", "unranked", "aborted"]
 
 
@@ -46,6 +47,8 @@ class CompetitionInfo:
     planning: str
     # Abschnitte der Disziplin in Reihenfolge: (id, Name).
     sections: tuple[tuple[str, str], ...] = ()
+    # Wertet der Wettbewerb Ringe? Ohne Ringe (reine Zeitwertung) keine Spalten für Zehner.
+    rings: bool = True
 
     @property
     def title(self) -> str:

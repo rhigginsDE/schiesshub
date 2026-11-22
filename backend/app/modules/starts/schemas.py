@@ -177,6 +177,10 @@ class StationStartOut(BaseModel):
     display_name: str | None
     # Nur wenn die Person `show_club` gewählt hat.
     club: str | None
+    # Nur mit `names=full` (Personal am Stand, Berechtigung nötig): voller Name und Verein,
+    # unabhängig von der Anzeige-Einstellung. Sonst immer null.
+    full_name: str | None = None
+    full_club: str | None = None
     class_id: UUID
     class_short: str
     competition_id: UUID

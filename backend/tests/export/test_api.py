@@ -207,7 +207,8 @@ async def test_winners_ties_aborted_and_columns(api: Api) -> None:
         ("1", "", "Anna Beispiel", "endgültig"),
         ("2", "ja", "Bernd Beispiel", "endgültig"),
         ("2", "ja", "Clara Beispiel", "endgültig"),
-        ("4", "", "Frida Beispiel", "aufgegeben"),
+        # Abgebrochene: nie mit Platz, am Ende (aufgegeben, nicht angetreten, disqualifiziert).
+        ("", "", "Frida Beispiel", "aufgegeben"),
         ("", "", "Dora Beispiel", "nicht angetreten"),
         ("", "", "Emil Beispiel", "disqualifiziert"),
     ]

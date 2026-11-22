@@ -481,7 +481,7 @@ async def get_revision(
     summary="Abweichungen vom Katalog",
     description=(
         "Vergleicht die aktuelle Definition mit der Katalog-Variante, aus der sie stammt "
-        "(aktueller Katalogstand). `deviates` kennzeichnet „abweichend vom Sporthandbuch“. "
+        "(aktueller Katalogstand). `deviates` kennzeichnet „abweichend vom Katalog“. "
         "Ohne Katalogherkunft ist die Liste leer."
     ),
     responses=NOT_FOUND,

@@ -60,6 +60,8 @@ class LiveRankingScene(SceneBase):
     rows: Annotated[int, Field(ge=1, le=50)] = 10
     # Laufende Zwischenstände (aufgerufen/erfasst, noch nicht abgeschlossen) zeigen.
     show_running: bool = True
+    # Abgebrochene Starts (ohne Platz, mit Grund) am Ende jeder Klasse aufführen.
+    show_aborted: bool = False
 
     @model_validator(mode="after")
     def _check(self) -> Self:
@@ -95,6 +97,8 @@ class WinnersScene(SceneBase):
     top: Annotated[int, Field(ge=1, le=20)] = 3
     # Ergebnisse in der Einspruchsfrist mitzeigen (gekennzeichnet als vorläufig).
     include_provisional: bool = True
+    # Abgebrochene Starts (ohne Platz, mit Grund) nach den Plätzen aufführen.
+    show_aborted: bool = False
 
     @model_validator(mode="after")
     def _check(self) -> Self:
@@ -241,8 +245,12 @@ class FeedPerson(BaseModel):
     class_short: str
     competition_id: UUID
     competition_name: str
+    # Kennziffer aus dem Katalog („4401“); null bei eigenen Wettbewerben.
+    competition_code: str | None = None
     attempt: int
     status: StartStatus
+    # Bei `status: aborted`: nicht angetreten (dns), aufgegeben (dnf), disqualifiziert (dsq).
+    abort_reason: AbortReason | None = None
     lane: int | None
     heat_number: int | None
     heat_starts_at: datetime | None
@@ -253,7 +261,8 @@ class FeedPerson(BaseModel):
 class FeedRankRow(BaseModel):
     place: int | None
     tied: bool
-    # ranked: regulär; last: unvollständig oder aufgegeben; unranked: ohne Platz.
+    # ranked: regulär; last: unvollständig (live, hinten); unranked: ohne Platz (abgebrochen –
+    # dann mit `abort_reason` –, nur mit `show_aborted`).
     group: Literal["ranked", "last", "unranked"]
     start_id: UUID
     start_number: int
@@ -284,20 +293,32 @@ class FeedRankGroup(BaseModel):
 class FeedRanking(BaseModel):
     competition_id: UUID
     competition_name: str
+    competition_code: str | None = None
     # Richtung und Einheit der Wertung (aus der Rangliste), null ohne Ergebnis.
     direction: str | None
     unit: str | None
     combined: bool
     groups: list[FeedRankGroup]
+    # „abweichend vom Katalog“ (wie `FeedProcedure`): Kennzeichen und Abweichungen als Text.
+    deviates: bool = False
+    deviations: list[str] = []
 
 
 class FeedStartlist(BaseModel):
+    """Starts eines Wettbewerbs, sortiert: Durchgang (Uhrzeit, darin Bahn) bzw. Platz in der
+    Reihenfolge, dann Startnummer, dann Versuch – der 1. Versuch einer Person steht vor ihrem
+    2. (Regel der Startliste in `starts.views.startlist`)."""
+
     competition_id: UUID
     competition_name: str
+    competition_code: str | None = None
     range_id: UUID | None
     range_name: str | None
     starts: list[FeedPerson]
     more: int
+    # „abweichend vom Katalog“ (wie `FeedProcedure`): Kennzeichen und Abweichungen als Text.
+    deviates: bool = False
+    deviations: list[str] = []
 
 
 class FeedStance(BaseModel):
@@ -342,7 +363,7 @@ class FeedSection(BaseModel):
     time_measured: bool
     # Kurzbeschreibung, z. B. „2 Serien · je 5 Schuss · je 150 s“.
     summary: str
-    # Abweichungen vom Sporthandbuch in diesem Abschnitt (Texte).
+    # Abweichungen vom Katalog in diesem Abschnitt (Texte).
     deviations: list[str]
     series: list[FeedSeriesStep]
 
@@ -367,7 +388,7 @@ class FeedProcedure(BaseModel):
     scoring: str
     # Zusätzliche Regeln in Worten, z. B. „−1 Ring je volle Sekunde über der Sollzeit“.
     notes: list[str]
-    # Kennzeichen „abweichend vom Sporthandbuch“ und alle Abweichungen als Text.
+    # Kennzeichen „abweichend vom Katalog“ und alle Abweichungen als Text.
     deviates: bool
     deviations: list[str]
     sections: list[FeedSection]

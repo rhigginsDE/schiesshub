@@ -239,7 +239,7 @@ async def test_document_contains_current_data(api: Api) -> None:
             "serien": 2,
             "schuss_je_serie": 10,
             "serien_gewertet": 1,
-            "summary": "Präzision: 2 Serien à 10 Schuss, je 300 s, gewertet werden die ersten 1",
+            "summary": "Präzision: 2 Serien à 10 Schuss, je 5 Min., gewertet werden die ersten 1",
         }
     ]
     assert catalog["multi_start_text"] == "Bestes Ergebnis zählt (bis zu 3 Starts)"

@@ -19,7 +19,6 @@ from app.modules.export.records import (
     SeriesValue,
     StartRecord,
 )
-from app.modules.starts.schemas import StationStartOut
 from tests.export.conftest import read_csv
 
 OPEN = uuid.uuid4()
@@ -103,29 +102,6 @@ def group(class_id: uuid.UUID | None, rows: list[RankingRow], members=None) -> R
     )
 
 
-def aborted(number_: int, reason: str, *, entry=None, klass=OPEN, name=None) -> StationStartOut:
-    values: dict[str, Any] = {
-        "start_id": uuid.uuid4(),
-        "entry_id": entry or uuid.uuid4(),
-        "start_number": number_,
-        "display_name": name or f"Person {number_}",
-        "club": None,
-        "class_id": klass,
-        "class_short": "O",
-        "competition_id": COMPETITION.id,
-        "competition_name": COMPETITION.name,
-        "range_id": None,
-        "attempt": 1,
-        "status": "aborted",
-        "abort_reason": reason,
-    }
-    # Übrige (optionale) Felder der Sicht leer, auch solche, die das Modul `starts` später ergänzt.
-    for name_, info in StationStartOut.model_fields.items():
-        if name_ not in values and info.is_required():
-            values[name_] = None
-    return StationStartOut(**values)
-
-
 # --- Schreibweisen -------------------------------------------------------------------------
 
 
@@ -197,32 +173,31 @@ def test_csv_file_format() -> None:
 
 
 def test_ties_order_and_aborted_at_end() -> None:
-    entry_dns = uuid.uuid4()
     rows = [
         ranking_row(1, 7, "95"),
         ranking_row(2, 3, "92", tied=True),
         ranking_row(2, 5, "92", tied=True),
-        ranking_row(4, 9, "80", group="last", abort_reason="dnf", status="aborted"),
+        # Abgebrochene liefert die Rangliste ohne Platz am Ende (mit Teilergebnis).
+        ranking_row(None, 9, "80", group="unranked", abort_reason="dnf", status="aborted"),
+        ranking_row(None, 11, None, group="unranked", abort_reason="dns", status="aborted"),
+        ranking_row(None, 12, None, group="unranked", abort_reason="dsq", status="aborted"),
     ]
-    result = tables.winner_tables(
-        ranking(group(OPEN, rows)),
-        [aborted(12, "dsq"), aborted(11, "dns", entry=entry_dns), aborted(13, "dnf")],
-        class_names=CLASS_NAMES,
-    )
+    result = tables.winner_tables(ranking(group(OPEN, rows)), class_names=CLASS_NAMES)
     (table,) = result
     assert table.title == "Offene Klasse"
     assert [(r.place, r.start_number, r.group) for r in table.rows] == [
         (1, 7, "ranked"),
         (2, 3, "ranked"),
         (2, 5, "ranked"),
-        (4, 9, "last"),
-        (None, 11, "aborted"),
-        (None, 12, "aborted"),
+        (None, 9, "unranked"),
+        (None, 11, "unranked"),
+        (None, 12, "unranked"),
     ]
     report = tables.winners_report(META, [tables.winner_section(COMPETITION, "Ringe", result)])
     cells = [row.cells for row in report.sections[0].tables[0].rows]
-    assert [c[0] for c in cells] == ["1.", "2.", "2.", "4.", "", ""]
+    assert [c[0] for c in cells] == ["1.", "2.", "2.", "", "", ""]
     assert cells[3][-1] == "aufgegeben"
+    assert "80" not in cells[3]  # kein Teilergebnis bei Abgebrochenen
     assert cells[4][-1] == "nicht angetreten"
     assert cells[5][-1] == "disqualifiziert"
     assert report.sections[0].tables[0].rows[4].muted
@@ -236,34 +211,24 @@ def test_top_keeps_shared_places_and_drops_aborted() -> None:
         ranking_row(4, 4, "90"),
     ]
     (table,) = tables.winner_tables(
-        ranking(group(OPEN, rows)), [aborted(9, "dns")], class_names=CLASS_NAMES, top=2
+        ranking(group(OPEN, [*rows, ranking_row(None, 9, None, group="unranked")])),
+        class_names=CLASS_NAMES,
+        top=2,
     )
     assert [r.start_number for r in table.rows] == [1, 2, 3]
-
-
-def test_aborted_only_if_not_ranked_with_other_start() -> None:
-    entry = uuid.uuid4()
-    rows = [ranking_row(1, 4, "95", entry=entry)]
-    (table,) = tables.winner_tables(
-        ranking(group(OPEN, rows)),
-        [aborted(4, "dns", entry=entry), aborted(8, "dns", klass=LADIES)],
-        class_names=CLASS_NAMES,
-    )
-    # Startnummer 4 steht schon mit einem gewerteten Start drin, 8 gehört zu einer anderen Klasse.
-    assert [r.start_number for r in table.rows] == [4]
 
 
 def test_merged_title_and_class_column() -> None:
     rows = [ranking_row(1, 1, "95", klass=LADIES), ranking_row(2, 2, "90")]
     result = tables.winner_tables(
-        ranking(group(OPEN, rows, members=[OPEN, LADIES])), [], class_names=CLASS_NAMES
+        ranking(group(OPEN, rows, members=[OPEN, LADIES])), class_names=CLASS_NAMES
     )
     assert result[0].title == "Offene Klasse (zusammengelegt mit Damenklasse)"
     assert result[0].mixed_classes
     report = tables.winners_report(META, [tables.winner_section(COMPETITION, "Ringe", result)])
     columns = [c.title for c in report.sections[0].tables[0].columns]
     assert "Klasse" in columns
-    combined = tables.winner_tables(ranking(group(None, rows), combined=True), [], class_names={})
+    combined = tables.winner_tables(ranking(group(None, rows), combined=True), class_names={})
     assert combined[0].title == "Gemeinsame Wertung aller Klassen"
 
 
@@ -273,14 +238,14 @@ def test_names_public_and_full() -> None:
         ranking_row(1, 1, "95", entry=entry, display_name="D. Yılmaz", club=None),
         ranking_row(2, 2, "90", display_name=None, club=None),
     ]
-    (public,) = tables.winner_tables(ranking(group(OPEN, rows)), [], class_names=CLASS_NAMES)
+    (public,) = tables.winner_tables(ranking(group(OPEN, rows)), class_names=CLASS_NAMES)
     assert [(r.person.name, r.person.club) for r in public.rows] == [
         ("D. Yılmaz", None),
         (None, None),
     ]
     full = {entry: PersonName("Deniz Yılmaz", "SV Nord")}
     (internal,) = tables.winner_tables(
-        ranking(group(OPEN, rows)), [], class_names=CLASS_NAMES, full_names=full
+        ranking(group(OPEN, rows)), class_names=CLASS_NAMES, full_names=full
     )
     assert internal.rows[0].person == PersonName("Deniz Yılmaz", "SV Nord")
     report = tables.winners_report(META, [tables.winner_section(COMPETITION, "Ringe", [public])])
@@ -317,7 +282,7 @@ def test_series_struck_and_provisional_note() -> None:
         ),
         ranking_row(2, 2, "90", series=[part(1, 45), part(2, 45)], tens=3),
     ]
-    result = tables.winner_tables(ranking(group(OPEN, rows)), [], class_names=CLASS_NAMES)
+    result = tables.winner_tables(ranking(group(OPEN, rows)), class_names=CLASS_NAMES)
     section = tables.winner_section(COMPETITION, "Ringe", result)
     assert section.provisional_until == until
     report = tables.winners_report(META, [section])

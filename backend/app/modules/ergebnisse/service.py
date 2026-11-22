@@ -19,6 +19,7 @@ import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import func, select
@@ -27,6 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import FieldError, InputError
 from app.core.events import EventHub
 from app.core.security import Actor
+from app.modules.auth.audit import record_audit
 from app.modules.ergebnisse import journal
 from app.modules.ergebnisse.models import ResultCurrent, ResultEvent
 from app.modules.ergebnisse.rules import Evaluation, evaluate, request_hash, scoring_definition
@@ -44,6 +46,7 @@ from app.modules.starts.models import Entry, Start
 from app.modules.starts.rules import AbortReason
 from app.modules.turnier.models import Competition, Tournament
 from app.scoring import DefinitionError, Issue, validate_raw
+from app.scoring.numbers import format_number
 
 EVENT_PREFIX = "result."
 EVENT_RECOMPUTED = "result.recomputed"
@@ -51,14 +54,22 @@ EVENT_RECOMPUTED = "result.recomputed"
 PROTEST_RESTART_SETTING = "protest_restart_on_correction"
 
 
-class SeqConflict(Exception):
-    """`base_seq` ist veraltet: Ein anderes Gerät hat inzwischen erfasst."""
+SEQ_CONFLICT = (
+    "Ein anderes Gerät hat diesen Start inzwischen geändert. Bitte den aktuellen Stand "
+    "prüfen und die Eingabe gegebenenfalls wiederholen."
+)
+SCORE_CONFLICT = (
+    "Das Ergebnis auf dem Server ({server}) weicht vom angezeigten ({shown}) ab. Es wurde "
+    "nicht abgeschlossen; bitte den aktuellen Stand prüfen."
+)
 
-    def __init__(self, state: ResultState) -> None:
-        super().__init__(
-            "Ein anderes Gerät hat diesen Start inzwischen geändert. Bitte den aktuellen Stand "
-            "prüfen und die Eingabe gegebenenfalls wiederholen."
-        )
+
+class SeqConflict(Exception):
+    """`base_seq` ist veraltet (ein anderes Gerät hat inzwischen erfasst) oder der Stand weicht
+    vom erwarteten ab (`expected_seq`, `expected_score` beim Abschließen)."""
+
+    def __init__(self, state: ResultState, message: str = SEQ_CONFLICT) -> None:
+        super().__init__(message)
         self.state = state
 
 
@@ -361,6 +372,34 @@ def append(
     return event
 
 
+def audit(session: AsyncSession, loaded: Loaded, actor: Actor, action: str, **details: Any) -> None:
+    """Eintrag im System-Protokoll (zusätzlich zum Verlauf des Starts): Startnummer, Versuch,
+    Wettbewerb und Grund – nie der Name der Person."""
+    record_audit(
+        session,
+        actor,
+        action,
+        "start",
+        loaded.start.id,
+        {
+            "tournament_id": str(loaded.tournament.id),
+            "competition_id": str(loaded.competition.id),
+            "competition_code": loaded.competition.catalog_code,
+            "competition_name": loaded.competition.name,
+            "entry_id": str(loaded.entry.id),
+            "start_number": loaded.entry.start_number,
+            "attempt": loaded.start.attempt,
+            **details,
+        },
+    )
+
+
+def _score_text(current: ResultCurrent | None) -> str | None:
+    return (
+        format_number(current.score) if current is not None and current.score is not None else None
+    )
+
+
 async def move(
     session: AsyncSession, loaded: Loaded, to: str, actor: Actor, **options: Any
 ) -> None:
@@ -455,14 +494,32 @@ async def finalize(
     start_id: uuid.UUID,
     base_seq: int,
     idempotency_key: str | None,
+    *,
+    expected_seq: int | None = None,
+    expected_score: Decimal | None = None,
 ) -> ResultState:
-    request = Request("finalized", {"base_seq": base_seq}, idempotency_key, base_seq)
+    body: dict[str, Any] = {"base_seq": base_seq}
+    if expected_seq is not None:
+        body["expected_seq"] = expected_seq
+    if expected_score is not None:
+        body["expected_score"] = str(expected_score.normalize())
+    request = Request("finalized", body, idempotency_key, base_seq)
     loaded, replay = await begin(session, tournament_id, start_id, request)
     if replay:
         return await finish(session, events, loaded, None)
+    if expected_seq is not None and expected_seq != loaded.seq:
+        raise SeqConflict(state_of(loaded, await server_now(session)))
     if loaded.start.status != "captured" or loaded.current is None:
         raise ConflictError(
             "Abschließen geht nur bei einem erfassten Start, der noch nicht abgeschlossen ist."
+        )
+    server_score = loaded.current.score
+    if expected_score is not None and (server_score is None or server_score != expected_score):
+        shown = format_number(expected_score)
+        server = format_number(server_score) if server_score is not None else "keins"
+        raise SeqConflict(
+            state_of(loaded, await server_now(session)),
+            SCORE_CONFLICT.format(server=server, shown=shown),
         )
     raw = loaded.current.raw
     check_raw(loaded, raw, partial=False)
@@ -480,6 +537,9 @@ async def finalize(
         seq=event.seq,
     )
     await move(session, loaded, "final", actor)
+    audit(
+        session, loaded, actor, "result.finalized", score=_score_text(loaded.current), seq=event.seq
+    )
     return await finish(session, events, loaded, event)
 
 
@@ -520,6 +580,7 @@ async def correct(
         "provisional_until": until.isoformat() if until else None,
         "protest_restarted": restart,
     }
+    before = _score_text(loaded.current)
     event = append(session, loaded, request, actor, "corrected", payload, reason)
     store(
         session,
@@ -528,6 +589,16 @@ async def correct(
         is_final=True,
         finalized_at=finalized_at,
         provisional_until=until,
+        seq=event.seq,
+    )
+    audit(
+        session,
+        loaded,
+        actor,
+        "result.corrected",
+        reason=reason,
+        score_before=before,
+        score=_score_text(loaded.current),
         seq=event.seq,
     )
     return await finish(session, events, loaded, event)

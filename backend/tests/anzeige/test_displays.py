@@ -26,7 +26,13 @@ async def test_first_start_creates_main_display_once(start_app: ClientFactory) -
                     **scene,
                     "title": None,
                     **(
-                        {"competition_ids": [], "class_ids": [], "rows": 10, "show_running": True}
+                        {
+                            "competition_ids": [],
+                            "class_ids": [],
+                            "rows": 10,
+                            "show_running": True,
+                            "show_aborted": False,
+                        }
                         if scene["kind"] == "live_ranking"
                         else {
                             "competition_ids": [],

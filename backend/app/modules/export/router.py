@@ -42,6 +42,11 @@ Top = Annotated[
     Query(description="Nur die ersten Plätze (geteilte Plätze vollständig); leer = alle."),
 ]
 
+IncludeAborted = Annotated[
+    bool,
+    Query(description="Abgebrochene Starts ohne Platz am Ende aufführen (Standard: ja)."),
+]
+
 router = APIRouter(prefix="/tournaments/{tournament_id}/export", tags=["export"])
 
 NOT_FOUND = {status.HTTP_404_NOT_FOUND: {"description": "Nicht gefunden"}}
@@ -179,8 +184,9 @@ WINNERS_DESCRIPTION = (
     "Ohne `competition_id` alle Wettbewerbe mit Ergebnissen nacheinander. `top`: nur die "
     "ersten Plätze. `merged=true` legt Klassen zusammen. `include_provisional=false` lässt "
     "Ergebnisse in der Einspruchsfrist weg; sonst steht über dem Wettbewerb „vorläufig – "
-    "Einspruchsfrist läuft bis …“. Ohne `top` stehen nicht angetretene und disqualifizierte "
-    "Starts am Ende."
+    "Einspruchsfrist läuft bis …“. Abgebrochene Starts (nicht angetreten, aufgegeben, "
+    "disqualifiziert) bekommen nie einen Platz; ohne `top` stehen sie am Ende ihrer Klasse mit "
+    "dem Grund und ohne Ergebnis, `include_aborted=false` lässt sie weg."
 )
 
 
@@ -195,6 +201,7 @@ async def _winners(
     merged: bool,
     include_provisional: bool,
     names: NamesMode,
+    include_aborted: bool = True,
 ) -> tuple[Meta, list[Any]]:
     await _check_names(request, names)
     sections = await service.winners(
@@ -206,6 +213,7 @@ async def _winners(
         merged=merged,
         include_provisional=include_provisional,
         names=names,
+        include_aborted=include_aborted,
     )
     return await service.meta(session, tournament_id, names), sections
 
@@ -228,6 +236,7 @@ async def winners_pdf(
     merged: bool = False,
     include_provisional: bool = True,
     names: Names = "public",
+    include_aborted: IncludeAborted = True,
 ) -> Response:
     meta, sections = await _winners(
         request,
@@ -239,6 +248,7 @@ async def winners_pdf(
         merged=merged,
         include_provisional=include_provisional,
         names=names,
+        include_aborted=include_aborted,
     )
     return _pdf(tables.winners_report(meta, sections), meta, "Siegerliste")
 
@@ -261,6 +271,7 @@ async def winners_csv(
     merged: bool = False,
     include_provisional: bool = True,
     names: Names = "public",
+    include_aborted: IncludeAborted = True,
 ) -> Response:
     meta, sections = await _winners(
         request,
@@ -272,6 +283,7 @@ async def winners_csv(
         merged=merged,
         include_provisional=include_provisional,
         names=names,
+        include_aborted=include_aborted,
     )
     return _csv(tables.winners_sheet(sections, meta.tz), meta, "Siegerliste")
 

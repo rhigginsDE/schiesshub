@@ -21,6 +21,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/names": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Bekannte Ereignisnamen
+         * @description Alle fachlichen Ereignisnamen, die der Server senden kann (von den Modulen angemeldet oder schon einmal gesendet), sortiert. `EventSource` hört nur auf genaue Namen; damit lassen sich Muster wie `start.*` auflösen.
+         */
+        get: operations["system_event_names"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events": {
         parameters: {
             query?: never;
@@ -492,7 +512,7 @@ export interface paths {
         };
         /**
          * Abweichungen vom Katalog
-         * @description Vergleicht die aktuelle Definition mit der Katalog-Variante, aus der sie stammt (aktueller Katalogstand). `deviates` kennzeichnet „abweichend vom Sporthandbuch“. Ohne Katalogherkunft ist die Liste leer.
+         * @description Vergleicht die aktuelle Definition mit der Katalog-Variante, aus der sie stammt (aktueller Katalogstand). `deviates` kennzeichnet „abweichend vom Katalog“. Ohne Katalogherkunft ist die Liste leer.
          */
         get: operations["turnier_get_catalog_diff"];
         put?: never;
@@ -781,7 +801,7 @@ export interface paths {
         };
         /**
          * Reihenfolge eines Stands
-         * @description Wartende Starts in ihrer Reihenfolge und die aufgerufenen Starts je Bahn.
+         * @description Wartende Starts in ihrer Reihenfolge und alle Bahnen. Belegt ist eine Bahn, solange ein Start auf ihr steht (aufgerufen oder erfasst, noch nicht freigegeben), mit Status und Erfassungsfortschritt (`progress`).
          */
         get: operations["starts_get_queue"];
         put?: never;
@@ -820,7 +840,7 @@ export interface paths {
         put?: never;
         /**
          * Start aufrufen
-         * @description Reihenfolge: auf `lane` oder die erste freie Bahn. Zeitplan: auf die Bahn des Durchgangs. Eine Bahn trägt nur einen aufgerufenen Start, eine Person steht nur auf einer Bahn.
+         * @description Reihenfolge: auf `lane` oder die erste freie Bahn. Zeitplan: auf die Bahn des Durchgangs. Eine Bahn trägt nur einen Start (aufgerufen oder erfasst, bis sie frei wird), eine Person steht nur auf einer Bahn.
          */
         post: operations["starts_call_start"];
         delete?: never;
@@ -849,6 +869,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tournaments/{tournament_id}/starts/{start_id}/release-lane": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bahn freigeben
+         * @description Nimmt einen erfassten Start von seiner Bahn, ohne den Status zu ändern (z. B. Schütze fertig, Ergebnis noch nicht abgeschlossen). Mit dem Abschließen oder Abbrechen wird die Bahn ohnehin frei. Ein nur aufgerufener Start wird zurückgestellt, nicht freigegeben.
+         */
+        post: operations["starts_release_lane"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tournaments/{tournament_id}/ranges/{range_id}/call-next": {
         parameters: {
             query?: never;
@@ -860,7 +900,7 @@ export interface paths {
         put?: never;
         /**
          * Nächste aufrufen
-         * @description Füllt alle freien Bahnen des Stands der Reihe nach aus der Reihenfolge. Wer schon auf einer Bahn steht, wird übersprungen. Antwort: die aufgerufenen Starts.
+         * @description Füllt alle freien Bahnen des Stands der Reihe nach aus der Reihenfolge. Belegt bleibt eine Bahn auch mit einem erfassten Start, bis er abgeschlossen, abgebrochen oder die Bahn freigegeben ist. Wer schon auf einer Bahn steht, wird übersprungen. Antwort: die aufgerufenen Starts.
          */
         post: operations["starts_call_next"];
         delete?: never;
@@ -1012,7 +1052,7 @@ export interface paths {
         };
         /**
          * Am Stand und als Nächstes
-         * @description Aufgerufene Starts je Bahn, der nächste Durchgang mit seinen Starts und die nächsten Wartenden der Reihenfolge. Namen nur nach der Anzeige-Einstellung der Person.
+         * @description Belegte Bahnen (aufgerufen oder erfasst, mit Status und Erfassungsfortschritt `progress`), der nächste Durchgang mit seinen Starts und die nächsten Wartenden der Reihenfolge. Namen nur nach der Anzeige-Einstellung der Person.
          */
         get: operations["starts_get_range_now"];
         put?: never;
@@ -1032,7 +1072,7 @@ export interface paths {
         };
         /**
          * Eingabemaske eines Starts
-         * @description Maske für die aktuelle Definition des Wettbewerbs, Kopf des Starts (mit `result.capture` voller Name, sonst nach Anzeige-Einstellung), aktueller Rohwert und Zwischenstand. `capture_mode` wählt nur die Darstellung (Einzelschuss oder Seriensumme); ohne Angabe gilt die des Wettbewerbs. Rohwerte dürfen beides enthalten und werden gleich gewertet.
+         * @description Maske für die aktuelle Definition des Wettbewerbs, Kopf des Starts (mit `result.capture` voller Name, sonst nach Anzeige-Einstellung; dazu Kennziffer des Wettbewerbs und Stand), aktueller Rohwert und Zwischenstand. `capture_mode` wählt nur die Darstellung (Einzelschuss oder Seriensumme); ohne Angabe gilt die des Wettbewerbs. Rohwerte dürfen beides enthalten und werden gleich gewertet.
          */
         get: operations["ergebnisse_get_form"];
         put?: never;
@@ -1063,6 +1103,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tournaments/{tournament_id}/starts/{start_id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rohwerte probeweise werten (ohne Speichern)
+         * @description Rechnet `raw` gegen die aktuelle Definition des Wettbewerbs durch und liefert Validierungsfehler und berechneten Stand, speichert aber nichts (kein Ereignis, kein Statuswechsel). `errors`: Fehler, die auch `PUT …/raw` meldete; `finalize_errors`: was zum Abschließen oder Korrigieren fehlt. Für „Korrigieren“ und Eingaben, die erst später gespeichert werden.
+         */
+        post: operations["ergebnisse_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tournaments/{tournament_id}/starts/{start_id}/finalize": {
         parameters: {
             query?: never;
@@ -1074,7 +1134,7 @@ export interface paths {
         put?: never;
         /**
          * Ergebnis abschließen
-         * @description Verlangt vollständige Rohwerte (sonst 422 mit der Liste). Der Start wird „abgeschlossen“; bis `provisional_until` (Einspruchsfrist des Turniers) gilt das Ergebnis als vorläufig.
+         * @description Verlangt vollständige Rohwerte (sonst 422 mit der Liste). Der Start wird „abgeschlossen“; bis `provisional_until` (Einspruchsfrist des Turniers) gilt das Ergebnis als vorläufig. Optional `expected_seq` und `expected_score`: der Stand, den der Mensch bestätigt hat; weicht der Server ab, 409 mit dem aktuellen Stand (nichts wird abgeschlossen).
          */
         post: operations["ergebnisse_finalize"];
         delete?: never;
@@ -1111,7 +1171,7 @@ export interface paths {
         put?: never;
         /**
          * Abgeschlossenes Ergebnis korrigieren (mit Grund)
-         * @description Ersetzt die Rohwerte eines abgeschlossenen Ergebnisses; es bleibt abgeschlossen, die Einspruchsfrist beginnt neu.
+         * @description Ersetzt die Rohwerte eines abgeschlossenen Ergebnisses; es bleibt abgeschlossen. Die Einspruchsfrist beginnt neu, außer das Turnier hat `settings.protest_restart_on_correction: false` (dann läuft sie ab dem Abschluss weiter).
          */
         post: operations["ergebnisse_correct"];
         delete?: never;
@@ -1149,7 +1209,7 @@ export interface paths {
         };
         /**
          * Verlauf eines Ergebnisses
-         * @description Alle Ereignisse: wer, wann, was, Grund und Unterschied zum vorigen Rohwert.
+         * @description Alle Ereignisse: wer, wann, was, Grund und Unterschied zum vorigen Rohwert. `user_name` und `device_name` werden zum Abfragezeitpunkt aufgelöst (heutiger Name); `user_name` ist null, wenn beim Ereignis niemand angemeldet war oder die Person gelöscht ist.
          */
         get: operations["ergebnisse_list_events"];
         put?: never;
@@ -1209,7 +1269,7 @@ export interface paths {
         };
         /**
          * Rangliste eines Wettbewerbs
-         * @description Platzierungen je Klasse (bei gemeinsamer Wertung eine Gruppe). `scope=live` nimmt laufende Zwischenstände auf (`status: running`). `merged=true` legt Klassen über `merge_into_id` zusammen. Namen nur nach Anzeige-Einstellung der Person.
+         * @description Platzierungen je Klasse (bei gemeinsamer Wertung eine Gruppe). `scope=live` nimmt laufende Zwischenstände auf (`status: running`). `merged=true` legt Klassen über `merge_into_id` zusammen. Namen nur nach Anzeige-Einstellung der Person. Abgebrochene Starts (nicht angetreten, aufgegeben, disqualifiziert) bekommen nie einen Platz: Sie stehen am Ende ihrer Gruppe ohne Platz (`group: unranked`, `abort_reason`); `include_aborted=false` lässt sie weg. In `scope=final` stehen auch unvollständige Ergebnisse ohne Platz da.
          */
         get: operations["ergebnisse_get_ranking"];
         put?: never;
@@ -1723,7 +1783,7 @@ export interface paths {
         };
         /**
          * Feed der Anzeige dieses Geräts
-         * @description Alles, was der Bildschirm zum Zeichnen braucht: Kopf, die aufgelösten Szenen in Reihenfolge (eine Szene kann mehrere Seiten ergeben, `part`/`parts`), übersprungene Szenen mit Grund, Laufzeile und Warnungen. Ist nichts zu zeigen, kommt eine Ruhe-Szene (`idle`). `version` steht auch im ETag; mit `If-None-Match` antwortet der Server 304, solange sich der Inhalt nicht ändert. Neu laden bei den Ereignissen aus `reload_on` und spätestens nach `poll_seconds`.
+         * @description Alles, was der Bildschirm zum Zeichnen braucht: Kopf, die aufgelösten Szenen in Reihenfolge (eine Szene kann mehrere Seiten ergeben, `part`/`parts`), übersprungene Szenen mit Grund, Laufzeile und Warnungen. Ist nichts zu zeigen, kommt eine Ruhe-Szene (`idle`). `version` steht auch im ETag; mit `If-None-Match` antwortet der Server 304, solange sich der Inhalt nicht ändert. Neu laden bei den Ereignissen aus `reload_on` (genaue Namen, direkt für `EventSource.addEventListener`) und spätestens nach `poll_seconds`. Uhrzeiten zusätzlich in Ortszeit des Turniers (`*_local`, Zone in `header.timezone`).
          */
         get: operations["anzeige_get_mine_feed"];
         put?: never;
@@ -1791,8 +1851,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Anzeige ändern (Name, Turnier, Reihenfolge)
-         * @description `tournament_id: null` heißt: automatisch das aktive Turnier.
+         * Anzeige ändern (Name, Turnier, Reihenfolge, Inhalt)
+         * @description `tournament_id: null` heißt: automatisch das aktive Turnier. Mit `config` werden Szenen und Einstellungen im selben Schritt ersetzt (wie `PUT …/config`); die Szenen werden gegen das neue Turnier geprüft, Fehler nennen `config.scenes[…]`.
          */
         patch: operations["anzeige_update_display"];
         trace?: never;
@@ -1867,11 +1927,31 @@ export interface paths {
         };
         /**
          * Feed einer Anzeige
-         * @description Alles, was der Bildschirm zum Zeichnen braucht: Kopf, die aufgelösten Szenen in Reihenfolge (eine Szene kann mehrere Seiten ergeben, `part`/`parts`), übersprungene Szenen mit Grund, Laufzeile und Warnungen. Ist nichts zu zeigen, kommt eine Ruhe-Szene (`idle`). `version` steht auch im ETag; mit `If-None-Match` antwortet der Server 304, solange sich der Inhalt nicht ändert. Neu laden bei den Ereignissen aus `reload_on` und spätestens nach `poll_seconds`.
+         * @description Alles, was der Bildschirm zum Zeichnen braucht: Kopf, die aufgelösten Szenen in Reihenfolge (eine Szene kann mehrere Seiten ergeben, `part`/`parts`), übersprungene Szenen mit Grund, Laufzeile und Warnungen. Ist nichts zu zeigen, kommt eine Ruhe-Szene (`idle`). `version` steht auch im ETag; mit `If-None-Match` antwortet der Server 304, solange sich der Inhalt nicht ändert. Neu laden bei den Ereignissen aus `reload_on` (genaue Namen, direkt für `EventSource.addEventListener`) und spätestens nach `poll_seconds`. Uhrzeiten zusätzlich in Ortszeit des Turniers (`*_local`, Zone in `header.timezone`).
          */
         get: operations["anzeige_get_feed"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/displays/{display_id}/preview-feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Feed-Vorschau für eine ungespeicherte Konfiguration
+         * @description Baut den Feed der Anzeige mit `config` (und wahlweise `tournament_id`) statt der gespeicherten Werte, ohne etwas zu speichern. Die Szenen werden wie beim Speichern geprüft (422 mit `config.scenes[…]`). Kein ETag.
+         */
+        post: operations["anzeige_preview_feed"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1927,7 +2007,7 @@ export interface paths {
         };
         /**
          * Siegerliste als PDF
-         * @description Platzierungen aus der Rangliste (abgeschlossene Ergebnisse), je Wettbewerb und Klasse. Ohne `competition_id` alle Wettbewerbe mit Ergebnissen nacheinander. `top`: nur die ersten Plätze. `merged=true` legt Klassen zusammen. `include_provisional=false` lässt Ergebnisse in der Einspruchsfrist weg; sonst steht über dem Wettbewerb „vorläufig – Einspruchsfrist läuft bis …“. Ohne `top` stehen nicht angetretene und disqualifizierte Starts am Ende.
+         * @description Platzierungen aus der Rangliste (abgeschlossene Ergebnisse), je Wettbewerb und Klasse. Ohne `competition_id` alle Wettbewerbe mit Ergebnissen nacheinander. `top`: nur die ersten Plätze. `merged=true` legt Klassen zusammen. `include_provisional=false` lässt Ergebnisse in der Einspruchsfrist weg; sonst steht über dem Wettbewerb „vorläufig – Einspruchsfrist läuft bis …“. Abgebrochene Starts (nicht angetreten, aufgegeben, disqualifiziert) bekommen nie einen Platz; ohne `top` stehen sie am Ende ihrer Klasse mit dem Grund und ohne Ergebnis, `include_aborted=false` lässt sie weg.
          */
         get: operations["export_winners_pdf"];
         put?: never;
@@ -1947,7 +2027,7 @@ export interface paths {
         };
         /**
          * Siegerliste als CSV
-         * @description Platzierungen aus der Rangliste (abgeschlossene Ergebnisse), je Wettbewerb und Klasse. Ohne `competition_id` alle Wettbewerbe mit Ergebnissen nacheinander. `top`: nur die ersten Plätze. `merged=true` legt Klassen zusammen. `include_provisional=false` lässt Ergebnisse in der Einspruchsfrist weg; sonst steht über dem Wettbewerb „vorläufig – Einspruchsfrist läuft bis …“. Ohne `top` stehen nicht angetretene und disqualifizierte Starts am Ende. UTF-8 mit BOM, Trennzeichen `;`.
+         * @description Platzierungen aus der Rangliste (abgeschlossene Ergebnisse), je Wettbewerb und Klasse. Ohne `competition_id` alle Wettbewerbe mit Ergebnissen nacheinander. `top`: nur die ersten Plätze. `merged=true` legt Klassen zusammen. `include_provisional=false` lässt Ergebnisse in der Einspruchsfrist weg; sonst steht über dem Wettbewerb „vorläufig – Einspruchsfrist läuft bis …“. Abgebrochene Starts (nicht angetreten, aufgegeben, disqualifiziert) bekommen nie einen Platz; ohne `top` stehen sie am Ende ihrer Klasse mit dem Grund und ohne Ergebnis, `include_aborted=false` lässt sie weg. UTF-8 mit BOM, Trennzeichen `;`.
          */
         get: operations["export_winners_csv"];
         put?: never;
@@ -2785,6 +2865,7 @@ export interface components {
             tournament_id?: string | null;
             /** Sort */
             sort?: number | null;
+            config?: components["schemas"]["DisplayConfig"] | null;
         };
         /** DisziplinDetailOut */
         DisziplinDetailOut: {
@@ -3145,6 +3226,8 @@ export interface components {
              * @enum {string}
              */
             tournament_mode: "fixed" | "auto";
+            /** Timezone */
+            timezone: string;
         };
         /**
          * FeedIdleScene
@@ -3176,6 +3259,7 @@ export interface components {
             /** Lane */
             lane: number;
             start: components["schemas"]["FeedPerson"] | null;
+            progress?: components["schemas"]["LaneProgressOut"] | null;
         };
         /** FeedLiveRankingScene */
         FeedLiveRankingScene: {
@@ -3210,6 +3294,10 @@ export interface components {
              * Format: date-time
              */
             ends_at: string;
+            /** Starts At Local */
+            starts_at_local: string;
+            /** Ends At Local */
+            ends_at_local: string;
         };
         /** FeedNoticeScene */
         FeedNoticeScene: {
@@ -3293,6 +3381,8 @@ export interface components {
             competition_id: string;
             /** Competition Name */
             competition_name: string;
+            /** Competition Code */
+            competition_code?: string | null;
             /** Attempt */
             attempt: number;
             /**
@@ -3300,12 +3390,16 @@ export interface components {
              * @enum {string}
              */
             status: "registered" | "called" | "captured" | "final" | "aborted";
+            /** Abort Reason */
+            abort_reason?: ("dns" | "dnf" | "dsq") | null;
             /** Lane */
             lane: number | null;
             /** Heat Number */
             heat_number: number | null;
             /** Heat Starts At */
             heat_starts_at: string | null;
+            /** Heat Starts At Local */
+            heat_starts_at_local: string | null;
         };
         /** FeedPosition */
         FeedPosition: {
@@ -3319,6 +3413,15 @@ export interface components {
             target: number | null;
             /** Text */
             text: string;
+        };
+        /**
+         * FeedPreviewRequest
+         * @description Feed für eine nicht gespeicherte Konfiguration (Vorschau in der Verwaltung).
+         */
+        FeedPreviewRequest: {
+            config: components["schemas"]["DisplayConfig"];
+            /** Tournament Id */
+            tournament_id?: string | null;
         };
         /** FeedProcedure */
         FeedProcedure: {
@@ -3345,6 +3448,28 @@ export interface components {
             deviations: string[];
             /** Sections */
             sections: components["schemas"]["FeedSection"][];
+            /**
+             * Current
+             * @default []
+             */
+            current: components["schemas"]["FeedProcedureCurrent"][];
+        };
+        /**
+         * FeedProcedureCurrent
+         * @description Laufende Position einer Bahn in diesem Ablauf (zum Hervorheben auf dem Bildschirm).
+         */
+        FeedProcedureCurrent: {
+            /** Lane */
+            lane: number;
+            /**
+             * Start Id
+             * Format: uuid
+             */
+            start_id: string;
+            /** Section Id */
+            section_id: string;
+            /** Series Number */
+            series_number: number;
         };
         /** FeedRange */
         FeedRange: {
@@ -3450,6 +3575,8 @@ export interface components {
             competition_id: string;
             /** Competition Name */
             competition_name: string;
+            /** Competition Code */
+            competition_code?: string | null;
             /** Direction */
             direction: string | null;
             /** Unit */
@@ -3458,6 +3585,16 @@ export interface components {
             combined: boolean;
             /** Groups */
             groups: components["schemas"]["FeedRankGroup"][];
+            /**
+             * Deviates
+             * @default false
+             */
+            deviates: boolean;
+            /**
+             * Deviations
+             * @default []
+             */
+            deviations: string[];
         };
         /** FeedSection */
         FeedSection: {
@@ -3526,7 +3663,12 @@ export interface components {
             /** Text */
             text: string;
         };
-        /** FeedStartlist */
+        /**
+         * FeedStartlist
+         * @description Starts eines Wettbewerbs, sortiert: Durchgang (Uhrzeit, darin Bahn) bzw. Platz in der
+         *     Reihenfolge, dann Startnummer, dann Versuch – der 1. Versuch einer Person steht vor ihrem
+         *     2. (Regel der Startliste in `starts.views.startlist`).
+         */
         FeedStartlist: {
             /**
              * Competition Id
@@ -3535,6 +3677,8 @@ export interface components {
             competition_id: string;
             /** Competition Name */
             competition_name: string;
+            /** Competition Code */
+            competition_code?: string | null;
             /** Range Id */
             range_id: string | null;
             /** Range Name */
@@ -3543,6 +3687,16 @@ export interface components {
             starts: components["schemas"]["FeedPerson"][];
             /** More */
             more: number;
+            /**
+             * Deviates
+             * @default false
+             */
+            deviates: boolean;
+            /**
+             * Deviations
+             * @default []
+             */
+            deviations: string[];
         };
         /** FeedStartlistScene */
         FeedStartlistScene: {
@@ -3629,6 +3783,10 @@ export interface components {
         FinalizeRequest: {
             /** Base Seq */
             base_seq: number;
+            /** Expected Seq */
+            expected_seq?: number | null;
+            /** Expected Score */
+            expected_score?: number | string | null;
         };
         /** FormDescription */
         FormDescription: {
@@ -3689,6 +3847,12 @@ export interface components {
             competition_id: string;
             /** Competition Name */
             competition_name: string;
+            /** Competition Code */
+            competition_code: string | null;
+            /** Range Id */
+            range_id: string | null;
+            /** Range Name */
+            range_name: string | null;
             /** Attempt */
             attempt: number;
             /** Attempts Booked */
@@ -3942,6 +4106,21 @@ export interface components {
             /** Lane */
             lane: number;
             start: components["schemas"]["StationStartOut"] | null;
+            progress?: components["schemas"]["LaneProgressOut"] | null;
+        };
+        /**
+         * LaneProgressOut
+         * @description Erfassungsfortschritt eines Starts auf der Bahn (aus dem aktuellen Ergebnis-Stand).
+         */
+        LaneProgressOut: {
+            /** Section Id */
+            section_id: string | null;
+            /** Series Done */
+            series_done: number;
+            /** Series Total */
+            series_total: number;
+            /** Complete */
+            complete: boolean;
         };
         /** LeaderOut */
         LeaderOut: {
@@ -3996,6 +4175,11 @@ export interface components {
              * @default true
              */
             show_running: boolean;
+            /**
+             * Show Aborted
+             * @default false
+             */
+            show_aborted: boolean;
         };
         /** LoginIn */
         LoginIn: {
@@ -4078,6 +4262,11 @@ export interface components {
             code: string;
             /** Pair Path */
             pair_path: string;
+            /**
+             * Server Urls
+             * @default []
+             */
+            server_urls: string[];
             /**
              * Expires At
              * Format: date-time
@@ -4217,6 +4406,44 @@ export interface components {
             target: number | null;
             /** Stances */
             stances: components["schemas"]["StanceForm"][];
+        };
+        /**
+         * PreviewOut
+         * @description Probe-Rechnung von Rohwerten gegen die aktuelle Definition; nichts ist gespeichert.
+         */
+        PreviewOut: {
+            /**
+             * Start Id
+             * Format: uuid
+             */
+            start_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "registered" | "called" | "captured" | "final" | "aborted";
+            /** Seq */
+            seq: number;
+            /** Definition Revision */
+            definition_revision: number;
+            /** Valid */
+            valid: boolean;
+            /** Errors */
+            errors: components["schemas"]["FieldError"][];
+            /** Complete */
+            complete: boolean;
+            /** Finalize Errors */
+            finalize_errors: components["schemas"]["FieldError"][];
+            computed: components["schemas"]["ComputedResult"] | null;
+            /** Score */
+            score: string | null;
+        };
+        /** PreviewRequest */
+        PreviewRequest: {
+            /** Raw */
+            raw: {
+                [key: string]: unknown;
+            };
         };
         /** Progress */
         Progress: {
@@ -4361,6 +4588,8 @@ export interface components {
             competition_id: string;
             /** Competition Name */
             competition_name: string;
+            /** Competition Code */
+            competition_code?: string | null;
             /**
              * Scope
              * @enum {string}
@@ -4959,6 +5188,8 @@ export interface components {
             heat_id: string | null;
             /** Lane */
             lane: number | null;
+            /** On Lane */
+            on_lane: boolean;
             /** Called At */
             called_at: string | null;
             /**
@@ -5027,6 +5258,10 @@ export interface components {
             display_name: string | null;
             /** Club */
             club: string | null;
+            /** Full Name */
+            full_name?: string | null;
+            /** Full Club */
+            full_club?: string | null;
             /**
              * Class Id
              * Format: uuid
@@ -5056,6 +5291,11 @@ export interface components {
             queue_position: number | null;
             /** Lane */
             lane: number | null;
+            /**
+             * On Lane
+             * @default false
+             */
+            on_lane: boolean;
             /** Called At */
             called_at: string | null;
             /** Heat Id */
@@ -5255,6 +5495,16 @@ export interface components {
             /** Protest Minutes */
             protest_minutes?: number | null;
             /**
+             * Protest Restart On Correction
+             * @default true
+             */
+            protest_restart_on_correction: boolean;
+            /**
+             * Timezone
+             * @default Europe/Berlin
+             */
+            timezone: string;
+            /**
              * Currency
              * @default EUR
              */
@@ -5316,6 +5566,10 @@ export interface components {
         TournamentSettingsUpdate: {
             /** Protest Minutes */
             protest_minutes?: number | null;
+            /** Protest Restart On Correction */
+            protest_restart_on_correction?: boolean | null;
+            /** Timezone */
+            timezone?: string | null;
             /** Currency */
             currency?: string | null;
             /** Default Fee First Cents */
@@ -5548,6 +5802,11 @@ export interface components {
              * @default true
              */
             include_provisional: boolean;
+            /**
+             * Show Aborted
+             * @default false
+             */
+            show_aborted: boolean;
         };
     };
     responses: never;
@@ -5583,6 +5842,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthOut"];
+                };
+            };
+        };
+    };
+    system_event_names: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
                 };
             };
         };
@@ -8135,7 +8414,10 @@ export interface operations {
     };
     starts_get_queue: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description `public` (Standard): nur nach Anzeige-Einstellung. `full`: zusätzlich `full_name` und `full_club` (Berechtigung start.call, result.capture oder entry.read). */
+                names?: "public" | "full";
+            };
             header?: never;
             path: {
                 tournament_id: string;
@@ -8291,6 +8573,54 @@ export interface operations {
                 "application/json": components["schemas"]["ReturnRequest"] | null;
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich. Betrifft es ein Eingabefeld (z. B. Startnummer schon vergeben), nennt `errors` das Feld. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflictOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    starts_release_lane: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                start_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -8824,6 +9154,8 @@ export interface operations {
             query?: {
                 competition_id?: string | null;
                 range_id?: string | null;
+                /** @description `public` (Standard): nur nach Anzeige-Einstellung. `full`: zusätzlich `full_name` und `full_club` (Berechtigung start.call, result.capture oder entry.read). */
+                names?: "public" | "full";
             };
             header?: never;
             path: {
@@ -8862,7 +9194,10 @@ export interface operations {
     };
     starts_get_range_now: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description `public` (Standard): nur nach Anzeige-Einstellung. `full`: zusätzlich `full_name` und `full_club` (Berechtigung start.call, result.capture oder entry.read). */
+                names?: "public" | "full";
+            };
             header?: never;
             path: {
                 tournament_id: string;
@@ -8975,6 +9310,58 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResultState"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich. Bei veraltetem `base_seq` mit dem aktuellen Stand in `current`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeqConflictOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ergebnisse_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+                start_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewOut"];
                 };
             };
             /** @description Nicht gefunden */
@@ -9347,6 +9734,7 @@ export interface operations {
                 include_provisional?: boolean;
                 scope?: "final" | "live";
                 merged?: boolean;
+                include_aborted?: boolean;
             };
             header?: never;
             path: {
@@ -10938,6 +11326,55 @@ export interface operations {
             };
         };
     };
+    anzeige_preview_feed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                display_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     export_startlist_pdf: {
         parameters: {
             query?: {
@@ -11051,6 +11488,8 @@ export interface operations {
                 include_provisional?: boolean;
                 /** @description `public` (Standard): nach Anzeige-Einstellung; `full`: voller Name. */
                 names?: "public" | "full";
+                /** @description Abgebrochene Starts ohne Platz am Ende aufführen (Standard: ja). */
+                include_aborted?: boolean;
             };
             header?: never;
             path: {
@@ -11105,6 +11544,8 @@ export interface operations {
                 include_provisional?: boolean;
                 /** @description `public` (Standard): nach Anzeige-Einstellung; `full`: voller Name. */
                 names?: "public" | "full";
+                /** @description Abgebrochene Starts ohne Platz am Ende aufführen (Standard: ja). */
+                include_aborted?: boolean;
             };
             header?: never;
             path: {
