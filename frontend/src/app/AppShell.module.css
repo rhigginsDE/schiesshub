@@ -235,8 +235,28 @@
   min-width: 0;
 }
 
-/* Bis Laptop-Breite: Stationen in eigener Zeile, damit Marke und Status nie umbrechen */
-@media (max-width: 1480px) {
+/* Laptop: alles in einer Zeile. Damit das passt, zeigt der freiwillige Knopf (Koppeln/Einloggen)
+   nur sein Symbol – der Text steht im Tooltip – und die Uhr entfällt. */
+@media (min-width: 1241px) and (max-width: 1480px) {
+  .leise .leiseText {
+    display: none;
+  }
+
+  .leise :global(.mantine-Button-section) {
+    margin-inline-end: 0;
+  }
+
+  .uhr {
+    display: none;
+  }
+
+  .leiste {
+    gap: 10px 12px;
+  }
+}
+
+/* Tablet: Stationen in eigener Zeile, damit Marke und Status nie umbrechen */
+@media (max-width: 1240px) {
   .stationen {
     order: 3;
     flex-basis: 100%;
