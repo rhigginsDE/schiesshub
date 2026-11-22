@@ -1,7 +1,7 @@
 """Ablauf einer Disziplin für die Standanzeige: Abschnitte, Serien, Positionen und Abweichungen.
 
 Quelle ist die Definition des Wettbewerbs (die Kopie im Turnier, nicht der Katalog). Abweichungen
-vom Sporthandbuch liefert `turnier.service.catalog_diff_of`.
+vom Katalog liefert `turnier.service.catalog_diff_of`.
 """
 
 from app.modules.anzeige.schemas import (

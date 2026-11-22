@@ -5,6 +5,7 @@ aktuellen Turnierdaten ein Dokument zusammen. Teilnehmerdaten kommen darin nicht
 """
 
 import uuid
+from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -58,10 +59,23 @@ async def put_announcement(
 # --- Druckfassung ------------------------------------------------------------------
 
 
-def _number(value: float) -> str:
-    if isinstance(value, float) and value.is_integer():
-        value = int(value)
-    return str(value).replace(".", ",")
+def duration_text(seconds: float | Decimal) -> str:
+    """Zeit für Menschen: unter 60 s in Sekunden („45 s“, „7,5 s“), ab 60 s in Minuten
+    („5 Min.“, „1 Min. 30 s“)."""
+    value = Decimal(str(seconds))
+    if value < 60:
+        return f"{_number_text(value)} s"
+    minutes = int(value // 60)
+    rest = value - minutes * 60
+    text = f"{minutes} Min."
+    return f"{text} {_number_text(rest)} s" if rest else text
+
+
+def _number_text(value: Decimal) -> str:
+    normalized = value.normalize()
+    if normalized == normalized.to_integral_value():
+        normalized = normalized.quantize(Decimal(1))
+    return format(normalized, "f").replace(".", ",")
 
 
 def _sections(definition: CompetitionDefinition) -> list[DocumentSection]:
@@ -71,11 +85,11 @@ def _sections(definition: CompetitionDefinition) -> list[DocumentSection]:
         if abschnitt.schuss_je_serie is not None:
             parts[0] += f" à {abschnitt.schuss_je_serie} Schuss"
         if abschnitt.zeit_je_serie_s is not None:
-            parts.append(f"je {_number(abschnitt.zeit_je_serie_s)} s")
+            parts.append(f"je {duration_text(abschnitt.zeit_je_serie_s)}")
         elif abschnitt.zeiten_s is not None:
-            parts.append("Zeiten " + ", ".join(_number(t) for t in abschnitt.zeiten_s) + " s")
+            parts.append("Zeiten " + ", ".join(duration_text(t) for t in abschnitt.zeiten_s))
         if abschnitt.sollzeit_s is not None:
-            parts.append(f"Sollzeit {_number(abschnitt.sollzeit_s)} s")
+            parts.append(f"Sollzeit {duration_text(abschnitt.sollzeit_s)}")
         counted = abschnitt.serien_gewertet
         if counted is not None and counted < abschnitt.serien:
             parts.append(f"gewertet werden die ersten {counted}")

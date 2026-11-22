@@ -17,18 +17,30 @@
 - Mit `ringwerte` im Abschnitt sind nur diese Ringwerte erlaubt.
 - Gestrichene Serien (`serien_gewertet`) dürfen erfasst werden und werden geprüft, sind aber
   nie Pflicht.
+- Zeiten sind ganze Hundertstel größer 0. Braucht der Status der Serie keine gemessene Zeit
+  (Zeitlimit, Abbruch, Störung), stört eine 0 nicht (sie wird ignoriert).
+- **Plausibilität:** Eine gemessene Zeit, die zählt (Serie regulär oder nicht beendet,
+  Gesamtzeit eines Abschnitts), darf höchstens `PLAUSIBLE_FACTOR` (3) × Zeitlimit betragen
+  (`max_zeit_je_serie_s` bzw. `max_gesamtzeit_s`), ohne Limit höchstens `PLAUSIBLE_MAX_S`
+  (1 Stunde). Je Abschnitt überschreibbar: `zeit_plausibel_faktor`, `zeit_plausibel_max_s`.
+  Darüber ist es ein Fehler (Tippfehler wie 9.999 s); zwischen Limit und Grenze nur eine
+  Warnung der Wertung (`compute`).
 """
 
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
+from decimal import Decimal
 from typing import Any
 
 from app.scoring.definition import Definition, check_capture_mode, load_definition
 from app.scoring.errors import Issue
+from app.scoring.numbers import format_cs, format_seconds_value
 from app.scoring.plan import DEFAULT_RING_VALUES, INNER_TEN, SectionPlan, SeriesPlan
 from app.scoring.status import MALFUNCTION, NORMAL, STATUS_LABELS, UNFINISHED, SeriesStatus
 
 RING_KEYS = ("shots", "sum", "tens", "inner_tens")
+PLAUSIBLE_FACTOR = Decimal(3)
+PLAUSIBLE_MAX_S = Decimal(3600)
 
 
 @dataclass(frozen=True)
@@ -75,6 +87,16 @@ def read_raw(
 def series_label(definition: Definition, section: SectionPlan, series: SeriesPlan) -> str:
     prefix = f"{section.name}, " if definition.multi_section else ""
     return f"{prefix}Serie {series.number}"
+
+
+def plausible_max_s(plan: SectionPlan, limit_s: Decimal | None) -> Decimal:
+    """Höchste plausible gemessene Zeit in Sekunden (siehe Modulbeschreibung)."""
+    spec = plan.spec
+    if spec.zeit_plausibel_max_s is not None:
+        return spec.zeit_plausibel_max_s
+    if limit_s is not None:
+        return (spec.zeit_plausibel_faktor or PLAUSIBLE_FACTOR) * limit_s
+    return PLAUSIBLE_MAX_S
 
 
 def _as_int(value: object) -> int | None:
@@ -132,7 +154,11 @@ class _Reader:
 
         time_cs = None
         if plan.section_time:
-            time_cs = self.time(data.get("time_cs"), f"{path}.time_cs", f"{plan.name}: Gesamtzeit")
+            label = f"{plan.name}: Gesamtzeit"
+            time_cs = self.time(data.get("time_cs"), f"{path}.time_cs", label)
+            time_cs = self.plausible(
+                plan, time_cs, plan.spec.max_gesamtzeit_s, f"{path}.time_cs", f"{label} "
+            )
 
         items = data.get("series", [])
         if not isinstance(items, list):
@@ -201,6 +227,10 @@ class _Reader:
                 f"{label}: Zeit",
                 required=status in (NORMAL, UNFINISHED),
             )
+            if status in (NORMAL, UNFINISHED):
+                time_cs = self.plausible(
+                    plan, time_cs, plan.spec.max_zeit_je_serie_s, f"{path}.time_cs", f"{label}: "
+                )
             result = replace(result, time_cs=time_cs)
         if plan.standing:
             standing = self.standing(
@@ -341,10 +371,39 @@ class _Reader:
                 self.add(path, f"{label} fehlt")
             return None
         number = _as_int(value)
+        if number == 0 and not required:
+            # Der Status braucht keine gemessene Zeit: eine 0 ist „keine Zeit“.
+            return None
         if number is None or number <= 0:
             self.add(path, f"{label}: in Hundertstelsekunden als ganze Zahl größer 0")
             return None
         return number
+
+    def plausible(
+        self,
+        plan: SectionPlan,
+        time_cs: int | None,
+        limit_s: Decimal | None,
+        path: str,
+        prefix: str,
+    ) -> int | None:
+        """Fehler bei einer gemessenen Zeit über der Plausibilitätsgrenze (siehe oben)."""
+        if time_cs is None:
+            return None
+        maximum = plausible_max_s(plan, limit_s)
+        if time_cs <= maximum * 100:
+            return time_cs
+        hint = (
+            "bei überschrittenem Zeitlimit den Status „Zeitlimit erreicht“ wählen"
+            if "time_limit" in self.definition.series_statuses(plan) and not plan.section_time
+            else "bitte die Zeit prüfen"
+        )
+        self.add(
+            path,
+            f"{prefix}{format_cs(time_cs)} ist unplausibel – höchstens "
+            f"{format_seconds_value(maximum)} s; {hint}",
+        )
+        return None
 
     def standing(
         self, plan: SectionPlan, value: object, path: str, label: str, *, required: bool

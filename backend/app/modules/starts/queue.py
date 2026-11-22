@@ -52,6 +52,7 @@ async def move(
     tournament_id: uuid.UUID,
     start_id: uuid.UUID,
     data: MoveRequest,
+    actor: Actor | None = None,
 ) -> uuid.UUID:
     """Verschiebt einen wartenden Start; liefert den Stand."""
     context, range_ = await _context_on_range(session, tournament_id, start_id)
@@ -71,6 +72,18 @@ async def move(
     by_id = {start.id: start for start in await waiting_starts(session, range_.id)}
     for position, item in enumerate(new_order, start=1):
         by_id[item].queue_position = position
+    record_audit(
+        session,
+        actor or Actor(),
+        "start.moved",
+        "start",
+        start_id,
+        context.audit_details(
+            range_id=str(range_.id),
+            from_position=order.index(start_id) + 1,
+            position=new_order.index(start_id) + 1,
+        ),
+    )
     await session.commit()
     events.publish(
         EVENT_START_MOVED,
@@ -157,6 +170,14 @@ async def return_start(
         order = [start, *(other for other in waiting if other.id != start.id)]
         for number, item in enumerate(order, start=1):
             item.queue_position = number
+    record_audit(
+        session,
+        actor,
+        "start.returned",
+        "start",
+        start.id,
+        context.audit_details(range_id=str(range_.id), lane=start.lane, position=position),
+    )
     await session.commit()
     publish_status(events, change)
     await session.refresh(start)

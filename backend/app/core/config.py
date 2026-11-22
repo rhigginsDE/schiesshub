@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     auth_session_idle_hours: float = Field(default=12, gt=0)
     # `auto`: Secure nur, wenn die Anfrage über HTTPS kam (Entwicklung läuft über http://localhost).
     auth_cookie_secure: Literal["auto", "always", "never"] = "auto"
+    # Adresse(n), unter der Geräte im Netz den Server erreichen (für den Kopplungs-QR-Code),
+    # z. B. „https://schiesshub.local,https://192.168.178.20“. Leer: aus der Anfrage abgeleitet.
+    public_base_url: str = ""
 
     @property
     def is_development(self) -> bool:

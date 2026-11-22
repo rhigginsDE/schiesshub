@@ -7,8 +7,13 @@ Alles hier ist rein (keine Datenbank, keine Ausgabe) und deshalb direkt testbar.
 - `Sheet`: flach für die CSV-Datei (eine Kopfzeile, Zellen als Text, Zahl oder leer; die
   Zahlenschreibweise und den Schutz vor Formeln übernimmt `csvout.py`).
 
-Rangfolge, Gleichstand, Mehrfachstart und Klassen kommen fertig aus der Rangliste des Moduls
-`ergebnisse` (`winner_tables` ordnet nur zu, filtert und ergänzt die Abbrüche).
+Rangfolge, Gleichstand, Mehrfachstart, Klassen und Abbrüche kommen fertig aus der Rangliste des
+Moduls `ergebnisse` (`winner_tables` ordnet nur zu und kürzt auf `top`). Abgebrochene Starts
+haben dort nie einen Platz und stehen am Ende ihrer Gruppe; hier bekommen sie kein Ergebnis,
+nur den Grund.
+
+Interne Schlüssel (Status, Abbruchgrund, Ablauf einer Serie) erscheinen nie in einer Liste; die
+deutschen Texte kommen aus `formatting.py` (eine Übersetzungsstelle).
 """
 
 import uuid
@@ -21,15 +26,16 @@ from zoneinfo import ZoneInfo
 
 from app.modules.ergebnisse.schemas import RankingOut, RankingRow
 from app.modules.export.formatting import (
-    ABORT_LABELS,
-    ROW_STATUS_LABELS,
-    START_STATUS_LABELS,
+    abort_text,
     clock,
     date_de,
     iso_local,
     local,
     number,
+    row_status_text,
     seconds,
+    series_status_text,
+    start_status_text,
 )
 from app.modules.export.records import (
     CompetitionInfo,
@@ -43,7 +49,6 @@ from app.modules.export.records import (
     WinnerSection,
     WinnerTable,
 )
-from app.modules.starts.schemas import StationStartOut
 from app.scoring.numbers import cs_to_seconds
 
 Align = Literal["left", "right", "center"]
@@ -164,45 +169,19 @@ def _winner_row(row: RankingRow, person: PersonName) -> WinnerRow:
     )
 
 
-def _aborted_row(start: StationStartOut, person: PersonName) -> WinnerRow:
-    return WinnerRow(
-        place=None,
-        tied=False,
-        tie_unresolved=False,
-        group="aborted",
-        entry_id=start.entry_id,
-        start_number=start.start_number,
-        attempt=start.attempt,
-        person=person,
-        class_id=start.class_id,
-        class_short=start.class_short,
-        score=None,
-        complete=False,
-        tens=None,
-        inner_tens=None,
-        series=(),
-        status="aborted",
-        abort_reason=start.abort_reason,
-        provisional_until=None,
-    )
-
-
 def winner_tables(
     ranking: RankingOut,
-    aborted: Sequence[StationStartOut],
     *,
     class_names: Mapping[uuid.UUID, str],
     top: int | None = None,
-    class_id: uuid.UUID | None = None,
     full_names: Mapping[uuid.UUID, PersonName] | None = None,
 ) -> list[WinnerTable]:
     """Tabellen der Siegerliste eines Wettbewerbs aus seiner Rangliste.
 
-    - Reihenfolge, Plätze und geteilte Plätze bleiben, wie die Rangliste sie liefert.
-    - `top`: nur Zeilen mit Platz bis `top` (bei geteiltem Platz alle Gleichen); ohne `top` alle
-      Platzierten, danach Zeilen ohne Platz und am Ende „nicht angetreten“/„disqualifiziert“
-      (die die Rangliste selbst nicht führt) – je Teilnehmer einmal, und nur, wenn er nicht
-      schon mit einem anderen Start in der Liste steht.
+    - Reihenfolge, Plätze, geteilte Plätze und Abbrüche bleiben, wie die Rangliste sie liefert
+      (Abgebrochene ohne Platz am Ende, je Teilnehmer einmal; ob sie dabei sind, entscheidet
+      die Rangliste mit `include_aborted`).
+    - `top`: nur Zeilen mit Platz bis `top` (bei geteiltem Platz alle Gleichen).
     """
     tables = []
     for group in ranking.groups:
@@ -212,22 +191,6 @@ def winner_tables(
         ]
         if top is not None:
             rows = [row for row in rows if row.place is not None and row.place <= top]
-        else:
-            members = set(group.class_ids)
-            present = {row.entry_id for row in rows}
-            extras: dict[uuid.UUID, WinnerRow] = {}
-            for start in sorted(aborted, key=lambda s: (s.start_number, s.attempt)):
-                if start.status != "aborted" or start.abort_reason not in ("dns", "dsq"):
-                    continue
-                if group.class_id is not None and start.class_id not in members:
-                    continue
-                if class_id is not None and start.class_id != class_id:
-                    continue
-                if start.entry_id in present or start.entry_id in extras:
-                    continue
-                person = person_for(start.entry_id, start.display_name, start.club, full_names)
-                extras[start.entry_id] = _aborted_row(start, person)
-            rows.extend(extras.values())
         if group.class_id is None:
             title = "Gemeinsame Wertung aller Klassen"
         else:
@@ -318,14 +281,32 @@ def _place_text(row: WinnerRow) -> str:
     return f"{row.place}." if row.place is not None else ""
 
 
-def _row_notes(row: WinnerRow, mark_provisional: bool) -> list[str]:
+def _series_status_notes(
+    series: Sequence[SeriesValue], headers: Mapping[SeriesKey, str] | None = None
+) -> list[str]:
+    """„S3: Waffenstörung vor dem ersten Wertungsschuss“ für jede Serie mit besonderem Ablauf."""
+    notes = []
+    for index, value in enumerate(series):
+        if value.status == "normal":
+            continue
+        key = (value.section_id, value.number)
+        name = headers.get(key) if headers else None
+        notes.append(f"{name or index + 1}: {series_status_text(value.status)}")
+    return notes
+
+
+def _row_notes(
+    row: WinnerRow, mark_provisional: bool, headers: Mapping[SeriesKey, str] | None = None
+) -> list[str]:
     notes = []
     if row.abort_reason is not None:
-        notes.append(ABORT_LABELS.get(row.abort_reason, row.abort_reason))
+        notes.append(abort_text(row.abort_reason) or "abgebrochen")
     elif row.status == "review":
         notes.append("prüfen")
-    elif not row.complete and row.group == "last":
+    elif not row.complete:
         notes.append("unvollständig")
+    if row.abort_reason is None:
+        notes.extend(_series_status_notes(row.series, headers))
     if row.tie_unresolved:
         notes.append("Gleichstand nicht auflösbar")
     if mark_provisional and row.status == "provisional":
@@ -358,14 +339,17 @@ def winners_report(meta: Meta, sections: Sequence[WinnerSection]) -> Report:
         with_club = any(row.person.club for row in all_rows)
         with_class = any(table.mixed_classes for table in section.tables)
         with_attempt = competition.multi_start
-        with_tens = any(row.tens is not None for row in all_rows)
-        with_inner = any(row.inner_tens is not None for row in all_rows)
+        with_tens = competition.rings and any(row.tens is not None for row in all_rows)
+        with_inner = competition.rings and any(row.inner_tens is not None for row in all_rows)
+        header_of = dict(zip(keys, headers, strict=True))
         result_title = f"Ergebnis ({section.unit})" if section.unit else "Ergebnis"
 
-        def notes_of(table: WinnerTable) -> Callable[[WinnerRow], list[str]]:
+        def notes_of(
+            table: WinnerTable, header_of: dict[SeriesKey, str] = header_of
+        ) -> Callable[[WinnerRow], list[str]]:
             # „vorläufig“ je Zeile nur, wenn nicht ohnehin die ganze Tabelle vorläufig ist.
             mixed = len({row.status == "provisional" for row in table.rows}) > 1
-            return lambda row: _row_notes(row, mixed)
+            return lambda row: _row_notes(row, mixed, header_of)
 
         with_notes = any(notes_of(t)(row) for t in section.tables for row in t.rows)
         columns = [Column("Platz", "right"), Column("Nr.", "right"), Column("Name", wrap=True)]
@@ -397,7 +381,9 @@ def winners_report(meta: Meta, sections: Sequence[WinnerSection]) -> Report:
                     cells.append(row.class_short)
                 if with_attempt:
                     cells.append(str(row.attempt))
-                cells.append(number(row.score, typographic=True) if row.score is not None else "–")
+                # Abgebrochen: kein Ergebnis (ein Teilergebnis sähe wie eine Wertung aus).
+                shown = row.score if row.abort_reason is None else None
+                cells.append(number(shown, typographic=True) if shown is not None else "–")
                 if with_tens:
                     cells.append(str(row.tens) if row.tens is not None else "")
                 if with_inner:
@@ -432,12 +418,22 @@ def winners_report(meta: Meta, sections: Sequence[WinnerSection]) -> Report:
 
 def _status_cell(row: WinnerRow) -> str:
     if row.abort_reason is not None:
-        return ABORT_LABELS.get(row.abort_reason, row.abort_reason)
-    return ROW_STATUS_LABELS.get(row.status, row.status)
+        return abort_text(row.abort_reason) or "abgebrochen"
+    return row_status_text(row.status)
+
+
+def _series_status_cell(series: Sequence[SeriesValue]) -> str | None:
+    """„2: Zeitlimit erreicht (…); 3: Waffenstörung …“ (Serien fortlaufend gezählt)."""
+    return "; ".join(_series_status_notes(series)) or None
 
 
 def winners_sheet(sections: Sequence[WinnerSection], tz: ZoneInfo | None = None) -> Sheet:
-    """CSV der Siegerliste; Uhrzeiten in `tz` (Ortszeit des Turniers, Standard Europe/Berlin)."""
+    """CSV der Siegerliste; Uhrzeiten in `tz` (Ortszeit des Turniers, Standard Europe/Berlin).
+
+    „Zehner“ und „Innenzehner“ nur, wenn ein Wettbewerb der Datei Ringe wertet. Abgebrochene
+    Starts stehen ohne Platz und ohne Ergebnis da, mit dem Grund unter „Status“.
+    """
+    with_tens = any(section.competition.rings for section in sections)
     sheet = Sheet(
         header=(
             "Kennziffer",
@@ -452,11 +448,11 @@ def winners_sheet(sections: Sequence[WinnerSection], tz: ZoneInfo | None = None)
             "Versuch",
             "Ergebnis",
             "Einheit",
-            "Zehner",
-            "Innenzehner",
+            *(("Zehner", "Innenzehner") if with_tens else ()),
             "Teilwerte",
             "Status",
             "Vorläufig bis",
+            "Serienstatus",
         )
     )
     for section in sections:
@@ -470,6 +466,11 @@ def winners_sheet(sections: Sequence[WinnerSection], tz: ZoneInfo | None = None)
                 parts = [
                     series_text(by_key[key], typographic=False) for key in keys if key in by_key
                 ]
+                score = row.score if row.abort_reason is None else None
+                tens: tuple[Cell, ...] = (
+                    (row.tens, row.inner_tens) if competition.rings else (None, None)
+                )
+                ordered = [by_key[key] for key in keys if key in by_key]
                 sheet.rows.append(
                     (
                         competition.code,
@@ -482,15 +483,15 @@ def winners_sheet(sections: Sequence[WinnerSection], tz: ZoneInfo | None = None)
                         row.person.club,
                         row.class_short,
                         row.attempt,
-                        row.score,
-                        section.unit if row.score is not None else None,
-                        row.tens,
-                        row.inner_tens,
+                        score,
+                        section.unit if score is not None else None,
+                        *(tens if with_tens else ()),
                         "; ".join(parts) or None,
                         _status_cell(row),
                         iso_local(row.provisional_until, tz)
                         if row.status == "provisional" and row.provisional_until
                         else None,
+                        _series_status_cell(ordered),
                     )
                 )
     return sheet
@@ -505,6 +506,13 @@ def _when(record: StartRecord) -> float:
     return record.heat_starts_at.timestamp() if record.heat_starts_at else float("inf")
 
 
+def _heat_lane(record: StartRecord) -> int:
+    """Bahn als Sortierschlüssel nur bei einem Start im Durchgang."""
+    if record.heat_starts_at is None or record.lane is None:
+        return _LAST
+    return record.lane
+
+
 def _competition_key(record: StartRecord) -> tuple[object, ...]:
     return (record.competition.sort, record.competition.name, str(record.competition.id))
 
@@ -512,16 +520,19 @@ def _competition_key(record: StartRecord) -> tuple[object, ...]:
 def startlist_sort_key(sort: StartlistSort) -> Callable[[StartRecord], tuple[object, ...]]:
     """Reihenfolge der Startliste.
 
-    - `competition`: je Wettbewerb in der Reihenfolge am Stand (Durchgang, Bahn, Reihenfolge),
-      dann Startnummer und Versuch – wie die Startliste des Moduls `starts`.
+    - `competition`: je Wettbewerb in der Reihenfolge am Stand (Durchgang mit Bahn bzw.
+      Reihenfolge), dann Startnummer und Versuch – wie die Startliste des Moduls `starts`.
     - `start_number`: nach Startnummer, dann Wettbewerb und Versuch.
     - `range`: je Stand nach Uhrzeit, Bahn und Wettbewerb.
+
+    Die Bahn zählt nur innerhalb eines Durchgangs (dort ist sie der gebuchte Platz); bei der
+    Reihenfolge ist sie nur die zuletzt benutzte und würde den 2. Versuch vor den 1. stellen.
     """
 
     def by_course(record: StartRecord) -> tuple[object, ...]:
         return (
             _when(record),
-            record.lane if record.lane is not None else _LAST,
+            _heat_lane(record),
             record.queue_position if record.queue_position is not None else _LAST,
             record.start_number,
             record.attempt,
@@ -536,7 +547,7 @@ def startlist_sort_key(sort: StartlistSort) -> Callable[[StartRecord], tuple[obj
                 r.competition.range_name or "",
                 str(r.competition.range_id),
                 _when(r),
-                r.lane if r.lane is not None else _LAST,
+                _heat_lane(r),
                 *_competition_key(r),
                 r.queue_position if r.queue_position is not None else _LAST,
                 r.start_number,
@@ -599,7 +610,7 @@ def _startlist_table(
             cells.append(str(record.attempt))
         if with_notes:
             cells.append(
-                ABORT_LABELS.get(record.abort_reason or "", "abgebrochen")
+                abort_text(record.abort_reason) or "abgebrochen"
                 if record.status == "aborted"
                 else ""
             )
@@ -675,8 +686,8 @@ def startlist_sheet(
                 iso_local(record.heat_starts_at, tz) if record.heat_starts_at else None,
                 record.lane,
                 record.queue_position,
-                START_STATUS_LABELS.get(record.status, record.status),
-                ABORT_LABELS.get(record.abort_reason) if record.abort_reason else None,
+                start_status_text(record.status),
+                abort_text(record.abort_reason),
             )
         )
     return sheet
@@ -710,6 +721,8 @@ def results_sheet(records: Sequence[ResultRecord], tz: ZoneInfo | None = None) -
         for label, getter in SERIES_FIELDS
         if any(index < len(series) and getter(series[index]) is not None for series in ordered)
     ]
+    # Zehner nur, wenn ein Wettbewerb der Datei Ringe wertet.
+    with_tens = any(record.start.competition.rings for record in records)
     header = (
         "Startnummer",
         "Name",
@@ -723,8 +736,7 @@ def results_sheet(records: Sequence[ResultRecord], tz: ZoneInfo | None = None) -
         "Ergebnis",
         "Einheit",
         "Vollständig",
-        "Zehner",
-        "Innenzehner",
+        *(("Zehner", "Innenzehner") if with_tens else ()),
         "Abgeschlossen am",
         "Vorläufig bis",
         "Prüfen",
@@ -736,9 +748,7 @@ def results_sheet(records: Sequence[ResultRecord], tz: ZoneInfo | None = None) -
     for record, series in zip(records, ordered, strict=True):
         start = record.start
         struck = [str(i + 1) for i, value in enumerate(series) if value.struck]
-        special = [
-            f"{i + 1}: {value.status}" for i, value in enumerate(series) if value.status != "normal"
-        ]
+        special = _series_status_notes(series)
         cells: list[Cell] = [
             start.start_number,
             start.person.name,
@@ -747,13 +757,12 @@ def results_sheet(records: Sequence[ResultRecord], tz: ZoneInfo | None = None) -
             start.competition.code,
             start.competition.name,
             start.attempt,
-            START_STATUS_LABELS.get(start.status, start.status),
-            ABORT_LABELS.get(start.abort_reason) if start.abort_reason else None,
+            start_status_text(start.status),
+            abort_text(start.abort_reason),
             record.score if record.has_result else None,
             record.unit if record.has_result else None,
             ("ja" if record.complete else "nein") if record.has_result else None,
-            record.tens,
-            record.inner_tens,
+            *((record.tens, record.inner_tens) if with_tens else ()),
             iso_local(record.finalized_at, tz) if record.finalized_at else None,
             iso_local(record.provisional_until, tz) if record.is_provisional else None,
             "ja" if record.needs_review else None,

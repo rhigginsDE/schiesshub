@@ -71,6 +71,33 @@ async def heat_outs(session: AsyncSession, range_: Range, heats: Sequence[Heat])
     ]
 
 
+def _audit_heats(
+    session: AsyncSession,
+    actor: Actor | None,
+    action: str,
+    tournament_id: uuid.UUID,
+    range_id: uuid.UUID,
+    heats: Sequence[Heat],
+    **extra: object,
+) -> None:
+    for heat in heats:
+        record_audit(
+            session,
+            actor or Actor(),
+            action,
+            "heat",
+            heat.id,
+            {
+                "tournament_id": str(tournament_id),
+                "range_id": str(range_id),
+                "number": heat.number,
+                "starts_at": heat.starts_at.isoformat(),
+                "ends_at": heat.ends_at.isoformat(),
+                **extra,
+            },
+        )
+
+
 async def _heats_of_range(session: AsyncSession, range_id: uuid.UUID) -> list[Heat]:
     rows = await session.scalars(
         select(Heat).where(Heat.range_id == range_id).order_by(Heat.starts_at, Heat.number)
@@ -125,6 +152,7 @@ async def create_heat(
     tournament_id: uuid.UUID,
     range_id: uuid.UUID,
     data: HeatCreate,
+    actor: Actor | None = None,
 ) -> HeatOut:
     await writable_tournament(session, tournament_id)
     range_ = await get_range(session, tournament_id, range_id, lock=True)
@@ -135,6 +163,8 @@ async def create_heat(
     _check_number_free(existing, number, None)
     heat = Heat(range_id=range_id, number=number, starts_at=data.starts_at, ends_at=data.ends_at)
     session.add(heat)
+    await session.flush()
+    _audit_heats(session, actor, "heat.created", tournament_id, range_id, [heat])
     await session.commit()
     events.publish(
         EVENT_HEAT_CREATED,
@@ -149,6 +179,7 @@ async def create_series(
     tournament_id: uuid.UUID,
     range_id: uuid.UUID,
     data: HeatSeries,
+    actor: Actor | None = None,
 ) -> list[HeatOut]:
     """Legt `count` Durchgänge ab `starts_at` an, je `heat_minutes` des Wettbewerbs lang.
 
@@ -178,6 +209,8 @@ async def create_series(
         for i, (starts_at, ends_at) in enumerate(windows)
     ]
     session.add_all(heats)
+    await session.flush()
+    _audit_heats(session, actor, "heat.created", tournament_id, range_id, heats)
     await session.commit()
     events.publish(
         EVENT_HEAT_CREATED,
@@ -196,6 +229,7 @@ async def update_heat(
     range_id: uuid.UUID,
     heat_id: uuid.UUID,
     data: HeatUpdate,
+    actor: Actor | None = None,
 ) -> HeatOut:
     await writable_tournament(session, tournament_id)
     range_ = await get_range(session, tournament_id, range_id, lock=True)
@@ -218,6 +252,9 @@ async def update_heat(
         await _check_person_free(session, start.entry_id, starts_at, ends_at, exclude_heat=heat.id)
     for key, value in changes.items():
         setattr(heat, key, value)
+    _audit_heats(
+        session, actor, "heat.updated", tournament_id, range_id, [heat], changed=sorted(changes)
+    )
     await session.commit()
     events.publish(
         EVENT_HEAT_UPDATED,
@@ -358,11 +395,26 @@ async def assign_slot(
     start_id: uuid.UUID,
     heat_id: uuid.UUID,
     lane: int | None,
+    actor: Actor | None = None,
 ) -> Start:
     await writable_tournament(session, tournament_id)
     context = await get_start(session, tournament_id, start_id)
     previous_heat = context.start.heat_id
     await place(session, context.start, context.entry, context.competition, heat_id, lane)
+    heat = await session.get(Heat, heat_id)
+    record_audit(
+        session,
+        actor or Actor(),
+        "start.slot_assigned",
+        "start",
+        start_id,
+        context.audit_details(
+            heat_id=str(heat_id),
+            heat_number=heat.number if heat else None,
+            lane=context.start.lane,
+            previous_heat_id=str(previous_heat) if previous_heat else None,
+        ),
+    )
     await session.commit()
     events.publish(
         EVENT_START_SCHEDULED,
@@ -382,7 +434,11 @@ async def assign_slot(
 
 
 async def clear_slot(
-    session: AsyncSession, events: EventHub, tournament_id: uuid.UUID, start_id: uuid.UUID
+    session: AsyncSession,
+    events: EventHub,
+    tournament_id: uuid.UUID,
+    start_id: uuid.UUID,
+    actor: Actor | None = None,
 ) -> Start:
     await writable_tournament(session, tournament_id)
     context = await get_start(session, tournament_id, start_id)
@@ -391,6 +447,14 @@ async def clear_slot(
     previous_heat = context.start.heat_id
     context.start.heat_id = None
     context.start.lane = None
+    record_audit(
+        session,
+        actor or Actor(),
+        "start.slot_cleared",
+        "start",
+        start_id,
+        context.audit_details(previous_heat_id=str(previous_heat) if previous_heat else None),
+    )
     await session.commit()
     events.publish(
         EVENT_START_SCHEDULED,

@@ -85,6 +85,9 @@ class PairingCodeOut(BaseModel):
     code: str
     # Pfad für den QR-Code; das Frontend setzt Herkunft (Schema, Host, Port) davor.
     pair_path: str
+    # Herkünfte des Servers für den QR-Code („https://schiesshub.local“), bevorzugte zuerst:
+    # aus `PUBLIC_BASE_URL`, sonst aus der Anfrage (Host bzw. X-Forwarded-Host/-Proto).
+    server_urls: list[str] = []
     expires_at: datetime
     name: str | None
     default_role_id: UUID | None

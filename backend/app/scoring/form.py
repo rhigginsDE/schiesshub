@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict
 from app.scoring.definition import Definition, check_capture_mode, load_definition
 from app.scoring.numbers import format_seconds_value
 from app.scoring.plan import SectionPlan, SeriesPlan
+from app.scoring.raw import plausible_max_s
 from app.scoring.spec import CaptureMode, Direction, PositionSpec
 from app.scoring.status import ABORTED, NORMAL, STATUS_LABELS, UNFINISHED, SeriesStatus
 
@@ -162,7 +163,7 @@ def _section_form(defn: Definition, plan: SectionPlan, mode: CaptureMode) -> Sec
     fields = []
     hints = []
     if plan.section_time:
-        fields.append(_time_field("Gesamtzeit"))
+        fields.append(_time_field("Gesamtzeit", plausible_max_s(plan, spec.max_gesamtzeit_s)))
     if spec.sollzeit_s is not None:
         hints.append(f"Sollzeit {_s(spec.sollzeit_s)}")
     if spec.max_gesamtzeit_s is not None:
@@ -249,7 +250,7 @@ def _series_form(
                     )
                 )
     if plan.series_time:
-        fields.append(_time_field("Zeit"))
+        fields.append(_time_field("Zeit", plausible_max_s(plan, plan.spec.max_zeit_je_serie_s)))
     if plan.standing:
         fields.append(
             FieldSpec(
@@ -328,8 +329,17 @@ def _status_option(plan: SectionPlan, status: SeriesStatus, mode: CaptureMode) -
     return StatusOption(key=status, label=STATUS_LABELS[status], required_fields=fields)
 
 
-def _time_field(label: str) -> FieldSpec:
-    return FieldSpec(key="time_cs", label=label, kind="time", required=True, min=1, unit="cs")
+def _time_field(label: str, maximum_s: Decimal) -> FieldSpec:
+    """`max`: Plausibilitätsgrenze in cs (darüber lehnt `validate_raw` ab)."""
+    return FieldSpec(
+        key="time_cs",
+        label=label,
+        kind="time",
+        required=True,
+        min=1,
+        max=int(maximum_s * 100),
+        unit="cs",
+    )
 
 
 def _position_form(position: PositionSpec) -> PositionForm:

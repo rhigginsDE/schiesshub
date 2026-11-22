@@ -5,8 +5,12 @@ nur ausgewählt, gruppiert und dargestellt. Personen erscheinen nur so, wie sie 
 (`display_mode`): voll, abgekürzt oder gar nicht (dann nur die Startnummer); den Verein nur mit
 `show_club`. Den vollen Namen liefern diese Sichten nie, wenn die Person ihn nicht freigibt.
 
-- `scope=final`: abgeschlossene Ergebnisse und Abbrüche (nach `RankPolicy`: aufgegeben hinten,
-  nicht angetreten und disqualifiziert nicht in der Liste).
+- Regel für Plätze: `RankPolicy.for_list` aus `app.scoring` – dieselbe für Rangliste, Anzeige
+  und Export. Abgebrochene Starts (nicht angetreten, aufgegeben, disqualifiziert) bekommen nie
+  einen Platz; sie stehen am Ende ihrer Gruppe ohne Platz (`group=unranked`, `abort_reason`),
+  mit `include_aborted=false` gar nicht.
+- `scope=final`: abgeschlossene Ergebnisse und Abbrüche; ein unvollständiges Ergebnis (nach
+  einer Änderung der Wertung) steht ohne Platz da.
 - `scope=live`: zusätzlich laufende Zwischenstände (Status `registered`/`called`/`captured` mit
   erfasstem Stand), gekennzeichnet als `running`; unvollständige stehen hinter den vollständigen.
 - `include_provisional=false` lässt Ergebnisse in der Einspruchsfrist weg.
@@ -28,7 +32,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.ergebnisse.models import ResultCurrent
 from app.modules.ergebnisse.recompute import ensure_current
-from app.modules.ergebnisse.rules import evaluate, scoring_definition
 from app.modules.ergebnisse.schemas import (
     CompetitionSummary,
     LeaderOut,
@@ -49,7 +52,10 @@ from app.modules.turnier.models import Competition, TournamentClass
 from app.scoring import ComputedResult, Contender, Placement, RankPolicy, best_of, rank
 
 Scope = Literal["final", "live"]
-POLICY = RankPolicy()
+
+
+def policy_for(scope: Scope, include_aborted: bool = True) -> RankPolicy:
+    return RankPolicy.for_list(final=scope == "final", include_aborted=include_aborted)
 
 
 @dataclass(slots=True)
@@ -76,8 +82,8 @@ class Candidate:
 
     @property
     def rankable(self) -> bool:
-        """Ohne Vergleichsschlüssel nur DNS/DSQ (ohne Platz) oder „prüfen“ (ohne Platz)."""
-        return self.key is not None or self.start.abort_reason in ("dns", "dsq")
+        """Ohne Vergleichsschlüssel nur Abgebrochene (ohne Platz) oder „prüfen“ (ohne Platz)."""
+        return self.key is not None or self.start.abort_reason is not None
 
 
 def _status(start: Start, current: ResultCurrent | None, now: datetime) -> RowStatus:
@@ -179,9 +185,6 @@ async def _candidates(
         .where(Start.competition_id == competition.id)
         .order_by(Entry.start_number, Start.attempt)
     )
-    definition = scoring_definition(competition.definition)
-    empty_key: list[int | None] | None = None
-    empty_done = False
     candidates = []
     for start, entry, person, club, klass, current in rows:
         computed = (
@@ -190,12 +193,6 @@ async def _candidates(
             else None
         )
         key = current.rank_keys if current is not None else None
-        if current is None and start.status == "aborted" and start.abort_reason == "dnf":
-            # Aufgegeben ohne Rohwerte: hinten, mit dem Ergebnis der leeren Rohwerte.
-            if not empty_done:
-                empty = evaluate(definition, competition.capture_mode, {}, is_final=False)
-                empty_key, empty_done = empty.rank_keys, True
-            key = empty_key
         candidates.append(
             Candidate(
                 start,
@@ -221,7 +218,9 @@ async def competition_ranking(
     include_provisional: bool = True,
     scope: Scope = "final",
     merged: bool = False,
+    include_aborted: bool = True,
 ) -> RankingOut:
+    """Rangliste eines Wettbewerbs; die gemeinsame Quelle für Anzeige und Export."""
     competition = await competition_of(session, tournament_id, competition_id)
     if await ensure_current(session, competition):
         await session.refresh(competition)
@@ -232,6 +231,7 @@ async def competition_ranking(
         include_provisional=include_provisional,
         scope=scope,
         merged=merged,
+        include_aborted=include_aborted,
     )
 
 
@@ -243,8 +243,10 @@ async def _ranking(
     include_provisional: bool,
     scope: Scope,
     merged: bool,
+    include_aborted: bool = True,
 ) -> RankingOut:
     now = await server_now(session)
+    policy = policy_for(scope, include_aborted)
     classes = {
         item.id: item
         for item in await session.scalars(
@@ -271,7 +273,7 @@ async def _ranking(
     candidates = every
     if rule == "first":
         # Zählt nur der erste Start, entscheidet das ungefiltert (sonst rückte der zweite nach).
-        first = {c.id for c in best_of([c.contender() for c in candidates], "first", POLICY)}
+        first = {c.id for c in best_of([c.contender() for c in candidates], "first", policy)}
         candidates = [c for c in candidates if str(c.start.id) in first]
     grouped: dict[uuid.UUID | None, list[Candidate]] = defaultdict(list)
     for candidate in candidates:
@@ -285,7 +287,7 @@ async def _ranking(
     )
     for group_key in order:
         members = grouped.get(group_key, [])
-        rows = _rank_group(members, rule)
+        rows = _rank_group(members, rule, policy)
         if competition.combined_ranking and class_id is not None:
             rows = [row for row in rows if row.class_id == class_id]
         group_class = classes.get(group_key) if group_key is not None else None
@@ -303,6 +305,7 @@ async def _ranking(
     return RankingOut(
         competition_id=competition.id,
         competition_name=competition.name,
+        competition_code=competition.catalog_code,
         scope=scope,
         include_provisional=include_provisional,
         merged=merged,
@@ -315,16 +318,18 @@ async def _ranking(
     )
 
 
-def _rank_group(members: list[Candidate], rule: str) -> list[RankingRow]:
+def _rank_group(members: list[Candidate], rule: str, policy: RankPolicy) -> list[RankingRow]:
     rankable = [c for c in members if c.rankable]
     unrankable = [c for c in members if not c.rankable]
     contenders = [c.contender() for c in rankable]
     if rule == "best":
-        contenders = best_of(contenders, "best", POLICY)
+        contenders = best_of(contenders, "best", policy)
     by_id = {str(c.start.id): c for c in rankable}
-    rows = [_row(by_id[placement.id], placement) for placement in rank(contenders, POLICY)]
-    # Nach einer Änderung der Wertung nicht wertbar: ohne Platz, zum Prüfen.
-    rows.extend(_row(candidate, None) for candidate in unrankable)
+    rows = [_row(by_id[placement.id], placement) for placement in rank(contenders, policy)]
+    # Nach einer Änderung der Wertung nicht wertbar: ohne Platz, zum Prüfen – vor den
+    # Abgebrochenen, die immer am Ende stehen.
+    cut = next((i for i, row in enumerate(rows) if row.abort_reason is not None), len(rows))
+    rows[cut:cut] = [_row(candidate, None) for candidate in unrankable]
     return rows
 
 

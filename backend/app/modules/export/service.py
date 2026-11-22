@@ -36,7 +36,7 @@ from app.modules.starts.schemas import StationStartOut
 from app.modules.teilnehmer.models import Club, Person
 from app.modules.teilnehmer.names import clean_text
 from app.modules.turnier.models import Competition, Range, TournamentClass
-from app.scoring import ComputedResult
+from app.scoring import ComputedResult, DefinitionError, load_definition
 
 
 async def meta(session: AsyncSession, tournament_id: uuid.UUID, names: NamesMode) -> Meta:
@@ -50,6 +50,15 @@ async def meta(session: AsyncSession, tournament_id: uuid.UUID, names: NamesMode
         names=names,
         tz=zone_of(tournament.settings),
     )
+
+
+def _scores_rings(definition: dict | None) -> bool:
+    """Wertet die Disziplin Ringe? Im Zweifel ja (dann bleiben die Spalten stehen)."""
+    try:
+        defn = load_definition({"variant": definition["variant"], "scoring": definition["scoring"]})
+    except DefinitionError, KeyError, TypeError:
+        return True
+    return any(section.rings for section in defn.sections)
 
 
 def _sections_of(definition: dict | None) -> tuple[tuple[str, str], ...]:
@@ -86,6 +95,7 @@ async def competitions(
             multi_start=competition.multi_start,
             planning=competition.planning,
             sections=_sections_of(competition.definition),
+            rings=_scores_rings(competition.definition),
         )
     return result
 
@@ -186,7 +196,11 @@ async def winners(
     merged: bool,
     include_provisional: bool,
     names: NamesMode,
+    include_aborted: bool = True,
 ) -> list[WinnerSection]:
+    """Siegerliste aus der Rangliste (`ergebnisse`); Plätze, Abbrüche und Mehrfachstart
+    entscheidet allein sie (`RankPolicy`). `include_aborted`: Abgebrochene ohne Platz am Ende
+    der Gruppe aufführen (Standard) oder weglassen."""
     await get_tournament(session, tournament_id)
     if competition_id is not None:
         await competition_of(session, tournament_id, competition_id)
@@ -207,15 +221,9 @@ async def winners(
             include_provisional=include_provisional,
             scope="final",
             merged=merged,
+            include_aborted=include_aborted,
         )
-        aborted = [
-            start
-            for start in await views.startlist(session, tournament_id, cid, None)
-            if start.status == "aborted"
-        ]
-        found = tables.winner_tables(
-            result, aborted, class_names=classes, top=top, class_id=class_id, full_names=lookup
-        )
+        found = tables.winner_tables(result, class_names=classes, top=top, full_names=lookup)
         if competition_id is None and not any(table.rows for table in found):
             # Über alle Wettbewerbe: solche ohne jedes Ergebnis weglassen.
             continue

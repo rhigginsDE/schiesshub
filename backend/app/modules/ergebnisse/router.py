@@ -184,7 +184,9 @@ async def preview(
     description=(
         "Verlangt vollständige Rohwerte (sonst 422 mit der Liste). Der Start wird "
         "„abgeschlossen“; bis `provisional_until` (Einspruchsfrist des Turniers) gilt das "
-        "Ergebnis als vorläufig."
+        "Ergebnis als vorläufig. Optional `expected_seq` und `expected_score`: der Stand, den "
+        "der Mensch bestätigt hat; weicht der Server ab, 409 mit dem aktuellen Stand (nichts "
+        "wird abgeschlossen)."
     ),
     responses=WRITE,
 )
@@ -199,7 +201,15 @@ async def finalize(
 ) -> ResultState:
     return await _write(
         service.finalize(
-            session, events, actor, tournament_id, start_id, data.base_seq, idempotency_key
+            session,
+            events,
+            actor,
+            tournament_id,
+            start_id,
+            data.base_seq,
+            idempotency_key,
+            expected_seq=data.expected_seq,
+            expected_score=data.expected_score,
         )
     )
 
@@ -373,7 +383,11 @@ async def needs_review(tournament_id: UUID, session: SessionDep, _: Reader) -> l
     description=(
         "Platzierungen je Klasse (bei gemeinsamer Wertung eine Gruppe). `scope=live` nimmt "
         "laufende Zwischenstände auf (`status: running`). `merged=true` legt Klassen über "
-        "`merge_into_id` zusammen. Namen nur nach Anzeige-Einstellung der Person."
+        "`merge_into_id` zusammen. Namen nur nach Anzeige-Einstellung der Person. "
+        "Abgebrochene Starts (nicht angetreten, aufgegeben, disqualifiziert) bekommen nie einen "
+        "Platz: Sie stehen am Ende ihrer Gruppe ohne Platz (`group: unranked`, `abort_reason`); "
+        "`include_aborted=false` lässt sie weg. In `scope=final` stehen auch unvollständige "
+        "Ergebnisse ohne Platz da."
     ),
     responses=NOT_FOUND,
 )
@@ -386,6 +400,7 @@ async def get_ranking(
     include_provisional: bool = True,
     scope: Annotated[ranking.Scope, Query()] = "final",
     merged: bool = False,
+    include_aborted: bool = True,
 ) -> RankingOut:
     return await ranking.competition_ranking(
         session,
@@ -395,6 +410,7 @@ async def get_ranking(
         include_provisional=include_provisional,
         scope=scope,
         merged=merged,
+        include_aborted=include_aborted,
     )
 
 

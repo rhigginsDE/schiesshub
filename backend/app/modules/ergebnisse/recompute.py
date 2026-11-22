@@ -98,6 +98,8 @@ async def recompute_competition(
         competition_id,
         {
             "tournament_id": str(competition.tournament_id),
+            "competition_code": competition.catalog_code,
+            "competition_name": competition.name,
             "definition_revision": result.definition_revision,
             "recomputed": result.recomputed,
             "needs_review": result.needs_review,

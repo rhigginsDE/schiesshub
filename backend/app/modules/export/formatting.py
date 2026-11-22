@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 
 from app.core.localtime import DEFAULT_TIMEZONE, zone
 from app.scoring.numbers import cs_to_seconds
+from app.scoring.status import STATUS_LABELS
 
 # Standard-Ortszeit, wenn das Turnier keine eigene Zeitzone hat.
 LOCAL_TZ: ZoneInfo = zone(DEFAULT_TIMEZONE)
@@ -39,6 +40,31 @@ ROW_STATUS_LABELS: dict[str, str] = {
     "aborted": "abgebrochen",
     "review": "prüfen",
 }
+
+# Ablauf einer Serie: dieselben Texte wie in der Eingabemaske (`app.scoring.status`).
+SERIES_STATUS_LABELS: dict[str, str] = dict(STATUS_LABELS)
+
+
+# --- Übersetzungsstelle: interne Schlüssel erscheinen in keiner Liste ------------------
+
+
+def abort_text(reason: str | None) -> str | None:
+    """„dnf“ → „aufgegeben“; unbekannte Schlüssel als „abgebrochen“."""
+    if reason is None:
+        return None
+    return ABORT_LABELS.get(reason, "abgebrochen")
+
+
+def start_status_text(status: str) -> str:
+    return START_STATUS_LABELS.get(status, "unbekannt")
+
+
+def row_status_text(status: str) -> str:
+    return ROW_STATUS_LABELS.get(status, "unbekannt")
+
+
+def series_status_text(status: str) -> str:
+    return SERIES_STATUS_LABELS.get(status, "besonderer Ablauf")
 
 
 def number(value: Decimal | int, *, typographic: bool = False) -> str:

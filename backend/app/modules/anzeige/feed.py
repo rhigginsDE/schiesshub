@@ -99,6 +99,17 @@ class Context:
     provisional: bool = False
     tz: ZoneInfo = field(default_factory=lambda: zone(DEFAULT_TIMEZONE))
     _startlist: list[StationStartOut] | None = None
+    _deviations: dict[uuid.UUID, tuple[bool, list[str]]] = field(default_factory=dict)
+
+    async def deviations(self, competition: Competition) -> tuple[bool, list[str]]:
+        """„Abweichend vom Katalog“ und die Abweichungen als Text (einmal je Wettbewerb)."""
+        if competition.id not in self._deviations:
+            diff = await catalog_diff_of(self.session, competition)
+            self._deviations[competition.id] = (
+                diff.deviates,
+                [item.text for item in diff.differences],
+            )
+        return self._deviations[competition.id]
 
     # --- Namen ---------------------------------------------------------------
 
@@ -113,6 +124,12 @@ class Context:
             return None
         return club
 
+    def code(self, competition_id: uuid.UUID) -> str | None:
+        for competition in self.competitions:
+            if competition.id == competition_id:
+                return competition.catalog_code
+        return None
+
     def person(self, start: StationStartOut) -> FeedPerson:
         return FeedPerson(
             start_id=start.start_id,
@@ -122,8 +139,10 @@ class Context:
             class_short=start.class_short,
             competition_id=start.competition_id,
             competition_name=start.competition_name,
+            competition_code=self.code(start.competition_id),
             attempt=start.attempt,
             status=start.status,
+            abort_reason=start.abort_reason,
             lane=start.lane,
             heat_number=start.heat_number,
             heat_starts_at=start.heat_starts_at,
@@ -244,7 +263,15 @@ def _ranking(
     limit: int,
     *,
     winners: bool = False,
+    show_aborted: bool = False,
 ) -> FeedRanking:
+    """Zeilen der Rangliste (`ergebnisse.ranking.competition_ranking`) für den Bildschirm.
+
+    Plätze und Abbrüche entscheidet allein die Rangliste; hier wird nur gekürzt: Siegerliste
+    bis Platz `limit`, Live-Wertung höchstens `limit` Zeilen. Abgebrochene (ohne Platz, am
+    Ende) kommen nur mit `show_aborted` aus der Rangliste und zählen nicht zu `limit`; andere
+    Zeilen ohne Platz (prüfen) erscheinen nie.
+    """
     wanted = set(class_ids)
     groups = []
     for group in ranking.groups:
@@ -254,21 +281,21 @@ def _ranking(
                 rows = [row for row in rows if row.class_id in wanted]
             elif not wanted & set(group.class_ids):
                 continue
+        aborted = [row for row in rows if row.abort_reason is not None] if show_aborted else []
         if winners:
-            rows = [
+            placed = [
                 row
                 for row in rows
-                if row.group == "ranked"
-                and row.place is not None
+                if row.place is not None
                 and row.place <= limit
                 and row.status in ("final", "provisional")
             ]
-            shown, more = rows, 0
+            shown, more = placed + aborted, 0
         else:
-            # Ohne Platz (zu prüfen, nicht angetreten, disqualifiziert) gehört nicht auf die
-            # öffentliche Anzeige.
-            rows = [row for row in rows if row.group != "unranked"]
-            shown, more = rows[:limit], max(len(rows) - limit, 0)
+            # Ohne Platz und ohne Abbruchgrund (zu prüfen) gehört nicht auf die Anzeige.
+            listed = [row for row in rows if row.group != "unranked"]
+            shown = listed[:limit] + aborted
+            more = max(len(listed) - limit, 0)
         if not shown:
             continue
         groups.append(
@@ -283,6 +310,7 @@ def _ranking(
     return FeedRanking(
         competition_id=ranking.competition_id,
         competition_name=ranking.competition_name,
+        competition_code=ranking.competition_code,
         direction=ranking.direction,
         unit=ranking.unit,
         combined=ranking.combined,
@@ -299,8 +327,11 @@ async def _live_ranking(context: Context, scene: LiveRankingScene, pages: Pages)
             context.tournament.id,
             competition.id,
             scope="live" if scene.show_running else "final",
+            include_aborted=scene.show_aborted,
         )
-        data = _ranking(context, ranking, scene.class_ids, scene.rows)
+        data = _ranking(
+            context, ranking, scene.class_ids, scene.rows, show_aborted=scene.show_aborted
+        )
         if not data.groups:
             if scene.competition_ids:
                 pages.skip(
@@ -311,6 +342,7 @@ async def _live_ranking(context: Context, scene: LiveRankingScene, pages: Pages)
                 )
             continue
         found = True
+        data.deviates, data.deviations = await context.deviations(competition)
         pages.scenes.append(
             FeedLiveRankingScene(
                 kind="live_ranking",
@@ -336,8 +368,16 @@ async def _winners(context: Context, scene: WinnersScene, pages: Pages) -> None:
             competition.id,
             scope="final",
             include_provisional=scene.include_provisional,
+            include_aborted=scene.show_aborted,
         )
-        data = _ranking(context, ranking, scene.class_ids, scene.top, winners=True)
+        data = _ranking(
+            context,
+            ranking,
+            scene.class_ids,
+            scene.top,
+            winners=True,
+            show_aborted=scene.show_aborted,
+        )
         if not data.groups:
             if scene.competition_ids:
                 pages.skip(
@@ -348,6 +388,7 @@ async def _winners(context: Context, scene: WinnersScene, pages: Pages) -> None:
                 )
             continue
         found = True
+        data.deviates, data.deviations = await context.deviations(competition)
         pages.scenes.append(
             FeedWinnersScene(
                 kind="winners",
@@ -390,6 +431,7 @@ async def _startlist(context: Context, scene: StartlistScene, pages: Pages) -> N
                 )
             continue
         found = True
+        deviates, deviations = await context.deviations(competition)
         range_ = context.ranges.get(competition.range_id) if competition.range_id else None
         pages.scenes.append(
             FeedStartlistScene(
@@ -402,10 +444,13 @@ async def _startlist(context: Context, scene: StartlistScene, pages: Pages) -> N
                 startlist=FeedStartlist(
                     competition_id=competition.id,
                     competition_name=competition.name,
+                    competition_code=competition.catalog_code,
                     range_id=competition.range_id,
                     range_name=range_.name if range_ else None,
                     starts=[context.person(start) for start in starts[: scene.rows]],
                     more=max(len(starts) - scene.rows, 0),
+                    deviates=deviates,
+                    deviations=deviations,
                 ),
             )
         )

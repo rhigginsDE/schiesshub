@@ -71,7 +71,7 @@ def test_missing_value_stops_tie_breaking_for_that_group_only() -> None:
     ]
 
 
-def test_default_policy_puts_incomplete_and_dnf_last_and_drops_dns_dsq() -> None:
+def test_default_policy_puts_incomplete_last_and_aborted_unranked() -> None:
     contenders = [
         c("fertig", 90),
         c("offen", 95, complete=False),
@@ -84,8 +84,10 @@ def test_default_policy_puts_incomplete_and_dnf_last_and_drops_dns_dsq() -> None
     assert places(rank(contenders)) == [
         ("besser", 1, "ranked"),
         ("fertig", 2, "ranked"),
-        ("aufgegeben", 3, "last"),
-        ("offen", 4, "last"),
+        ("offen", 3, "last"),
+        ("aufgegeben", None, "unranked"),
+        ("nicht_da", None, "unranked"),
+        ("disq", None, "unranked"),
     ]
 
 
@@ -97,15 +99,14 @@ def test_policy_options() -> None:
         Contender(id="nicht_da", abort_reason="dns"),
         c("disq", 100, abort_reason="dsq"),
     ]
-    policy = RankPolicy(incomplete="exclude", dnf="normal", dns="unranked", dsq="unranked")
+    policy = RankPolicy(incomplete="exclude", dnf="unranked", dns="unranked", dsq="exclude")
 
     assert places(rank(contenders, policy)) == [
-        ("aufgegeben", 1, "ranked"),
-        ("fertig", 2, "ranked"),
+        ("fertig", 1, "ranked"),
+        ("aufgegeben", None, "unranked"),
         ("nicht_da", None, "unranked"),
-        ("disq", None, "unranked"),
     ]
-    live = RankPolicy(incomplete="normal", dnf="exclude")
+    live = RankPolicy(incomplete="normal", dnf="exclude", dns="exclude", dsq="exclude")
     assert places(rank(contenders, live)) == [("offen", 1, "ranked"), ("fertig", 2, "ranked")]
 
 

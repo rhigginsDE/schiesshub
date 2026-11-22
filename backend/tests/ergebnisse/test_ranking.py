@@ -186,17 +186,22 @@ async def test_scope_status_and_aborts(api: Api) -> None:
     rows = rows_of(await api.ranking(tid, cid))
     assert [(r["start_id"], r["place"], r["status"], r["group"]) for r in rows] == [
         (final, 1, "provisional", "ranked"),
-        (dnf, 2, "aborted", "last"),
+        (dnf, None, "aborted", "unranked"),
+        (dns, None, "aborted", "unranked"),
+        (dsq, None, "aborted", "unranked"),
     ]
     assert rows[0]["provisional_until"] is not None
     live = rows_of(await api.ranking(tid, cid, scope="live"))
     assert [(r["start_id"], r["place"], r["status"]) for r in live] == [
         (running, 1, "running"),
         (final, 2, "provisional"),
-        (dnf, 3, "aborted"),
+        (dnf, None, "aborted"),
+        (dns, None, "aborted"),
+        (dsq, None, "aborted"),
     ]
     without = rows_of(await api.ranking(tid, cid, include_provisional="false"))
-    assert [r["start_id"] for r in without] == [dnf]
+    assert [r["start_id"] for r in without] == [dnf, dns, dsq]
+    assert rows_of(await api.ranking(tid, cid, include_aborted="false"))[0]["start_id"] == final
 
     summary = await api.ok("GET", f"/tournaments/{tid}/ranking-summary")
     (item,) = summary["competitions"]

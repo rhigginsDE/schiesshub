@@ -1,10 +1,10 @@
 """HTTP-Schnittstelle des Moduls `starts`: Anmeldung, Starts, Ablauf am Stand, Sichten."""
 
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import AwareDatetime
 
 from app.core.db import SessionDep
@@ -45,6 +45,36 @@ EntryEditor = Annotated[Actor, Depends(require(PERMISSION_ENTRY_EDIT))]
 StartReader = Annotated[Actor, Depends(require(PERMISSION_START_READ))]
 StartEditor = Annotated[Actor, Depends(require(PERMISSION_START_EDIT))]
 Caller = Annotated[Actor, Depends(require(PERMISSION_START_CALL))]
+
+# Volle Namen in den Stand-Sichten (`names=full`): nur für das Personal am Stand.
+FULL_NAME_PERMISSIONS = (PERMISSION_START_CALL, "result.capture", PERMISSION_ENTRY_READ)
+FULL_NAMES_DENIED = (
+    "Volle Namen sieht nur das Personal am Stand (Berechtigung „start.call“, „result.capture“ "
+    "oder „entry.read“). Ohne sie steht jede Person so da, wie sie es gewählt hat "
+    "(names=public)."
+)
+Names = Annotated[
+    Literal["public", "full"],
+    Query(
+        description=(
+            "`public` (Standard): nur nach Anzeige-Einstellung. `full`: zusätzlich `full_name` "
+            "und `full_club` (Berechtigung start.call, result.capture oder entry.read)."
+        )
+    ),
+]
+
+
+async def _full_names(request: Request, names: str) -> bool:
+    """True bei `names=full` mit Berechtigung; ohne Berechtigung 403 mit Erklärung."""
+    if names != "full":
+        return False
+    for permission in FULL_NAME_PERMISSIONS:
+        try:
+            await require(permission)(request)
+        except HTTPException:
+            continue
+        return True
+    raise HTTPException(status.HTTP_403_FORBIDDEN, FULL_NAMES_DENIED)
 
 
 # 409 mit Feldbezug (`errors`) beantwortet der gemeinsame Handler aus `app.core.errors`.
@@ -239,9 +269,15 @@ async def abort_start(
     responses=NOT_FOUND,
 )
 async def get_queue(
-    tournament_id: UUID, range_id: UUID, session: SessionDep, _: StartReader
+    tournament_id: UUID,
+    range_id: UUID,
+    request: Request,
+    session: SessionDep,
+    _: StartReader,
+    names: Names = "public",
 ) -> QueueOut:
-    return await views.queue_view(session, tournament_id, range_id)
+    full = await _full_names(request, names)
+    return await views.queue_view(session, tournament_id, range_id, full_names=full)
 
 
 @router.post(
@@ -255,9 +291,9 @@ async def move_start(
     data: MoveRequest,
     session: SessionDep,
     events: EventHubDep,
-    _: Caller,
+    actor: Caller,
 ) -> QueueOut:
-    range_id = await queue.move(session, events, tournament_id, start_id, data)
+    range_id = await queue.move(session, events, tournament_id, start_id, data, actor)
     return await views.queue_view(session, tournament_id, range_id)
 
 
@@ -367,9 +403,9 @@ async def create_heat(
     data: HeatCreate,
     session: SessionDep,
     events: EventHubDep,
-    _: StartEditor,
+    actor: StartEditor,
 ) -> HeatOut:
-    return await schedule.create_heat(session, events, tournament_id, range_id, data)
+    return await schedule.create_heat(session, events, tournament_id, range_id, data, actor)
 
 
 @router.post(
@@ -388,9 +424,9 @@ async def create_series(
     data: HeatSeries,
     session: SessionDep,
     events: EventHubDep,
-    _: StartEditor,
+    actor: StartEditor,
 ) -> list[HeatOut]:
-    return await schedule.create_series(session, events, tournament_id, range_id, data)
+    return await schedule.create_series(session, events, tournament_id, range_id, data, actor)
 
 
 @router.patch(HEAT, summary="Durchgang ändern", responses=WRITE)
@@ -401,9 +437,11 @@ async def update_heat(
     data: HeatUpdate,
     session: SessionDep,
     events: EventHubDep,
-    _: StartEditor,
+    actor: StartEditor,
 ) -> HeatOut:
-    return await schedule.update_heat(session, events, tournament_id, range_id, heat_id, data)
+    return await schedule.update_heat(
+        session, events, tournament_id, range_id, heat_id, data, actor
+    )
 
 
 @router.delete(
@@ -451,11 +489,11 @@ async def assign_slot(
     data: SlotRequest,
     session: SessionDep,
     events: EventHubDep,
-    _: StartEditor,
+    actor: StartEditor,
 ) -> StartOut:
     return _start(
         await schedule.assign_slot(
-            session, events, tournament_id, start_id, data.heat_id, data.lane
+            session, events, tournament_id, start_id, data.heat_id, data.lane, actor
         )
     )
 
@@ -466,9 +504,9 @@ async def clear_slot(
     start_id: UUID,
     session: SessionDep,
     events: EventHubDep,
-    _: StartEditor,
+    actor: StartEditor,
 ) -> StartOut:
-    return _start(await schedule.clear_slot(session, events, tournament_id, start_id))
+    return _start(await schedule.clear_slot(session, events, tournament_id, start_id, actor))
 
 
 @router.get(
@@ -512,12 +550,15 @@ async def next_slot(
 )
 async def get_startlist(
     tournament_id: UUID,
+    request: Request,
     session: SessionDep,
     _: StartReader,
     competition_id: UUID | None = None,
     range_id: UUID | None = None,
+    names: Names = "public",
 ) -> list[StationStartOut]:
-    return await views.startlist(session, tournament_id, competition_id, range_id)
+    full = await _full_names(request, names)
+    return await views.startlist(session, tournament_id, competition_id, range_id, full_names=full)
 
 
 @router.get(
@@ -531,6 +572,12 @@ async def get_startlist(
     responses=NOT_FOUND,
 )
 async def get_range_now(
-    tournament_id: UUID, range_id: UUID, session: SessionDep, _: StartReader
+    tournament_id: UUID,
+    range_id: UUID,
+    request: Request,
+    session: SessionDep,
+    _: StartReader,
+    names: Names = "public",
 ) -> RangeNowOut:
-    return await views.range_now(session, tournament_id, range_id)
+    full = await _full_names(request, names)
+    return await views.range_now(session, tournament_id, range_id, full_names=full)

@@ -2,7 +2,7 @@
 
 Der Katalog liefert nur Vorgaben; Vereine ändern Serienzahl, gewertete Serien, Trefferaufnahmen
 und mehr je Turnier. Aushang und Anzeige kennzeichnen solche Wettbewerbe als „abweichend vom
-Sporthandbuch“ und nennen die Abweichungen mit den Texten von hier.
+Katalog“ und nennen die Abweichungen mit den Texten von hier.
 
 Verglichen werden die Regeln, nicht die Beschriftung: Namen von Variante und Abschnitten, die
 Ablauf-Beschreibung, `source` und `scoring.geprueft` (Stand der Katalogpflege) zählen nicht.

@@ -83,6 +83,13 @@ class SectionSpec(_Strict):
     ringwerte: Annotated[list[RingValue], Field(min_length=1)] | None = None
     zeit_bei_abbruch_s: PositiveNumber | None = None
     zuschlag_stoerung_vor_erstem_schuss_s: NonNegativeNumber | None = None
+    # Plausibilität gemessener Zeiten (siehe `raw.py`): höchstens Faktor × Zeitlimit
+    # (`max_zeit_je_serie_s` bzw. `max_gesamtzeit_s`, Standard 3), ohne Limit eine Stunde;
+    # `zeit_plausibel_max_s` setzt die Grenze fest.
+    zeit_plausibel_faktor: Annotated[Decimal, BeforeValidator(to_decimal), Field(ge=1)] | None = (
+        None
+    )
+    zeit_plausibel_max_s: PositiveNumber | None = None
 
     @model_validator(mode="after")
     def _check_per_series_lists(self) -> Self:
