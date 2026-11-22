@@ -1,18 +1,22 @@
 import { ActionIcon, Popover, Select, Skeleton, Switch, TextInput } from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
 import type { UseQueryResult } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import {
   Ban,
   Check,
   CheckCheck,
   Grid3x3,
+  ListChecks,
   MapPin,
+  Megaphone,
   PenLine,
   Search,
   TriangleAlert,
 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useBereiche } from "../../app/modul";
 import { Chip, type ChipTon } from "../../components/Chip";
 import { Ziffernfeld } from "../../components/Ziffernfeld";
 import { Fehlerzustand, Leerzustand } from "../../components/Zustand";
@@ -22,6 +26,7 @@ import type { Stand, Turnier, TurnierUebersicht } from "../turnier/typen";
 import type { PruefEintrag } from "./api";
 import {
   bahnenAmStand,
+  direktOeffnen,
   istOffen,
   type KachelStatus,
   kachelStatus,
@@ -29,9 +34,11 @@ import {
   nameVon,
   suche,
   uebrige,
+  vollstaendigkeit,
   wartende,
 } from "./auswahl";
 import s from "./erfassung.module.css";
+import { ERFASSUNG_ID } from "./pfade";
 
 const NUR_OFFENE_SPEICHER = "schiesshub.erfassung.nur-offene";
 
@@ -112,12 +119,14 @@ export function Startauswahl({
   const starts = startliste.data;
   const treffer = suche(starts, text, namen, nurOffene);
   const suchtGerade = text.trim() !== "";
+  // Nur bei genau einem Treffer direkt öffnen. Mehrere Starts (zwei Wettbewerbe, 2. Start):
+  // Liste zeigen, der Mensch wählt mit Wettbewerb und Startnummer vor Augen.
   const waehlenAusSuche = () => {
-    const erster = treffer[0];
-    if (erster && (treffer.length === 1 || String(erster.start_number) === text.trim())) {
-      onWahl(erster.start_id);
+    const einziger = direktOeffnen(treffer);
+    setZiffernOffen(false);
+    if (einziger) {
+      onWahl(einziger.start_id);
       setText("");
-      setZiffernOffen(false);
     }
   };
 
@@ -202,6 +211,11 @@ export function Startauswahl({
           <h2 className="h-label" id="erf-treffer">
             {t("suche.treffer", { count: treffer.length })}
           </h2>
+          {treffer.length > 1 && (
+            <p className={s.sucheHinweis} role="status">
+              {t("suche.mehrere", { count: treffer.length })}
+            </p>
+          )}
           {treffer.length === 0 ? (
             <p className="gedaempft">{t("suche.keine")}</p>
           ) : (
@@ -243,6 +257,13 @@ export function Startauswahl({
           ) : (
             staende.length > 0 && <p className="gedaempft">{t("stand.text")}</p>
           )}
+          <Wettbewerbe
+            starts={starts}
+            pruefliste={pruefliste}
+            namen={namen}
+            kennziffern={kennziffern}
+            onWahl={onWahl}
+          />
         </>
       )}
     </aside>
@@ -273,6 +294,7 @@ function StandListen({
   const warten = wartende(starts, stand.id);
   const rest = uebrige(starts, stand.id, belegung).filter((st) => !nurOffene || istOffen(st));
   const amStand = belegung.filter((b) => b.start !== null);
+  const standBereich = useBereiche(ERFASSUNG_ID)[0];
 
   return (
     <>
@@ -280,6 +302,19 @@ function StandListen({
         <h2 className="h-label" id="erf-am-stand">
           {t("auswahl.am_stand", { count: amStand.length })}
         </h2>
+        {amStand.length === 0 && (
+          <div className={s.leerHinweis}>
+            <p>
+              <strong>{t("auswahl.am_stand_leer")}</strong> {t("auswahl.am_stand_leer_text")}
+            </p>
+            {standBereich && (
+              <Link to={standBereich.navigation.pfad} className={s.bereich}>
+                <Megaphone aria-hidden />
+                <span>{t("auswahl.zum_stand")}</span>
+              </Link>
+            )}
+          </div>
+        )}
         <ul className={s.bahnen}>
           {belegung.map(({ bahn, start }) => (
             <li key={bahn}>
@@ -436,12 +471,17 @@ function StartZeile({
         <strong>{nameVon(start, namen) ?? t("auswahl.ohne_name")}</strong>
         <span className="gedaempft">
           <WettbewerbKurz start={start} kennziffern={kennziffern} />
-          {start.attempt > 1 && <span> · {t("auswahl.versuch", { nr: start.attempt })}</span>}
-          {wo && <span className="num"> · {wo}</span>}
-          {standName && <span> · {standName}</span>}
+          {start.attempt > 1 && (
+            <span className={s.versuch}>{t("auswahl.versuch", { nr: start.attempt })}</span>
+          )}
+          {start.class_short && <span>{t("auswahl.klasse", { klasse: start.class_short })}</span>}
+          {wo && <span className="num">{wo}</span>}
+          {standName && <span>{standName}</span>}
+        </span>
+        <span className={s.zeileChip}>
+          <StatusChip start={start} offenId={offenId} />
         </span>
       </span>
-      <StatusChip start={start} offenId={offenId} />
     </button>
   );
 }
@@ -477,11 +517,96 @@ function ZuPruefen({
                 <span className="gedaempft">
                   {eintrag.competition_name} · {eintrag.review_reason}
                 </span>
+                <span className={s.zeileChip}>
+                  <Chip ton="warn">{t("pruefen.chip")}</Chip>
+                </span>
               </span>
-              <Chip ton="warn">{t("pruefen.chip")}</Chip>
             </button>
           </li>
         ))}
+      </ul>
+    </section>
+  );
+}
+
+/** Vollständigkeit je Wettbewerb: wie viele Starts erledigt sind und welche noch offen. */
+function Wettbewerbe({
+  starts,
+  pruefliste,
+  namen,
+  kennziffern,
+  onWahl,
+}: {
+  starts: StationStart[];
+  pruefliste: PruefEintrag[];
+  namen: Namen;
+  kennziffern: ReadonlyMap<string, string | null>;
+  onWahl: (startId: string) => void;
+}) {
+  const { t } = useTranslation("erfassung");
+  const liste = vollstaendigkeit(starts, pruefliste);
+  if (liste.length === 0) return null;
+  return (
+    <section className={s.gruppe} aria-labelledby="erf-wettbewerbe">
+      <h2 className={`h-label ${s.gruppeTitel}`} id="erf-wettbewerbe">
+        <ListChecks aria-hidden />
+        {t("wettbewerbe.titel")}
+      </h2>
+      <ul className={s.wettbewerbe}>
+        {liste.map((w) => {
+          const fertig = w.abgeschlossen + w.abgebrochen;
+          const kennziffer = kennziffern.get(w.competitionId);
+          return (
+            <li key={w.competitionId} className={s.wettbewerbStand}>
+              <div className={s.wettbewerbZeile}>
+                <span className={s.wettbewerbName}>
+                  {kennziffer && <span className="num">{kennziffer} </span>}
+                  {w.name}
+                </span>
+                <strong
+                  className={`${s.wettbewerbZaehler} num`}
+                  data-fertig={w.offen.length === 0 || undefined}
+                >
+                  {t("wettbewerbe.zaehler", { fertig, gesamt: w.gesamt })}
+                </strong>
+              </div>
+              <p className={s.klein}>
+                {w.abgebrochen > 0 && (
+                  <span>{t("wettbewerbe.abgebrochen", { count: w.abgebrochen })}</span>
+                )}
+                {w.zuPruefen > 0 && (
+                  <span className={s.warnText}>
+                    {t("wettbewerbe.zu_pruefen", { count: w.zuPruefen })}
+                  </span>
+                )}
+                {w.offen.length === 0 && <span>{t("wettbewerbe.alle")}</span>}
+              </p>
+              {w.offen.length > 0 && (
+                <div className={s.offenListe}>
+                  <span className={s.klein}>{t("wettbewerbe.offen")}</span>
+                  {w.offen.map((start) => {
+                    const name = nameVon(start, namen) ?? t("auswahl.ohne_name");
+                    return (
+                      <button
+                        key={start.start_id}
+                        type="button"
+                        className={s.offenStart}
+                        onClick={() => onWahl(start.start_id)}
+                        aria-label={t("wettbewerbe.start_oeffnen", {
+                          nr: start.start_number,
+                          name,
+                        })}
+                      >
+                        <span className="num">{start.start_number}</span> {name}
+                        {start.attempt > 1 && ` · ${t("auswahl.versuch", { nr: start.attempt })}`}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

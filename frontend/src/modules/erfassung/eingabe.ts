@@ -1,8 +1,12 @@
 /**
  * Tastenlogik des Terminals: Ziffernfeld und Hardware-Tastatur, ohne React, einzeln getestet.
  *
- * - Zahlen (stehende Scheiben, Seriensumme, Zehner): Ziffern tippen; ist keine weitere Ziffer mehr
- *   möglich (Höchstwert erreicht), schaltet das Terminal von selbst weiter.
+ * - Zahlen (stehende Scheiben, Seriensumme, Zehner): Ziffern tippen; kann keine weitere Ziffer den
+ *   Wert noch ändern (Höchstwert erreicht oder „0“), schaltet das Terminal von selbst weiter. Bei
+ *   einstelligen Feldern (z. B. stehende Scheiben 0 bis 5) also nach jeder Ziffer, auch nach „0“.
+ * - „Weiter“ direkt nach dem selbsttätigen Weiterschalten bestätigt nur und bleibt im neuen Feld:
+ *   Wer aus Gewohnheit nach der Ziffer noch Enter oder „Weiter“ drückt, überspringt kein Feld.
+ * - Rück löscht nur im aktiven Feld; in einem leeren Feld passiert nichts (kein Sprung zurück).
  * - Zeiten: Sekunden mit Komma („12,84“), an den Server in Hundertstelsekunden (1284).
  * - Schüsse: erlaubte Werte als Tasten; auf der Tastatur „1“ „0“ für 10 und „x“ für den Innenzehner.
  */
@@ -21,21 +25,32 @@ export type Taste =
 export interface ZahlEingabe {
   text: string;
   frisch: boolean;
+  /** Feld eben durch selbsttätiges Weiterschalten erreicht: „Weiter“ bestätigt nur. */
+  angekommen?: boolean;
 }
 
 export const FRISCH: ZahlEingabe = { text: "", frisch: true };
+/** Eingabe im Feld, das nach selbsttätigem Weiterschalten aktiv ist. */
+export const ANGEKOMMEN: ZahlEingabe = { text: "", frisch: true, angekommen: true };
+
+/** Warum eine Taste nicht passt (für einen kurzen Hinweis am Ziffernfeld). */
+export type Ablehnung = "zu_gross" | "leer" | "unpassend";
 
 export interface ZahlErgebnis {
   eingabe: ZahlEingabe;
   /** Neuer Wert des Feldes (`undefined` = leer); nur gesetzt, wenn `geaendert` */
   wert?: number;
   geaendert: boolean;
-  /** Zum nächsten Feld weiterschalten */
+  /**
+   * Zum nächsten Feld weiterschalten; `eingabe` ist dann die Eingabe für das neue Feld
+   * (`ANGEKOMMEN` nach selbsttätigem Weiterschalten, sonst `FRISCH`).
+   */
   weiter: boolean;
-  /** Zum vorigen Feld (Löschen in einem leeren Feld) */
+  /** Zum vorigen Feld (nur mit der Taste „zurück“, nie durch Löschen) */
   zurueck: boolean;
   /** Taste passt nicht (z. B. Wert über dem Höchstwert) */
   abgelehnt: boolean;
+  grund?: Ablehnung;
 }
 
 const MAX_SEKUNDEN_STELLEN = 4;
@@ -79,9 +94,14 @@ function ergebnis(teil: Partial<ZahlErgebnis> & { eingabe: ZahlEingabe }): ZahlE
   return { geaendert: false, weiter: false, zurueck: false, abgelehnt: false, ...teil };
 }
 
-/** Ob nach `text` noch eine Ziffer passt (sonst schaltet das Feld weiter). */
+/**
+ * Ob eine weitere Ziffer den Wert noch ändern kann (sonst schaltet das Feld weiter). „0“ kann nicht
+ * mehr wachsen (führende Nullen fallen weg); über dem Höchstwert passt nichts mehr.
+ */
 function weitereZifferMoeglich(feld: FeldBeschreibung, wert: number): boolean {
-  if (feld.kind !== "integer" || feld.max == null) return true;
+  if (feld.kind !== "integer") return true;
+  if (wert === 0) return false;
+  if (feld.max == null) return true;
   return wert * 10 <= feld.max;
 }
 
@@ -95,12 +115,15 @@ export function zahlTaste(
   const zeit = feld.kind === "time";
   switch (taste.art) {
     case "weiter":
+      // Gerade selbsttätig hierher gekommen: „Weiter“ bestätigt das vorige Feld, springt nicht.
+      if (eingabe.angekommen) return ergebnis({ eingabe: FRISCH });
       return ergebnis({ eingabe: FRISCH, weiter: true });
     case "zurueck":
       return ergebnis({ eingabe: FRISCH, zurueck: true });
     case "loeschen": {
       const basis = eingabe.frisch ? textAus(feld, aktuell) : eingabe.text;
-      if (basis === "") return ergebnis({ eingabe: FRISCH, zurueck: true });
+      // Leeres Feld: nichts tun. Rück springt nie ins vorige Feld und löscht dort weiter.
+      if (basis === "") return ergebnis({ eingabe: FRISCH, abgelehnt: true, grund: "leer" });
       const text = basis.slice(0, -1);
       const wert = wertAusText(feld, text);
       return ergebnis({
@@ -110,9 +133,9 @@ export function zahlTaste(
       });
     }
     case "komma": {
-      if (!zeit) return ergebnis({ eingabe, abgelehnt: true });
+      if (!zeit) return ergebnis({ eingabe, abgelehnt: true, grund: "unpassend" });
       const basis = eingabe.frisch ? "" : eingabe.text;
-      if (/[.,]/.test(basis)) return ergebnis({ eingabe, abgelehnt: true });
+      if (/[.,]/.test(basis)) return ergebnis({ eingabe, abgelehnt: true, grund: "unpassend" });
       const text = `${basis || "0"},`;
       const wert = wertAusText(feld, text);
       return ergebnis({
@@ -141,11 +164,11 @@ export function zahlTaste(
         return ergebnis({ eingabe: { text, frisch: false }, wert: undefined, geaendert: true });
       }
       if (!zeit && feld.max != null && wert > feld.max) {
-        return ergebnis({ eingabe, abgelehnt: true });
+        return ergebnis({ eingabe, abgelehnt: true, grund: "zu_gross" });
       }
       const weiter = !zeit && !weitereZifferMoeglich(feld, wert);
       return ergebnis({
-        eingabe: weiter ? FRISCH : { text, frisch: false },
+        eingabe: weiter ? ANGEKOMMEN : { text, frisch: false },
         wert,
         geaendert: true,
         weiter,

@@ -364,6 +364,90 @@ export function voriges(refs: readonly FeldRef[], id: string | null): FeldRef | 
   return index > 0 ? (refs[index - 1] ?? null) : null;
 }
 
+// --- Vollständigkeit ---------------------------------------------------------------------------
+
+/** Fehlende Pflichtwerte einer Serie (oder eines Abschnitts): wohin ein Tipp auf den Hinweis führt. */
+export interface Fehlstelle {
+  /** `sections.x.series.2` oder `sections.x` */
+  pfad: string;
+  abschnitt: string;
+  serie: number | null;
+  /** Bezeichnungen der fehlenden Felder, ohne Wiederholung („Zeit“, „Schüsse“) */
+  felder: string[];
+  /** Erstes fehlendes Feld */
+  ziel: FeldRef;
+}
+
+/**
+ * Was nach der Formularbeschreibung noch fehlt: Pflichtfelder ohne Wert, die beim gewählten
+ * Ablauf der Serie gebraucht werden. Ob das Ergebnis vollständig ist, entscheidet der Server; das
+ * hier sagt nur, wo die Lücken sind.
+ */
+export function fehlstellen(form: Formular, entwurf: Entwurf): Fehlstelle[] {
+  const liste: Fehlstelle[] = [];
+  for (const ref of reihenfolge(form, entwurf)) {
+    if (!ref.feld.required || hatWert(entwurf, ref)) continue;
+    const pfad =
+      ref.serie === null ? `sections.${ref.abschnitt}` : serienPfad(ref.abschnitt, ref.serie);
+    let eintrag = liste.find((f) => f.pfad === pfad);
+    if (!eintrag) {
+      eintrag = { pfad, abschnitt: ref.abschnitt, serie: ref.serie, felder: [], ziel: ref };
+      liste.push(eintrag);
+    }
+    if (!eintrag.felder.includes(ref.feld.label)) eintrag.felder.push(ref.feld.label);
+  }
+  return liste;
+}
+
+// --- Änderungen (Korrektur) ----------------------------------------------------------------------
+
+export interface Aenderung {
+  /** „Serie 2 · Stehende Scheiben“ */
+  ort: string;
+  feld: FeldBeschreibung;
+  vorher: unknown;
+  nachher: unknown;
+}
+
+/** Welche Felder sich zwischen zwei Rohwerten unterscheiden, in der Reihenfolge der Maske. */
+export function aenderungen(form: Formular, alt: Rohwerte, neu: Rohwerte): Aenderung[] {
+  const a = entwurfAus(alt);
+  const b = entwurfAus(neu);
+  const liste: Aenderung[] = [];
+  const vergleichen = (
+    ort: string,
+    feld: FeldBeschreibung,
+    ref: Pick<FeldRef, "abschnitt" | "serie" | "key">,
+  ) => {
+    const lesen = (e: Entwurf) =>
+      feld.kind === "shots"
+        ? schuesseAus(serieAus(e, ref.abschnitt, ref.serie ?? 0))
+        : wertAus(e, ref);
+    const vorher = lesen(a);
+    const nachher = lesen(b);
+    if (stabil(vorher) !== stabil(nachher)) liste.push({ ort, feld, vorher, nachher });
+  };
+  for (const abschnitt of form.sections) {
+    for (const serie of abschnitt.series) {
+      for (const feld of serie.fields) {
+        vergleichen(`${serie.label} · ${feld.label}`, feld, {
+          abschnitt: abschnitt.id,
+          serie: serie.index,
+          key: feld.key,
+        });
+      }
+    }
+    for (const feld of abschnitt.fields) {
+      vergleichen(`${abschnitt.name} · ${feld.label}`, feld, {
+        abschnitt: abschnitt.id,
+        serie: null,
+        key: feld.key,
+      });
+    }
+  }
+  return liste;
+}
+
 // --- Fehler und Hinweise am Feld -----------------------------------------------------------------
 
 export interface PfadMeldung {

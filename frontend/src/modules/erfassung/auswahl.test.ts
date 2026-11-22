@@ -3,11 +3,13 @@ import type { StationStart } from "../anmeldung/api";
 import {
   bahnenAmStand,
   bestimmeStand,
+  direktOeffnen,
   kachelStatus,
   naechsterOffener,
   namenAus,
   suche,
   uebrige,
+  vollstaendigkeit,
   wartende,
 } from "./auswahl";
 
@@ -85,5 +87,42 @@ describe("Startauswahl", () => {
     expect(bestimmeStand(staende, { t: "y" }, "t")).toBe("y");
     expect(bestimmeStand(staende, {}, "t")).toBeNull();
     expect(bestimmeStand([{ id: "x" }], {}, "t")).toBe("x");
+  });
+});
+
+describe("Suche mit mehreren Starts derselben Person", () => {
+  const bernd = [
+    start({ start_id: "a", start_number: 2, competition_id: "w1", competition_name: "4401" }),
+    start({ start_id: "b", start_number: 2, competition_id: "w2", competition_name: "4403" }),
+    start({ start_id: "c", start_number: 21 }),
+  ];
+
+  it("öffnet nie automatisch den ersten von mehreren Treffern", () => {
+    const treffer = suche(bernd, "2", new Map(), false);
+    expect(treffer.map((s) => s.start_id)).toEqual(["a", "b", "c"]);
+    expect(direktOeffnen(treffer)).toBeNull();
+  });
+
+  it("öffnet direkt nur bei genau einem Treffer", () => {
+    expect(direktOeffnen(suche(bernd, "21", new Map(), false))?.start_id).toBe("c");
+  });
+});
+
+describe("Vollständigkeit je Wettbewerb", () => {
+  it("zählt erledigte Starts und nennt die offenen", () => {
+    const liste = [
+      start({ start_id: "1", start_number: 3, status: "final" }),
+      start({ start_id: "2", start_number: 5, status: "aborted" }),
+      start({ start_id: "3", start_number: 9, status: "captured" }),
+      start({ start_id: "4", start_number: 1, status: "registered" }),
+      start({ start_id: "5", start_number: 2, status: "final", competition_id: "w2" }),
+    ];
+    const stand = vollstaendigkeit(liste, [{ competition_id: "w2" }]);
+    expect(stand.map((w) => [w.competitionId, w.gesamt, w.abgeschlossen, w.abgebrochen])).toEqual([
+      ["w", 4, 1, 1],
+      ["w2", 1, 1, 0],
+    ]);
+    expect(stand[0]?.offen.map((s) => s.start_number)).toEqual([1, 9]);
+    expect(stand[1]?.zuPruefen).toBe(1);
   });
 });

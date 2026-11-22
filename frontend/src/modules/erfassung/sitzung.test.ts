@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ApiFehler } from "../../api/client";
 import { type ErgebnisStand, type Rohwerte, SeqKonflikt } from "./api";
 import { type Entwurf, entwurfAus, rohwerteAus, setzeWert } from "./rohwerte";
-import { Sitzung, type Uhr } from "./sitzung";
+import { type AbgelegterEntwurf, type EntwurfAblage, Sitzung, type Uhr } from "./sitzung";
 import { FALLSCHEIBE, stand } from "./testdaten";
 
 /** Uhr, die nur auf Zuruf weiterläuft. */
@@ -166,6 +166,197 @@ describe("Sende-Sitzung", () => {
     expect(sitzung.lesen().phase).toBe("konflikt");
     await vorspulen(400);
     expect(senden).not.toHaveBeenCalled();
+  });
+
+  it("Eingabe während einer laufenden Sendung geht danach mit (Befund 2)", async () => {
+    // Langsamer Server: Antworten kommen erst, wenn der Test sie freigibt.
+    const offen: (() => void)[] = [];
+    const senden = vi.fn(
+      (raw: Rohwerte, seq: number) =>
+        new Promise<ErgebnisStand>((fertig) => offen.push(() => fertig(antwort(raw, seq + 1)))),
+    );
+    const { sitzung, vorspulen } = neueSitzung(senden);
+    const serie = (e: Entwurf, index: number, wert: number) =>
+      setzeWert(e, { abschnitt: "fallscheibe", serie: index, key: "time_cs" }, wert);
+    sitzung.aendern(serie(sitzung.lesen().entwurf, 0, 950));
+    await vorspulen(400);
+    expect(senden).toHaveBeenCalledTimes(1);
+    expect(sitzung.allesBestaetigt()).toBe(false);
+    // Während Serie 1 unterwegs ist: Serie 2 tippen, Entprellung läuft ab, Server antwortet nicht.
+    sitzung.aendern(serie(sitzung.lesen().entwurf, 1, 1050));
+    await vorspulen(400);
+    expect(senden).toHaveBeenCalledTimes(1);
+    // Ein Neuladen der Maske (Ereignis des Servers) während der Sendung ändert nichts.
+    sitzung.serverStand(antwort({ sections: { fallscheibe: { series: [{ time_cs: 950 }] } } }, 1));
+    expect(sitzung.lesen().entwurf.sections.fallscheibe?.series[1]).toEqual({ time_cs: 1050 });
+    offen.shift()?.();
+    await vorspulen(0);
+    // Die Antwort auf Serie 1 kommt; die Eingabe für Serie 2 bleibt und wird sofort gesendet.
+    expect(sitzung.lesen().ungespeichert).toBe(true);
+    await vorspulen(0);
+    expect(senden).toHaveBeenCalledTimes(2);
+    expect(senden.mock.calls[1]?.[0]).toEqual({
+      sections: { fallscheibe: { series: [{ time_cs: 950 }, { time_cs: 1050 }] } },
+    });
+    expect(senden.mock.calls[1]?.[1]).toBe(1);
+    // Das Ereignis zur ersten Sendung kommt spät an: kein Überschreiben, kein Konflikt.
+    sitzung.serverStand(antwort({ sections: { fallscheibe: { series: [{ time_cs: 950 }] } } }, 1));
+    offen.shift()?.();
+    await vorspulen(0);
+    expect(sitzung.lesen()).toMatchObject({ phase: "gespeichert", ungespeichert: false });
+    expect(sitzung.allesBestaetigt()).toBe(true);
+  });
+
+  it("legt Unbestätigtes ab und holt es nach dem Neuaufbau zurück", async () => {
+    let abgelegt: AbgelegterEntwurf | null = null;
+    const ablage: EntwurfAblage = {
+      lesen: () => abgelegt,
+      schreiben: (wert) => {
+        abgelegt = wert;
+      },
+    };
+    const nieAntworten = vi.fn(() => new Promise<ErgebnisStand>(() => {}));
+    const { uhr } = testUhr();
+    const erste = new Sitzung({
+      basis: stand(),
+      rohwerte: (e) => rohwerteAus(FALLSCHEIBE, e),
+      senden: nieAntworten,
+      uhr,
+      ablage,
+    });
+    erste.aendern(zeit(erste.lesen().entwurf, 1050));
+    expect(abgelegt).toMatchObject({ baseSeq: 0 });
+    erste.beenden();
+
+    // Neu aufgebaut (Neuladen, Fehleranzeige): Server steht noch auf seq 0 → zurückholen, senden.
+    const senden = vi.fn(async (raw: Rohwerte, seq: number) => antwort(raw, seq + 1));
+    const t = testUhr();
+    const zweite = new Sitzung({
+      basis: stand(),
+      rohwerte: (e) => rohwerteAus(FALLSCHEIBE, e),
+      senden,
+      uhr: t.uhr,
+      ablage,
+    });
+    expect(zweite.lesen()).toMatchObject({ wiederhergestellt: true, ungespeichert: true });
+    zweite.starten();
+    await t.vorspulen(0);
+    expect(senden.mock.calls[0]?.[0]).toEqual({
+      sections: { fallscheibe: { series: [{ time_cs: 1050 }] } },
+    });
+    expect(zweite.lesen().phase).toBe("gespeichert");
+    expect(abgelegt).toBeNull();
+  });
+
+  it("Neuladen während einer Sendung: eigene angekommene Sendung ist kein Konflikt", async () => {
+    let abgelegt: AbgelegterEntwurf | null = null;
+    const ablage: EntwurfAblage = {
+      lesen: () => abgelegt,
+      schreiben: (wert) => {
+        abgelegt = wert;
+      },
+    };
+    const { uhr, vorspulen } = testUhr();
+    const erste = new Sitzung({
+      basis: stand(),
+      rohwerte: (e) => rohwerteAus(FALLSCHEIBE, e),
+      senden: () => new Promise<ErgebnisStand>(() => {}), // Antwort geht beim Neuladen verloren
+      uhr,
+      verzoegerungMs: 400,
+      ablage,
+    });
+    erste.aendern(zeit(erste.lesen().entwurf, 1100));
+    await vorspulen(400);
+    // Während Serie 1 unterwegs ist, kommt Serie 2 dazu; dann wird neu geladen.
+    erste.aendern(
+      setzeWert(erste.lesen().entwurf, { abschnitt: "fallscheibe", serie: 1, key: "time_cs" }, 900),
+    );
+    erste.beenden();
+    // Beim Server ist die Sendung angekommen (seq 1, nur Serie 1).
+    const server = antwort({ sections: { fallscheibe: { series: [{ time_cs: 1100 }] } } }, 1);
+    const senden = vi.fn(async (raw: Rohwerte, seq: number) => antwort(raw, seq + 1));
+    const t = testUhr();
+    const zweite = new Sitzung({
+      basis: server,
+      rohwerte: (e) => rohwerteAus(FALLSCHEIBE, e),
+      senden,
+      uhr: t.uhr,
+      ablage,
+    });
+    expect(zweite.lesen().phase).toBe("wartet");
+    zweite.starten();
+    await t.vorspulen(0);
+    expect(senden.mock.calls[0]?.[1]).toBe(1);
+    expect(senden.mock.calls[0]?.[0]).toEqual({
+      sections: { fallscheibe: { series: [{ time_cs: 1100 }, { time_cs: 900 }] } },
+    });
+  });
+
+  it("unterbrochene Sendung kommt erst nach dem Neuladen an: 409 → darauf aufbauen", async () => {
+    const s1 = { sections: { fallscheibe: { series: [{ time_cs: 1100 }] } } };
+    let abgelegt: AbgelegterEntwurf | null = {
+      baseSeq: 0,
+      entwurf: entwurfAus({
+        sections: { fallscheibe: { series: [{ time_cs: 1100 }, { time_cs: 900 }] } },
+      }),
+      unterwegs: s1,
+    };
+    const ablage: EntwurfAblage = {
+      lesen: () => abgelegt,
+      schreiben: (w) => {
+        abgelegt = w;
+      },
+    };
+    const senden = vi
+      .fn<(raw: Rohwerte, seq: number, schluessel: string) => Promise<ErgebnisStand>>()
+      .mockRejectedValueOnce(new SeqKonflikt("veraltet", antwort(s1, 1)))
+      .mockImplementation(async (raw, seq) => antwort(raw, seq + 1));
+    const t = testUhr();
+    const sitzung = new Sitzung({
+      basis: stand(),
+      rohwerte: (e) => rohwerteAus(FALLSCHEIBE, e),
+      senden,
+      uhr: t.uhr,
+      ablage,
+    });
+    sitzung.starten();
+    await t.vorspulen(0);
+    await t.vorspulen(0);
+    expect(senden).toHaveBeenCalledTimes(2);
+    expect(senden.mock.calls[1]?.[1]).toBe(1);
+    expect(sitzung.lesen()).toMatchObject({ phase: "gespeichert", ungespeichert: false });
+  });
+
+  it("abgelegte Eingabe auf altem Stand: Entscheidung statt Überschreiben", () => {
+    let abgelegt: AbgelegterEntwurf | null = {
+      baseSeq: 2,
+      entwurf: entwurfAus({ sections: { fallscheibe: { series: [{ time_cs: 1050 }] } } }),
+    };
+    const ablage: EntwurfAblage = {
+      lesen: () => abgelegt,
+      schreiben: (wert) => {
+        abgelegt = wert;
+      },
+    };
+    const server = antwort({ sections: { fallscheibe: { series: [{ time_cs: 999 }] } } }, 5);
+    const sitzung = new Sitzung({
+      basis: server,
+      rohwerte: (e) => rohwerteAus(FALLSCHEIBE, e),
+      senden: vi.fn(),
+      ablage,
+    });
+    expect(sitzung.lesen()).toMatchObject({ phase: "konflikt", konflikt: server });
+  });
+
+  it("409, aber beim Server steht schon dasselbe: kein Konflikt", async () => {
+    const gleich = antwort({ sections: { fallscheibe: { series: [{ time_cs: 1284 }] } } }, 4);
+    const { sitzung, vorspulen } = neueSitzung(async () => {
+      throw new SeqKonflikt("veraltet", gleich);
+    });
+    sitzung.aendern(zeit(sitzung.lesen().entwurf, 1284));
+    await vorspulen(400);
+    expect(sitzung.lesen()).toMatchObject({ phase: "gespeichert", ungespeichert: false });
+    expect(sitzung.lesen().basis.seq).toBe(4);
   });
 
   it("ohne Automatik (Korrektur) wird nichts gesendet", async () => {

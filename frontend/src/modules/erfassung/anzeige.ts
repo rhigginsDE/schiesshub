@@ -75,7 +75,8 @@ export function serienAnzeige(
   serie: SerienWertung | undefined,
   t: TFunction<"erfassung">,
 ): SerienAnzeige {
-  if (!serie) return { wert: "–", einheit: null, zusatz: null };
+  // Noch nichts erfasst: kein „0,00 s“, das wie ein Ergebnis aussieht.
+  if (!serie || serie.captured === false) return { wert: "–", einheit: null, zusatz: null };
   if (serie.total_cs !== null) {
     const zusatz =
       serie.penalty_cs && serie.time_cs !== null

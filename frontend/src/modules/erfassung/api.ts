@@ -91,6 +91,13 @@ export const maskeAbfrage = (turnierId: string, startId: string, art: Erfassungs
       }),
   });
 
+/** Frischer Stand des Servers, am Cache vorbei (Prüfansicht vor dem Abschluss). */
+export function ladeMaske(turnierId: string, startId: string, art: Erfassungsart | null) {
+  return apiGet<Maske>(`${startPfad(turnierId, startId)}/form`, {
+    parameter: { capture_mode: art },
+  });
+}
+
 export const verlaufAbfrage = (turnierId: string, startId: string) =>
   queryOptions({
     queryKey: erfassungSchluessel.verlauf(turnierId, startId),

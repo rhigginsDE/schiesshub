@@ -34,14 +34,22 @@ import {
   type ErgebnisStand,
   erfassungSchluessel,
   ergebnisApi,
+  ladeMaske,
   type Maske as MaskeDaten,
   maskeAbfrage,
   neuerSchluessel,
   type SerieForm,
 } from "./api";
 import { type Namen, nameVon } from "./auswahl";
-import { AbbruchDialog, AbschlussDialog, GrundDialog } from "./Dialoge";
 import {
+  AbbruchDialog,
+  AenderungsListe,
+  GrundDialog,
+  PruefDialog,
+  type PruefKopf,
+} from "./Dialoge";
+import {
+  type Ablehnung,
   FRISCH,
   schussPufferAbschliessen,
   schussTaste,
@@ -53,10 +61,13 @@ import {
 import s from "./erfassung.module.css";
 import { Maske } from "./Maske";
 import {
+  aenderungen,
   type Entwurf,
   erreichbar,
   erstesOffenes,
   type FeldRef,
+  fehlstellen,
+  gleicheRohwerte,
   naechstes,
   normalerPfad,
   type PfadMeldung,
@@ -70,7 +81,7 @@ import {
   voriges,
   wertAus,
 } from "./rohwerte";
-import { Sitzung, type SitzungsZustand } from "./sitzung";
+import { Sitzung, type SitzungsZustand, sitzungsAblage } from "./sitzung";
 import { Tastenfeld } from "./Tastenfeld";
 import { Verlauf } from "./Verlauf";
 
@@ -155,6 +166,8 @@ function Flaeche({
         rohwerte: (entwurf) => rohwerteAus(formRef.current, entwurf),
         senden: (raw, baseSeq, schluessel) =>
           ergebnisApi.rohwerte(turnierId, startId, raw, baseSeq, schluessel),
+        // Unbestätigte Eingaben überleben Neuladen und Neuaufbau der Ansicht (je Tab).
+        ablage: sitzungsAblage(`schiesshub.erfassung.entwurf.${turnierId}.${startId}`),
       }),
   );
   useEffect(() => {
@@ -173,6 +186,18 @@ function Flaeche({
   useEffect(() => {
     sitzung.serverStand(maske.current);
   }, [sitzung, maske.current]);
+
+  const wiederhergestellt = zustand.wiederhergestellt;
+  useEffect(() => {
+    if (wiederhergestellt) {
+      zeigeMeldung({
+        ton: "info",
+        titel: t("wiederhergestellt.titel"),
+        text: t("wiederhergestellt.text"),
+        schluessel: `zurueck-${startId}`,
+      });
+    }
+  }, [wiederhergestellt, startId, t]);
 
   const fremd = zustand.fremdUebernommen;
   useEffect(() => {
@@ -216,7 +241,9 @@ function Flaeche({
       const jetzt = sitzung.lesen();
       return jetzt.ungespeichert || jetzt.phase === "sendet";
     },
-    enableBeforeUnload: () => sitzung.lesen().ungespeichert,
+    // Neuladen mit unbestätigter Eingabe: Rückfrage des Browsers (die Eingabe liegt zusätzlich in
+    // der Ablage und käme nach dem Neuladen zurück).
+    enableBeforeUnload: () => !sitzung.allesBestaetigt(),
     withResolver: true,
   });
 
@@ -232,6 +259,7 @@ function Flaeche({
   const [aktivId, setAktivIdState] = useState<string | null>(null);
   const [eingabe, setEingabeState] = useState<ZahlEingabe>(FRISCH);
   const [schussPuffer, setSchussPufferState] = useState("");
+  const [hinweis, setHinweis] = useState<Ablehnung | null>(null);
   const aktivRef = useRef<string | null>(null);
   const eingabeRef = useRef<ZahlEingabe>(FRISCH);
   const pufferRef = useRef("");
@@ -255,10 +283,11 @@ function Flaeche({
   const aktiv = bearbeitbar ? (refs.find((ref) => ref.id === aktivId) ?? null) : null;
 
   const gehe = useCallback(
-    (ref: FeldRef | null) => {
+    (ref: FeldRef | null, eingabe: ZahlEingabe = FRISCH) => {
       setAktivId(ref?.id ?? null);
-      setEingabe(FRISCH);
+      setEingabe(eingabe);
       setSchussPuffer("");
+      setHinweis(null);
       if (schussTimer.current) clearTimeout(schussTimer.current);
     },
     [setAktivId, setEingabe, setSchussPuffer],
@@ -294,8 +323,8 @@ function Flaeche({
   );
 
   const weiterVon = useCallback(
-    (id: string, e: Entwurf) => {
-      gehe(naechstes(liste(e), id));
+    (id: string, e: Entwurf, eingabe: ZahlEingabe) => {
+      gehe(naechstes(liste(e), id), eingabe);
     },
     [gehe, liste],
   );
@@ -335,9 +364,10 @@ function Flaeche({
         gehe(vorher);
         return;
       }
-      if (anzahl === 0) gehe(voriges(liste(e), ref.id));
+      // Leere Serie: nichts löschen und nicht in die vorige Serie springen.
+      if (anzahl === 0) setHinweis("leer");
     },
-    [sitzung, gehe, liste],
+    [sitzung, gehe],
   );
 
   const taste = useCallback(
@@ -394,15 +424,19 @@ function Flaeche({
         typeof aktuell === "number" ? aktuell : undefined,
         eingang,
       );
-      if (ergebnis.abgelehnt) return;
+      if (ergebnis.abgelehnt) {
+        setHinweis(ergebnis.grund ?? null);
+        return;
+      }
+      setHinweis(null);
       let neu = e;
       if (ergebnis.geaendert) {
         neu = setzeWert(e, aktiv, ergebnis.wert);
         sitzung.aendern(neu);
       }
-      setEingabe(ergebnis.eingabe);
-      if (ergebnis.weiter) weiterVon(aktiv.id, neu);
+      if (ergebnis.weiter) weiterVon(aktiv.id, neu, ergebnis.eingabe);
       else if (ergebnis.zurueck) gehe(voriges(refs, aktiv.id));
+      else setEingabe(ergebnis.eingabe);
     },
     [liste, sitzung, gehe, weiterVon, schussEintragen, schussLoeschen, setEingabe, setSchussPuffer],
   );
@@ -507,14 +541,63 @@ function Flaeche({
 
   const kopf = maske.header;
   const wer = `${kopf.start_number} · ${kopf.display_name ?? t("auswahl.ohne_name")}`;
+  const pruefKopf: PruefKopf = {
+    startnummer: kopf.start_number,
+    name: kopf.display_name ?? t("auswahl.ohne_name"),
+    wettbewerb: kopf.competition_name,
+    kennziffer: kennziffern.get(kopf.competition_id) ?? null,
+    klasse: kopf.class_name ?? kopf.class_short ?? null,
+  };
   const wertung = basis.computed;
   const ergebnisText = wertung
     ? `${formatWert(wertung.score)} ${wertung.unit}`
     : formatWert(basis.score);
 
-  const abschliessen = () =>
+  // --- Prüfansicht vor dem Abschluss: frischer Stand des Servers, gesperrt ---
+  const [pruefStand, setPruefStand] = useState<ErgebnisStand | null>(null);
+  const [pruefLaedt, setPruefLaedt] = useState(false);
+  const [pruefFehler, setPruefFehler] = useState<unknown>(null);
+  const pruefLauf = useRef(0);
+
+  const pruefungLaden = async () => {
+    const lauf = ++pruefLauf.current;
+    setPruefStand(null);
+    setPruefFehler(null);
+    setPruefLaedt(true);
+    try {
+      const frisch = await ladeMaske(turnierId, startId, form.capture_mode);
+      if (lauf !== pruefLauf.current) return;
+      // Neuerer Stand (z. B. anderes Gerät): der Sitzung melden, sie entscheidet wie immer.
+      sitzung.serverStand(frisch.current);
+      setPruefStand(frisch.current);
+    } catch (fehler) {
+      if (lauf === pruefLauf.current) setPruefFehler(fehler);
+    } finally {
+      if (lauf === pruefLauf.current) setPruefLaedt(false);
+    }
+  };
+
+  const pruefungOeffnen = () => {
+    // Erst wenn der Server alle Eingaben bestätigt hat: nichts wartet, nichts ist unterwegs.
+    if (!sitzung.allesBestaetigt()) {
+      zeigeMeldung({ ton: "warn", titel: t("abschluss.nicht_bereit") });
+      return;
+    }
+    oeffneDialog("abschluss");
+    void pruefungLaden();
+  };
+
+  const pruefungSchliessen = () => {
+    pruefLauf.current += 1;
+    setPruefStand(null);
+    setPruefLaedt(false);
+    setDialog(null);
+  };
+
+  /** Schließt genau den Stand ab, der in der Prüfansicht zu sehen war (Sequenznummer). */
+  const abschliessen = (geprueft: ErgebnisStand) =>
     vorgang(
-      (schluessel) => ergebnisApi.abschliessen(turnierId, startId, basis.seq, schluessel),
+      (schluessel) => ergebnisApi.abschliessen(turnierId, startId, geprueft.seq, schluessel),
       (stand) => {
         zeigeMeldung({
           ton: "erfolg",
@@ -595,6 +678,10 @@ function Flaeche({
     (wertung?.complete ?? false) && !zustand.ungespeichert && phase === "gespeichert";
   const ringe = form.sections.some((a) => a.series.some((serie) => serie.shots !== null));
   const titelAktiv = aktiv ? feldTitel(aktiv, form, t) : null;
+  const luecken = wertung && !wertung.complete ? fehlstellen(form, entwurf) : [];
+  const korrekturAenderungen = korrektur
+    ? aenderungen(form, basis.raw ?? {}, rohwerteAus(form, entwurf))
+    : [];
   const naechsterVorschlag = vorgeschlagen ?? (abgeschlossen || abgebrochen ? vorschlag() : null);
 
   return (
@@ -639,6 +726,7 @@ function Flaeche({
             <div>
               <strong>{t("korrektur.modus")}</strong>
               <p>{t("korrektur.modus_text")}</p>
+              <AenderungsListe liste={korrekturAenderungen} />
             </div>
           </div>
         )}
@@ -730,6 +818,7 @@ function Flaeche({
             wert={aktiv ? wertAus(entwurf, aktiv) : undefined}
             schussPuffer={schussPuffer}
             gesperrt={!bearbeitbar}
+            hinweis={hinweis}
             onTaste={taste}
             onSchuss={(wert) => {
               if (aktiv) gehe(schussEintragen(aktiv, [wert]));
@@ -762,7 +851,10 @@ function Flaeche({
             </>
           ) : abgeschlossen || abgebrochen ? (
             <>
-              <p className={s.aktionHinweis} data-erledigt>
+              <p
+                className={s.aktionHinweis}
+                data-erledigt={abgeschlossen ? "final" : "abgebrochen"}
+              >
                 {abgeschlossen
                   ? t("abschluss.ist", { ergebnis: ergebnisText })
                   : t("abbruch.ist", {
@@ -808,18 +900,43 @@ function Flaeche({
                 className={s.primaer}
                 leftSection={<CheckCheck aria-hidden />}
                 disabled={!vollstaendig || !darfErfassen}
-                onClick={() => oeffneDialog("abschluss")}
+                onClick={pruefungOeffnen}
               >
                 {t("abschluss.knopf")}
               </Button>
+              <SendeStatus zustand={zustand} onErneut={() => sitzung.erneut()} />
               <p className={s.aktionHinweis} aria-live="polite">
                 {vollstaendig
                   ? t("abschluss.bereit")
-                  : wertung
-                    ? (restText(wertung.progress, t) ?? t("abschluss.warten"))
-                    : t("abschluss.warten")}
+                  : luecken.length > 0
+                    ? t("abschluss.fehlt")
+                    : wertung
+                      ? (restText(wertung.progress, t) ?? t("abschluss.warten"))
+                      : t("abschluss.warten")}
               </p>
-              <SendeStatus zustand={zustand} onErneut={() => sitzung.erneut()} />
+              {!vollstaendig && luecken.length > 0 && (
+                <ul className={s.luecken}>
+                  {luecken.map((luecke) => {
+                    const abschnitt = form.sections.find((a) => a.id === luecke.abschnitt);
+                    const ort =
+                      luecke.serie !== null
+                        ? (abschnitt?.series.find((x) => x.index === luecke.serie)?.label ?? "")
+                        : (abschnitt?.name ?? "");
+                    return (
+                      <li key={luecke.pfad}>
+                        <button
+                          type="button"
+                          className={s.luecke}
+                          disabled={!bearbeitbar}
+                          onClick={() => feldWaehlen(luecke.ziel)}
+                        >
+                          {t("abschluss.fehlt_ort", { ort, felder: luecke.felder.join(", ") })}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
               <div className={s.trenner} />
               <Button
                 variant="subtle"
@@ -836,14 +953,19 @@ function Flaeche({
       </aside>
 
       {dialog === "abschluss" && (
-        <AbschlussDialog
+        <PruefDialog
           offen
           laedt={laedt}
           fehler={vorgangFehler}
-          onSchliessen={() => setDialog(null)}
-          onBestaetigen={() => void abschliessen()}
-          ergebnis={ergebnisText}
-          wer={wer}
+          onSchliessen={pruefungSchliessen}
+          form={form}
+          kopf={pruefKopf}
+          stand={pruefStand}
+          standLaedt={pruefLaedt}
+          standFehler={pruefFehler}
+          onNeuLaden={() => void pruefungLaden()}
+          lokal={rohwerteAus(form, entwurf)}
+          onBestaetigen={(geprueft) => void abschliessen(geprueft)}
         />
       )}
       {dialog === "abbruch" && (
@@ -878,7 +1000,9 @@ function Flaeche({
           titel={t("korrektur.titel")}
           text={t("korrektur.text", { wer })}
           bestaetigen={t("korrektur.bestaetigen")}
-        />
+        >
+          <AenderungsListe liste={korrekturAenderungen} />
+        </GrundDialog>
       )}
       {blocker.status === "blocked" && (
         <Bestaetigung
@@ -889,7 +1013,10 @@ function Flaeche({
           abbrechen={t("wechsel.bleiben")}
           ton="gefahr"
           onSchliessen={() => blocker.reset()}
-          onBestaetigen={() => blocker.proceed()}
+          onBestaetigen={() => {
+            sitzung.ablageLeeren();
+            blocker.proceed();
+          }}
         />
       )}
     </>
@@ -922,7 +1049,6 @@ function Kopf({
   const kopf = maske.header;
   const zeile = [
     kopf.club,
-    kopf.class_name,
     kopf.lane != null ? t("kopf.bahn", { bahn: kopf.lane }) : t("kopf.ohne_bahn"),
   ]
     .filter(Boolean)
@@ -956,6 +1082,11 @@ function Kopf({
         {kennziffer && <span className={`${s.kennziffer} num`}>{kennziffer}</span>}
         <div className={s.wettbewerbText}>
           <strong>{kopf.competition_name}</strong>
+          {(kopf.class_name || kopf.class_short) && (
+            <strong className={s.klasse}>
+              {t("auswahl.klasse", { klasse: kopf.class_name ?? kopf.class_short })}
+            </strong>
+          )}
           <span className="gedaempft">
             {maske.form.variant_name !== "Standard" ? `${maske.form.variant_name} · ` : ""}
             {maske.form.max_rings != null
@@ -1014,6 +1145,7 @@ function Gesamtstand({
   const [wegOffen, setWegOffen] = useState(false);
   const wertung = basis.computed;
   if (!wertung) return null;
+  const nochNichts = gleicheRohwerte(basis.raw, {});
   const nebenwerte: { name: string; wert: string }[] = [];
   if (wertung.tens !== null && wertung.rings !== null) {
     nebenwerte.push({ name: t("gesamt.zehner"), wert: formatWert(wertung.tens) });
@@ -1030,11 +1162,14 @@ function Gesamtstand({
   return (
     <section className={s.gesamt} aria-live="polite" aria-labelledby="erf-gesamt">
       <div className={s.gesamtZeile}>
-        <div className={s.gesamtHaupt} data-veraltet={berechnet || korrektur || undefined}>
+        <div
+          className={s.gesamtHaupt}
+          data-veraltet={berechnet || korrektur || !wertung.complete || undefined}
+        >
           <span className="h-label" id="erf-gesamt">
             {t("gesamt.titel")}
           </span>
-          <strong className="num">{formatWert(wertung.score)}</strong>
+          <strong className="num">{nochNichts ? "–" : formatWert(wertung.score)}</strong>
           <span className={s.gesamtEinheit}>{wertung.unit}</span>
         </div>
         {nebenwerte.length > 0 && (

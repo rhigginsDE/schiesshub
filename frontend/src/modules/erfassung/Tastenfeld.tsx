@@ -1,7 +1,7 @@
 import { ArrowRight, Delete } from "lucide-react";
 import type { MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { type Taste, wertText, type ZahlEingabe, zifferErlaubt } from "./eingabe";
+import { type Ablehnung, type Taste, wertText, type ZahlEingabe, zifferErlaubt } from "./eingabe";
 import s from "./erfassung.module.css";
 import type { FeldRef, Schusswert } from "./rohwerte";
 
@@ -14,6 +14,8 @@ interface TastenfeldProps {
   wert: unknown;
   schussPuffer: string;
   gesperrt: boolean;
+  /** Letzte Taste passte nicht: kurzer Hinweis, warum */
+  hinweis: Ablehnung | null;
   onTaste: (taste: Taste) => void;
   onSchuss: (wert: Schusswert) => void;
 }
@@ -31,6 +33,7 @@ export function Tastenfeld({
   wert,
   schussPuffer,
   gesperrt,
+  hinweis,
   onTaste,
   onSchuss,
 }: TastenfeldProps) {
@@ -50,7 +53,10 @@ export function Tastenfeld({
   return (
     <section className={`panel ${s.tastenPanel}`} aria-label={t("tasten.titel")}>
       <div className={s.tastenKopf}>
-        <span className="h-label">{titel ?? t("tasten.kein_feld")}</span>
+        <span className="h-label">{t("tasten.aktiv")}</span>
+        <strong className={s.tastenTitel} aria-live="polite" data-leer={!titel || undefined}>
+          {titel ?? t("tasten.kein_feld")}
+        </strong>
         {feld && feld.kind !== "shots" && (
           <output className={`${s.tastenAnzeige} num`} aria-live="polite">
             {anzeige || " "}
@@ -113,16 +119,8 @@ export function Tastenfeld({
               ,
             </button>
           ) : (
-            <button
-              type="button"
-              onMouseDown={ohneFokus}
-              className={`${s.taste} ${s.tasteNeben}`}
-              disabled={aus}
-              onClick={() => onTaste({ art: "loeschen" })}
-              aria-label={t("tasten.korrektur")}
-            >
-              <Delete aria-hidden />
-            </button>
+            // Platz des Kommas bleibt frei: Rück steht immer rechts unten (Muskelgedächtnis).
+            <span aria-hidden />
           )}
           <button
             type="button"
@@ -133,20 +131,16 @@ export function Tastenfeld({
           >
             0
           </button>
-          {feld?.kind === "time" ? (
-            <button
-              type="button"
-              onMouseDown={ohneFokus}
-              className={`${s.taste} ${s.tasteNeben}`}
-              disabled={aus}
-              onClick={() => onTaste({ art: "loeschen" })}
-              aria-label={t("tasten.korrektur")}
-            >
-              <Delete aria-hidden />
-            </button>
-          ) : (
-            <span aria-hidden />
-          )}
+          <button
+            type="button"
+            onMouseDown={ohneFokus}
+            className={`${s.taste} ${s.tasteNeben}`}
+            disabled={aus}
+            onClick={() => onTaste({ art: "loeschen" })}
+            aria-label={t("tasten.korrektur")}
+          >
+            <Delete aria-hidden />
+          </button>
           <button
             type="button"
             onMouseDown={ohneFokus}
@@ -159,7 +153,16 @@ export function Tastenfeld({
           </button>
         </div>
       )}
-      <p className={s.klein}>{t("tasten.tastatur")}</p>
+      {hinweis && feld && (
+        <p className={s.tastenHinweis} role="status">
+          {t(`tasten.abgelehnt.${hinweis}`, { max: feld.max ?? "" })}
+        </p>
+      )}
+      <p className={s.klein}>
+        {feld?.kind === "shots" && (feld.allowed_values ?? []).includes("X")
+          ? t("tasten.tastatur_x")
+          : t("tasten.tastatur")}
+      </p>
     </section>
   );
 }

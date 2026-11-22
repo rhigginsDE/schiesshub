@@ -85,17 +85,23 @@ function gerechnet(raw: Rohwerte, seq: number): ErgebnisStand {
 }
 
 function routen(extra: Record<string, TestAntwort | ((a: Aufruf) => TestAntwort)> = {}) {
+  // Der Stand des Servers: Rohwerte-Sendungen ändern ihn, die Maske liefert ihn (Prüfansicht).
+  let server = stand();
   return serverAttrappe({
     "GET /tournaments": { inhalt: [turnier] },
     [`GET /tournaments/${T}/overview`]: { inhalt: uebersicht },
     [`GET /tournaments/${T}/startlist`]: { inhalt: [startZeile] },
     [`GET /tournaments/${T}/entries`]: { inhalt: [] },
     [`GET /tournaments/${T}/results/needs-review`]: { inhalt: [] },
-    [`GET /tournaments/${T}/starts/${S}/form`]: { inhalt: maske(FALLSCHEIBE, stand()) },
+    [`GET /tournaments/${T}/starts/${S}/form`]: () => ({ inhalt: maske(FALLSCHEIBE, server) }),
+    [`GET /tournaments/${T}/starts/${S}/form?capture_mode=series`]: () => ({
+      inhalt: maske(FALLSCHEIBE, server),
+    }),
     [`GET /tournaments/${T}/starts/${S}/events`]: { inhalt: [] },
     [`PUT /tournaments/${T}/starts/${S}/raw`]: (aufruf) => {
       const inhalt = aufruf.inhalt as { raw: Rohwerte; base_seq: number };
-      return { inhalt: gerechnet(inhalt.raw, inhalt.base_seq + 1) };
+      server = gerechnet(inhalt.raw, inhalt.base_seq + 1);
+      return { inhalt: server };
     },
     ...extra,
   });
@@ -116,6 +122,7 @@ beforeEach(() => {
   // jsdom kennt kein scrollIntoView (Mantine-Auswahl und aktives Feld nutzen es).
   Element.prototype.scrollIntoView = () => {};
   localStorage.clear();
+  sessionStorage.clear();
   meldungenLeeren();
 });
 
@@ -178,11 +185,15 @@ describe("Erfassungsterminal", () => {
       },
       base_seq: expect.any(Number),
     });
-    expect(screen.getByText("gespeichert")).toBeInTheDocument();
+    expect(screen.getByText("Gespeichert")).toBeInTheDocument();
 
+    // Prüfansicht: zeigt den Stand des Servers (frisch geladen) mit allen Serien und der Summe.
     await user.click(screen.getByRole("button", { name: /Ergebnis abschließen/ }));
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText("77,70 s")).toBeInTheDocument();
+    expect(await within(dialog).findByText("77,70")).toBeInTheDocument();
+    expect(within(dialog).getByText("12,84 s")).toBeInTheDocument();
+    expect(within(dialog).getByText("11,20 s")).toBeInTheDocument();
+    expect(within(dialog).getByText("Markus Brandt")).toBeInTheDocument();
     await user.click(within(dialog).getByRole("button", { name: "Abschließen" }));
     expect(await screen.findByText("Abgeschlossen: 77,70 s")).toBeInTheDocument();
     expect(aufrufe.some((a) => a.methode === "POST" && a.pfad.endsWith("/finalize"))).toBe(true);
@@ -220,7 +231,7 @@ describe("Erfassungsterminal", () => {
     await screen.findByRole("heading", { name: "Markus Brandt" });
     await user.keyboard("12,84");
     expect(
-      await screen.findByText(/Noch nicht gespeichert/, {}, { timeout: 3000 }),
+      await screen.findByText(/Nicht gespeichert – keine Verbindung/, {}, { timeout: 3000 }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Zeit: 12,84/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Ergebnis abschließen/ })).toBeDisabled();
@@ -293,6 +304,122 @@ describe("Erfassungsterminal", () => {
     expect(aufrufe.filter((a) => a.methode === "PUT").at(-1)?.inhalt).toMatchObject({
       raw: { sections: { praezision: { series: [{ shots: [10, "X", 9] }] } } },
     });
+  });
+
+  it("Warnung des Servers: Abschließen erst nach ausdrücklicher Bestätigung", async () => {
+    const warnung = "Serie 1: 9.999,00 s liegt über dem Zeitlimit von 60 s.";
+    let letzter = stand();
+    const mitWarnung = (raw: Rohwerte, seq: number): ErgebnisStand => {
+      const antwort = gerechnet(raw, seq);
+      return {
+        ...antwort,
+        computed: antwort.computed && {
+          ...antwort.computed,
+          warnings: [{ path: "sections.fallscheibe.series[0].time_cs", message: warnung }],
+        },
+      };
+    };
+    routen({
+      [`PUT /tournaments/${T}/starts/${S}/raw`]: (aufruf) => {
+        const inhalt = aufruf.inhalt as { raw: Rohwerte; base_seq: number };
+        letzter = mitWarnung(inhalt.raw, inhalt.base_seq + 1);
+        return { inhalt: letzter };
+      },
+      [`GET /tournaments/${T}/starts/${S}/form?capture_mode=series`]: () => ({
+        inhalt: maske(FALLSCHEIBE, letzter),
+      }),
+    });
+    const user = userEvent.setup();
+    anzeigen();
+    await screen.findByRole("heading", { name: "Markus Brandt" });
+    await user.keyboard("9999{Enter}0");
+    await user.keyboard("11,2{Enter}0");
+    await waitFor(
+      () => expect(screen.getByRole("button", { name: /Ergebnis abschließen/ })).toBeEnabled(),
+      { timeout: 3000 },
+    );
+    await user.click(screen.getByRole("button", { name: /Ergebnis abschließen/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(await within(dialog).findByText(warnung)).toBeInTheDocument();
+    const abschliessen = within(dialog).getByRole("button", { name: "Abschließen" });
+    expect(abschliessen).toBeDisabled();
+    await user.click(within(dialog).getByRole("checkbox", { name: /Sie stimmen/ }));
+    expect(abschliessen).toBeEnabled();
+  });
+
+  it("Prüfansicht: weicht der Server von der Eingabe ab, geht es nur zurück", async () => {
+    // Gestellter Fehlerfall: gleiche Sequenznummer, aber andere Werte beim Server.
+    let seq = 0;
+    routen({
+      [`PUT /tournaments/${T}/starts/${S}/raw`]: (aufruf) => {
+        const inhalt = aufruf.inhalt as { raw: Rohwerte; base_seq: number };
+        seq = inhalt.base_seq + 1;
+        return { inhalt: gerechnet(inhalt.raw, seq) };
+      },
+      [`GET /tournaments/${T}/starts/${S}/form?capture_mode=series`]: () => ({
+        inhalt: maske(
+          FALLSCHEIBE,
+          gerechnet(
+            {
+              sections: {
+                fallscheibe: {
+                  series: [
+                    { time_cs: 1284, standing: 1 },
+                    { time_cs: 1070, standing: 0 },
+                  ],
+                },
+              },
+            },
+            seq,
+          ),
+        ),
+      }),
+    });
+    const user = userEvent.setup();
+    anzeigen();
+    await screen.findByRole("heading", { name: "Markus Brandt" });
+    await user.keyboard("12,84{Enter}1");
+    await user.keyboard("10,5{Enter}0");
+    await waitFor(
+      () => expect(screen.getByRole("button", { name: /Ergebnis abschließen/ })).toBeEnabled(),
+      { timeout: 3000 },
+    );
+    await user.click(screen.getByRole("button", { name: /Ergebnis abschließen/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(await within(dialog).findByText(/Beim Server steht etwas anderes/)).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Abschließen" })).toBeDisabled();
+  });
+
+  it("Startnummer mit mehreren Starts öffnet nicht den ersten, sondern zeigt die Auswahl", async () => {
+    routen({
+      [`GET /tournaments/${T}/startlist`]: {
+        inhalt: [
+          startZeile,
+          {
+            ...startZeile,
+            start_id: "s-2",
+            competition_id: "w2",
+            competition_name: "Selbstladeflinte, Zielfernrohr",
+          },
+        ],
+      },
+    });
+    const gewaehlt: unknown[] = [];
+    const user = userEvent.setup();
+    renderAnsicht(() => (
+      <ErfassungSeite
+        station="erfassung"
+        icon={Target}
+        suche={{}}
+        onSuche={(neu) => gewaehlt.push(neu)}
+      />
+    ));
+    const feld = await screen.findByRole("searchbox", { name: "Startnummer oder Name suchen" });
+    await user.type(feld, "7{Enter}");
+    expect(await screen.findByText(/2 Starts passen/)).toBeInTheDocument();
+    expect(gewaehlt).toEqual([]);
+    await user.click(screen.getByRole("button", { name: /Zielfernrohr/ }));
+    expect(gewaehlt).toEqual([{ start: "s-2", art: undefined }]);
   });
 
   it("zeigt Bahnen am Stand und die Liste „Zu prüfen“", async () => {

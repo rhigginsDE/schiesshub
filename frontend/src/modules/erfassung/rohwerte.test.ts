@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  aenderungen,
   aenderungsOrt,
   entwurfAus,
   erreichbar,
   erstesOffenes,
+  fehlstellen,
   gleicheRohwerte,
   meldungenFuer,
   naechstes,
@@ -149,5 +151,47 @@ describe("Meldungen am Feld", () => {
       "Serie 1 · Schuss 3",
     );
     expect(aenderungsOrt(PRAEZISION, "irgendwas", schuss).text).toBe("irgendwas");
+  });
+});
+
+describe("Vollständigkeit und Änderungen", () => {
+  it("nennt je Serie die fehlenden Pflichtfelder", () => {
+    const e = entwurfAus({
+      sections: { fallscheibe: { series: [{ time_cs: 1100, standing: 0 }, { time_cs: 900 }] } },
+    });
+    const fehlt = fehlstellen(FALLSCHEIBE, e);
+    expect(fehlt.map((f) => [f.pfad, f.felder])).toEqual([
+      ["sections.fallscheibe.series.1", ["Stehende Scheiben"]],
+    ]);
+    expect(fehlt[0]?.ziel.id).toBe("sections.fallscheibe.series.1.standing");
+    expect(fehlstellen(FALLSCHEIBE, leer).map((f) => f.felder)).toEqual([
+      ["Zeit", "Stehende Scheiben"],
+      ["Zeit", "Stehende Scheiben"],
+    ]);
+  });
+
+  it("Waffenstörung braucht keine Werte: keine Lücke", () => {
+    const e = entwurfAus({
+      sections: {
+        fallscheibe: {
+          series: [{ status: "malfunction_before_first_shot" }, { time_cs: 900, standing: 1 }],
+        },
+      },
+    });
+    expect(fehlstellen(FALLSCHEIBE, e)).toEqual([]);
+  });
+
+  it("stellt geänderte Felder alt und neu gegenüber", () => {
+    const alt = { sections: { fallscheibe: { series: [{ time_cs: 1100, standing: 1 }] } } };
+    const neu = { sections: { fallscheibe: { series: [{ time_cs: 1100, standing: 0 }] } } };
+    expect(aenderungen(FALLSCHEIBE, alt, neu)).toEqual([
+      {
+        ort: "Serie 1 · Stehende Scheiben",
+        feld: expect.objectContaining({ key: "standing" }),
+        vorher: 1,
+        nachher: 0,
+      },
+    ]);
+    expect(aenderungen(FALLSCHEIBE, alt, alt)).toEqual([]);
   });
 });

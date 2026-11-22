@@ -68,10 +68,10 @@ describe("Zeiten", () => {
     expect(tippen(ZEIT, ",").wert).toBeUndefined();
   });
 
-  it("Löschen bearbeitet den vorhandenen Wert", () => {
+  it("Löschen bearbeitet den vorhandenen Wert, im leeren Feld passiert nichts", () => {
     expect(tippen(ZEIT, "<", 1284).wert).toBe(1280);
     const leer = zahlTaste(ZEIT, FRISCH, undefined, { art: "loeschen" });
-    expect(leer.zurueck).toBe(true);
+    expect(leer).toMatchObject({ zurueck: false, weiter: false, abgelehnt: true, grund: "leer" });
   });
 
   it("die erste Ziffer ersetzt den alten Wert", () => {
@@ -80,8 +80,11 @@ describe("Zeiten", () => {
 });
 
 describe("Zahlen", () => {
-  it("schaltet weiter, sobald keine Ziffer mehr passt", () => {
-    expect(tippen(STEHEND, "3")).toMatchObject({ wert: 3, weiter: true });
+  it("schaltet weiter, sobald keine Ziffer den Wert mehr ändern kann", () => {
+    for (const ziffer of ["0", "1", "2", "3", "4", "5"]) {
+      expect(tippen(STEHEND, ziffer)).toMatchObject({ wert: Number(ziffer), weiter: true });
+    }
+    expect(tippen(SUMME, "0")).toMatchObject({ wert: 0, weiter: true });
     expect(tippen(SUMME, "9")).toMatchObject({ wert: 9, weiter: false });
     expect(tippen(SUMME, "95")).toMatchObject({ wert: 95, weiter: true });
     expect(tippen(SUMME, "10")).toMatchObject({ wert: 10, weiter: false });
@@ -92,6 +95,110 @@ describe("Zahlen", () => {
     expect(zahlTaste(STEHEND, FRISCH, undefined, { art: "ziffer", ziffer: "7" }).abgelehnt).toBe(
       true,
     );
+  });
+});
+
+/**
+ * Folge von Feldern wie im Terminal (Fallscheibe: je Serie Zeit, dann stehende Scheiben). Bewegt
+ * das aktive Feld genau so, wie `Terminal.tsx` es mit dem Ergebnis von `zahlTaste` tut.
+ * Tasten: Ziffern, „,“ Komma, „>“ Weiter/Enter, „<“ Rück, „^“ zurück.
+ */
+function folge(serien: number, tasten: string, start: (number | undefined)[] = []) {
+  const felder = Array.from({ length: serien }, () => [ZEIT, STEHEND]).flat();
+  const werte = felder.map((_, i) => start[i]);
+  let index: number | null = 0;
+  let eingabe: ZahlEingabe = FRISCH;
+  const besucht: (number | null)[] = [0];
+  for (const zeichen of tasten) {
+    if (index === null) break;
+    const feld = felder[index] as FeldBeschreibung;
+    const taste: Taste =
+      zeichen === ","
+        ? { art: "komma" }
+        : zeichen === ">"
+          ? { art: "weiter" }
+          : zeichen === "<"
+            ? { art: "loeschen" }
+            : zeichen === "^"
+              ? { art: "zurueck" }
+              : { art: "ziffer", ziffer: zeichen };
+    const ergebnis = zahlTaste(feld, eingabe, werte[index], taste);
+    if (ergebnis.abgelehnt) continue;
+    if (ergebnis.geaendert) werte[index] = ergebnis.wert;
+    eingabe = ergebnis.eingabe;
+    if (ergebnis.weiter) index = index + 1 < felder.length ? index + 1 : null;
+    else if (ergebnis.zurueck) index = Math.max(0, index - 1);
+    if (ergebnis.weiter || ergebnis.zurueck) besucht.push(index);
+  }
+  /** Werte je Serie: [Zeit, stehend] */
+  const jeSerie = Array.from({ length: serien }, (_, i) => [werte[2 * i], werte[2 * i + 1]]);
+  return { jeSerie, index, besucht };
+}
+
+describe("Feldfolge stehende Scheiben (Befund Probelauf 2)", () => {
+  it("viermal „11,00“ Enter „0“ ergibt viermal 11,00 s / 0", () => {
+    const { jeSerie } = folge(4, "11,00>011,00>011,00>011,00>0");
+    expect(jeSerie).toEqual([
+      [1100, 0],
+      [1100, 0],
+      [1100, 0],
+      [1100, 0],
+    ]);
+  });
+
+  it("aus Gewohnheit Enter nach der „0“ überspringt nichts", () => {
+    const { jeSerie } = folge(4, "11,00>0>11,00>0>11,00>0>11,00>0>");
+    expect(jeSerie).toEqual([
+      [1100, 0],
+      [1100, 0],
+      [1100, 0],
+      [1100, 0],
+    ]);
+  });
+
+  it("„0“ verhält sich wie jede andere Ziffer 1–5", () => {
+    for (const ziffer of ["0", "1", "2", "3", "4", "5"]) {
+      const { jeSerie } = folge(2, `9,5>${ziffer}10,25>${ziffer}`);
+      expect(jeSerie).toEqual([
+        [950, Number(ziffer)],
+        [1025, Number(ziffer)],
+      ]);
+    }
+  });
+
+  it("Ziffernfeld: Zeit, Weiter, 1–5, Weiter überspringt die nächste Zeit nicht", () => {
+    for (const ziffer of ["0", "1", "2", "3", "4", "5"]) {
+      // Nach der Ziffer steht das Terminal auf „Serie 2 · Zeit“ und bleibt dort beim „Weiter“.
+      const { jeSerie, besucht } = folge(2, `12,3>${ziffer}>`);
+      expect(besucht).toEqual([0, 1, 2]);
+      const weiter = folge(2, `12,3>${ziffer}>8,7`);
+      expect(weiter.jeSerie).toEqual([
+        [1230, Number(ziffer)],
+        [870, undefined],
+      ]);
+      expect(jeSerie[1]).toEqual([undefined, undefined]);
+    }
+  });
+
+  it("zweimal Weiter nach dem Weiterschalten geht bewusst ein Feld weiter", () => {
+    expect(folge(2, "12,3>1>>").index).toBe(3);
+  });
+
+  it("Rück löscht nur im aktiven Feld und springt nie ins vorige", () => {
+    // Serie 1 · stehend: 8× Rück leert nur dieses Feld, die Zeit davor bleibt.
+    const { jeSerie, index } = folge(2, "><<<<<<<<", [950, 2, 1050, 0]);
+    expect(index).toBe(1);
+    expect(jeSerie).toEqual([
+      [950, undefined],
+      [1050, 0],
+    ]);
+    // Serie 2 · Zeit 10,50 wird mit 8× Rück geleert; Serie 1 bleibt unberührt.
+    const zeit = folge(2, ">><<<<<<<<", [950, 2, 1050, 0]);
+    expect(zeit.index).toBe(2);
+    expect(zeit.jeSerie).toEqual([
+      [950, 2],
+      [undefined, 0],
+    ]);
   });
 });
 

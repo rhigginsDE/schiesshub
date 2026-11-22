@@ -136,6 +136,57 @@ export function suche(
 }
 
 /**
+ * Ob die Suche einen Start ohne Rückfrage öffnen darf: nur bei genau einem Treffer. Hat eine
+ * Startnummer mehrere Starts (zwei Wettbewerbe, 2. Start), wählt der Mensch aus der Liste.
+ */
+export function direktOeffnen(treffer: readonly StationStart[]): StationStart | null {
+  return treffer.length === 1 ? (treffer[0] ?? null) : null;
+}
+
+/** Erledigt heißt: abgeschlossen oder abgebrochen. */
+export interface WettbewerbStand {
+  competitionId: string;
+  name: string;
+  gesamt: number;
+  abgeschlossen: number;
+  abgebrochen: number;
+  zuPruefen: number;
+  /** Noch nicht erledigte Starts in Startnummernfolge */
+  offen: StationStart[];
+}
+
+/** Vollständigkeit je Wettbewerb aus der Startliste und der Prüfliste des Servers. */
+export function vollstaendigkeit(
+  starts: readonly StationStart[],
+  pruefliste: readonly { competition_id: string }[],
+): WettbewerbStand[] {
+  const nachWettbewerb = new Map<string, WettbewerbStand>();
+  for (const start of starts) {
+    let eintrag = nachWettbewerb.get(start.competition_id);
+    if (!eintrag) {
+      eintrag = {
+        competitionId: start.competition_id,
+        name: start.competition_name,
+        gesamt: 0,
+        abgeschlossen: 0,
+        abgebrochen: 0,
+        zuPruefen: pruefliste.filter((p) => p.competition_id === start.competition_id).length,
+        offen: [],
+      };
+      nachWettbewerb.set(start.competition_id, eintrag);
+    }
+    eintrag.gesamt += 1;
+    if (start.status === "final") eintrag.abgeschlossen += 1;
+    else if (start.status === "aborted") eintrag.abgebrochen += 1;
+    else eintrag.offen.push(start);
+  }
+  for (const eintrag of nachWettbewerb.values()) {
+    eintrag.offen.sort((a, b) => a.start_number - b.start_number || a.attempt - b.attempt);
+  }
+  return [...nachWettbewerb.values()];
+}
+
+/**
  * Vorschlag nach dem Abschluss: zuerst ein offener Start auf einer Bahn des Stands, dann der
  * erste Wartende. Der gerade abgeschlossene Start zählt nicht.
  */
