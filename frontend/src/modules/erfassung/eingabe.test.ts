@@ -122,7 +122,8 @@ function folge(serien: number, tasten: string, start: (number | undefined)[] = [
             : zeichen === "^"
               ? { art: "zurueck" }
               : { art: "ziffer", ziffer: zeichen };
-    const ergebnis = zahlTaste(feld, eingabe, werte[index], taste);
+    const belegt = index + 1 < felder.length && werte[index + 1] !== undefined;
+    const ergebnis = zahlTaste(feld, eingabe, werte[index], taste, belegt);
     if (ergebnis.abgelehnt) continue;
     if (ergebnis.geaendert) werte[index] = ergebnis.wert;
     eingabe = ergebnis.eingabe;
@@ -178,6 +179,56 @@ describe("Feldfolge stehende Scheiben (Befund Probelauf 2)", () => {
       ]);
       expect(jeSerie[1]).toEqual([undefined, undefined]);
     }
+  });
+
+  it("Tastenfolge aus dem QA-Durchlauf (B1): 20,00 ⏎ 0 ⏎ 30,00 ⏎ 1 ⏎ 39,00 ⏎ 0 ⏎ 40,00 ⏎ 0 ⏎", () => {
+    const { jeSerie, index } = folge(4, "20,00>0>30,00>1>39,00>0>40,00>0>");
+    expect(jeSerie).toEqual([
+      [2000, 0],
+      [3000, 1],
+      [3900, 0],
+      [4000, 0],
+    ]);
+    // Nach dem letzten Feld ist keins mehr aktiv; nichts springt an den Anfang zurück.
+    expect(index).toBeNull();
+  });
+
+  it("dieselbe Folge mit jeder Ziffer 0–5 als stehende Scheiben", () => {
+    for (const ziffer of ["0", "1", "2", "3", "4", "5"]) {
+      const z = ziffer;
+      const { jeSerie } = folge(4, `20,00>${z}>30,00>${z}>39,00>${z}>40,00>${z}>`);
+      expect(jeSerie).toEqual([
+        [2000, Number(z)],
+        [3000, Number(z)],
+        [3900, Number(z)],
+        [4000, Number(z)],
+      ]);
+    }
+  });
+
+  it("selbsttätig weiter nur in ein leeres Feld: vorhandene Werte bleiben", () => {
+    // Serie 1 · stehend korrigieren (Feld angetippt), Serie 2 ist schon erfasst.
+    const start = [1234, 2, 1520, 1];
+    const ohneEnter = folge(2, ">0", start);
+    expect(ohneEnter.index).toBe(1);
+    // Weitere Ziffern (gedacht für Serie 2) ändern weder den eben getippten Wert noch Serie 2.
+    const getippt = folge(2, ">09,5", start);
+    expect(getippt.index).toBe(1);
+    expect(getippt.jeSerie).toEqual([
+      [1234, 0],
+      [1520, 1],
+    ]);
+    // Rück bearbeitet das Feld wieder ausdrücklich.
+    expect(folge(2, ">0<3", start).jeSerie[0]).toEqual([1234, 3]);
+    // Enter führt ausdrücklich ins nächste Feld; erst dort ersetzt die Eingabe den Wert.
+    const mitEnter = folge(2, ">0>9,5", start);
+    expect(mitEnter.index).toBe(2);
+    expect(mitEnter.jeSerie).toEqual([
+      [1234, 0],
+      [950, 1],
+    ]);
+    const hinweis = zahlTaste(STEHEND, FRISCH, 2, { art: "ziffer", ziffer: "0" }, true);
+    expect(hinweis).toMatchObject({ weiter: false, abgelehnt: false, grund: "naechstes_belegt" });
   });
 
   it("zweimal Weiter nach dem Weiterschalten geht bewusst ein Feld weiter", () => {

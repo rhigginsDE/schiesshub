@@ -8,7 +8,14 @@
  * Modul selbst und nutzt dafür die Bausteine des Clients (URL, Fehlerart, Feldfehler).
  */
 import { queryOptions } from "@tanstack/react-query";
-import { ApiFehler, apiGet, apiUrl, artAusStatus, feldFehlerAus } from "../../api/client";
+import {
+  ApiFehler,
+  apiGet,
+  apiSenden,
+  apiUrl,
+  artAusStatus,
+  feldFehlerAus,
+} from "../../api/client";
 import { EREIGNIS_VERBUNDEN, type EreignisZuordnung } from "../../api/ereignisse";
 import type { components } from "../../api/schema.gen";
 
@@ -230,6 +237,38 @@ export const ergebnisApi = {
       schluessel,
     ),
 };
+
+/**
+ * Probe-Rechnung des Servers (`POST …/starts/{id}/preview`, `PreviewOut`): wertet Rohwerte gegen die
+ * aktuelle Definition, speichert aber nichts. Noch nicht in `schema.gen.ts`, deshalb hier getippt.
+ */
+export interface Vorschau {
+  start_id: string;
+  status: StartStatus;
+  seq: number;
+  definition_revision: number;
+  valid: boolean;
+  errors: Schemas["FieldError"][];
+  complete: boolean;
+  finalize_errors: Schemas["FieldError"][];
+  computed: Wertung | null;
+  score: string | null;
+}
+
+/** Vorschau für genau diese Rohwerte; `schluessel` ist eine stabile Form der Rohwerte. */
+export const vorschauAbfrage = (
+  turnierId: string,
+  startId: string,
+  raw: Rohwerte,
+  schluessel: string,
+) =>
+  queryOptions({
+    queryKey: ["erfassung", turnierId, "vorschau", startId, schluessel] as const,
+    queryFn: ({ signal }) =>
+      apiSenden<Vorschau>("POST", `${startPfad(turnierId, startId)}/preview`, { raw }, { signal }),
+    staleTime: Number.POSITIVE_INFINITY,
+    retry: false,
+  });
 
 /** Ob ein Fehler ein vorübergehendes Verbindungsproblem ist (dann erneut senden). */
 export function istVoruebergehend(fehler: unknown): boolean {

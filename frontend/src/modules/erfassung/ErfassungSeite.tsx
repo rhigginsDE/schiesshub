@@ -127,7 +127,9 @@ function Station({ station, icon, turnier, onWechseln, suche, onSuche }: Station
 
   const oeffnen = (id: string) => {
     setAuswahlOffen(false);
-    onSuche({ start: id, art: suche.art });
+    // Ein anderer Start beginnt mit der Erfassungsart seines Wettbewerbs; eine Umstellung gilt
+    // nur für den Start, an dem sie gewählt wurde.
+    onSuche(id === suche.start ? { start: id, art: suche.art } : { start: id });
   };
   // Vorschlag am Stand des gerade erfassten Starts (sonst am gewählten Stand).
   const vorschlag = (ohne: string | null) => {

@@ -544,10 +544,18 @@
 }
 
 .siegerInhalt:has(.weitere) {
+  --anteil: 0.62;
   grid-template-columns: minmax(0, 62fr) minmax(0, 38fr);
 }
 
 .podest {
+  /* Ungefähre Breite einer Podeststufe: Schrift von Wert und Name passt sich ihr an, damit bei
+     mehreren Klassen nebeneinander nichts überläuft oder mitten im Wort bricht. */
+  --spalte: calc(
+    min(150cqmin, (100cqw - 6cqmin) * var(--anteil, 1) / var(--anzahl, 1)) /
+    3 -
+    2.5cqmin
+  );
   width: 100%;
   max-width: 150cqmin;
   justify-self: center;
@@ -606,12 +614,15 @@
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
-  overflow-wrap: anywhere;
-  font: 600 calc(3.6cqmin * var(--skala)) / 1.15 var(--sh-font-text);
+  /* An Silbengrenzen trennen („Start-nummer“), nicht mitten im Wort */
+  overflow-wrap: break-word;
+  hyphens: auto;
+  font:
+    600 min(calc(3.6cqmin * var(--skala)), calc(var(--spalte) / 5.5)) / 1.15 var(--sh-font-text);
 }
 
 .stufe[data-stufe="1"] .stufeNameText {
-  font-size: calc(4.2cqmin * var(--skala));
+  font-size: min(calc(4.2cqmin * var(--skala)), calc(var(--spalte) / 5.5));
 }
 
 .stufeName span {
@@ -641,7 +652,10 @@
 }
 
 .sockelWert {
-  font: 700 calc(5.4cqmin * var(--skala)) / 1 var(--sh-font-mono);
+  /* --zeichen: Länge des Werts (z. B. „139,00“ = 6); Monospace ≈ 0,6 em je Zeichen */
+  font:
+    700 min(calc(5.4cqmin * var(--skala)), calc(var(--spalte) / (var(--zeichen, 6) * 0.62))) / 1
+    var(--sh-font-mono);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -668,7 +682,7 @@
 }
 
 .stufe[data-stufe="1"] .sockelWert {
-  font-size: calc(6.6cqmin * var(--skala));
+  font-size: min(calc(6.6cqmin * var(--skala)), calc(var(--spalte) / (var(--zeichen, 6) * 0.62)));
 }
 
 .weitere {

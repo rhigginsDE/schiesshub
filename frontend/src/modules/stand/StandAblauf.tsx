@@ -28,7 +28,7 @@ import {
   warteschlangeAbfrage,
 } from "../anmeldung/api";
 import type { TurnierUebersicht } from "../turnier/typen";
-import { useFehlerMelden } from "./aktionen";
+import { useBahnFreigeben, useFehlerMelden } from "./aktionen";
 import { BahnKachel } from "./Bahnen";
 import { DurchgangDialog, PlatzDialog, SerieDialog } from "./Dialoge";
 import {
@@ -74,7 +74,9 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
   const durchgangAufrufen = useDurchgangAufrufen(turnierId, standId);
   const durchgangLoeschen = useDurchgangLoeschen(turnierId, standId);
   const herausnehmen = usePlatzEntfernen(turnierId);
+  const freigeben = useBahnFreigeben(turnierId);
 
+  const [freigabe, setFreigabe] = useState<{ start: StationStart; bahn: number } | null>(null);
   const [abbruch, setAbbruch] = useState<{ start: StationStart; grund: Abbruchgrund } | null>(null);
   const [loeschen, setLoeschen] = useState<Durchgang | null>(null);
   const [serieOffen, setSerieOffen] = useState(false);
@@ -113,7 +115,8 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
     zurueck.isPending ||
     verschieben.isPending ||
     durchgangAufrufen.isPending ||
-    herausnehmen.isPending;
+    herausnehmen.isPending ||
+    freigeben.isPending;
 
   const aufgerufenMelden = (anzahl: number) => {
     if (anzahl === 0) {
@@ -211,7 +214,12 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
           {bahnen.map((bahn) => (
             <BahnKachel
               key={bahn.lane}
+              turnierId={turnierId}
               bahn={bahn}
+              onFreigeben={(start) => {
+                freigeben.reset();
+                setFreigabe({ start, bahn: bahn.lane });
+              }}
               planung={bahn.start ? (planungVon.get(bahn.start.competition_id) ?? null) : null}
               beschaeftigt={beschaeftigt}
               onNaechsten={
@@ -239,6 +247,7 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
               </Chip>
             </div>
             <Warteliste
+              turnierId={turnierId}
               wartende={wartende}
               bahnen={bahnen}
               beschaeftigt={beschaeftigt}
@@ -257,6 +266,7 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
               </h2>
             </div>
             <Zeitplan
+              turnierId={turnierId}
               durchgaenge={durchgaenge.data}
               starts={zeitplanStarts}
               hauptDurchgangId={haupt.art === "durchgang" ? haupt.durchgang.id : null}
@@ -346,6 +356,33 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
               },
             },
           );
+        }}
+      />
+
+      <Bestaetigung
+        offen={freigabe !== null}
+        titel={freigabe ? t("freigabe.titel", { bahn: freigabe.bahn }) : ""}
+        text={freigabe ? t("freigabe.text", { nr: freigabe.start.start_number }) : ""}
+        bestaetigen={t("freigabe.bestaetigen")}
+        abbrechen={t("freigabe.zurueck")}
+        laedt={freigeben.isPending}
+        fehler={freigeben.isError ? fehlerText(freigeben.error) : undefined}
+        onSchliessen={() => {
+          setFreigabe(null);
+          freigeben.reset();
+        }}
+        onBestaetigen={() => {
+          if (!freigabe) return;
+          const { start, bahn } = freigabe;
+          freigeben.mutate(start.start_id, {
+            onSuccess: () => {
+              setFreigabe(null);
+              zeigeMeldung({
+                ton: "erfolg",
+                titel: t("freigabe.gemacht", { bahn, nr: start.start_number }),
+              });
+            },
+          });
         }}
       />
 

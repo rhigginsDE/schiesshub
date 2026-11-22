@@ -344,12 +344,14 @@ export function erreichbar(entwurf: Entwurf, ref: FeldRef): FeldRef {
   return { ...ref, schuss: anzahl, id: feldId(ref.abschnitt, ref.serie, ref.key, anzahl) };
 }
 
-/** Erstes Feld ohne Wert (Pflichtfelder zuerst), sonst das erste Feld. */
+/**
+ * Erstes Feld ohne Wert (Pflichtfelder zuerst). Sind alle gefüllt, keins: Ein vorhandener Wert wird
+ * nur nach ausdrücklicher Auswahl (Antippen) geändert, nie von selbst angesteuert und überschrieben.
+ */
 export function erstesOffenes(refs: readonly FeldRef[], entwurf: Entwurf): FeldRef | null {
   return (
     refs.find((ref) => ref.feld.required && !hatWert(entwurf, ref)) ??
     refs.find((ref) => !hatWert(entwurf, ref)) ??
-    refs[0] ??
     null
   );
 }

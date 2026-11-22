@@ -26,10 +26,10 @@ const STATUS_TON: Record<StationStart["status"], ChipTon> = {
   aborted: "krit",
 };
 
-/** Startliste des Turniers, gefiltert nach Wettbewerb oder Stand. Namen wie vom Server geliefert. */
+/** Startliste des Turniers, gefiltert nach Wettbewerb oder Stand. Namen wie in der Standansicht (intern voll). */
 export function Startliste({ uebersicht, suche, onSuche }: StartlisteProps) {
   const { t, i18n } = useTranslation("stand");
-  const anzeigename = useAnzeigename();
+  const anzeigename = useAnzeigename(uebersicht.id);
   const filter = { wettbewerb: suche.wettbewerb, stand: suche.stand };
   const abfrage = useQuery(startlisteAbfrage(uebersicht.id, filter));
 
@@ -140,8 +140,8 @@ export function Startliste({ uebersicht, suche, onSuche }: StartlisteProps) {
                     </td>
                     <td className={s.zelleName} data-label={spalten.name}>
                       <span className={s.nameInhalt}>
-                        <strong data-ohne-name={start.display_name === null || undefined}>
-                          {anzeigename(start)}
+                        <strong data-ohne-name={anzeigename(start).ohne || undefined}>
+                          {anzeigename(start).text}
                         </strong>
                         {start.club && <span className="gedaempft">{start.club}</span>}
                       </span>

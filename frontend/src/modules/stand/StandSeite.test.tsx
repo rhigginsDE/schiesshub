@@ -126,7 +126,8 @@ afterEach(() => {
   meldungenLeeren();
 });
 
-describe("Stand", () => {
+// Menüs und Dialoge brauchen unter Last (alle Tests parallel) länger als die üblichen 5 s.
+describe("Stand", { timeout: 15000 }, () => {
   it("zeigt die Bahnen und ruft mit dem einen Hauptknopf die Nächsten auf", async () => {
     const aufrufe = routen(["queue"], {
       [`POST /tournaments/${T}/ranges/${R}/call-next`]: { inhalt: [] },
@@ -167,6 +168,61 @@ describe("Stand", () => {
     expect(abbruch?.inhalt).toEqual({ abort_reason: "dnf" });
   });
 
+  it("zeigt intern den vollen Namen aus den Anmeldungen", async () => {
+    routen(["queue"], {
+      [`GET /tournaments/${T}/entries`]: {
+        inhalt: [{ id: "e-2", person: { name: "Paul Winter" } }],
+      },
+    });
+    renderAnsicht(() => <StandSeite suche={{}} onSuche={() => {}} />);
+
+    const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
+    expect(await within(bahn1).findByText("Paul Winter")).toBeInTheDocument();
+    expect(within(bahn1).queryByText("Name nicht angezeigt")).toBeNull();
+  });
+
+  it("hält die Bahn bis zum Abschluss, zeigt den Fortschritt und gibt sie nach Rückfrage frei", async () => {
+    const inErfassung = { ...aufgerufen, status: "captured" as const };
+    const aufrufe = routen(["queue"], {
+      [`GET /tournaments/${T}/ranges/${R}/queue`]: {
+        inhalt: {
+          range_id: R,
+          lane_count: 2,
+          waiting: [wartend],
+          lanes: [
+            {
+              lane: 1,
+              start: inErfassung,
+              progress: { section_id: null, series_done: 2, series_total: 4, complete: false },
+            },
+            { lane: 2, start: null, progress: null },
+          ],
+        },
+      },
+      [`POST /tournaments/${T}/starts/s-2/release-lane`]: { inhalt: {} },
+    });
+    const benutzer = userEvent.setup();
+    renderAnsicht(() => <StandSeite suche={{}} onSuche={() => {}} />);
+
+    const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
+    expect(within(bahn1).getByText("wird erfasst")).toBeInTheDocument();
+    expect(within(bahn1).getByText("2 von 4 Serien erfasst")).toBeInTheDocument();
+    expect(within(bahn1).getByRole("link", { name: /Ergebnis erfassen/ })).toHaveAttribute(
+      "href",
+      "/erfassung?start=s-2",
+    );
+    expect(within(bahn1).queryByRole("button", { name: /Zurückstellen/ })).toBeNull();
+
+    await benutzer.click(within(bahn1).getByRole("button", { name: /Bahn freigeben/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Bahn 1 freigeben?")).toBeInTheDocument();
+    expect(aufrufe.some((a) => a.pfad.endsWith("/release-lane"))).toBe(false);
+    await benutzer.click(within(dialog).getByRole("button", { name: "Bahn freigeben" }));
+    expect(aufrufe.some((a) => a.methode === "POST" && a.pfad.endsWith("/release-lane"))).toBe(
+      true,
+    );
+  });
+
   it("legt Durchgänge als Serie an und zeigt Feldfehler des Servers", async () => {
     let versuch = 0;
     const aufrufe = routen(["schedule"], {
@@ -187,19 +243,19 @@ describe("Stand", () => {
     renderAnsicht(() => <StandSeite suche={{}} onSuche={() => {}} />);
 
     expect(await screen.findByText("Gerade wartet niemand auf diesem Stand.")).toBeInTheDocument();
-    await benutzer.click(screen.getByRole("button", { name: "Serie anlegen" }));
+    await benutzer.click(screen.getByRole("button", { name: "Durchgänge anlegen" }));
     const dialog = await screen.findByRole("dialog");
     const anzahl = within(dialog).getByRole("textbox", { name: "Anzahl" });
     await benutzer.clear(anzahl);
     await benutzer.type(anzahl, "3");
-    await benutzer.click(within(dialog).getByRole("button", { name: "Serie anlegen" }));
+    await benutzer.click(within(dialog).getByRole("button", { name: "Durchgänge anlegen" }));
 
     expect(await within(dialog).findByText("darf höchstens 200 sein")).toBeInTheDocument();
     const gesendet = aufrufe.find((a) => a.pfad.endsWith("/heats/series"));
     expect(gesendet?.inhalt).toMatchObject({ competition_id: W_Z, count: 3 });
     expect(gesendet?.inhalt).toHaveProperty("starts_at", expect.any(String));
 
-    await benutzer.click(within(dialog).getByRole("button", { name: "Serie anlegen" }));
+    await benutzer.click(within(dialog).getByRole("button", { name: "Durchgänge anlegen" }));
     expect(versuch).toBe(2);
   });
 });

@@ -16,6 +16,7 @@ import { belegungDurchgang, durchgangErledigt, sortiereDurchgaenge } from "./log
 import s from "./stand.module.css";
 
 interface ZeitplanProps {
+  turnierId: string;
   durchgaenge: readonly Durchgang[];
   /** Starts der Zeitplan-Wettbewerbe dieses Stands */
   starts: readonly StationStart[];
@@ -72,7 +73,7 @@ export function Zeitplan(props: ZeitplanProps) {
           <p className="gedaempft">{t("zeitplan.ohne_platz_text")}</p>
           <ul className={s.ohnePlatzListe}>
             {ohnePlatz.map((start) => (
-              <StartZeile key={start.start_id} start={start}>
+              <StartZeile key={start.start_id} start={start} turnierId={props.turnierId}>
                 <Button
                   variant="default"
                   size="md"
@@ -188,6 +189,7 @@ export function Zeitplan(props: ZeitplanProps) {
 }
 
 function PlatzInhalt({
+  turnierId,
   start,
   beschaeftigt,
   onPlatz,
@@ -196,14 +198,14 @@ function PlatzInhalt({
   onAbbrechen,
 }: { start: StationStart } & ZeitplanProps) {
   const { t } = useTranslation("stand");
-  const anzeigename = useAnzeigename();
+  const anzeigename = useAnzeigename(turnierId);
   const nr = start.start_number;
   const wartet = start.status === "registered";
   return (
     <>
       <span className={s.platzWer}>
         <strong>
-          <span className="num">{nr}</span> {anzeigename(start)}
+          <span className="num">{nr}</span> {anzeigename(start).text}
         </strong>
         <span className="gedaempft">
           {start.competition_name} · {t("bahn.start_nr", { nr: start.attempt })}
@@ -254,14 +256,22 @@ function PlatzInhalt({
   );
 }
 
-function StartZeile({ start, children }: { start: StationStart; children: ReactNode }) {
+function StartZeile({
+  start,
+  turnierId,
+  children,
+}: {
+  start: StationStart;
+  turnierId: string;
+  children: ReactNode;
+}) {
   const { t } = useTranslation("stand");
-  const anzeigename = useAnzeigename();
+  const anzeigename = useAnzeigename(turnierId);
   return (
     <li className={s.platz}>
       <span className={`num ${s.platzBahn}`}>{start.start_number}</span>
       <span className={s.platzWer}>
-        <strong>{anzeigename(start)}</strong>
+        <strong>{anzeigename(start).text}</strong>
         <span className="gedaempft">
           {start.competition_name} · {t("bahn.start_nr", { nr: start.attempt })}
         </span>

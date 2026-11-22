@@ -21,7 +21,7 @@
   "laden_fehler": "Daten des Stands konnten nicht geladen werden.",
   "aktion": {
     "naechste": "Nächste aufrufen",
-    "naechste_hilfe_voll": "Alle Bahnen sind belegt.",
+    "naechste_hilfe_voll": "Alle Bahnen sind belegt. Eine Bahn wird frei, sobald das Ergebnis abgeschlossen ist.",
     "naechste_hilfe_leer": "Niemand wartet in der Reihenfolge.",
     "durchgang_aufrufen": "Durchgang {{nummer}} aufrufen",
     "durchgang_aufrufen_kurz": "Aufrufen",
@@ -38,6 +38,10 @@
     "frei": "frei",
     "frei_text": "Bahn frei",
     "belegt": "belegt",
+    "in_erfassung": "wird erfasst",
+    "fortschritt": "{{erfasst}} von {{gesamt}} Serien erfasst",
+    "fortschritt_fertig": "Alle Serien erfasst – noch abschließen",
+    "freigeben": "Bahn freigeben",
     "ohne_name": "Name nicht angezeigt",
     "startnummer": "Startnummer",
     "start_nr": "{{nr}}. Start",
@@ -52,6 +56,13 @@
     "abbrechen": "Abbrechen",
     "ergebnis": "Ergebnis erfassen",
     "aktionen": "Aktionen für Bahn {{bahn}}"
+  },
+  "freigabe": {
+    "titel": "Bahn {{bahn}} freigeben?",
+    "text": "Startnummer {{nr}} ist noch nicht abgeschlossen. Das Ergebnis bleibt offen und lässt sich in der Erfassung weiter bearbeiten und abschließen. Die Bahn wird sofort für den Nächsten frei.",
+    "bestaetigen": "Bahn freigeben",
+    "zurueck": "Nicht freigeben",
+    "gemacht": "Bahn {{bahn}} frei, Startnummer {{nr}} bleibt offen"
   },
   "abbruch": {
     "grund": {
@@ -89,8 +100,8 @@
   "zeitplan": {
     "titel": "Durchgänge",
     "leer_titel": "Noch keine Durchgänge",
-    "leer_text": "Lege eine Serie an: ab einer Uhrzeit mehrere Durchgänge hintereinander.",
-    "serie": "Serie anlegen",
+    "leer_text": "Lege Durchgänge an: ab einer Uhrzeit mehrere hintereinander.",
+    "serie": "Durchgänge anlegen",
     "vergangene": "Vergangene zeigen",
     "durchgang": "Durchgang {{nummer}}",
     "zeit": "{{von}}–{{bis}}",
@@ -118,14 +129,14 @@
     "geloescht": "Durchgang {{nummer}} gelöscht"
   },
   "serie": {
-    "titel": "Durchgänge als Serie anlegen",
+    "titel": "Mehrere Durchgänge anlegen",
     "wettbewerb": "Wettbewerb",
     "wettbewerb_hilfe": "Die Dauer je Durchgang kommt aus dem Wettbewerb ({{minuten}} Min.).",
     "datum": "Datum",
     "uhrzeit": "Erster Beginn",
     "anzahl": "Anzahl",
     "vorschau": "{{anzahl}} Durchgänge von {{von}} bis {{bis}}",
-    "anlegen": "Serie anlegen",
+    "anlegen": "Durchgänge anlegen",
     "abbrechen": "Abbrechen",
     "angelegt": "{{count}} Durchgang angelegt",
     "angelegt_other": "{{count}} Durchgänge angelegt",

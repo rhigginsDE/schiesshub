@@ -1,4 +1,5 @@
 import { Button, Collapse, Loader, SegmentedControl, Skeleton } from "@mantine/core";
+import { useDebouncedValue } from "@mantine/hooks";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBlocker } from "@tanstack/react-router";
 import {
@@ -39,6 +40,8 @@ import {
   maskeAbfrage,
   neuerSchluessel,
   type SerieForm,
+  vorschauAbfrage,
+  type Wertung,
 } from "./api";
 import { type Namen, nameVon } from "./auswahl";
 import {
@@ -68,6 +71,7 @@ import {
   type FeldRef,
   fehlstellen,
   gleicheRohwerte,
+  hatWert,
   naechstes,
   normalerPfad,
   type PfadMeldung,
@@ -77,6 +81,7 @@ import {
   schuesseAus,
   serieAus,
   setzeWert,
+  stabil,
   uebrigeMeldungen,
   voriges,
   wertAus,
@@ -418,17 +423,21 @@ function Flaeche({
       if (eingang.art === "zeichen") return;
       const e = sitzung.lesen().entwurf;
       const aktuell = wertAus(e, aktiv);
+      // Selbsttätig weiter nur in ein leeres Feld: ein vorhandener Wert wird nie überschrieben,
+      // ohne dass jemand das Feld ausdrücklich ansteuert.
+      const folgend = naechstes(refs, aktiv.id);
       const ergebnis = zahlTaste(
         aktiv.feld,
         eingabe,
         typeof aktuell === "number" ? aktuell : undefined,
         eingang,
+        folgend !== null && hatWert(e, folgend),
       );
       if (ergebnis.abgelehnt) {
         setHinweis(ergebnis.grund ?? null);
         return;
       }
-      setHinweis(null);
+      setHinweis(ergebnis.grund ?? null);
       let neu = e;
       if (ergebnis.geaendert) {
         neu = setzeWert(e, aktiv, ergebnis.wert);
@@ -456,6 +465,10 @@ function Flaeche({
         return;
       }
       const eingang = tasteAusTastatur(ereignis.key);
+      // Enter auf einem Feld wählt es nie aus: Sonst holt ein Enter nach dem letzten Feld das zuletzt
+      // angetippte Feld (z. B. Serie 1 · Zeit) zurück, und die nächsten Ziffern überschreiben es.
+      // Ausdrücklich wählen: antippen oder mit der Leertaste.
+      if (ereignis.key === "Enter" && ziel?.closest("[data-feld]")) ereignis.preventDefault();
       if (!eingang || !aktivRef.current) return;
       // Enter auf einem Knopf löst den Knopf aus, nicht „weiter“.
       if (
@@ -679,9 +692,23 @@ function Flaeche({
   const ringe = form.sections.some((a) => a.series.some((serie) => serie.shots !== null));
   const titelAktiv = aktiv ? feldTitel(aktiv, form, t) : null;
   const luecken = wertung && !wertung.complete ? fehlstellen(form, entwurf) : [];
-  const korrekturAenderungen = korrektur
-    ? aenderungen(form, basis.raw ?? {}, rohwerteAus(form, entwurf))
-    : [];
+  const korrekturRoh = korrektur ? rohwerteAus(form, entwurf) : null;
+  const korrekturAenderungen = korrekturRoh ? aenderungen(form, basis.raw ?? {}, korrekturRoh) : [];
+  // Korrektur: der Server rechnet die geänderten Werte probeweise (nichts wird gespeichert).
+  const mitVorschau = korrektur && zustand.ungespeichert;
+  const vorschauJetzt = mitVorschau && korrekturRoh ? stabil(korrekturRoh) : "";
+  const [vorschauRuhig] = useDebouncedValue(vorschauJetzt, 300);
+  const vorschau = useQuery({
+    ...vorschauAbfrage(turnierId, startId, korrekturRoh ?? {}, vorschauRuhig),
+    enabled: mitVorschau && vorschauRuhig !== "" && vorschauRuhig === vorschauJetzt,
+    placeholderData: keepPreviousData,
+  });
+  const vorschauWertung = mitVorschau ? (vorschau.data?.computed ?? null) : null;
+  const vorschauAktuell =
+    vorschauWertung !== null &&
+    vorschauRuhig === vorschauJetzt &&
+    !vorschau.isPlaceholderData &&
+    !vorschau.isFetching;
   const naechsterVorschlag = vorgeschlagen ?? (abgeschlossen || abgebrochen ? vorschlag() : null);
 
   return (
@@ -738,7 +765,13 @@ function Flaeche({
                 <span className="h-label">{t("art.titel")}</span>
                 <SegmentedControl
                   value={form.capture_mode}
-                  onChange={(wert) => onArt(wert as Erfassungsart)}
+                  onChange={(wert) => {
+                    // Fokus zurück an die Seite: sonst landen Ziffern und Enter im Umschalter,
+                    // und die Tastatur reagiert erst nach einem Tipp ins Feld.
+                    if (document.activeElement instanceof HTMLElement)
+                      document.activeElement.blur();
+                    onArt(wert as Erfassungsart);
+                  }}
                   data={[
                     { value: "series", label: t("art.series") },
                     { value: "shot", label: t("art.shot") },
@@ -747,6 +780,13 @@ function Flaeche({
                   className={s.artWahl}
                   aria-label={t("art.titel")}
                 />
+                {form.capture_mode !== maske.competition_capture_mode && (
+                  <span className={s.klein} data-abweichung>
+                    {t("art.abweichend", {
+                      vorgabe: t(`art.${maske.competition_capture_mode}`),
+                    })}
+                  </span>
+                )}
               </>
             )}
             {form.notes.map((note) => (
@@ -760,7 +800,7 @@ function Flaeche({
         <Maske
           form={form}
           entwurf={entwurf}
-          wertung={wertung}
+          wertung={vorschauWertung ?? wertung}
           aktivId={aktiv?.id ?? null}
           eingabe={eingabe}
           schussPuffer={schussPuffer}
@@ -778,7 +818,7 @@ function Flaeche({
           }
           onFeld={feldWaehlen}
           onStatus={statusSetzen}
-          veraltet={berechnet || korrektur}
+          veraltet={korrektur ? mitVorschau && !vorschauAktuell : berechnet}
         />
 
         {(uebrigeFehler.length > 0 || uebrigeWarnungen.length > 0) && (
@@ -798,7 +838,14 @@ function Flaeche({
           </ul>
         )}
 
-        <Gesamtstand basis={basis} berechnet={berechnet} korrektur={korrektur} />
+        <Gesamtstand
+          basis={basis}
+          berechnet={berechnet}
+          korrektur={korrektur}
+          vorschau={vorschauWertung}
+          vorschauAktuell={vorschauAktuell}
+          vorschauFehler={mitVorschau && vorschau.isError}
+        />
 
         <Verlauf
           form={form}
@@ -1136,15 +1183,25 @@ function Gesamtstand({
   basis,
   berechnet,
   korrektur,
+  vorschau,
+  vorschauAktuell,
+  vorschauFehler,
 }: {
   basis: ErgebnisStand;
   berechnet: boolean;
   korrektur: boolean;
+  /** Korrektur: Probe-Rechnung des Servers für die geänderten Werte (nichts gespeichert) */
+  vorschau: Wertung | null;
+  vorschauAktuell: boolean;
+  vorschauFehler: boolean;
 }) {
   const { t } = useTranslation("erfassung");
   const [wegOffen, setWegOffen] = useState(false);
-  const wertung = basis.computed;
+  const bisher = basis.computed;
+  const wertung = (korrektur && vorschau) || bisher;
   if (!wertung) return null;
+  // Korrektur mit Änderungen: Vorschau oder „wird berechnet“; ohne Änderungen das gespeicherte.
+  const korrekturGeaendert = korrektur && (vorschau !== null || berechnet);
   const nochNichts = gleicheRohwerte(basis.raw, {});
   const nebenwerte: { name: string; wert: string }[] = [];
   if (wertung.tens !== null && wertung.rings !== null) {
@@ -1164,7 +1221,11 @@ function Gesamtstand({
       <div className={s.gesamtZeile}>
         <div
           className={s.gesamtHaupt}
-          data-veraltet={berechnet || korrektur || !wertung.complete || undefined}
+          data-veraltet={
+            (korrektur ? korrekturGeaendert && !vorschauAktuell : berechnet) ||
+            !wertung.complete ||
+            undefined
+          }
         >
           <span className="h-label" id="erf-gesamt">
             {t("gesamt.titel")}
@@ -1185,16 +1246,33 @@ function Gesamtstand({
       </div>
       <p className={s.fortschritt}>
         <span className="num">{fortschrittText(wertung.progress, t)}</span>
-        {berechnet && !korrektur && (
+        {(korrektur ? korrekturGeaendert && !vorschauAktuell && !vorschauFehler : berechnet) && (
           <span className={s.berechnet}>
             <Loader size={12} aria-hidden />
             {t("gesamt.berechnet")}
           </span>
         )}
-        {korrektur && <span className={s.berechnet}>{t("korrektur.erst_danach")}</span>}
+        {korrektur && vorschau && bisher && (
+          <span className={s.berechnet}>
+            {t("korrektur.vorschau", {
+              bisher: `${formatWert(bisher.score)} ${bisher.unit}`,
+            })}
+          </span>
+        )}
+        {korrektur && vorschauFehler && (
+          <span className={s.berechnet}>{t("korrektur.erst_danach")}</span>
+        )}
         {wertung.tie_breakers_missing.length > 0 && (
           <span className={s.klein}>
-            {t("gesamt.gleichstand_fehlt", { was: wertung.tie_breakers_missing.join(", ") })}
+            {t("gesamt.gleichstand_fehlt", {
+              was: wertung.tie_breakers_missing
+                .map((kriterium) =>
+                  t(`gesamt.gleichstand.${kriterium}`, {
+                    defaultValue: t("gesamt.gleichstand.unbekannt"),
+                  }),
+                )
+                .join(", "),
+            })}
           </span>
         )}
       </p>

@@ -200,6 +200,24 @@ describe("Erfassungsterminal", () => {
     expect(screen.getByRole("button", { name: "Korrigieren" })).toBeInTheDocument();
   });
 
+  it("QA B1: Enter nach dem letzten Feld holt das angetippte Feld nicht zurück", async () => {
+    routen();
+    const user = userEvent.setup({ delay: null });
+    anzeigen();
+    await screen.findByRole("heading", { name: "Markus Brandt" });
+    await user.click(screen.getAllByRole("button", { name: /^Zeit:/ })[0] as HTMLElement);
+    await user.keyboard("12,34{Enter}1{Enter}10,5{Enter}0{Enter}");
+    // Danach weitertippen: Es darf nichts überschrieben werden.
+    await user.keyboard("2,00{Enter}");
+    const zeiten = screen.getAllByRole("button", { name: /^Zeit:/ });
+    const stehend = screen.getAllByRole("button", { name: /^Stehende Scheiben:/ });
+    expect(zeiten[0]).toHaveAccessibleName("Zeit: 12,34");
+    expect(stehend[0]).toHaveAccessibleName("Stehende Scheiben: 1");
+    expect(zeiten[1]).toHaveAccessibleName("Zeit: 10,50");
+    expect(stehend[1]).toHaveAccessibleName("Stehende Scheiben: 0");
+    expect(screen.getByText("Kein Feld aktiv. Feld antippen.")).toBeInTheDocument();
+  });
+
   it("Status „Zeitlimit“ sperrt die Zeit und sendet sie nicht", async () => {
     const aufrufe = routen();
     const user = userEvent.setup();
@@ -420,6 +438,89 @@ describe("Erfassungsterminal", () => {
     expect(gewaehlt).toEqual([]);
     await user.click(screen.getByRole("button", { name: /Zielfernrohr/ }));
     expect(gewaehlt).toEqual([{ start: "s-2", art: undefined }]);
+  });
+
+  it("Korrektur: zeigt das neue Ergebnis aus der Vorschau des Servers vor dem Speichern", async () => {
+    const raw = {
+      sections: {
+        fallscheibe: {
+          series: [
+            { time_cs: 1234, standing: 0 },
+            { time_cs: 1520, standing: 1 },
+          ],
+        },
+      },
+    };
+    const fertig = stand({
+      status: "final",
+      is_final: true,
+      seq: 3,
+      raw,
+      score: "82.00",
+      computed: wertung({ score: "82.00", complete: true }),
+    });
+    const aufrufe = routen({
+      [`GET /tournaments/${T}/starts/${S}/form?capture_mode=series`]: {
+        inhalt: maske(FALLSCHEIBE, fertig),
+      },
+      [`GET /tournaments/${T}/starts/${S}/form`]: { inhalt: maske(FALLSCHEIBE, fertig) },
+      [`POST /tournaments/${T}/starts/${S}/preview`]: {
+        inhalt: {
+          start_id: S,
+          status: "final",
+          seq: 3,
+          definition_revision: 1,
+          valid: true,
+          errors: [],
+          complete: true,
+          finalize_errors: [],
+          computed: wertung({ score: "72.00", complete: true }),
+          score: "72.00",
+        },
+      },
+    });
+    const user = userEvent.setup();
+    anzeigen();
+    await user.click(await screen.findByRole("button", { name: /Korrigieren/ }));
+    await user.click(
+      screen.getAllByRole("button", { name: /Stehende Scheiben/ })[1] as HTMLElement,
+    );
+    await user.keyboard("0");
+    expect(
+      await screen.findByText(
+        /Neues Ergebnis, noch nicht gespeichert · bisher 82,00 s/,
+        {},
+        {
+          timeout: 3000,
+        },
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("72,00")).toBeInTheDocument();
+    const vorschau = aufrufe.find((a) => a.pfad.endsWith("/preview"));
+    expect(vorschau?.inhalt).toMatchObject({
+      raw: { sections: { fallscheibe: { series: [{ standing: 0 }, { standing: 0 }] } } },
+    });
+    // Gespeichert wird nichts ohne Grund.
+    expect(aufrufe.some((a) => a.methode === "PUT" || a.pfad.endsWith("/correct"))).toBe(false);
+  });
+
+  it("ein anderer Start beginnt mit der Erfassungsart seines Wettbewerbs", async () => {
+    routen();
+    const gewaehlt: Record<string, unknown>[] = [];
+    const user = userEvent.setup();
+    renderAnsicht(() => (
+      <ErfassungSeite
+        station="erfassung"
+        icon={Target}
+        suche={{ art: "shot" }}
+        onSuche={(neu) => gewaehlt.push({ ...neu })}
+      />
+    ));
+    const feld = await screen.findByRole("searchbox", { name: "Startnummer oder Name suchen" });
+    await user.type(feld, "7{Enter}");
+    await waitFor(() => expect(gewaehlt).toHaveLength(1));
+    expect(gewaehlt[0]).toEqual({ start: S });
+    expect(gewaehlt[0]).not.toHaveProperty("art");
   });
 
   it("zeigt Bahnen am Stand und die Liste „Zu prüfen“", async () => {

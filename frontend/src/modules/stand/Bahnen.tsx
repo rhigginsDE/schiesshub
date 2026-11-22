@@ -1,43 +1,49 @@
 import { Button, Menu } from "@mantine/core";
-import { Ban, ChevronDown, Clock, PlayCircle, Undo2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Ban, ChevronDown, Clock, LogOut, PencilLine, PlayCircle, Undo2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { useDarf } from "../../app/berechtigungen";
 import { Chip } from "../../components/Chip";
 import { formatUhrzeit } from "../../lib/format";
-import { ABBRUCHGRUENDE, type Abbruchgrund, type Bahn, type StationStart } from "../anmeldung/api";
-import { useAnzeigename } from "./aktionen";
+import { ABBRUCHGRUENDE, type Abbruchgrund, type StationStart } from "../anmeldung/api";
+import { ERFASSUNG_PFAD } from "../erfassung/pfade";
+import { type BahnMitFortschritt, useAnzeigename } from "./aktionen";
 import s from "./stand.module.css";
 
-/**
- * Stelle für „Ergebnis erfassen“ an der Bahnkachel. Kommt mit dem Ergebnis-Modul: dann liefert
- * diese Funktion den Pfad zur Eingabe des aufgerufenen Starts. Solange sie `null` ist, zeigt die
- * Kachel keinen Link.
- */
-export const ERGEBNIS_ERFASSEN_PFAD: ((start: StationStart) => string) | null = null;
-
 interface BahnKachelProps {
-  bahn: Bahn;
+  turnierId: string;
+  bahn: BahnMitFortschritt;
   /** Planung des Wettbewerbs des Starts auf der Bahn */
   planung: "queue" | "schedule" | null;
   /** „Nächsten auf Bahn n“; fehlt, wenn niemand aufrufbar ist */
   onNaechsten?: () => void;
   onZurueck: (start: StationStart, position: "front" | "back") => void;
   onAbbrechen: (start: StationStart, grund: Abbruchgrund) => void;
+  /** „Bahn freigeben“ (Rückfrage stellt der Aufrufer): Start mit angefangenem Ergebnis */
+  onFreigeben: (start: StationStart) => void;
   beschaeftigt: boolean;
 }
 
 /** Eine Bahn als große Kachel: frei oder belegt mit Startnummer, Name, Wettbewerb und seit wann. */
 export function BahnKachel({
+  turnierId,
   bahn,
   planung,
   onNaechsten,
   onZurueck,
   onAbbrechen,
+  onFreigeben,
   beschaeftigt,
 }: BahnKachelProps) {
   const { t, i18n } = useTranslation("stand");
-  const anzeigename = useAnzeigename();
+  const anzeigename = useAnzeigename(turnierId);
+  const darfErfassen = useDarf(["result.capture", "result.read"]);
   const start = bahn.start;
+  const name = start ? anzeigename(start) : null;
+  // Ein angefangenes Ergebnis hält die Bahn bis zum Abschließen; Zurückstellen geht dann nicht mehr.
+  const inErfassung = start?.status === "captured";
+  const fortschritt = bahn.progress ?? null;
   const titelId = `bahn-${bahn.lane}-titel`;
 
   let zeit: ReactNode = null;
@@ -58,7 +64,7 @@ export function BahnKachel({
           {t("bahn.titel", { bahn: bahn.lane })}
         </h3>
         <Chip ton={start ? "gruen" : "neutral"} punkt={Boolean(start)}>
-          {start ? t("bahn.belegt") : t("bahn.frei")}
+          {start ? (inErfassung ? t("bahn.in_erfassung") : t("bahn.belegt")) : t("bahn.frei")}
         </Chip>
       </div>
 
@@ -70,9 +76,7 @@ export function BahnKachel({
               {start.start_number}
             </span>
             <span className={s.bahnWer}>
-              <strong data-ohne-name={start.display_name === null || undefined}>
-                {anzeigename(start)}
-              </strong>
+              <strong data-ohne-name={name?.ohne || undefined}>{name?.text}</strong>
               {start.club && <span className="gedaempft">{start.club}</span>}
             </span>
           </div>
@@ -88,19 +92,48 @@ export function BahnKachel({
               <span className="num">{zeit}</span>
             </p>
           )}
+          {fortschritt && fortschritt.series_total > 0 && (
+            <div className={s.bahnFortschritt} data-fertig={fortschritt.complete || undefined}>
+              <span className="num">
+                {fortschritt.complete
+                  ? t("bahn.fortschritt_fertig")
+                  : t("bahn.fortschritt", {
+                      erfasst: fortschritt.series_done,
+                      gesamt: fortschritt.series_total,
+                    })}
+              </span>
+              <progress
+                className={s.bahnBalken}
+                value={Math.min(fortschritt.series_done, fortschritt.series_total)}
+                max={fortschritt.series_total}
+                aria-hidden
+              />
+            </div>
+          )}
           <div className={s.bahnAktionen}>
-            {/* „Ergebnis erfassen“: erscheint, sobald ERGEBNIS_ERFASSEN_PFAD gesetzt ist. */}
-            {ERGEBNIS_ERFASSEN_PFAD && (
+            {darfErfassen && (
               <Button
-                component="a"
-                href={ERGEBNIS_ERFASSEN_PFAD(start)}
+                renderRoot={(props) => (
+                  <Link {...props} to={ERFASSUNG_PFAD} search={{ start: start.start_id }} />
+                )}
                 variant="default"
                 size="md"
+                leftSection={<PencilLine aria-hidden />}
               >
                 {t("bahn.ergebnis")}
               </Button>
             )}
-            {planung === "schedule" ? (
+            {inErfassung ? (
+              <Button
+                variant="default"
+                size="md"
+                leftSection={<LogOut aria-hidden />}
+                disabled={beschaeftigt}
+                onClick={() => onFreigeben(start)}
+              >
+                {t("bahn.freigeben")}
+              </Button>
+            ) : planung === "schedule" ? (
               <Button
                 variant="default"
                 size="md"

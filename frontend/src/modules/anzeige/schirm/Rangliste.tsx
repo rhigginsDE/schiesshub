@@ -54,9 +54,25 @@ function Unterzeile({ zeile }: { zeile: FeedZeile }) {
   return (
     <span className={s.unter}>
       {teile.join(" · ")}
-      {zeile.running && <em className={s.live}>{t("schirm.laeuft")}</em>}
-      {zeile.abort_reason && <em className={s.abbruch}>{t(`abbruch.${zeile.abort_reason}`)}</em>}
-      {zeile.provisional && <em className={s.vorlaeufig}>{t("schirm.vorlaeufig")}</em>}
+      {/* Leerzeichen vor jedem Zusatz: Vorlesen und Kopieren trennen „e. V.“ und „aufgegeben“. */}
+      {zeile.running && (
+        <>
+          {" "}
+          <em className={s.live}>{t("schirm.laeuft")}</em>
+        </>
+      )}
+      {zeile.abort_reason && (
+        <>
+          {" "}
+          <em className={s.abbruch}>{t(`abbruch.${zeile.abort_reason}`)}</em>
+        </>
+      )}
+      {zeile.provisional && (
+        <>
+          {" "}
+          <em className={s.vorlaeufig}>{t("schirm.vorlaeufig")}</em>
+        </>
+      )}
     </span>
   );
 }
@@ -214,7 +230,7 @@ function PodestStufe({
         <b className={s.stufeNameText}>{name(zeile)}</b>
         {zeile.club && <span>{zeile.club}</span>}
       </div>
-      <div className={s.sockel}>
+      <div className={s.sockel} style={{ "--zeichen": teile.wert.length } as CSSProperties}>
         <span className={`num ${s.sockelPlatz}`}>{zeile.place ?? "–"}</span>
         <span className={`num ${s.sockelWert}`}>{teile.wert}</span>
         {teile.einheit && <span className={s.sockelEinheit}>{teile.einheit}</span>}

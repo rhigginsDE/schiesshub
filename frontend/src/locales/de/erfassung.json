@@ -45,7 +45,7 @@
   },
   "suche": {
     "beschriftung": "Startnummer oder Name suchen",
-    "platzhalter": "Startnummer oder Name",
+    "platzhalter": "Nr. oder Name",
     "ziffernfeld": "Startnummer über das Ziffernfeld eingeben",
     "startnummer": "Startnummer",
     "oeffnen": "Öffnen",
@@ -92,7 +92,8 @@
   "art": {
     "titel": "Erfassungsart",
     "series": "Seriensumme",
-    "shot": "Einzelschuss"
+    "shot": "Einzelschuss",
+    "abweichend": "Nur für diesen Start. Vorgabe des Wettbewerbs: {{vorgabe}}."
   },
   "abschnitt": {
     "ergebnis": "Teilergebnis {{wert}}",
@@ -140,7 +141,8 @@
     "abgelehnt": {
       "zu_gross": "Höchstens {{max}}.",
       "leer": "Das Feld ist leer. Ein anderes Feld erreichst du durch Antippen.",
-      "unpassend": "Diese Taste passt hier nicht."
+      "unpassend": "Diese Taste passt hier nicht.",
+      "naechstes_belegt": "Eingetragen. Das nächste Feld hat schon einen Wert – weiter mit Enter oder durch Antippen."
     }
   },
   "gesamt": {
@@ -151,7 +153,14 @@
     "abzug": "Abzug",
     "berechnet": "wird berechnet",
     "rechenweg": "Rechenweg",
-    "gleichstand_fehlt": "Für einen Gleichstand fehlt: {{was}}"
+    "gleichstand_fehlt": "Für einen Gleichstand fehlt: {{was}}",
+    "gleichstand": {
+      "zehner": "Anzahl Zehner",
+      "innenzehner": "Anzahl Innenzehner",
+      "neuner_abwaerts": "Anzahl Neuner, Achter und weiter abwärts (nur mit Einzelschuss)",
+      "parcours_zeit": "Parcourszeit",
+      "unbekannt": "eine weitere Angabe"
+    }
   },
   "fortschritt": {
     "schuss_one": "{{anzahl}} von {{count}} Schuss",
@@ -238,12 +247,13 @@
   "korrektur": {
     "knopf": "Korrigieren",
     "modus": "Korrektur",
-    "modus_text": "Werte ändern und mit Grund speichern. Das neue Ergebnis rechnet der Server beim Speichern.",
+    "modus_text": "Werte ändern und mit Grund speichern. Das neue Ergebnis siehst du schon vorher; es gilt erst nach dem Speichern.",
     "speichern": "Korrektur speichern",
     "hinweis": "Speichern verlangt einen Grund.",
     "unveraendert": "Noch nichts geändert.",
     "verwerfen": "Korrektur verwerfen",
     "erst_danach": "Neues Ergebnis nach dem Speichern",
+    "vorschau": "Neues Ergebnis, noch nicht gespeichert · bisher {{bisher}}",
     "titel": "Korrektur speichern?",
     "text": "{{wer}}: Das Ergebnis bleibt abgeschlossen. Die Änderung steht mit deinem Grund im Verlauf.",
     "bestaetigen": "Korrektur speichern",

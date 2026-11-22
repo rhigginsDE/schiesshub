@@ -11,6 +11,7 @@ import { besetzteAnmeldungen, freieBahnen } from "./logik";
 import s from "./stand.module.css";
 
 interface WartelisteProps {
+  turnierId: string;
   wartende: readonly StationStart[];
   bahnen: readonly Bahn[];
   beschaeftigt: boolean;
@@ -24,6 +25,7 @@ interface WartelisteProps {
 
 /** „Als Nächstes“: die wartenden Starts der Reihenfolge, umsortierbar und einzeln aufrufbar. */
 export function Warteliste({
+  turnierId,
   wartende,
   bahnen,
   beschaeftigt,
@@ -32,7 +34,7 @@ export function Warteliste({
   onAbbrechen,
 }: WartelisteProps) {
   const { t } = useTranslation("stand");
-  const anzeigename = useAnzeigename();
+  const anzeigename = useAnzeigename(turnierId);
   const frei = freieBahnen(bahnen);
   const besetzt = besetzteAnmeldungen(bahnen);
   const bahnVon = (entryId: string) => bahnen.find((b) => b.start?.entry_id === entryId)?.lane;
@@ -71,8 +73,8 @@ export function Warteliste({
             </span>
             <span className={`num ${s.warteNummer}`}>{nr}</span>
             <span className={s.warteWer}>
-              <strong data-ohne-name={start.display_name === null || undefined}>
-                {anzeigename(start)}
+              <strong data-ohne-name={anzeigename(start).ohne || undefined}>
+                {anzeigename(start).text}
               </strong>
               <span className="gedaempft">
                 {start.competition_name} · {start.class_short} ·{" "}

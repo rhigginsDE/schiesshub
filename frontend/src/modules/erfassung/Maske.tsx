@@ -1,6 +1,6 @@
 import { Select } from "@mantine/core";
 import { ChevronDown, ChevronUp, CircleAlert, Flag, TriangleAlert } from "lucide-react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { PositionsAblauf } from "../../components/anschlag/PositionsAblauf";
 import type { Position } from "../../components/anschlag/typen";
@@ -296,6 +296,12 @@ interface FeldknopfProps extends MaskeProps {
   aktiv: boolean;
 }
 
+/**
+ * Antippen wählt das Feld, nimmt aber keinen Fokus: Enter auf der Tastatur bleibt „weiter“ und
+ * löst nie den zuletzt angetippten Knopf erneut aus.
+ */
+const ohneFokus = (ereignis: MouseEvent) => ereignis.preventDefault();
+
 function Feldknopf({
   feldRef,
   aktiv,
@@ -324,6 +330,7 @@ function Feldknopf({
       disabled={!aktiv || !bearbeitbar}
       aria-pressed={istAktiv}
       aria-label={`${feld.label}: ${!aktiv ? t("feld.entfaellt") : text || t("feld.leer")}`}
+      onMouseDown={ohneFokus}
       onClick={() => onFeld(feldRef)}
     >
       <span className={s.feldName}>
@@ -403,6 +410,7 @@ function Schussreihe({
                   nr: index + 1,
                   wert: text || t("feld.leer"),
                 })}
+                onMouseDown={ohneFokus}
                 onClick={() =>
                   onFeld({
                     id,

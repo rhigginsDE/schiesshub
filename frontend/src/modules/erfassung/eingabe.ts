@@ -6,6 +6,9 @@
  *   einstelligen Feldern (z. B. stehende Scheiben 0 bis 5) also nach jeder Ziffer, auch nach „0“.
  * - „Weiter“ direkt nach dem selbsttätigen Weiterschalten bestätigt nur und bleibt im neuen Feld:
  *   Wer aus Gewohnheit nach der Ziffer noch Enter oder „Weiter“ drückt, überspringt kein Feld.
+ * - Selbsttätig weiter geht es nur in ein leeres Feld. Hat das nächste Feld schon einen Wert, bleibt
+ *   das Terminal stehen (Hinweis); erst Enter oder ein Tipp auf das Feld führt dorthin. So wird nie
+ *   ein vorhandener Wert ohne ausdrückliche Auswahl überschrieben.
  * - Rück löscht nur im aktiven Feld; in einem leeren Feld passiert nichts (kein Sprung zurück).
  * - Zeiten: Sekunden mit Komma („12,84“), an den Server in Hundertstelsekunden (1284).
  * - Schüsse: erlaubte Werte als Tasten; auf der Tastatur „1“ „0“ für 10 und „x“ für den Innenzehner.
@@ -27,14 +30,22 @@ export interface ZahlEingabe {
   frisch: boolean;
   /** Feld eben durch selbsttätiges Weiterschalten erreicht: „Weiter“ bestätigt nur. */
   angekommen?: boolean;
+  /**
+   * Wert fertig, aber das nächste Feld hat schon einen Wert: Weitere Ziffern gehören vermutlich
+   * dorthin und werden abgelehnt, statt diesen Wert zu ändern. Rück, Enter oder Antippen lösen das.
+   */
+  voll?: boolean;
 }
 
 export const FRISCH: ZahlEingabe = { text: "", frisch: true };
 /** Eingabe im Feld, das nach selbsttätigem Weiterschalten aktiv ist. */
 export const ANGEKOMMEN: ZahlEingabe = { text: "", frisch: true, angekommen: true };
 
-/** Warum eine Taste nicht passt (für einen kurzen Hinweis am Ziffernfeld). */
-export type Ablehnung = "zu_gross" | "leer" | "unpassend";
+/**
+ * Kurzer Hinweis am Ziffernfeld: warum eine Taste nicht passt, oder („naechstes_belegt“) warum das
+ * Terminal nicht selbst weitergeschaltet hat.
+ */
+export type Ablehnung = "zu_gross" | "leer" | "unpassend" | "naechstes_belegt";
 
 export interface ZahlErgebnis {
   eingabe: ZahlEingabe;
@@ -105,12 +116,16 @@ function weitereZifferMoeglich(feld: FeldBeschreibung, wert: number): boolean {
   return wert * 10 <= feld.max;
 }
 
-/** Eine Taste in einem Zahlen- oder Zeitfeld. `aktuell`: gespeicherter Wert des Feldes. */
+/**
+ * Eine Taste in einem Zahlen- oder Zeitfeld. `aktuell`: gespeicherter Wert des Feldes;
+ * `naechstesBelegt`: Das Feld danach hat schon einen Wert (dann kein selbsttätiges Weiterschalten).
+ */
 export function zahlTaste(
   feld: FeldBeschreibung,
   eingabe: ZahlEingabe,
   aktuell: number | undefined,
   taste: Taste,
+  naechstesBelegt = false,
 ): ZahlErgebnis {
   const zeit = feld.kind === "time";
   switch (taste.art) {
@@ -146,6 +161,7 @@ export function zahlTaste(
     }
     case "ziffer": {
       if (!/^\d$/.test(taste.ziffer)) return ergebnis({ eingabe, abgelehnt: true });
+      if (eingabe.voll) return ergebnis({ eingabe, abgelehnt: true, grund: "naechstes_belegt" });
       const basis = eingabe.frisch ? "" : eingabe.text;
       let text = basis + taste.ziffer;
       if (zeit) {
@@ -166,12 +182,18 @@ export function zahlTaste(
       if (!zeit && feld.max != null && wert > feld.max) {
         return ergebnis({ eingabe, abgelehnt: true, grund: "zu_gross" });
       }
-      const weiter = !zeit && !weitereZifferMoeglich(feld, wert);
+      const fertig = !zeit && !weitereZifferMoeglich(feld, wert);
+      const weiter = fertig && !naechstesBelegt;
       return ergebnis({
-        eingabe: weiter ? ANGEKOMMEN : { text, frisch: false },
+        eingabe: weiter
+          ? ANGEKOMMEN
+          : fertig && naechstesBelegt
+            ? { text, frisch: false, voll: true }
+            : { text, frisch: false },
         wert,
         geaendert: true,
         weiter,
+        ...(fertig && naechstesBelegt ? { grund: "naechstes_belegt" as const } : {}),
       });
     }
   }
