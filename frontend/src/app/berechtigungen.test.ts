@@ -10,6 +10,9 @@ const status = (teil: Record<string, unknown> = {}) => ({
   user: { id: "p1", name: "H. Berger" },
   role: { id: "r1", name: "Kasse" },
   permissions: ["person.read", "entry.edit"],
+  pin_min_length: 4,
+  max_failed_logins: 5,
+  lockout_minutes: 5,
   ...teil,
 });
 

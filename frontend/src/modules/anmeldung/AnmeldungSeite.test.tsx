@@ -89,6 +89,7 @@ function start(id: string, attempt: number, fee: number): Start {
   return {
     id,
     entry_id: "a1",
+    called_at: null,
     competition_id: W,
     attempt,
     fee_cents: fee,

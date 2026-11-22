@@ -1,4 +1,255 @@
 {
   "titel": "Erfassung",
-  "zweck": "Ergebnisse am Stand eingeben: Ringe, Zeiten und Zuschläge je Serie."
+  "zweck": "Ergebnisse am Stand eingeben: Ringe, Zeiten und Zuschläge je Serie.",
+  "turnier_hinweis": "Das Terminal erfasst in einem Turnier. Die Wahl gilt für dieses Gerät.",
+  "bereiche": "Bereiche der Station",
+  "flaeche": "Erfassung des Starts",
+  "eingabe": "Eingabe",
+  "aktionen": "Aktionen",
+  "leer": {
+    "titel": "Start wählen",
+    "text": "Links eine Bahn antippen oder eine Startnummer suchen. Auch nur angemeldete Starts lassen sich erfassen."
+  },
+  "auswahl": {
+    "titel": "Startauswahl",
+    "oeffnen": "Starts",
+    "zurueck": "Zur Erfassung",
+    "am_stand_one": "Am Stand · {{count}}",
+    "am_stand_other": "Am Stand · {{count}}",
+    "bahn": "Bahn {{bahn}}",
+    "bahn_frei": "Bahn frei",
+    "ohne_name": "Name nicht angezeigt",
+    "wartend_one": "Wartend · {{count}}",
+    "wartend_other": "Wartend · {{count}}",
+    "wartend_leer": "Niemand wartet auf diesem Stand.",
+    "wartend_hinweis": "Wartende lassen sich direkt erfassen, auch ohne Aufruf.",
+    "erfasst_one": "Erfasst, nicht abgeschlossen · {{count}}",
+    "erfasst_other": "Erfasst, nicht abgeschlossen · {{count}}",
+    "weitere_one": "Weitere Starts · {{count}}",
+    "weitere_other": "Weitere Starts · {{count}}",
+    "durchgang": "Durchgang {{nummer}}, {{zeit}}",
+    "platz": "Platz {{platz}}",
+    "versuch": "{{nr}}. Start",
+    "bahn_kurz": "Bahn"
+  },
+  "stand": {
+    "beschriftung": "Stand",
+    "waehlen": "Stand wählen",
+    "text": "Welchen Stand erfasst dieses Gerät? Die Wahl bleibt gespeichert.",
+    "leer_titel": "Kein Stand angelegt",
+    "leer_text": "Im Turnier gibt es noch keinen Stand. Stände legt die Turnierleitung an."
+  },
+  "suche": {
+    "beschriftung": "Startnummer oder Name suchen",
+    "platzhalter": "Startnummer oder Name",
+    "ziffernfeld": "Startnummer über das Ziffernfeld eingeben",
+    "startnummer": "Startnummer",
+    "oeffnen": "Öffnen",
+    "treffer_one": "{{count}} Treffer",
+    "treffer_other": "{{count}} Treffer",
+    "keine": "Kein passender Start."
+  },
+  "filter": {
+    "nur_offene": "Nur offene Starts"
+  },
+  "kachel": {
+    "offen": "offen",
+    "in_erfassung": "in Erfassung",
+    "erfasst": "erfasst",
+    "abgeschlossen": "abgeschlossen",
+    "abgebrochen": "abgebrochen"
+  },
+  "status": {
+    "registered": "angemeldet",
+    "called": "aufgerufen"
+  },
+  "pruefen": {
+    "titel_one": "Zu prüfen · {{count}}",
+    "titel_other": "Zu prüfen · {{count}}",
+    "chip": "prüfen",
+    "ohne_grund": "Der Server meldet dieses Ergebnis zur Prüfung."
+  },
+  "kopf": {
+    "startnummer": "Startnummer {{nr}}",
+    "bahn": "Bahn {{bahn}}",
+    "ohne_bahn": "ohne Bahn",
+    "versuch": "Start {{nr}} von {{von}}",
+    "vorlaeufig": "vorläufig bis {{zeit}}",
+    "max_ringe": "Wertung: Ringe, höchstens {{max}}",
+    "richtung": {
+      "absteigend": "höchster Wert gewinnt",
+      "aufsteigend": "niedrigster Wert gewinnt"
+    },
+    "startnummer_kurz": "Startnummer"
+  },
+  "art": {
+    "titel": "Erfassungsart",
+    "series": "Seriensumme",
+    "shot": "Einzelschuss"
+  },
+  "abschnitt": {
+    "ergebnis": "Teilergebnis {{wert}}",
+    "zeit": "Zeit {{zeit}} s",
+    "abzug": "Abzug {{wert}}",
+    "positionen": "Positionen: {{name}}"
+  },
+  "serie": {
+    "wert": "Serie",
+    "gestrichen": "gestrichen, zählt nicht",
+    "aufklappen": "Gestrichene Serie anzeigen",
+    "einklappen": "Gestrichene Serie einklappen",
+    "trefferaufnahme": "danach Trefferaufnahme",
+    "zeit_plus": "{{zeit}} + {{zuschlag}}",
+    "ringe_kurz": "{{wert}} Ringe",
+    "zeit": "Zeit {{zeit}} s"
+  },
+  "einheit": {
+    "ringe": "Ringe",
+    "sekunden": "s"
+  },
+  "feld": {
+    "leer": "leer",
+    "entfaellt": "entfällt",
+    "freiwillig": "freiwillig",
+    "bereich": "{{min}} bis {{max}}"
+  },
+  "schuss": {
+    "reihe": "Schüsse {{serie}}",
+    "beschriftung": "Schuss {{nr}}: {{wert}}"
+  },
+  "tasten": {
+    "titel": "Ziffernfeld",
+    "kein_feld": "Feld antippen",
+    "schuss": "Schuss {{nr}}",
+    "innenzehner": "Innenzehner",
+    "fehler": "Fehler",
+    "korrektur": "Korrektur",
+    "komma": "Komma",
+    "weiter": "Weiter",
+    "tastatur": "Tastatur: Ziffern tippen, Enter = weiter, Rück = löschen, x = Innenzehner."
+  },
+  "gesamt": {
+    "titel": "Gesamt",
+    "zehner": "Zehner",
+    "innenzehner": "Innenzehner",
+    "zuschlag": "Zuschlag s",
+    "abzug": "Abzug",
+    "berechnet": "wird berechnet",
+    "rechenweg": "Rechenweg",
+    "gleichstand_fehlt": "Für einen Gleichstand fehlt: {{was}}"
+  },
+  "fortschritt": {
+    "schuss_one": "{{anzahl}} von {{count}} Schuss",
+    "schuss_other": "{{anzahl}} von {{count}} Schuss",
+    "serien_one": "{{anzahl}} von {{count}} Serie",
+    "serien_other": "{{anzahl}} von {{count}} Serien",
+    "gesamtzeiten_one": "{{anzahl}} von {{count}} Gesamtzeit",
+    "gesamtzeiten_other": "{{anzahl}} von {{count}} Gesamtzeiten"
+  },
+  "rest": {
+    "schuss_one": "noch {{count}} Schuss",
+    "schuss_other": "noch {{count}} Schuss",
+    "serien_one": "noch {{count}} Serie",
+    "serien_other": "noch {{count}} Serien",
+    "gesamtzeiten_one": "noch {{count}} Gesamtzeit",
+    "gesamtzeiten_other": "noch {{count}} Gesamtzeiten"
+  },
+  "senden": {
+    "gespeichert": "gespeichert",
+    "laeuft": "wird gespeichert …",
+    "netzfehler_one": "Noch nicht gespeichert. Keine Verbindung, neuer Versuch läuft.",
+    "netzfehler_other": "Noch nicht gespeichert. Keine Verbindung, {{count}}. Versuch läuft.",
+    "jetzt": "Jetzt senden",
+    "abgelehnt": "Nicht gespeichert",
+    "abgelehnt_kurz": "Nicht gespeichert: Eingabe prüfen.",
+    "konflikt_kurz": "Nicht gespeichert: bitte oben entscheiden.",
+    "erneut": "Erneut senden"
+  },
+  "fremd": {
+    "titel": "Auf einem anderen Gerät geändert",
+    "text": "Der neue Stand wurde übernommen."
+  },
+  "konflikt": {
+    "titel": "Ein anderes Gerät hat diesen Start geändert",
+    "text": "Deine letzte Eingabe ist nicht gespeichert. Welcher Stand soll gelten?",
+    "server": "Stand des Servers: {{ergebnis}} · {{fortschritt}}",
+    "abgeschlossen": "Das Ergebnis ist dort schon abgeschlossen.",
+    "laden": "Stand des Servers laden",
+    "meins": "Meine Eingabe speichern"
+  },
+  "abschluss": {
+    "knopf": "Ergebnis abschließen",
+    "bereit": "Alles erfasst. Bitte prüfen und abschließen.",
+    "warten": "Erst abschließbar, wenn alles erfasst ist.",
+    "titel": "Ergebnis abschließen?",
+    "text": "Danach geht eine Änderung nur noch als Korrektur mit Grund.",
+    "bestaetigen": "Abschließen",
+    "erledigt": "{{wer}}: abgeschlossen",
+    "ist": "Abgeschlossen: {{ergebnis}}"
+  },
+  "abbruch": {
+    "knopf": "Start abbrechen",
+    "titel": "Start abbrechen?",
+    "text": "{{wer}}: Der Start wird nicht gewertet. Erfasste Werte bleiben im Verlauf.",
+    "art": "Grund",
+    "grund": "Bemerkung (freiwillig)",
+    "bestaetigen": "Start abbrechen",
+    "erledigt": "{{wer}}: abgebrochen",
+    "ist": "Abgebrochen: {{grund}}",
+    "kurz": {
+      "dns": "nicht angetreten",
+      "dnf": "aufgegeben",
+      "dsq": "disqualifiziert"
+    },
+    "lang": {
+      "dns": "Nicht angetreten",
+      "dnf": "Aufgegeben",
+      "dsq": "Disqualifiziert"
+    }
+  },
+  "korrektur": {
+    "knopf": "Korrigieren",
+    "modus": "Korrektur",
+    "modus_text": "Werte ändern und mit Grund speichern. Die Summen rechnet der Server danach neu.",
+    "speichern": "Korrektur speichern",
+    "hinweis": "Speichern verlangt einen Grund.",
+    "unveraendert": "Noch nichts geändert.",
+    "verwerfen": "Korrektur verwerfen",
+    "erst_danach": "Neuer Stand nach dem Speichern",
+    "titel": "Korrektur speichern?",
+    "text": "{{wer}}: Das Ergebnis bleibt abgeschlossen; die Einspruchsfrist beginnt neu.",
+    "bestaetigen": "Korrektur speichern",
+    "erledigt": "Korrektur gespeichert"
+  },
+  "oeffnen": {
+    "knopf": "Wieder öffnen",
+    "titel": "Ergebnis wieder öffnen?",
+    "text": "{{wer}}: Das Ergebnis gilt dann wieder als offen und muss neu abgeschlossen werden.",
+    "bestaetigen": "Wieder öffnen",
+    "erledigt": "Ergebnis wieder offen"
+  },
+  "naechster": {
+    "knopf": "Weiter mit {{nr}} {{name}}"
+  },
+  "dialog": {
+    "abbrechen": "Zurück",
+    "grund": "Grund",
+    "grund_hilfe": "Pflicht. Steht im Verlauf, z. B. „Schuss 7 falsch abgelesen“."
+  },
+  "wechsel": {
+    "titel": "Eingabe noch nicht gespeichert",
+    "text": "Der Server hat die letzten Werte noch nicht bestätigt. Beim Wechseln gehen sie verloren.",
+    "verwerfen": "Verwerfen und wechseln",
+    "bleiben": "Hierbleiben"
+  },
+  "verlauf": {
+    "titel": "Verlauf",
+    "titel_anzahl_one": "Verlauf · {{count}} Eintrag",
+    "titel_anzahl_other": "Verlauf · {{count}} Einträge",
+    "leer": "Noch nichts erfasst.",
+    "unbekannt": "unbekannt",
+    "grund": "Grund: {{grund}}",
+    "weitere_one": "und {{count}} weitere Änderung",
+    "weitere_other": "und {{count}} weitere Änderungen"
+  }
 }
