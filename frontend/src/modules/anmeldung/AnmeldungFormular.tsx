@@ -46,6 +46,7 @@ import {
   mengenHinweis,
   naechsteStartnummer,
   nochBuchbar,
+  ohneStartNachfragen,
   type Sperre,
   sperreFuer,
   statusAnzeige,
@@ -100,6 +101,7 @@ export function AnmeldungFormular({
   const fehlerText = useFehlerText();
   const titelId = useId();
   const klasseFeld = useRef<HTMLInputElement>(null);
+  const startBereich = useRef<HTMLElement>(null);
   const turnierId = uebersicht.id;
   const waehrung = uebersicht.settings.currency;
   const geld = (cents: number) => formatGeld(cents, waehrung, sprache);
@@ -115,6 +117,7 @@ export function AnmeldungFormular({
   const [geprueft, setGeprueft] = useState(false);
   const [loeschenOffen, setLoeschenOffen] = useState(false);
   const [storno, setStorno] = useState<Start | null>(null);
+  const [ohneStartFrage, setOhneStartFrage] = useState(false);
   // Die Anmeldung, die beim Speichern entstand, falls ein späterer Schritt scheiterte.
   const vorhanden = anmeldung ?? fehler?.anmeldung ?? null;
 
@@ -201,11 +204,20 @@ export function AnmeldungFormular({
     if (fehler?.wettbewerbId === wettbewerbId) setFehler(null);
   };
 
-  const absenden = async (ereignis?: FormEvent) => {
+  const buchbar = zeilen.filter((z) => z.frei > 0).length;
+
+  const absenden = async (ereignis?: FormEvent, ohneStartBestaetigt = false) => {
     ereignis?.preventDefault();
     setGeprueft(true);
     if (!klasseId || laeuft) return;
     if (vorhanden && neueStarts === 0 && !hatAenderung) return;
+    if (
+      !ohneStartBestaetigt &&
+      ohneStartNachfragen(vorhanden?.starts.length ?? 0, neueStarts, buchbar)
+    ) {
+      setOhneStartFrage(true);
+      return;
+    }
     setLaeuft(true);
     setFehler(null);
     try {
@@ -389,7 +401,7 @@ export function AnmeldungFormular({
       )}
 
       {/* Starts buchen */}
-      <section className={s.buchen} aria-labelledby={`${titelId}-buchen`}>
+      <section ref={startBereich} className={s.buchen} aria-labelledby={`${titelId}-buchen`}>
         <h3 className="h-section" id={`${titelId}-buchen`}>
           {t("buchen.titel")}
         </h3>
@@ -493,6 +505,28 @@ export function AnmeldungFormular({
           onSchliessen={() => setPlatzWahl(null)}
         />
       )}
+
+      <Bestaetigung
+        offen={ohneStartFrage}
+        titel={t("ohne_start_frage.titel")}
+        text={t("ohne_start_frage.text", { name: schuetze.name })}
+        bestaetigen={t("ohne_start_frage.bestaetigen")}
+        abbrechen={t("ohne_start_frage.zurueck")}
+        onBestaetigen={() => {
+          setOhneStartFrage(false);
+          void absenden(undefined, true);
+        }}
+        onSchliessen={() => {
+          setOhneStartFrage(false);
+          // Fokus auf die erste buchbare Anzahl. Erst nachdem der Dialog den Fokus an den Auslöser
+          // zurückgegeben hat (Mantine nach 10 ms), sonst holt er ihn wieder weg.
+          window.setTimeout(() => {
+            startBereich.current
+              ?.querySelector<HTMLElement>('[role="spinbutton"]:not([aria-disabled="true"])')
+              ?.focus();
+          }, 50);
+        }}
+      />
 
       <Bestaetigung
         offen={storno !== null}

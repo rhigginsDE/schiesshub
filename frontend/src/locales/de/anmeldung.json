@@ -94,6 +94,12 @@
     "tasten_speichern": "speichern",
     "tasten_zurueck": "zurück zur Suche"
   },
+  "ohne_start_frage": {
+    "titel": "Ohne Start speichern?",
+    "text": "{{name}} ist dann nicht für einen Wettbewerb gemeldet und schießt nicht.",
+    "bestaetigen": "Ohne Start speichern",
+    "zurueck": "Zurück, Start wählen"
+  },
   "fertig": {
     "angemeldet": "{{name}} ist angemeldet.",
     "ohne_start": "{{name}} ist angemeldet – noch kein Start gebucht.",

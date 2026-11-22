@@ -19,14 +19,19 @@ import {
   personAnlegen,
   personLoeschen,
   teilnehmerSchluessel,
+  type Verein,
+  vereinAnlegen,
   vereineAbfrage,
 } from "./api";
 import s from "./teilnehmer.module.css";
-import { type VereinAnlegenStatus, VereinFeld } from "./VereinFeld";
+import { VereinFeld } from "./VereinFeld";
+import { vereinSichern } from "./vereinSuche";
 
 export interface Werte {
   name: string;
   club_id: string | null;
+  /** Vorgemerkter neuer Verein; er wird erst beim Speichern angelegt (dann steht seine ID in `club_id`). */
+  club_neu: string | null;
   member_no: string;
   display_mode: Anzeigeart;
   show_club: boolean;
@@ -36,10 +41,18 @@ export function werteAus(person: Person | undefined, vorschlag = ""): Werte {
   return {
     name: person?.name ?? vorschlag,
     club_id: person?.club_id ?? null,
+    club_neu: null,
     member_no: person?.member_no ?? "",
     display_mode: person?.display_mode ?? "full",
     show_club: person?.show_club ?? true,
   };
+}
+
+/** Der vorgemerkte Verein ließ sich nicht anlegen; die Person wurde deshalb nicht gespeichert. */
+class VereinFehler extends Error {
+  constructor(readonly ursache: unknown) {
+    super("Verein nicht angelegt");
+  }
 }
 
 /** Nur die geänderten Felder, bereinigt; leere Mitgliedsnummer = entfernen. */
@@ -115,12 +128,10 @@ export function PersonFormular({
   const [gespeichert, setGespeichert] = useState<string | null>(meldung ?? null);
   const [nameFehlt, setNameFehlt] = useState(false);
   const [loeschenOffen, setLoeschenOffen] = useState(false);
-  const [vereinStatus, setVereinStatus] = useState<VereinAnlegenStatus>("idle");
-  const [wartetAufVerein, setWartetAufVerein] = useState(false);
 
   const ausgang = werteAus(basis, basis ? "" : vorschlag);
   const diff = aenderungen(ausgang, werte);
-  const ungespeichert = Object.keys(diff).length > 0;
+  const ungespeichert = Object.keys(diff).length > 0 || werte.club_neu !== null;
 
   // Live-Aktualisierung: Neuer Stand vom Server wird übernommen, solange nichts eingegeben ist.
   // Mit Eingaben bleibt alles stehen; ein Hinweis bietet an, den neuen Stand zu laden.
@@ -145,15 +156,53 @@ export function PersonFormular({
     if (feld === "name") setNameFehlt(false);
   };
 
+  /** Vorhandenen Verein wählen oder einen neuen vormerken; das eine hebt das andere auf. */
+  const vereinSetzen = (club_id: string | null, club_neu: string | null) => {
+    setWerte((alt) => ({ ...alt, club_id, club_neu }));
+    setGespeichert(null);
+    setDublette(null);
+    speichern.reset();
+  };
+
+  /**
+   * Legt den vorgemerkten Verein an, direkt vor dem Speichern der Person, und gibt die Werte mit
+   * seiner ID zurück. Die ID wird sofort in die Eingaben übernommen: Scheitert danach die Person,
+   * nimmt der nächste Versuch denselben Verein, statt einen zweiten anzulegen.
+   */
+  const mitVerein = async (stand: Werte): Promise<Werte> => {
+    const name = stand.club_neu;
+    if (name === null) return stand;
+    let verein: Verein;
+    try {
+      verein = await vereinSichern(name, {
+        vorhandene: queryClient.getQueryData<Verein[]>(teilnehmerSchluessel.vereine()) ?? [],
+        anlegen: (n) => vereinAnlegen({ name: n }),
+        neuLaden: () => queryClient.fetchQuery({ ...vereineAbfrage(), staleTime: 0 }),
+      });
+    } catch (fehler) {
+      throw new VereinFehler(fehler);
+    }
+    queryClient.setQueryData<Verein[]>(teilnehmerSchluessel.vereine(), (alt) =>
+      [...(alt ?? []).filter((v) => v.id !== verein.id), verein].sort((a, b) =>
+        a.name.localeCompare(b.name, "de", { sensitivity: "base" }),
+      ),
+    );
+    void queryClient.invalidateQueries({ queryKey: teilnehmerSchluessel.vereine() });
+    setWerte((alt) =>
+      alt.club_neu === name ? { ...alt, club_id: verein.id, club_neu: null } : alt,
+    );
+    return { ...stand, club_id: verein.id, club_neu: null };
+  };
+
   const merken = (neu: Person) => {
     queryClient.setQueryData(teilnehmerSchluessel.person(neu.id), neu);
     void queryClient.invalidateQueries({ queryKey: teilnehmerSchluessel.alle });
   };
 
   const speichern = useMutation({
-    // Die Werte werden beim Absenden mitgegeben, nicht aus dem letzten Render gelesen: Wartet das
-    // Speichern auf einen neu angelegten Verein, steht dessen ID erst danach in `werte`.
-    mutationFn: async ({ trotzdem, stand }: { trotzdem: boolean; stand: Werte }) => {
+    // Ein vorgemerkter Verein wird zuerst angelegt; scheitert das, wird die Person nicht gespeichert.
+    mutationFn: async ({ trotzdem, stand: eingabe }: { trotzdem: boolean; stand: Werte }) => {
+      const stand = await mitVerein(eingabe);
       if (!basis)
         return { neu: true as const, ergebnis: await personAnlegen(neuAus(stand), trotzdem) };
       return {
@@ -201,35 +250,25 @@ export function PersonFormular({
       return;
     }
     setDublette(null);
-    // Wird gerade ein neuer Verein angelegt, erst danach speichern (mit dessen ID).
-    if (vereinStatus === "pending") {
-      setWartetAufVerein(true);
-      return;
-    }
+    if (speichern.isPending) return;
     if (basis && !ungespeichert) return;
     speichern.mutate({ trotzdem: false, stand: werte });
   };
 
-  // Verein ist fertig angelegt: aufgeschobenes Speichern jetzt ausführen. Scheitert das Anlegen,
-  // bleibt die Fehlermeldung am Vereinsfeld stehen und es wird nichts gespeichert.
-  useEffect(() => {
-    if (!wartetAufVerein || vereinStatus === "pending") return;
-    setWartetAufVerein(false);
-    if (vereinStatus === "error") return;
-    if (basis && !ungespeichert) return;
-    speichern.mutate({ trotzdem: false, stand: werte });
-  }, [wartetAufVerein, vereinStatus, basis, ungespeichert, speichern, werte]);
-
   // Mögliche Dubletten schon während der Eingabe (nur beim Anlegen): Der Server prüft wie beim
   // Speichern. Gezeigt wird nur, was zur aktuellen Eingabe gehört, nicht ein älteres Ergebnis.
-  const pruefSchluessel = JSON.stringify([basis ? "" : bereinigen(werte.name), werte.club_id]);
+  // In einem neuen Verein gibt es noch niemanden, also auch keine Dublette.
+  const pruefSchluessel = JSON.stringify([
+    basis || werte.club_neu !== null ? "" : bereinigen(werte.name),
+    werte.club_id,
+  ]);
   const [entprellt] = useDebouncedValue(pruefSchluessel, DUBLETTEN_PAUSE_MS);
   const [pruefName, pruefVerein] = JSON.parse(entprellt) as [string, string | null];
   const pruefung = useQuery(dublettenAbfrage(pruefName, pruefVerein));
   const moegliche =
     !basis && !dublette && entprellt === pruefSchluessel ? (pruefung.data?.duplicates ?? []) : [];
 
-  const speichertGerade = speichern.isPending || wartetAufVerein;
+  const speichertGerade = speichern.isPending;
   useEffect(() => {
     onSpeichert?.(speichertGerade);
   }, [speichertGerade, onSpeichert]);
@@ -244,7 +283,8 @@ export function PersonFormular({
   };
 
   // Vorschau: ohne Eingaben genau das, was der Server liefert; sonst dieselbe Regel lokal.
-  const vereinName = vereine.data?.find((verein) => verein.id === werte.club_id)?.name ?? null;
+  const vereinName =
+    werte.club_neu ?? vereine.data?.find((verein) => verein.id === werte.club_id)?.name ?? null;
   const vorschauName =
     basis && !ungespeichert
       ? basis.display_name
@@ -252,9 +292,15 @@ export function PersonFormular({
   const vorschauVerein =
     basis && !ungespeichert ? basis.display_club : werte.show_club ? vereinName : null;
 
-  const speicherFehler = speichern.isError
-    ? (fehlertext(speichern.error) ?? t("formular.fehler_speichern"))
-    : null;
+  const vereinFehler =
+    speichern.error instanceof VereinFehler
+      ? (fehlertext(speichern.error.ursache) ?? t("vereinfeld.fehler"))
+      : undefined;
+  const speicherFehler = !speichern.isError
+    ? null
+    : vereinFehler
+      ? t("formular.fehler_verein")
+      : (fehlertext(speichern.error) ?? t("formular.fehler_speichern"));
 
   return (
     <article className={`panel ${s.detailPanel}`} aria-labelledby={titelId}>
@@ -325,8 +371,10 @@ export function PersonFormular({
             <VereinFeld
               label={t("formular.verein")}
               wert={werte.club_id}
-              onAendern={(id) => aendern("club_id", id)}
-              onAnlegenStatus={setVereinStatus}
+              neu={werte.club_neu}
+              onAendern={(id) => vereinSetzen(id, null)}
+              onNeu={(name) => vereinSetzen(null, name)}
+              fehler={vereinFehler}
             />
             {moegliche.length > 0 && (
               <div className={s.moeglicheDublette} role="status">
@@ -384,7 +432,9 @@ export function PersonFormular({
                 size="md"
                 className={s.schalter}
                 label={t("formular.verein_anzeigen")}
-                description={werte.club_id ? undefined : t("formular.verein_anzeigen_ohne")}
+                description={
+                  werte.club_id || werte.club_neu ? undefined : t("formular.verein_anzeigen_ohne")
+                }
                 checked={werte.show_club}
                 onChange={(ereignis) => aendern("show_club", ereignis.currentTarget.checked)}
               />
@@ -482,7 +532,7 @@ export function PersonFormular({
           <Button
             type="submit"
             size="md"
-            loading={speichern.isPending || wartetAufVerein}
+            loading={speichern.isPending}
             disabled={(basis !== undefined && !ungespeichert) || dublette !== null || entfernt}
           >
             {basis ? t("formular.speichern") : t("formular.anlegen")}

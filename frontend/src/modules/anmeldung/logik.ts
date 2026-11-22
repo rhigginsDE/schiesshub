@@ -85,6 +85,15 @@ export function bestaetigungsArt(neu: boolean, starts: number): BestaetigungsArt
   return starts > 0 ? "gebucht" : "geaendert";
 }
 
+/**
+ * Ob vor dem Speichern nachgefragt wird: Die Person hätte danach keinen einzigen Start (weder schon
+ * gebucht noch neu gewählt), obwohl einer buchbar wäre. Ohne Start ist sie für keinen Wettbewerb
+ * gemeldet. Gibt es nichts zu buchen (keine Wettbewerbe, alles gesperrt), hilft die Frage nicht.
+ */
+export function ohneStartNachfragen(bisher: number, neu: number, buchbar: number): boolean {
+  return bisher === 0 && neu === 0 && buchbar > 0;
+}
+
 export interface Betrag {
   cents: number;
   /** 1, wenn der erste Start der Person im Wettbewerb dabei ist */

@@ -11,6 +11,7 @@ import {
   mengenHinweis,
   naechsteStartnummer,
   nochBuchbar,
+  ohneStartNachfragen,
   sperreFuer,
   statusAnzeige,
   stornoSperre,
@@ -264,5 +265,16 @@ describe("Turnierwahl", () => {
       turnier("entwurf2", "draft", "2026-06-01"),
     ]);
     expect(liste.map((t) => t.id)).toEqual(["aktiv", "entwurf2", "entwurf", "alt"]);
+  });
+});
+
+describe("ohneStartNachfragen", () => {
+  it("fragt nur, wenn danach kein Start da wäre und einer buchbar ist", () => {
+    expect(ohneStartNachfragen(0, 0, 2)).toBe(true);
+    // Ein neuer oder ein schon gebuchter Start: keine Rückfrage
+    expect(ohneStartNachfragen(0, 1, 2)).toBe(false);
+    expect(ohneStartNachfragen(1, 0, 2)).toBe(false);
+    // Nichts buchbar (keine Wettbewerbe, alles gesperrt): Die Frage hilft nicht
+    expect(ohneStartNachfragen(0, 0, 0)).toBe(false);
   });
 });

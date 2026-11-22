@@ -1,16 +1,10 @@
-import { Combobox, InputBase, Loader, useCombobox } from "@mantine/core";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Combobox, InputBase, useCombobox } from "@mantine/core";
+import { useQuery } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { bereinigen, vergleichsform } from "./anzeigename";
-import {
-  fehlertext,
-  teilnehmerSchluessel,
-  type Verein,
-  vereinAnlegen,
-  vereineAbfrage,
-} from "./api";
+import { vereineAbfrage } from "./api";
 import s from "./teilnehmer.module.css";
 import { vereinTreffer } from "./vereinSuche";
 
@@ -18,37 +12,38 @@ const NEU = "$neu";
 const KEIN = "$kein";
 
 interface VereinFeldProps {
-  /** ID des gewählten Vereins, `null` = kein Verein */
+  /** ID des gewählten Vereins, `null` = kein Verein (oder ein vorgemerkter neuer) */
   wert: string | null;
+  /** Vorgemerkter neuer Verein: Er wird erst beim Speichern der Person angelegt. */
+  neu: string | null;
+  /** Vorhandener Verein gewählt (oder `null` = kein Verein); hebt einen vorgemerkten auf */
   onAendern: (id: string | null) => void;
+  /** Getippter Name als neuer Verein vorgemerkt */
+  onNeu: (name: string) => void;
   label: string;
   description?: string;
-  /**
-   * Meldet, ob gerade ein neuer Verein angelegt wird. Das Formular darf erst danach speichern,
-   * sonst ginge die Person ohne Verein an den Server.
-   */
-  onAnlegenStatus?: (status: VereinAnlegenStatus) => void;
+  /** Fehler von außen, z. B. wenn der vorgemerkte Verein beim Speichern nicht angelegt werden konnte */
+  fehler?: string;
 }
 
-export type VereinAnlegenStatus = "idle" | "pending" | "success" | "error";
-
 /**
- * Vereinsauswahl mit Suche. Passt kein Verein, lässt sich der getippte Name direkt als neuer
- * Verein anlegen; er ist danach gewählt.
+ * Vereinsauswahl mit Suche. Passt kein Verein, lässt sich der getippte Name als neuer Verein
+ * vormerken. Angelegt wird er erst, wenn die Person gespeichert wird (siehe PersonFormular); so
+ * bleibt kein Verein zurück, wenn die Eingabe verworfen wird.
  */
 export function VereinFeld({
   wert,
+  neu,
   onAendern,
+  onNeu,
   label,
   description,
-  onAnlegenStatus,
+  fehler,
 }: VereinFeldProps) {
   const { t } = useTranslation("teilnehmer");
-  const queryClient = useQueryClient();
   const vereine = useQuery(vereineAbfrage());
   // null = es wird nicht getippt, das Feld zeigt den gewählten Verein
   const [suche, setSuche] = useState<string | null>(null);
-  const [hinweis, setHinweis] = useState<string | null>(null);
 
   const combobox = useCombobox({
     onDropdownClose: () => {
@@ -57,24 +52,6 @@ export function VereinFeld({
     },
   });
 
-  const anlegen = useMutation({
-    mutationFn: (name: string) => vereinAnlegen({ name }),
-    onSuccess: (verein) => {
-      queryClient.setQueryData<Verein[]>(teilnehmerSchluessel.vereine(), (alt) =>
-        [...(alt ?? []).filter((v) => v.id !== verein.id), verein].sort((a, b) =>
-          a.name.localeCompare(b.name, "de"),
-        ),
-      );
-      void queryClient.invalidateQueries({ queryKey: teilnehmerSchluessel.vereine() });
-      setHinweis(t("vereinfeld.angelegt", { name: verein.name }));
-      onAendern(verein.id);
-    },
-  });
-
-  useEffect(() => {
-    onAnlegenStatus?.(anlegen.status);
-  }, [anlegen.status, onAnlegenStatus]);
-
   const alle = vereine.data ?? [];
   const gewaehlt = alle.find((verein) => verein.id === wert);
   const filter = vergleichsform(suche ?? "");
@@ -82,6 +59,7 @@ export function VereinFeld({
   // Erst anbieten, wenn die Liste geladen ist; sonst entstünde beim schnellen Tippen eine Dublette.
   // Passt Name oder Kürzel genau, gibt es den Verein schon.
   const neuMoeglich = vereine.isSuccess && filter !== "" && !exakt;
+  const hatAuswahl = wert !== null || neu !== null;
 
   // Nach jeder Eingabe den besten Treffer vorwählen, damit Enter ihn übernimmt. Gibt es nur ähnliche
   // Vereine, wird nichts vorgewählt: Dann soll niemand per Enter versehentlich einen fremden Verein
@@ -94,21 +72,14 @@ export function VereinFeld({
     else combobox.selectFirstOption();
   }, [filter, nurAehnlich]);
 
-  const fehler = anlegen.isError
-    ? (fehlertext(anlegen.error) ?? t("vereinfeld.fehler"))
-    : undefined;
+  const vormerken = () => onNeu(bereinigen(suche ?? ""));
 
   return (
     <Combobox
       store={combobox}
       onOptionSubmit={(auswahl) => {
-        if (auswahl === NEU) {
-          anlegen.mutate(bereinigen(suche ?? ""));
-        } else {
-          anlegen.reset();
-          setHinweis(null);
-          onAendern(auswahl === KEIN ? null : auswahl);
-        }
+        if (auswahl === NEU) vormerken();
+        else onAendern(auswahl === KEIN ? null : auswahl);
         setSuche(null);
         combobox.closeDropdown();
       }}
@@ -117,9 +88,9 @@ export function VereinFeld({
         <InputBase
           size="md"
           label={label}
-          description={hinweis ?? description}
+          description={neu !== null && suche === null ? t("vereinfeld.vorgemerkt") : description}
           placeholder={t("vereinfeld.platzhalter")}
-          value={suche ?? gewaehlt?.name ?? ""}
+          value={suche ?? neu ?? gewaehlt?.name ?? ""}
           onChange={(ereignis) => {
             setSuche(ereignis.currentTarget.value);
             combobox.openDropdown();
@@ -144,19 +115,17 @@ export function VereinFeld({
             if (!filter) return;
             const erster = passend[0];
             if (erster) {
-              anlegen.reset();
-              setHinweis(null);
               onAendern(erster.id);
             } else if (nurAehnlich) {
               // Liste offen lassen: Ähnlichen Verein wählen oder bewusst „neu anlegen“ antippen.
               return;
             } else if (neuMoeglich) {
-              anlegen.mutate(bereinigen(suche ?? ""));
+              vormerken();
             }
             setSuche(null);
             combobox.closeDropdown();
           }}
-          rightSection={anlegen.isPending ? <Loader size="xs" /> : <Combobox.Chevron />}
+          rightSection={<Combobox.Chevron />}
           rightSectionPointerEvents="none"
           error={fehler}
           autoComplete="off"
@@ -169,7 +138,7 @@ export function VereinFeld({
             <Combobox.Empty>{t("vereinfeld.laedt")}</Combobox.Empty>
           ) : (
             <>
-              {!filter && wert && (
+              {!filter && hatAuswahl && (
                 <Combobox.Option value={KEIN}>{t("vereinfeld.kein")}</Combobox.Option>
               )}
               {passend.map((verein) => (
@@ -207,7 +176,7 @@ export function VereinFeld({
               {passend.length === 0 &&
                 aehnlich.length === 0 &&
                 !neuMoeglich &&
-                !(!filter && wert) && <Combobox.Empty>{t("vereinfeld.leer")}</Combobox.Empty>}
+                !(!filter && hatAuswahl) && <Combobox.Empty>{t("vereinfeld.leer")}</Combobox.Empty>}
             </>
           )}
         </Combobox.Options>

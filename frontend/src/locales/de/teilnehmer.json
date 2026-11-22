@@ -66,7 +66,8 @@
     "fremd_laden": "Neuen Stand laden",
     "nicht_gefunden_titel": "Diese Person gibt es nicht mehr",
     "nicht_gefunden_text": "Sie wurde gelöscht, vielleicht an einem anderen Gerät.",
-    "fehler_speichern": "Speichern hat nicht geklappt."
+    "fehler_speichern": "Speichern hat nicht geklappt.",
+    "fehler_verein": "Nicht gespeichert: Der neue Verein ließ sich nicht anlegen. Namen prüfen und noch einmal speichern."
   },
   "dublette": {
     "titel": "Gibt es diese Person schon?",
@@ -96,7 +97,7 @@
     "leer": "Kein Verein gefunden",
     "aehnlich": "Ähnliche Vereine – meinst du einen davon?",
     "laedt": "Vereine werden geladen …",
-    "angelegt": "Verein „{{name}}“ angelegt.",
+    "vorgemerkt": "Neuer Verein – wird beim Speichern der Person angelegt.",
     "fehler": "Der Verein konnte nicht angelegt werden."
   },
   "vereine": {

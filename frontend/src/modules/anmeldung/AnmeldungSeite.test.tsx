@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UserPlus } from "lucide-react";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -236,6 +236,8 @@ describe("Station Anmeldung", () => {
     await user.type(screen.getByRole("combobox", { name: "Klasse" }), "Sch{Enter}");
     expect(screen.getByText(/Noch kein Start gewählt/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Anmelden" }));
+    const frage = await screen.findByRole("dialog", { name: "Ohne Start speichern?" });
+    await user.click(within(frage).getByRole("button", { name: "Ohne Start speichern" }));
 
     const titel = await screen.findByText(
       "Markus Brandt ist angemeldet – noch kein Start gebucht.",
@@ -244,6 +246,53 @@ describe("Station Anmeldung", () => {
     expect(meldung).toHaveAttribute("data-ton", "hinweis");
     expect(within(meldung).getByText(/nichts zu zahlen/)).toBeInTheDocument();
     expect(within(meldung).queryByText("0,00 €")).toBeNull();
+  });
+
+  it("fragt vor dem Speichern ohne Start nach; Zurück und Esc speichern nichts und führen zur Startauswahl", async () => {
+    const user = userEvent.setup();
+    const aufrufe = serverAttrappe({
+      ...grundRouten(),
+      [`POST /tournaments/${T}/entries`]: { status: 201, inhalt: anmeldung() },
+      [`POST /tournaments/${T}/entries/a1/starts`]: {
+        status: 201,
+        inhalt: [start("s1", 1, 800)],
+      },
+    });
+    zeigen();
+    const suche = await screen.findByRole("searchbox", { name: SUCHE });
+    await user.type(suche, "Brandt{Enter}");
+    await screen.findByRole("form", { name: "Markus Brandt" });
+    await user.type(screen.getByRole("combobox", { name: "Klasse" }), "Sch{Enter}");
+
+    // Strg+Enter wie an der Kasse
+    await user.keyboard("{Control>}{Enter}{/Control}");
+    let frage = await screen.findByRole("dialog", { name: "Ohne Start speichern?" });
+    expect(
+      within(frage).getByText(
+        "Markus Brandt ist dann nicht für einen Wettbewerb gemeldet und schießt nicht.",
+      ),
+    ).toBeInTheDocument();
+    // Fokus auf dem sicheren Knopf: Enter führt zurück, speichert nicht
+    const zurueck = within(frage).getByRole("button", { name: "Zurück, Start wählen" });
+    await waitFor(() => expect(zurueck).toHaveFocus());
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    const anzahl = screen.getByRole("spinbutton", { name: "Neue Starts in 4401 Selbstladeflinte" });
+    await waitFor(() => expect(anzahl).toHaveFocus());
+
+    // Esc wirkt genauso
+    await user.click(screen.getByRole("button", { name: "Anmelden" }));
+    frage = await screen.findByRole("dialog", { name: "Ohne Start speichern?" });
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(anzahl).toHaveFocus());
+    expect(aufrufe.filter((a) => a.methode === "POST")).toEqual([]);
+
+    // Mit einem Start: keine Rückfrage
+    await user.keyboard("+");
+    await user.click(screen.getByRole("button", { name: "Anmelden" }));
+    expect(await screen.findByText("Markus Brandt ist angemeldet.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("meldet eine reine Änderung als Änderung, nicht als gebuchte Starts", async () => {
@@ -301,6 +350,8 @@ describe("Station Anmeldung", () => {
     await user.type(screen.getByRole("combobox", { name: "Klasse" }), "Sch{Enter}");
     await user.type(screen.getByRole("textbox", { name: "Startnummer" }), "3");
     await user.click(screen.getByRole("button", { name: "Anmelden" }));
+    const frage = await screen.findByRole("dialog", { name: "Ohne Start speichern?" });
+    await user.click(within(frage).getByRole("button", { name: "Ohne Start speichern" }));
 
     const feld = screen.getByRole("textbox", { name: "Startnummer" });
     expect(

@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { vereinTreffer } from "./vereinSuche";
+import { describe, expect, it, vi } from "vitest";
+import { ApiFehler } from "../../api/client";
+import { vereinSichern, vereinTreffer } from "./vereinSuche";
 
 const vereine = [
   { id: "1", name: "SSV Hubertus Altdorf", short: "SSV Altdorf" },
@@ -38,5 +39,57 @@ describe("vereinTreffer", () => {
   it("ignoriert Umlaute und kurze Wörter beim Ähnlichkeitsvergleich", () => {
     expect(vereinTreffer(vereine, "Schuetzengilde").treffer.map((v) => v.id)).toEqual(["3"]);
     expect(vereinTreffer(vereine, "SV e.V. Irgendwo").aehnlich).toEqual([]);
+  });
+});
+
+describe("vereinSichern", () => {
+  const neu = { id: "9", name: "SG Probe 1920", short: null };
+
+  it("nimmt einen vorhandenen Verein gleichen Namens, statt einen zweiten anzulegen", async () => {
+    const anlegen = vi.fn();
+    const verein = await vereinSichern("sv tell musterstadt", {
+      vorhandene: vereine,
+      anlegen,
+      neuLaden: async () => vereine,
+    });
+    expect(verein.id).toBe("2");
+    expect(anlegen).not.toHaveBeenCalled();
+  });
+
+  it("legt einen unbekannten Namen an", async () => {
+    const anlegen = vi.fn(async () => neu);
+    expect(
+      await vereinSichern("SG Probe 1920", {
+        vorhandene: vereine,
+        anlegen,
+        neuLaden: async () => [],
+      }),
+    ).toBe(neu);
+    expect(anlegen).toHaveBeenCalledWith("SG Probe 1920");
+  });
+
+  it("nimmt bei „gibt es schon“ den inzwischen angelegten Verein", async () => {
+    const konflikt = new ApiFehler("konflikt", "/clubs", 409, "Gibt es schon.");
+    const verein = await vereinSichern("SG Probe 1920", {
+      vorhandene: vereine,
+      anlegen: async () => {
+        throw konflikt;
+      },
+      neuLaden: async () => [...vereine, neu],
+    });
+    expect(verein).toBe(neu);
+  });
+
+  it("gibt andere Fehler weiter", async () => {
+    const fehler = new ApiFehler("server", "/clubs", 500);
+    await expect(
+      vereinSichern("SG Probe 1920", {
+        vorhandene: vereine,
+        anlegen: async () => {
+          throw fehler;
+        },
+        neuLaden: async () => [...vereine, neu],
+      }),
+    ).rejects.toBe(fehler);
   });
 });

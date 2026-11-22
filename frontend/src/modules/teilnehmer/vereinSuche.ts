@@ -1,3 +1,4 @@
+import { ApiFehler } from "../../api/client";
 import { vergleichsform } from "./anzeigename";
 
 interface VereinLike {
@@ -57,4 +58,37 @@ export function vereinTreffer<V extends VereinLike>(alle: V[], suche: string): V
           .slice(0, MAX_AEHNLICH);
 
   return { treffer, aehnlich, exakt };
+}
+
+interface VereinSichernOptionen<V extends VereinLike> {
+  /** Die schon geladenen Vereine */
+  vorhandene: readonly V[];
+  /** Legt den Verein am Server an (`POST /clubs`) */
+  anlegen: (name: string) => Promise<V>;
+  /** Lädt die Vereinsliste frisch vom Server */
+  neuLaden: () => Promise<readonly V[]>;
+}
+
+/**
+ * Liefert den Verein zum vorgemerkten Namen und legt ihn nur an, wenn es ihn noch nicht gibt.
+ * Meldet der Server, dass es den Namen schon gibt (anderes Gerät oder ein früherer Versuch, dessen
+ * Antwort verloren ging), wird der vorhandene Verein genommen statt eines zweiten.
+ */
+export async function vereinSichern<V extends VereinLike>(
+  name: string,
+  { vorhandene, anlegen, neuLaden }: VereinSichernOptionen<V>,
+): Promise<V> {
+  const gesucht = vergleichsform(name);
+  const gleich = (liste: readonly V[]) =>
+    liste.find((verein) => vergleichsform(verein.name) === gesucht);
+  const schon = gleich(vorhandene);
+  if (schon) return schon;
+  try {
+    return await anlegen(name);
+  } catch (fehler) {
+    if (!(fehler instanceof ApiFehler && fehler.art === "konflikt")) throw fehler;
+    const nachher = gleich(await neuLaden());
+    if (nachher) return nachher;
+    throw fehler;
+  }
 }
