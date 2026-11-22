@@ -131,7 +131,7 @@
 
 .bahn[data-belegt="ja"] {
   border-color: var(--sh-akzent);
-  border-left-width: 4px;
+  background: var(--sh-flaeche-2);
 }
 
 .bahn[data-belegt="nein"] {
@@ -353,12 +353,12 @@
   align-items: center;
   gap: 4px 12px;
   min-height: 48px;
-  padding: 4px 0 4px 10px;
-  border-left: 3px solid var(--sh-linie);
+  padding: 4px 10px;
+  border-radius: var(--sh-radius-s);
 }
 
 .platz:not([data-frei]) {
-  border-left-color: var(--sh-akzent);
+  background: var(--sh-flaeche-2);
 }
 
 .platz[data-frei] {
