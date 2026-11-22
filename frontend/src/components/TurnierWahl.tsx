@@ -184,7 +184,9 @@ export function MitTurnier({ hinweis, kopf, children }: MitTurnierProps) {
       </div>
     );
   }
-  if (abfrage.isError) {
+  // Schlägt nur das Nachladen fehl (Server startet neu, WLAN kurz weg), bleibt die Station stehen:
+  // Sonst ginge eine laufende Eingabe verloren. Die Kopfzeile zeigt den Verbindungsstatus.
+  if (abfrage.isError && abfrage.data === undefined) {
     return (
       <div className={s.rahmen}>
         {kopf}
