@@ -108,6 +108,33 @@ Anzeige `reload_on`).
 Mit `field` antwortet der Server wie bei 422 zusätzlich mit `errors`
 (`{"detail": "…", "errors": [{"field": "lane", "message": "…"}]}`), ohne nur mit `detail`.
 
+## Notzugang über die Server-Konsole
+
+Wenn sich niemand mehr anmelden kann, etwa weil das einzige Admin-Gerät verloren ist, die
+Browserdaten gelöscht sind oder die PIN vergessen ist, hilft die Konsole des Servers. Über das
+Netz ist das nicht erreichbar:
+
+```bash
+docker compose exec backend python -m app.modules.auth.cli pairing-code --name "Leitstand" [--minutes 30]
+docker compose exec backend python -m app.modules.auth.cli list-users
+docker compose exec backend python -m app.modules.auth.cli reset-pin "Anna Admin" [--pin 1234]
+docker compose exec backend python -m app.modules.auth.cli ensure-admin "Anna Admin" [--pin 1234]
+```
+
+| Befehl | Wirkung |
+|---|---|
+| `pairing-code` | einmaliger Kopplungscode wie über die API; Laufzeit `AUTH_PAIRING_CODE_MINUTES`, mit `--minutes` bis 1440. Ausgabe: Code, Ablaufzeit, Kopplungsadresse(n) aus `PUBLIC_BASE_URL` (ohne diese Einstellung nur der Pfad, die Serveradresse muss man dann selbst davorsetzen) |
+| `list-users` | Personen mit Rolle, aktiv/inaktiv, Sperre und ID (keine PIN-Hashes); warnt, wenn kein aktiver Administrator mehr da ist |
+| `reset-pin` | setzt die PIN einer Person (Name oder ID), hebt eine Sperre auf und beendet ihre Anmeldungen |
+| `ensure-admin` | legt einen Administrator an oder gibt einer vorhandenen Person die Systemrolle, aktiviert und entsperrt sie; die PIN ändert sich bei Vorhandenen nur mit `--pin` |
+
+Ohne `--pin` wird eine zufällige PIN (mindestens 6 Ziffern) erzeugt und nur einmal angezeigt.
+Die Mindestlänge `AUTH_PIN_MIN_LENGTH` gilt auch hier. Jeder Befehl schreibt einen Audit-Eintrag
+ohne Person und Gerät, mit `details.via = "über die Server-Konsole"`, nie mit PIN oder Code.
+Ereignisse (SSE) erreichen offene Browser nicht, weil der Befehl in einem eigenen Prozess läuft;
+die Oberfläche zeigt die Änderung nach dem nächsten Laden. Exit-Codes: `0` in Ordnung, `1` Fehler
+(Meldung auf stderr), `2` falscher Aufruf.
+
 ## Einstellungen
 
 | Variable | Bedeutung | Standard |

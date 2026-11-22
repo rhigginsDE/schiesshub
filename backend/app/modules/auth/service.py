@@ -57,6 +57,10 @@ WRONG_PIN = "Die Anmeldung ist fehlgeschlagen. Bitte Person und PIN prüfen."
 LAST_ADMIN = "Es muss immer mindestens ein aktiver Administrator bleiben."
 
 
+class MissingSystemRoleError(RuntimeError):
+    """Die Systemrolle fehlt: Der Server wurde auf dieser Datenbank noch nie gestartet."""
+
+
 @dataclass(frozen=True, slots=True)
 class Issued:
     """Ergebnis einer Anmeldung oder Kopplung: neue Token für die Cookies."""
@@ -184,7 +188,7 @@ async def _admin_role(session: AsyncSession, *, lock: bool = False) -> Role:
         statement = statement.with_for_update()
     role = await session.scalar(statement)
     if role is None:
-        raise RuntimeError("Die Systemrolle Administrator fehlt.")
+        raise MissingSystemRoleError("Die Systemrolle Administrator fehlt.")
     return role
 
 
@@ -326,7 +330,11 @@ async def create_pairing_code(
     settings: AuthSettings,
     events: EventHub,
     body: PairingCodeIn,
+    *,
+    minutes: float | None = None,
+    via: str | None = None,
 ) -> PairingCodeOut:
+    """`minutes` weicht von der eingestellten Laufzeit ab, `via` landet im Audit-Eintrag."""
     if body.default_role_id is not None:
         await _role_or_invalid(session, body.default_role_id)
     code = credentials.new_pairing_code()
@@ -335,16 +343,19 @@ async def create_pairing_code(
         code_hash=credentials.token_hash(code),
         name=body.name,
         default_role_id=body.default_role_id,
-        expires_at=now() + timedelta(minutes=settings.pairing_code_minutes),
+        expires_at=now() + timedelta(minutes=minutes or settings.pairing_code_minutes),
     )
     session.add(pairing)
+    details: dict[str, object] = {"name": body.name, "default_role_id": _str(body.default_role_id)}
+    if minutes is not None:
+        details["minutes"] = minutes
     record_audit(
         session,
         actor,
         "device.pairing_code_created",
         "pairing_code",
         pairing.id,
-        {"name": body.name, "default_role_id": _str(body.default_role_id)},
+        _with_via(details, via),
     )
     await session.commit()
     events.publish("device.pairing_code_created", {"pairing_code_id": str(pairing.id)})
@@ -799,6 +810,8 @@ async def reset_pin(
     events: EventHub,
     user_id: uuid.UUID,
     pin: str,
+    *,
+    via: str | None = None,
 ) -> UserOut:
     _check_pin(pin, settings)
     user = await _get_user(session, user_id, lock=True)
@@ -807,10 +820,153 @@ async def reset_pin(
     user.locked_until = None
     # Wer mit der alten PIN angemeldet ist, wird abgemeldet.
     await session.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
-    record_audit(session, actor, "user.pin_reset", "user_account", user.id)
+    record_audit(session, actor, "user.pin_reset", "user_account", user.id, _with_via({}, via))
     await session.commit()
     events.publish("user.updated", {"user_id": str(user.id)})
     return _user_out(user)
+
+
+# --- Server-Konsole (Notzugang, app.modules.auth.cli) ------------------------
+#
+# Nur über die Kommandozeile im Server erreichbar, nicht über das Netz. Jeder Aufruf hinterlässt
+# einen Audit-Eintrag mit `via`, nie mit PIN oder Code.
+
+CONSOLE_VIA = "über die Server-Konsole"
+
+
+@dataclass(frozen=True, slots=True)
+class ConsoleUser:
+    id: uuid.UUID
+    name: str
+    role_name: str
+    is_admin: bool
+    active: bool
+    locked_until: datetime | None
+
+
+@dataclass(frozen=True, slots=True)
+class EnsuredAdmin:
+    user: UserOut
+    created: bool
+    changes: dict[str, object]
+
+
+async def find_user(session: AsyncSession, name_or_id: str) -> UserAccount:
+    """Person nach ID oder Name (ohne Groß-/Kleinschreibung)."""
+    value = name_or_id.strip()
+    try:
+        user_id = uuid.UUID(value)
+    except ValueError:
+        user = await session.scalar(
+            select(UserAccount).where(func.lower(UserAccount.name) == value.lower())
+        )
+    else:
+        user = await session.get(UserAccount, user_id)
+    if user is None:
+        raise NotFoundError(f"Eine Person „{value}“ gibt es nicht.")
+    return user
+
+
+async def user_name_taken(session: AsyncSession, name: str) -> bool:
+    statement = select(UserAccount.id).where(func.lower(UserAccount.name) == name.lower())
+    return await session.scalar(statement) is not None
+
+
+async def console_list_users(session: AsyncSession) -> list[ConsoleUser]:
+    rows = await session.execute(
+        select(UserAccount, Role)
+        .join(Role, Role.id == UserAccount.role_id)
+        .order_by(UserAccount.name)
+    )
+    current = now()
+    users = [
+        ConsoleUser(
+            id=user.id,
+            name=user.name,
+            role_name=role.name,
+            is_admin=role.is_system,
+            active=user.active,
+            locked_until=user.locked_until
+            if user.locked_until and user.locked_until > current
+            else None,
+        )
+        for user, role in rows
+    ]
+    record_audit(
+        session, Actor(), "user.listed", "user_account", None, _with_via({"count": len(users)})
+    )
+    await session.commit()
+    return users
+
+
+async def console_ensure_admin(
+    session: AsyncSession,
+    settings: AuthSettings,
+    events: EventHub,
+    name: str,
+    pin: str | None,
+) -> EnsuredAdmin:
+    """Legt einen Administrator an oder macht eine vorhandene Person (wieder) dazu.
+
+    Vorhandene Personen werden aktiviert, entsperrt und bekommen die Systemrolle; die PIN ändert
+    sich nur mit `pin`. Neue Personen brauchen eine PIN.
+    """
+    if pin is not None:
+        _check_pin(pin, settings)
+    admin_role = await _admin_role(session, lock=True)
+    existing = await session.scalar(
+        select(UserAccount).where(func.lower(UserAccount.name) == name.lower()).with_for_update()
+    )
+    if existing is None:
+        if pin is None:
+            raise InvalidError("Für eine neue Person ist eine PIN nötig.")
+        user = UserAccount(
+            id=uuid.uuid4(),
+            name=name,
+            pin_hash=await credentials.hash_pin(pin),
+            role_id=admin_role.id,
+        )
+        session.add(user)
+        record_audit(
+            session,
+            Actor(),
+            "user.created",
+            "user_account",
+            user.id,
+            _with_via({"name": user.name, "role_id": str(admin_role.id)}),
+        )
+        await session.commit()
+        await session.refresh(user)
+        events.publish("user.created", {"user_id": str(user.id)})
+        return EnsuredAdmin(user=_user_out(user), created=True, changes={})
+
+    user = existing
+    changes: dict[str, object] = {}
+    if user.role_id != admin_role.id:
+        changes["role_id"] = {"before": str(user.role_id), "after": str(admin_role.id)}
+        user.role_id = admin_role.id
+    if not user.active:
+        changes["active"] = True
+        user.active = True
+    if user.locked_until is not None and user.locked_until > now():
+        changes["unlocked"] = True
+    user.locked_until = None
+    user.failed_login_count = 0
+    if pin is not None:
+        changes["pin_reset"] = True
+        user.pin_hash = await credentials.hash_pin(pin)
+        await session.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
+    action = "user.role_changed" if "role_id" in changes else "user.updated"
+    record_audit(session, Actor(), action, "user_account", user.id, _with_via(dict(changes)))
+    await session.commit()
+    events.publish("user.updated", {"user_id": str(user.id)})
+    return EnsuredAdmin(user=_user_out(user), created=False, changes=changes)
+
+
+def _with_via(details: dict[str, object], via: str | None = CONSOLE_VIA) -> dict[str, object]:
+    if via:
+        details["via"] = via
+    return details
 
 
 def _str(value: uuid.UUID | None) -> str | None:
