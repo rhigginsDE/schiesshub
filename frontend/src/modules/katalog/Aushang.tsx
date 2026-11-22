@@ -2,8 +2,8 @@ import { Button, NativeSelect, Skeleton } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, Printer, TriangleAlert } from "lucide-react";
-import { type CSSProperties, useEffect } from "react";
-import { createPortal } from "react-dom";
+import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal, flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { disziplinAbfrage, verbaendeAbfrage } from "../../api/abfragen";
 import type { DisziplinDetail, Variante, Verband } from "../../api/typen";
@@ -16,6 +16,7 @@ import { farbschemata } from "../../theme";
 import { beschreibeAbschnitt, schussGesamt } from "./ablauf";
 import s from "./aushang.module.css";
 import {
+  brauchtKompakt,
   ganzzahl,
   nurZeitVarianten,
   ohneSollzeiten,
@@ -135,6 +136,47 @@ export function Aushang({ verband, kennziffer, variante, onVarianteAendern }: Au
   );
 }
 
+/**
+ * Kompakt-Stufe des Blatts: misst den Inhalt mit der Geometrie des gedruckten A4-Blatts
+ * (`data-messen`, siehe aushang.module.css) und schaltet die engeren Abstände nur ein, wenn er
+ * sonst auf eine zweite Seite liefe. Läuft nach jedem Rendern (Variante, Sprache), sobald die
+ * Schriften geladen sind und unmittelbar vor dem Drucken.
+ */
+function useKompakt() {
+  const ref = useRef<HTMLElement>(null);
+  const [aktiv, setAktiv] = useState(false);
+
+  useLayoutEffect(() => {
+    const inhalt = ref.current;
+    const blatt = inhalt?.parentElement;
+    if (!inhalt || !blatt) return;
+    let gueltig = true;
+    const messen = () => {
+      if (!gueltig) return false;
+      const warKompakt = inhalt.hasAttribute("data-kompakt");
+      inhalt.removeAttribute("data-kompakt");
+      blatt.setAttribute("data-messen", "");
+      const hoehe = inhalt.getBoundingClientRect().height;
+      blatt.removeAttribute("data-messen");
+      if (warKompakt) inhalt.setAttribute("data-kompakt", "");
+      return brauchtKompakt(hoehe);
+    };
+    setAktiv(messen());
+    void document.fonts?.ready.then(() => {
+      if (gueltig) setAktiv(messen());
+    });
+    // Vor dem Druck synchron übernehmen, sonst druckt der Browser den alten Stand.
+    const vorDruck = () => flushSync(() => setAktiv(messen()));
+    window.addEventListener("beforeprint", vorDruck);
+    return () => {
+      gueltig = false;
+      window.removeEventListener("beforeprint", vorDruck);
+    };
+  });
+
+  return { ref, aktiv };
+}
+
 interface BlattProps {
   disziplin: DisziplinDetail;
   variante: Variante;
@@ -151,9 +193,15 @@ function Blatt({ disziplin, variante, alleVarianten, nurZeiten, verband }: Blatt
   const haende = verwendeteHaende(variante);
   const mehrereAbschnitte = variante.abschnitte.length > 1;
   const zeigeVariantenName = alleVarianten.length > 1 && !nurZeiten;
+  const kompakt = useKompakt();
 
   return (
-    <article className={s.inhalt} lang={sprache}>
+    <article
+      ref={kompakt.ref}
+      className={s.inhalt}
+      lang={sprache}
+      data-kompakt={kompakt.aktiv || undefined}
+    >
       <header className={s.kopf}>
         <div className={s.kopfText}>
           <p className={s.ueberzeile}>

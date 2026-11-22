@@ -122,6 +122,27 @@ export function verwendeteHaende(variante: Variante): string[] {
   return ["beidhaendig", "starke_hand", "schwache_hand", "einhaendig"].filter((h) => haende.has(h));
 }
 
+/** CSS-Pixel je Millimeter (96 px je Zoll). */
+export const PX_JE_MM = 96 / 25.4;
+
+/** Platz für den Inhalt auf dem Blatt: A4-Höhe ohne Seitenränder oben (8 mm) und unten (6 mm). */
+export const INHALT_HOEHE_MM = 297 - 8 - 6;
+
+/**
+ * Kleine Reserve gegen Rundung. Bildschirm und Druck setzen das Blatt in Chromium gleich (gemessen);
+ * größer darf sie nicht sein, sonst würden Aushänge kompakt, die schon auf eine Seite passen
+ * (z. B. 1201–1209 mit rund 1,4 mm Luft).
+ */
+export const DRUCK_RESERVE_MM = 1;
+
+/**
+ * `true`, wenn der Inhalt (gemessen mit Druckgeometrie, in CSS-Pixeln) nicht auf eine A4-Seite
+ * passt. Dann setzt der Aushang die Kompakt-Stufe (engere Abstände und Ränder).
+ */
+export function brauchtKompakt(inhaltHoehePx: number): boolean {
+  return inhaltHoehePx > (INHALT_HOEHE_MM - DRUCK_RESERVE_MM) * PX_JE_MM;
+}
+
 /** Zahl ohne Nachkommastellen, wie sie im Kopf steht. */
 export function ganzzahl(wert: number, sprache: string = aktiveSprache()): string {
   return formatZahl(wert, {}, sprache);

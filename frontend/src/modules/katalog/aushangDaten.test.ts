@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Abschnitt, Variante } from "../../api/typen";
 import {
+  brauchtKompakt,
+  DRUCK_RESERVE_MM,
+  INHALT_HOEHE_MM,
   nurZeitVarianten,
   ohneSollzeiten,
+  PX_JE_MM,
   sollzeitTabelle,
   verwendeteHaende,
   zeitTabelle,
@@ -109,5 +113,22 @@ describe("ohneSollzeiten", () => {
     expect(ohne.max_gesamtzeit_s).toBeUndefined();
     expect(ohne.serien).toBe(4);
     expect(ohne.positionen).toHaveLength(2);
+  });
+});
+
+describe("brauchtKompakt", () => {
+  const grenze = (INHALT_HOEHE_MM - DRUCK_RESERVE_MM) * PX_JE_MM;
+
+  it("lässt Inhalt, der mit Reserve auf eine A4-Seite passt, im normalen Satz", () => {
+    expect(brauchtKompakt(900)).toBe(false);
+    expect(brauchtKompakt(grenze)).toBe(false);
+    // 1201–1209 (zwei Parcours-Varianten): 1064,3 px, passen ohne Kompakt-Stufe auf eine Seite
+    expect(brauchtKompakt(1064.3)).toBe(false);
+  });
+
+  it("verlangt die Kompakt-Stufe, sobald der Inhalt die Seite samt Reserve überschreitet", () => {
+    expect(brauchtKompakt(grenze + 1)).toBe(true);
+    // 1210 vor der Änderung: rund 10 mm zu hoch
+    expect(brauchtKompakt((INHALT_HOEHE_MM + 10) * PX_JE_MM)).toBe(true);
   });
 });
