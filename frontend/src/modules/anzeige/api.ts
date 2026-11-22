@@ -1,0 +1,63 @@
+import { queryOptions } from "@tanstack/react-query";
+import { apiGet, apiSenden } from "../../api/client";
+import { EREIGNIS_VERBUNDEN, type EreignisZuordnung } from "../../api/ereignisse";
+import type { Anzeige, AnzeigeKonfig } from "./typen";
+
+/** Query-Keys des Moduls; alles beginnt mit `anzeige`. */
+export const anzeigeSchluessel = {
+  alle: ["anzeige"] as const,
+  liste: () => ["anzeige", "liste"] as const,
+};
+
+/** Verwaltung lädt neu, wenn sich eine Anzeige ändert (auch von einem anderen Gerät aus). */
+export const anzeigeEreignisse: EreignisZuordnung = {
+  "display.changed": [anzeigeSchluessel.alle],
+  [EREIGNIS_VERBUNDEN]: [anzeigeSchluessel.alle],
+};
+
+const pfad = {
+  liste: "/displays",
+  anzeige: (id: string) => `/displays/${encodeURIComponent(id)}`,
+};
+
+export const anzeigenAbfrage = () =>
+  queryOptions({
+    queryKey: anzeigeSchluessel.liste(),
+    queryFn: ({ signal }) => apiGet<Anzeige[]>(pfad.liste, { signal }),
+  });
+
+export function anzeigeAnlegen(name: string, sort?: number) {
+  return apiSenden<Anzeige>("POST", pfad.liste, { name, sort });
+}
+
+export function standardAnlegen() {
+  return apiSenden<Anzeige>("POST", `${pfad.liste}/defaults`);
+}
+
+export function anzeigeAendern(
+  id: string,
+  aenderung: { name?: string; tournament_id?: string | null; sort?: number },
+) {
+  return apiSenden<Anzeige>("PATCH", pfad.anzeige(id), aenderung);
+}
+
+export function anzeigeLoeschen(id: string) {
+  return apiSenden("DELETE", pfad.anzeige(id));
+}
+
+export function konfigSetzen(id: string, konfig: AnzeigeKonfig) {
+  return apiSenden<Anzeige>("PUT", `${pfad.anzeige(id)}/config`, konfig);
+}
+
+export function geraetZuweisen(id: string, geraetId: string) {
+  return apiSenden<Anzeige>("PUT", `${pfad.anzeige(id)}/device`, { device_id: geraetId });
+}
+
+export function geraetLoesen(id: string) {
+  return apiSenden<Anzeige>("DELETE", `${pfad.anzeige(id)}/device`);
+}
+
+/** Adresse des Bildschirms einer Anzeige (zum Öffnen und Abtippen). */
+export function schirmPfad(id?: string): string {
+  return id ? `/anzeige/schirm/${encodeURIComponent(id)}` : "/anzeige/schirm";
+}

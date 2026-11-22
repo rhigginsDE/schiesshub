@@ -1,7 +1,9 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
-const BACKEND = "http://localhost:8010";
+// 127.0.0.1 statt localhost: Der Backend-Port ist nur an IPv4 gebunden; über "localhost"
+// versucht Windows zuerst IPv6 und wartet dann mehrere Sekunden.
+const BACKEND = "http://127.0.0.1:8010";
 
 export default defineConfig({
   plugins: [react()],

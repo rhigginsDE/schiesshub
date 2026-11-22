@@ -1,0 +1,284 @@
+import type { Feed, FeedPerson, FeedRangliste, FeedSzene, FeedZeile } from "./typen";
+
+/** Beispieldaten für Tests (erfundene Personen). */
+
+function zeile(teil: Partial<FeedZeile> & Pick<FeedZeile, "start_id" | "place">): FeedZeile {
+  return {
+    tied: false,
+    group: "ranked",
+    start_number: 1,
+    attempt: 1,
+    display_name: "Anna Beispiel",
+    club: "SV Beispiel",
+    class_short: "S",
+    score_text: "183 Ringe",
+    complete: true,
+    series: [
+      {
+        section_id: "praezision",
+        number: 1,
+        struck: false,
+        status: "normal",
+        rings: 95,
+        time_cs: null,
+        standing: null,
+        total_cs: null,
+      },
+      {
+        section_id: "praezision",
+        number: 2,
+        struck: true,
+        status: "normal",
+        rings: 88,
+        time_cs: null,
+        standing: null,
+        total_cs: null,
+      },
+    ],
+    status: "final",
+    running: false,
+    provisional: false,
+    abort_reason: null,
+    ...teil,
+  };
+}
+
+export function rangliste(): FeedRangliste {
+  return {
+    competition_id: "w1",
+    competition_name: "Pistole bis 9 mm",
+    direction: "absteigend",
+    unit: "Ringe",
+    combined: false,
+    groups: [
+      {
+        class_id: "k1",
+        class_name: "Schützenklasse",
+        class_short: "S",
+        rows: [
+          zeile({ start_id: "s1", place: 1, display_name: "Anna Beispiel" }),
+          zeile({
+            start_id: "s2",
+            place: 2,
+            tied: true,
+            display_name: "Bernd Muster",
+            score_text: "180 Ringe",
+          }),
+          zeile({
+            start_id: "s3",
+            place: 2,
+            tied: true,
+            display_name: null,
+            start_number: 17,
+            running: true,
+            status: "running",
+            score_text: "180 Ringe",
+          }),
+        ],
+        more: 2,
+      },
+      {
+        class_id: "k2",
+        class_name: "Damenklasse",
+        class_short: "D1",
+        rows: [zeile({ start_id: "s4", place: 1, display_name: "Clara Probe" })],
+        more: 0,
+      },
+    ],
+  };
+}
+
+function person(teil: Partial<FeedPerson> & Pick<FeedPerson, "start_id">): FeedPerson {
+  return {
+    start_number: 5,
+    display_name: "Jürgen Beispiel",
+    club: "SV Beispiel",
+    class_short: "S",
+    competition_id: "w1",
+    competition_name: "Pistole bis 9 mm",
+    attempt: 1,
+    status: "registered",
+    lane: null,
+    heat_number: null,
+    heat_starts_at: null,
+    ...teil,
+  };
+}
+
+export const szenen: Record<FeedSzene["kind"], FeedSzene> = {
+  live_ranking: {
+    kind: "live_ranking",
+    scene_id: "live",
+    seconds: 20,
+    title: "Live-Wertung",
+    part: 1,
+    parts: 1,
+    ranking: rangliste(),
+  },
+  winners: {
+    kind: "winners",
+    scene_id: "sieger",
+    seconds: 20,
+    title: "Siegerliste",
+    part: 1,
+    parts: 1,
+    ranking: rangliste(),
+  },
+  startlist: {
+    kind: "startlist",
+    scene_id: "start",
+    seconds: 15,
+    title: "Startliste",
+    part: 1,
+    parts: 1,
+    startlist: {
+      competition_id: "w1",
+      competition_name: "Pistole bis 9 mm",
+      range_id: "r1",
+      range_name: "25-m-Stand",
+      starts: [
+        person({
+          start_id: "p1",
+          status: "called",
+          lane: 2,
+          heat_number: 3,
+          heat_starts_at: "2026-11-22T13:00:00Z",
+        }),
+        person({ start_id: "p2", start_number: 6, display_name: null, club: null }),
+      ],
+      more: 4,
+    },
+  },
+  range: {
+    kind: "range",
+    scene_id: "stand",
+    seconds: 20,
+    title: "25-m-Stand",
+    part: 1,
+    parts: 1,
+    range: {
+      range_id: "r1",
+      range_name: "25-m-Stand",
+      lane_count: 2,
+      procedures: [
+        {
+          competition_id: "w2",
+          competition_name: "Pistole bis 9 mm",
+          catalog_code: "1201",
+          variant_name: "Variante 1",
+          description: null,
+          scoring: "Ringe, höher ist besser",
+          notes: ["−1 Ring je volle Sekunde über der Sollzeit"],
+          deviates: true,
+          deviations: ["Sollzeit 60 s statt 50 s"],
+          sections: [
+            {
+              id: "parcours",
+              name: "Parcours",
+              series_count: 2,
+              counted_series: null,
+              shots_per_series: 5,
+              time_per_series_s: null,
+              target_time_s: 60,
+              time_measured: true,
+              summary: "2 Serien · je 5 Schuss",
+              deviations: [],
+              series: [1, 2].map((nr) => ({
+                number: nr,
+                counted: true,
+                shots: 5,
+                time_s: null,
+                distance_m: 20 - nr * 5,
+                hit_review_after: nr === 1,
+                position: {
+                  nr,
+                  distance_m: 20 - nr * 5,
+                  target: nr,
+                  text: "stehend, beidhändig",
+                  stances: [{ haltung: "stehend", hand: "beidhaendig", text: "stehend" }],
+                },
+              })),
+            },
+            {
+              id: "praezision",
+              name: "Präzision",
+              series_count: 3,
+              counted_series: 2,
+              shots_per_series: 10,
+              time_per_series_s: 300,
+              target_time_s: null,
+              time_measured: false,
+              summary: "3 Serien · je 10 Schuss · je 300 s",
+              deviations: [],
+              series: [1, 2, 3].map((nr) => ({
+                number: nr,
+                counted: nr <= 2,
+                shots: 10,
+                time_s: 300,
+                distance_m: 25,
+                hit_review_after: false,
+                position: null,
+              })),
+            },
+          ],
+        },
+      ],
+      lanes: [
+        { lane: 1, start: null },
+        { lane: 2, start: person({ start_id: "p3", status: "called", lane: 2 }) },
+      ],
+      next_heat: {
+        number: 4,
+        starts_at: "2026-11-22T13:20:00Z",
+        ends_at: "2026-11-22T13:35:00Z",
+      },
+      next: [person({ start_id: "p4", display_name: "Dora Nächste", lane: 1, heat_number: 4 })],
+    },
+  },
+  notice: {
+    kind: "notice",
+    scene_id: "hinweis",
+    seconds: 20,
+    title: "Siegerehrung",
+    part: 1,
+    parts: 1,
+    heading: "Siegerehrung um 16:00 Uhr",
+    text: "Im Schützenhaus.",
+  },
+  idle: {
+    kind: "idle",
+    scene_id: "ruhe",
+    seconds: 60,
+    title: "Ruhe",
+    part: 1,
+    parts: 1,
+    heading: "Gleich geht es los",
+    text: "Startliste und Ergebnisse erscheinen hier, sobald es losgeht.",
+  },
+};
+
+export function beispielFeed(teil: Partial<Feed> = {}): Feed {
+  return {
+    display_id: "a1",
+    display_name: "Hauptanzeige",
+    version: "v1",
+    server_time: "2026-11-22T12:42:00Z",
+    theme: "dark",
+    header: {
+      tournament_id: "t1",
+      title: "Herbstpokal 2026",
+      organizer: "SV Beispiel",
+      date_from: "2026-11-22",
+      date_to: "2026-11-22",
+      tournament_status: "active",
+      tournament_mode: "auto",
+    },
+    scenes: [szenen.live_ranking],
+    skipped: [],
+    ticker: null,
+    warnings: [],
+    reload_on: ["display.changed", "start.*", "result.*", "backup.status"],
+    poll_seconds: 60,
+    ...teil,
+  };
+}

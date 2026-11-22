@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ListX } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Chip, type ChipTon } from "../../components/Chip";
+import { ExportKnoepfe } from "../../components/ExportKnoepfe";
 import { Fehlerzustand, Leerzustand } from "../../components/Zustand";
 import { formatUhrzeit } from "../../lib/format";
 import { type StationStart, startlisteAbfrage } from "../anmeldung/api";
@@ -62,6 +63,7 @@ export function Startliste({ uebersicht, suche, onSuche }: StartlisteProps) {
             <span className="num">{t("startliste.anzahl", { count: abfrage.data.length })}</span>
           </Chip>
         )}
+        <ExportKnoepfe turnierId={uebersicht.id} uebersicht={uebersicht} vorbelegung={filter} />
       </div>
       <div className={s.filter}>
         <Select

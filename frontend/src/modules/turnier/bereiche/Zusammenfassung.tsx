@@ -3,6 +3,7 @@ import { CircleCheck, TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { disziplinAbfrage } from "../../../api/abfragen";
 import { Chip } from "../../../components/Chip";
+import { ExportKnoepfe } from "../../../components/ExportKnoepfe";
 import { formatGeld } from "../../../components/geld";
 import { formatZahl } from "../../../lib/format";
 import { katalogDiffAbfrage } from "../abfragen";
@@ -92,6 +93,8 @@ export function Zusammenfassung({ turnier, punkte, onBereich }: ZusammenfassungP
           </ul>
         )}
       </section>
+
+      <ExportKnoepfe turnierId={turnier.id} uebersicht={turnier} darstellung="abschnitt" />
 
       <section className={`panel ${s.formular}`} aria-labelledby="zf-status">
         <h3 className="h-section" id="zf-status">

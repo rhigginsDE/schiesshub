@@ -17,7 +17,7 @@
     "test:watch": "vitest",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "gen:api": "pnpm --package=openapi-typescript@7.13.0 --package=typescript@5.9.3 dlx openapi-typescript http://localhost:8010/api/v1/openapi.json -o src/api/schema.gen.ts"
+    "gen:api": "pnpm --package=openapi-typescript@7.13.0 --package=typescript@5.9.3 dlx openapi-typescript http://127.0.0.1:8010/api/v1/openapi.json -o src/api/schema.gen.ts"
   },
   "dependencies": {
     "@fontsource/exo-2": "5.3.0",
