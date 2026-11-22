@@ -4,18 +4,9 @@
  *
  * Schreibende Vorgänge tragen einen `Idempotency-Key`: Wiederholt das Terminal eine Sendung nach
  * einem Verbindungsabbruch mit demselben Schlüssel, schreibt der Server kein zweites Ereignis.
- * `apiSenden` aus `api/client.ts` kann noch keine eigenen Kopfzeilen setzen; deshalb sendet dieses
- * Modul selbst und nutzt dafür die Bausteine des Clients (URL, Fehlerart, Feldfehler).
  */
 import { queryOptions } from "@tanstack/react-query";
-import {
-  ApiFehler,
-  apiGet,
-  apiSenden,
-  apiUrl,
-  artAusStatus,
-  feldFehlerAus,
-} from "../../api/client";
+import { ApiFehler, apiGet, apiSenden } from "../../api/client";
 import { EREIGNIS_VERBUNDEN, type EreignisZuordnung } from "../../api/ereignisse";
 import type { components } from "../../api/schema.gen";
 import { type StationStart, startsSchluessel } from "../anmeldung/api";
@@ -168,55 +159,39 @@ export function neuerSchluessel(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-/** Sendet einen Vorgang mit `Idempotency-Key`. Fehler: `SeqKonflikt` oder `ApiFehler`. */
+/**
+ * Sendet einen Vorgang mit `Idempotency-Key` über `apiSenden`. Fehler: `SeqKonflikt` (409 mit dem
+ * aktuellen Stand) oder `ApiFehler` (mit Feldfehlern). 401/403 meldet der Vorgang nicht an die
+ * App-Shell; das Terminal zeigt den Fehler selbst (wie bisher).
+ */
 export async function sendeVorgang(
   methode: "POST" | "PUT",
   pfad: string,
   inhalt: unknown,
   schluessel: string,
 ): Promise<ErgebnisStand> {
-  let antwort: Response;
+  let antwort: unknown;
   try {
-    antwort = await fetch(apiUrl(pfad), {
-      method: methode,
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "X-Schiesshub-Request": "1",
-        "Idempotency-Key": schluessel,
-      },
-      body: JSON.stringify(inhalt),
+    antwort = await apiSenden<unknown>(methode, pfad, inhalt, {
+      kopf: { "Idempotency-Key": schluessel },
+      still: true,
     });
-  } catch {
-    throw new ApiFehler("netzwerk", pfad);
+  } catch (fehler) {
+    if (fehler instanceof ApiFehler && fehler.status === 409) {
+      const objekt =
+        fehler.inhalt && typeof fehler.inhalt === "object"
+          ? (fehler.inhalt as Record<string, unknown>)
+          : {};
+      if (objekt.current && typeof objekt.current === "object") {
+        const detail = typeof objekt.detail === "string" ? objekt.detail : "";
+        throw new SeqKonflikt(detail, objekt.current as ErgebnisStand);
+      }
+    }
+    throw fehler;
   }
-
-  let koerper: unknown;
-  try {
-    koerper = await antwort.json();
-  } catch {
-    koerper = undefined;
-  }
-
-  if (antwort.ok) {
-    if (!koerper || typeof koerper !== "object")
-      throw new ApiFehler("format", pfad, antwort.status);
-    return koerper as ErgebnisStand;
-  }
-
-  const objekt = koerper && typeof koerper === "object" ? (koerper as Record<string, unknown>) : {};
-  const detail = typeof objekt.detail === "string" ? objekt.detail : undefined;
-  if (antwort.status === 409 && objekt.current && typeof objekt.current === "object") {
-    throw new SeqKonflikt(detail ?? "", objekt.current as ErgebnisStand);
-  }
-  throw new ApiFehler(
-    artAusStatus(antwort.status),
-    pfad,
-    antwort.status,
-    detail,
-    undefined,
-    feldFehlerAus(koerper),
-  );
+  // Ein Vorgang liefert immer den neuen Stand; alles andere (auch 204) ist unlesbar.
+  if (!antwort || typeof antwort !== "object") throw new ApiFehler("format", pfad);
+  return antwort as ErgebnisStand;
 }
 
 export const ergebnisApi = {
