@@ -10,6 +10,9 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
+from zoneinfo import ZoneInfo
+
+from app.core.localtime import DEFAULT_TIMEZONE, zone
 
 NamesMode = Literal["public", "full"]
 StartlistSort = Literal["start_number", "competition", "range"]
@@ -26,6 +29,8 @@ class Meta:
     date_to: date
     generated_at: datetime
     names: NamesMode
+    # Ortszeit des Turniers (`settings.timezone`) für alle Uhrzeiten der Liste.
+    tz: ZoneInfo = field(default_factory=lambda: zone(DEFAULT_TIMEZONE))
 
 
 @dataclass(frozen=True, slots=True)

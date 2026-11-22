@@ -43,7 +43,7 @@ docs/        diese Dokumentation
 
 - **FastAPI** mit Pydantic-Schemas. Die OpenAPI-Beschreibung ist die Schnittstelle zum Frontend; der TypeScript-Client wird daraus erzeugt.
 - **PostgreSQL** über SQLAlchemy 2 (async), Migrationen mit Alembic. Migrationen laufen beim Start automatisch.
-- **Live-Updates** über Server-Sent Events (`GET /api/v1/events`). Clients laden bei einem Ereignis die betroffenen Daten neu.
+- **Live-Updates** über Server-Sent Events (`GET /api/v1/events`). Clients laden bei einem Ereignis die betroffenen Daten neu. `GET /api/v1/events/names` nennt alle Ereignisnamen, die vorkommen können (Browser hören nur auf genaue Namen).
 - **Module:** Jedes Fachgebiet ist ein Paket unter `backend/app/modules/<name>/` mit eigenem Router, Modellen, Schemas und Service. Ein Modul meldet sich über ein kleines Manifest an (Name, Router, Berechtigungen). Zusätzliche Module können später als eigene Python-Pakete dazukommen.
 
 Kernmodule der ersten Version:
@@ -98,12 +98,14 @@ In beiden Fällen durchläuft ein Start dieselben Zustände:
 | Status eines Starts | Bedeutung |
 |---|---|
 | angemeldet | gebucht, wartet |
-| aufgerufen | einer Bahn zugeteilt, schießt gerade |
-| erfasst | Rohwerte eingegeben |
+| aufgerufen | einer Bahn zugeteilt, noch keine Eingabe |
+| erfasst | Rohwerte (auch teilweise) eingegeben |
 | abgeschlossen | Ergebnis bestätigt, erscheint in der Wertung |
 | abgebrochen | nicht angetreten, aufgegeben oder disqualifiziert |
 
-Die Standaufsicht ruft die nächsten Starts auf eine freie Bahn. Die Anzeige zeigt „am Stand“ und „als Nächstes“, bei einem Zeitplan zusätzlich die Uhrzeit des Durchgangs.
+Eine Bahn ist belegt, solange ein aufgerufener Start auf ihr steht – auch noch, wenn schon erfasst wird, denn der Schütze schießt ja noch. Frei wird sie, wenn das Ergebnis abgeschlossen oder der Start abgebrochen oder zurückgestellt wird, oder ausdrücklich über „Bahn freigeben“ (etwa wenn der Schütze fertig ist, das Ergebnis aber noch nicht abgeschlossen wird). Ein Start, der ohne Aufruf nachträglich erfasst wird, belegt keine Bahn.
+
+Die Standaufsicht ruft die nächsten Starts auf die freien Bahnen. Reihenfolge und „am Stand“ zeigen je belegter Bahn den Status und, sobald erfasst wird, den Fortschritt (Abschnitt, erfasste Serien); die Standanzeige hebt damit die laufende Serie im Ablauf hervor. Die Anzeige zeigt „am Stand“ und „als Nächstes“, bei einem Zeitplan zusätzlich die Uhrzeit des Durchgangs in der Ortszeit des Turniers (Einstellung `timezone`).
 
 ## Sicherheit und Daten
 
@@ -111,6 +113,6 @@ Die Standaufsicht ruft die nächsten Starts auf eine freie Bahn. Die Anzeige zei
 - **HTTPS im lokalen Netz:** Der Server erzeugt beim ersten Start eine eigene Zertifizierungsstelle und ein Serverzertifikat. Eine Seite in der App bietet das Stammzertifikat zum Herunterladen an, mit Anleitung je Betriebssystem. In der Entwicklung läuft alles über `http://localhost`.
 - **Namen verschlüsselt:** Personenbezogene Felder werden vor dem Speichern mit AES-GCM verschlüsselt. Der Schlüssel liegt außerhalb der Datenbank auf dem Server.
 - **Sicherung:** Regelmäßige Datenbank-Abzüge plus eine laufende Mitschrift aller Ergebnis-Ereignisse. Beides wird erst lokal geschrieben, dann verschlüsselt auf den USB-Stick kopiert. Zum Wiederherstellen braucht man das Sicherungspasswort, das bei der Einrichtung festgelegt wird. Fehlt der Stick, warnt die App.
-- **Einspruchsfrist:** Als Einstellung je Turnier vorgesehen; Ergebnisse gelten bis zum Ablauf als vorläufig.
+- **Einspruchsfrist:** Einstellung je Turnier (`protest_minutes`); Ergebnisse gelten bis zum Ablauf als vorläufig. Ob eine Korrektur die Frist neu beginnen lässt, ist ebenfalls einstellbar (`protest_restart_on_correction`, Standard: ja).
 
 Offene Punkte stehen in der [Roadmap](ROADMAP.md).

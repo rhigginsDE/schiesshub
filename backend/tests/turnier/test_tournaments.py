@@ -20,6 +20,8 @@ async def test_create_with_defaults(api: Api) -> None:
     assert created["template"] == "custom"
     assert created["settings"] == {
         "protest_minutes": None,
+        "protest_restart_on_correction": True,
+        "timezone": "Europe/Berlin",
         "currency": "EUR",
         "default_fee_first_cents": 0,
         "default_fee_repeat_cents": 0,
@@ -318,3 +320,24 @@ async def test_overview_has_everything_in_one_call(api: Api) -> None:
     assert [r["id"] for r in body["ranges"]] == [range_a["id"], range_b["id"]]
     assert len(body["classes"]) > 0
     assert body["competitions"] == [competition]
+
+
+async def test_timezone_setting_is_validated(api: Api) -> None:
+    tournament = await api.create_tournament(settings={"timezone": "America/New_York"})
+    assert tournament["settings"]["timezone"] == "America/New_York"
+    path = f"{API}/tournaments/{tournament['id']}"
+
+    response = await api.client.patch(path, json={"settings": {"timezone": "Mond/Basis"}})
+    assert response.status_code == 422
+    (error,) = response.json()["errors"]
+    assert error["field"] == "settings.timezone"
+    assert "keine bekannte Zeitzone" in error["message"]
+    response = await api.client.patch(path, json={"settings": {"timezone": None}})
+    assert response.status_code == 422
+
+    response = await api.client.patch(
+        path, json={"settings": {"timezone": "UTC", "protest_restart_on_correction": False}}
+    )
+    assert response.status_code == 200
+    settings = response.json()["settings"]
+    assert (settings["timezone"], settings["protest_restart_on_correction"]) == ("UTC", False)

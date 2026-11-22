@@ -11,8 +11,13 @@ Ablauf für ein anderes Modul (z. B. `ergebnisse` beim Erfassen und Abschließen
 `transition` prüft die Übergangstabelle (`rules.TRANSITIONS`) und das Turnier (nicht
 abgeschlossen), committet aber nicht. `registered → captured` ist erlaubt (nachträgliche
 Erfassung ohne Aufrufen); bei der Reihenfolge bleibt `lane` dann leer, bei einem Durchgang
-bleibt die gebuchte Bahn stehen. Mit dem Wechsel weg von `called` wird die Bahn frei;
-`lane` bleibt als Angabe stehen, wo geschossen wurde. Ein Start der Reihenfolge, der aufgerufen,
+bleibt die gebuchte Bahn als Angabe stehen – belegt wird sie in beiden Fällen nicht.
+
+Bahnbelegung (`start.on_lane`): Der Aufruf (`→ called`) belegt die Bahn, das Erfassen
+(`called → captured`) lässt sie belegt – der Schütze schießt ja noch. Frei wird sie mit
+`final`, `aborted`, beim Zurückstellen (`→ registered`) oder über `release_lane`. Ein
+Wiederöffnen (`final → captured`) belegt sie nicht wieder. `lane` bleibt als Angabe stehen, wo
+geschossen wurde. Ein Start der Reihenfolge, der aufgerufen,
 zurückgestellt oder abgebrochen wird, verlässt bzw. betritt die Warteschlange; die Plätze werden
 dabei lückenlos neu vergeben.
 """
@@ -45,6 +50,9 @@ from app.modules.starts.rules import (
 from app.modules.turnier.models import Competition
 
 EVENT_STATUS_CHANGED = "start.status_changed"
+
+# Mit diesen Wechseln wird die Bahn frei (`on_lane`). `captured` lässt sie, wie sie ist.
+LANE_RELEASING: frozenset[StartStatus] = frozenset({"registered", "final", "aborted"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,8 +114,11 @@ async def transition(
     start.abort_reason = abort_reason
     if to == "called":
         start.called_at = datetime.now(UTC)
+        start.on_lane = True
     elif to == "registered":
         start.called_at = None
+    if to in LANE_RELEASING:
+        start.on_lane = False
     if to != "registered":
         start.queue_position = None
     elif start.heat_id is None:

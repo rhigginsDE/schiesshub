@@ -13,6 +13,7 @@ from collections.abc import Sequence
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.localtime import zone_of
 from app.modules.ergebnisse import ranking
 from app.modules.ergebnisse.models import ResultCurrent
 from app.modules.ergebnisse.recompute import ensure_current
@@ -47,6 +48,7 @@ async def meta(session: AsyncSession, tournament_id: uuid.UUID, names: NamesMode
         date_to=tournament.date_to,
         generated_at=await server_now(session),
         names=names,
+        tz=zone_of(tournament.settings),
     )
 
 

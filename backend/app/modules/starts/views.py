@@ -11,6 +11,7 @@ from typing import Any
 from sqlalchemy import ColumnElement, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.starts import hooks
 from app.modules.starts.common import get_range, get_tournament
 from app.modules.starts.models import Entry, Heat, Start
 from app.modules.starts.schedule import heat_outs
@@ -62,6 +63,7 @@ async def station_rows(
             abort_reason=start.abort_reason,
             queue_position=start.queue_position,
             lane=start.lane,
+            on_lane=start.on_lane,
             called_at=start.called_at,
             heat_id=start.heat_id,
             heat_number=heat_number,
@@ -111,19 +113,31 @@ async def startlist(
 
 
 async def _lanes(session: AsyncSession, range_: Range) -> list[LaneOut]:
-    called = {
+    """Alle Bahnen des Stands; belegt ist eine Bahn, solange ein Start auf ihr steht
+    (aufgerufen oder erfasst, noch nicht freigegeben), mit seinem Erfassungsfortschritt."""
+    occupied = {
         row.lane: row
         for row in await station_rows(
             session,
             Competition.range_id == range_.id,
-            Start.status == "called",
-            Start.lane.is_not(None),
+            Start.on_lane,
             order_by=(Start.lane,),
         )
     }
+    progress = await hooks.lane_progress(session, [row.start_id for row in occupied.values()])
     # Auch Bahnen über der aktuellen Bahnzahl, falls dort noch jemand steht.
-    numbers = sorted(set(range(1, range_.lane_count + 1)) | {lane for lane in called if lane})
-    return [LaneOut(lane=lane, start=called.get(lane)) for lane in numbers]
+    numbers = sorted(set(range(1, range_.lane_count + 1)) | {lane for lane in occupied if lane})
+    lanes = []
+    for lane in numbers:
+        start = occupied.get(lane)
+        lanes.append(
+            LaneOut(
+                lane=lane,
+                start=start,
+                progress=progress.get(start.start_id) if start is not None else None,
+            )
+        )
+    return lanes
 
 
 async def _waiting(session: AsyncSession, range_id: uuid.UUID) -> list[StationStartOut]:
@@ -152,7 +166,8 @@ async def queue_view(
 async def range_now(
     session: AsyncSession, tournament_id: uuid.UUID, range_id: uuid.UUID
 ) -> RangeNowOut:
-    """„Am Stand“ (aufgerufene Starts je Bahn) und „als Nächstes“ (Durchgang und Reihenfolge)."""
+    """„Am Stand“ (belegte Bahnen mit Start und Fortschritt) und „als Nächstes“ (Durchgang und
+    Reihenfolge)."""
     range_ = await get_range(session, tournament_id, range_id)
     next_heat = await session.scalar(
         select(Heat)

@@ -14,13 +14,21 @@ Antwort bei einem Eingabefehler (HTTP 422):
 `detail` ist ein zusammenfassender Satz zum Anzeigen, `errors` die Liste für Formulare. `field` ist
 der Pfad im Anfrage-Inhalt (`definition.variant.abschnitte[0].serien`) oder `null`, wenn der
 Fehler die Anfrage als Ganzes betrifft.
+
+Fachliche Konflikte (HTTP 409, „im aktuellen Zustand nicht möglich“) meldet `ConflictError`.
+Bezieht sich der Konflikt auf ein Eingabefeld (z. B. Startnummer schon vergeben), steht es wie
+bei 422 zusätzlich in `errors`:
+
+    {"detail": "Bahn 2 ist schon belegt.", "errors": [{"field": "lane", "message": "…"}]}
+
+Ohne Feld bleibt die Antwort ein gewöhnliches 409 mit `detail`.
 """
 
 import re
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -221,8 +229,51 @@ class InputError(Exception):
         return cls([FieldError(field=field, message=message)])
 
 
+class ConflictOut(BaseModel):
+    """HTTP 409. Bezieht sich der Konflikt auf ein Eingabefeld, nennt `errors` es (wie bei 422)."""
+
+    detail: str
+    errors: list[FieldError] | None = None
+
+
+class ConflictError(HTTPException):
+    """Fachlicher Konflikt (HTTP 409), wahlweise mit Bezug auf ein Eingabefeld.
+
+    `ConflictError("Bahn 2 ist schon belegt.", field="lane")` ergibt
+    `{"detail": "…", "errors": [{"field": "lane", "message": "…"}]}`; ohne `field` nur `detail`.
+    Als `HTTPException` bleibt es auch dort ein 409, wo der Handler nicht greift.
+    """
+
+    def __init__(self, message: str, field: str | None = None) -> None:
+        super().__init__(status.HTTP_409_CONFLICT, message)
+        self.field = field
+
+    @property
+    def errors(self) -> list[FieldError] | None:
+        if self.field is None:
+            return None
+        return [FieldError(field=self.field, message=str(self.detail))]
+
+
+def conflict_body(exc: ConflictError) -> dict[str, Any]:
+    body: dict[str, Any] = {"detail": str(exc.detail)}
+    errors = exc.errors
+    if errors is not None:
+        body["errors"] = [error.model_dump() for error in errors]
+    return body
+
+
 def validation_response(errors: Sequence[FieldError]) -> JSONResponse:
     return JSONResponse(status_code=422, content=jsonable_encoder(error_body(errors)))
+
+
+async def _conflict_handler(request: Request, exc: Exception) -> JSONResponse:
+    assert isinstance(exc, ConflictError)
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content=jsonable_encoder(conflict_body(exc)),
+        headers=exc.headers,
+    )
 
 
 async def _request_validation_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -239,6 +290,7 @@ def install_error_handlers(app: FastAPI) -> None:
     """Deutsche Fehlerantworten; die OpenAPI-Beschreibung zeigt die neue Form."""
     app.add_exception_handler(RequestValidationError, _request_validation_handler)
     app.add_exception_handler(InputError, _input_error_handler)
+    app.add_exception_handler(ConflictError, _conflict_handler)
 
     generate = app.openapi
 

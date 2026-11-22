@@ -20,7 +20,6 @@ from app.modules.auth.audit import record_audit
 from app.modules.starts import hooks, schedule
 from app.modules.starts.common import (
     ConflictError,
-    FieldConflictError,
     event_ids,
     get_entry,
     get_range,
@@ -162,8 +161,8 @@ async def _check_number_free(
         select(Entry.id).where(Entry.tournament_id == tournament_id, Entry.start_number == number)
     )
     if holder is not None and holder != own_id:
-        raise FieldConflictError(
-            "start_number", f"Die Startnummer {number} ist in diesem Turnier schon vergeben."
+        raise ConflictError(
+            f"Die Startnummer {number} ist in diesem Turnier schon vergeben.", field="start_number"
         )
 
 
@@ -185,9 +184,9 @@ async def create_entry(
         )
     )
     if existing is not None:
-        raise FieldConflictError(
-            "person_id",
+        raise ConflictError(
             f"Diese Person ist in diesem Turnier schon angemeldet (Startnummer {existing}).",
+            field="person_id",
         )
     if data.start_number is not None:
         await _check_number_free(session, tournament_id, data.start_number, None)
@@ -263,10 +262,10 @@ async def update_entry(
         names = list(blocked)
         if names:
             listed = ", ".join(f"„{name}“" for name in names)
-            raise FieldConflictError(
-                "class_id",
+            raise ConflictError(
                 f"Die Klasse „{new_class.name}“ ist in {listed} nicht zugelassen, dort hat die "
                 "Anmeldung aber Starts. Bitte die Starts erst stornieren.",
+                field="class_id",
             )
     if "start_number" in changes:
         await _check_number_free(session, tournament_id, changes["start_number"], entry.id)
@@ -376,9 +375,9 @@ async def book_starts(
         class_name = await session.scalar(
             select(TournamentClass.name).where(TournamentClass.id == entry.class_id)
         )
-        raise FieldConflictError(
-            "competition_id",
+        raise ConflictError(
             f"Die Klasse „{class_name}“ ist im Wettbewerb „{competition.name}“ nicht zugelassen.",
+            field="competition_id",
         )
     if data.heat_id is None and data.lane is not None:
         raise InputError.single(
@@ -402,7 +401,7 @@ async def book_starts(
     try:
         check_start_limit(competition.multi_start, competition.max_starts, booked, data.count)
     except RuleError as exc:
-        raise FieldConflictError("count", str(exc)) from exc
+        raise ConflictError(str(exc), field="count") from exc
 
     in_queue = competition.planning == "queue" and competition.range_id is not None
     # Neue Starts kommen ans Ende der Reihenfolge ihres Stands.

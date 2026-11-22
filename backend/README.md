@@ -69,7 +69,9 @@ app/
   core/
     config.py        Einstellungen aus Umgebungsvariablen
     db.py            Engine, Sitzungen, Basisklasse der Tabellen
-    events.py        Verteiler für Server-Sent Events (im Speicher)
+    errors.py        deutsche Fehlerantworten: 422 (`InputError`), 409 (`ConflictError`, optional mit Feld)
+    events.py        Verteiler für Server-Sent Events (im Speicher), bekannte Ereignisnamen
+    localtime.py     Ortszeit je Turnier (`settings.timezone`)
     module.py        Modul-Manifest
   modules/
     system/          GET /health, GET /events
@@ -97,7 +99,14 @@ nicht gelöscht.
 
 **Live-Ereignisse.** `GET /events` sendet `verbunden`, bei Ruhe alle 15 s `heartbeat` und fachliche
 Ereignisse wie `katalog.importiert`. Der Verteiler lebt im Speicher eines Prozesses, das Backend
-läuft deshalb mit einem Worker.
+läuft deshalb mit einem Worker. `GET /events/names` listet die bekannten Ereignisnamen: Module
+melden ihre Namen beim Laden mit `app.core.events.register_event_names` an, zusätzlich merkt sich
+jedes `publish` seinen Namen. `match_names` löst Muster wie `start.*` dagegen auf (so baut die
+Anzeige `reload_on`).
+
+**Konflikte.** Fachliche 409 wirft man als `app.core.errors.ConflictError(message, field=None)`.
+Mit `field` antwortet der Server wie bei 422 zusätzlich mit `errors`
+(`{"detail": "…", "errors": [{"field": "lane", "message": "…"}]}`), ohne nur mit `detail`.
 
 ## Einstellungen
 

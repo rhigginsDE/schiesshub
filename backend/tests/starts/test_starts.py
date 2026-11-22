@@ -181,16 +181,22 @@ async def test_lifecycle_for_result_module(api: Api, queue_setup: Setup) -> None
         await session.commit()
         lifecycle.publish_status(api.app.state.events, change)
     assert (change.previous, change.current) == ("called", "captured")
-    # Die Bahn ist wieder frei, `lane` bleibt als Angabe stehen.
+    # Erfasst: Die Bahn bleibt belegt, der Schütze schießt noch.
     queue = await api.ok("GET", f"/tournaments/{tid}/ranges/{queue_setup.range_id}/queue")
-    assert all(lane["start"] is None for lane in queue["lanes"])
-    entry_now = await api.ok("GET", f"/tournaments/{tid}/entries/{entry['id']}")
-    assert entry_now["starts"][0]["lane"] == 1
+    assert [lane["start"] and lane["start"]["status"] for lane in queue["lanes"]] == [
+        "captured",
+        None,
+    ]
 
     async with factory() as session:
         loaded = await lifecycle.load_start(session, start_id)
         await lifecycle.transition(session, loaded, "final", actor)
         await session.commit()
+    # Abgeschlossen: Die Bahn ist wieder frei, `lane` bleibt als Angabe stehen.
+    queue = await api.ok("GET", f"/tournaments/{tid}/ranges/{queue_setup.range_id}/queue")
+    assert all(lane["start"] is None for lane in queue["lanes"])
+    entry_now = await api.ok("GET", f"/tournaments/{tid}/entries/{entry['id']}")
+    assert (entry_now["starts"][0]["lane"], entry_now["starts"][0]["on_lane"]) == (1, False)
     async with factory() as session:
         loaded = await lifecycle.load_start(session, start_id)
         with pytest.raises(HTTPException, match="Grund"):

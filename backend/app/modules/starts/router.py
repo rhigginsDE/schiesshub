@@ -1,22 +1,16 @@
 """HTTP-Schnittstelle des Moduls `starts`: Anmeldung, Starts, Ablauf am Stand, Sichten."""
 
-from collections.abc import Callable, Coroutine
 from datetime import UTC, datetime
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request, Response, status
-from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
-from fastapi.routing import APIRoute
+from fastapi import APIRouter, Depends, Query, Response, status
 from pydantic import AwareDatetime
 
 from app.core.db import SessionDep
-from app.core.errors import FieldError
 from app.core.events import EventHubDep
 from app.core.security import Actor, require
 from app.modules.starts import queue, schedule, service, views
-from app.modules.starts.common import FieldConflictError
 from app.modules.starts.schemas import (
     AbortRequest,
     CallRequest,
@@ -53,30 +47,8 @@ StartEditor = Annotated[Actor, Depends(require(PERMISSION_START_EDIT))]
 Caller = Annotated[Actor, Depends(require(PERMISSION_START_CALL))]
 
 
-class FieldConflictRoute(APIRoute):
-    """Antwortet auf `FieldConflictError` mit 409 und `errors` (Form wie bei 422)."""
-
-    def get_route_handler(self) -> Callable[[Request], Coroutine[Any, Any, Response]]:
-        handler = super().get_route_handler()
-
-        async def route_handler(request: Request) -> Response:
-            try:
-                return await handler(request)
-            except FieldConflictError as exc:
-                body = ConflictOut(
-                    detail=str(exc.detail),
-                    errors=[FieldError(field=exc.field, message=str(exc.detail))],
-                )
-                return JSONResponse(
-                    status_code=status.HTTP_409_CONFLICT, content=jsonable_encoder(body)
-                )
-
-        return route_handler
-
-
-router = APIRouter(
-    prefix="/tournaments/{tournament_id}", tags=["starts"], route_class=FieldConflictRoute
-)
+# 409 mit Feldbezug (`errors`) beantwortet der gemeinsame Handler aus `app.core.errors`.
+router = APIRouter(prefix="/tournaments/{tournament_id}", tags=["starts"])
 
 NOT_FOUND = {status.HTTP_404_NOT_FOUND: {"description": "Nicht gefunden"}}
 CONFLICT = {
@@ -259,7 +231,11 @@ async def abort_start(
 @router.get(
     f"{RANGE}/queue",
     summary="Reihenfolge eines Stands",
-    description="Wartende Starts in ihrer Reihenfolge und die aufgerufenen Starts je Bahn.",
+    description=(
+        "Wartende Starts in ihrer Reihenfolge und alle Bahnen. Belegt ist eine Bahn, solange "
+        "ein Start auf ihr steht (aufgerufen oder erfasst, noch nicht freigegeben), mit Status "
+        "und Erfassungsfortschritt (`progress`)."
+    ),
     responses=NOT_FOUND,
 )
 async def get_queue(
@@ -290,8 +266,8 @@ async def move_start(
     summary="Start aufrufen",
     description=(
         "Reihenfolge: auf `lane` oder die erste freie Bahn. Zeitplan: auf die Bahn des "
-        "Durchgangs. Eine Bahn trägt nur einen aufgerufenen Start, eine Person steht nur auf "
-        "einer Bahn."
+        "Durchgangs. Eine Bahn trägt nur einen Start (aufgerufen oder erfasst, bis sie frei "
+        "wird), eine Person steht nur auf einer Bahn."
     ),
     responses=WRITE,
 )
@@ -331,11 +307,33 @@ async def return_start(
 
 
 @router.post(
+    f"{START}/release-lane",
+    summary="Bahn freigeben",
+    description=(
+        "Nimmt einen erfassten Start von seiner Bahn, ohne den Status zu ändern (z. B. Schütze "
+        "fertig, Ergebnis noch nicht abgeschlossen). Mit dem Abschließen oder Abbrechen wird die "
+        "Bahn ohnehin frei. Ein nur aufgerufener Start wird zurückgestellt, nicht freigegeben."
+    ),
+    responses=WRITE,
+)
+async def release_lane(
+    tournament_id: UUID,
+    start_id: UUID,
+    session: SessionDep,
+    events: EventHubDep,
+    actor: Caller,
+) -> StartOut:
+    return _start(await queue.release_lane(session, events, actor, tournament_id, start_id))
+
+
+@router.post(
     f"{RANGE}/call-next",
     summary="Nächste aufrufen",
     description=(
-        "Füllt alle freien Bahnen des Stands der Reihe nach aus der Reihenfolge. Wer schon auf "
-        "einer Bahn steht, wird übersprungen. Antwort: die aufgerufenen Starts."
+        "Füllt alle freien Bahnen des Stands der Reihe nach aus der Reihenfolge. Belegt bleibt "
+        "eine Bahn auch mit einem erfassten Start, bis er abgeschlossen, abgebrochen oder die "
+        "Bahn freigegeben ist. Wer schon auf einer Bahn steht, wird übersprungen. Antwort: die "
+        "aufgerufenen Starts."
     ),
     responses=WRITE,
 )
@@ -526,8 +524,9 @@ async def get_startlist(
     f"{RANGE}/now",
     summary="Am Stand und als Nächstes",
     description=(
-        "Aufgerufene Starts je Bahn, der nächste Durchgang mit seinen Starts und die nächsten "
-        "Wartenden der Reihenfolge. Namen nur nach der Anzeige-Einstellung der Person."
+        "Belegte Bahnen (aufgerufen oder erfasst, mit Status und Erfassungsfortschritt "
+        "`progress`), der nächste Durchgang mit seinen Starts und die nächsten Wartenden der "
+        "Reihenfolge. Namen nur nach der Anzeige-Einstellung der Person."
     ),
     responses=NOT_FOUND,
 )

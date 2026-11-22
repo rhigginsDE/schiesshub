@@ -12,6 +12,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, StringConstraints
 
+from app.core.errors import FieldError
 from app.modules.starts.rules import AbortReason, StartStatus
 from app.modules.turnier.schemas import StrictModel
 from app.scoring import ComputedResult, FormDescription
@@ -50,6 +51,11 @@ class CorrectRequest(StrictModel):
     base_seq: Seq
 
 
+class PreviewRequest(StrictModel):
+    # Rohwerte wie bei `PUT …/raw` bzw. `POST …/correct`; nichts wird gespeichert.
+    raw: dict[str, Any]
+
+
 class AbortResultRequest(StrictModel):
     abort_reason: AbortReason
     reason: Reason | None = None
@@ -78,6 +84,26 @@ class ResultState(BaseModel):
     definition_revision: int
 
 
+class PreviewOut(BaseModel):
+    """Probe-Rechnung von Rohwerten gegen die aktuelle Definition; nichts ist gespeichert."""
+
+    start_id: UUID
+    status: StartStatus
+    # Aktuelle Sequenznummer des Starts (als `base_seq` für das Speichern).
+    seq: int
+    definition_revision: int
+    # Keine Fehler für einen Zwischenstand (`PUT …/raw` würde angenommen).
+    valid: bool
+    errors: list[FieldError]
+    # Vollständig: Abschließen bzw. Korrigieren würde angenommen.
+    complete: bool
+    # Was zum Abschließen/Korrigieren noch fehlt oder nicht passt (Pfad und Meldung).
+    finalize_errors: list[FieldError]
+    # Wertung mit Rechenweg; null, solange `errors` nicht leer ist.
+    computed: ComputedResult | None
+    score: Decimal | None
+
+
 class SeqConflictOut(BaseModel):
     """HTTP 409: Ein anderes Gerät hat inzwischen erfasst. Nichts wurde geschrieben."""
 
@@ -99,6 +125,11 @@ class FormHeader(BaseModel):
     class_short: str
     competition_id: UUID
     competition_name: str
+    # Kennziffer aus dem Katalog (z. B. „1.10“); null bei eigenem Wettbewerb.
+    competition_code: str | None
+    # Stand des Wettbewerbs; null, solange er keinem Stand zugeordnet ist.
+    range_id: UUID | None
+    range_name: str | None
     attempt: int
     # Gebuchte Starts der Person in diesem Wettbewerb („Versuch 2 von 3“).
     attempts_booked: int

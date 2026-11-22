@@ -25,7 +25,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
 SETTING_KEY = "anzeige"
 
 # Ereignisse, bei denen ein Bildschirm den Feed neu laden soll. `*` am Ende: alle mit diesem
-# Anfang. Personen und Vereine wegen Namen und Anzeige-Einstellung.
+# Anfang. Personen und Vereine wegen Namen und Anzeige-Einstellung. Der Feed löst die Muster
+# gegen die bekannten Ereignisnamen auf (`app.core.events.match_names`).
 RELOAD_EVENTS: tuple[str, ...] = (
     "display.changed",
     "tournament.*",
@@ -38,6 +39,41 @@ RELOAD_EVENTS: tuple[str, ...] = (
     "result.*",
     "person.*",
     "club.*",
+    "backup.status",
+)
+
+# Ereignisse anderer Module, auf die die Anzeige hört, als genaue Namen. Die Module `turnier`,
+# `teilnehmer` und `backup` melden ihre Namen (noch) nicht selbst an; damit `reload_on` sie schon
+# vor dem ersten Auftreten nennt, meldet die Anzeige sie hier an (`register_event_names`). Was
+# ein Modul neu veröffentlicht, kommt über `EventHub.publish` ohnehin dazu.
+EXPECTED_FOREIGN_EVENTS: tuple[str, ...] = (
+    "tournament.created",
+    "tournament.updated",
+    "tournament.status_changed",
+    "tournament.deleted",
+    "tournament.announcement_changed",
+    "competition.created",
+    "competition.updated",
+    "competition.definition_changed",
+    "competition.deleted",
+    "competition.reordered",
+    "range.created",
+    "range.updated",
+    "range.deleted",
+    "range.reordered",
+    "class.created",
+    "class.updated",
+    "class.deleted",
+    "class.reordered",
+    "class.imported",
+    "person.created",
+    "person.updated",
+    "person.deleted",
+    "person.imported",
+    "club.created",
+    "club.updated",
+    "club.deleted",
+    "club.merged",
     "backup.status",
 )
 

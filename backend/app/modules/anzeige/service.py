@@ -261,24 +261,30 @@ async def update_display(
     data: DisplayUpdate,
 ) -> Display:
     display = await get_display(session, display_id)
-    changes = data.model_dump(exclude_unset=True)
+    changes = data.model_dump(exclude_unset=True, exclude={"config"})
     for key in ("name", "sort"):
         if key in changes and changes[key] is None:
             raise InputError.single(key, f"Das Feld „{key}“ darf nicht leer sein.")
+    new_config: DisplayConfig | None = None
+    if "config" in data.model_fields_set:
+        if data.config is None:
+            raise InputError.single("config", "Das Feld „config“ darf nicht leer sein.")
+        new_config = data.config
     if "name" in changes:
         await _check_name_free(session, changes["name"], display.id)
-    if "tournament_id" in changes:
-        await check_config(session, changes["tournament_id"], config_of(display))
+    if "tournament_id" in changes or new_config is not None:
+        # Szenen (neue oder gespeicherte) gegen das Turnier, das nach der Änderung gilt.
+        tournament_id = changes.get("tournament_id", display.tournament_id)
+        await check_config(session, tournament_id, new_config or config_of(display))
     for key, value in changes.items():
         setattr(display, key, value)
-    record_audit(
-        session,
-        actor,
-        "display.updated",
-        "display",
-        display.id,
-        {key: str(value) if value is not None else None for key, value in changes.items()},
-    )
+    details: dict[str, Any] = {
+        key: str(value) if value is not None else None for key, value in changes.items()
+    }
+    if new_config is not None:
+        display.config = _store(new_config)
+        details["scenes"] = [scene.kind for scene in new_config.scenes]
+    record_audit(session, actor, "display.updated", "display", display.id, details)
     await _commit(session, display, _name_taken(display.name))
     _publish(events, display.id)
     return display

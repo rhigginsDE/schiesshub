@@ -74,7 +74,8 @@ def replay(events: Iterable[EventRecord]) -> Replayed:
     """Stand nach allen Ereignissen, in der Reihenfolge ihrer Sequenznummer.
 
     Rohwerte kommen aus dem letzten `raw_set` oder `corrected`; `finalized` schließt ab,
-    `reopened` öffnet wieder, `corrected` bleibt abgeschlossen und beginnt die Einspruchsfrist neu.
+    `reopened` öffnet wieder, `corrected` bleibt abgeschlossen und beginnt die Einspruchsfrist neu
+    (außer mit `protest_restarted: false`, Einstellung `protest_restart_on_correction`).
     Ein Abbruch ändert die Rohwerte nicht (der Abbruchgrund steht am Start).
     """
     raw: dict[str, Any] = {}
@@ -88,7 +89,10 @@ def replay(events: Iterable[EventRecord]) -> Replayed:
             raw = dict(event.payload["raw"])
         if event.type in ("finalized", "corrected"):
             is_final = True
-            finalized_at = event.created_at
+            # Eine Korrektur ohne Neubeginn der Frist (`protest_restarted: false`) behält den
+            # Zeitpunkt des Abschlusses; `provisional_until` steht in jedem Fall im Ereignis.
+            if event.type == "finalized" or event.payload.get("protest_restarted", True):
+                finalized_at = event.created_at
             until = event.payload.get("provisional_until")
             provisional_until = datetime.fromisoformat(until) if until else None
         elif event.type == "reopened":

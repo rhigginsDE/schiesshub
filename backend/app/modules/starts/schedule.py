@@ -19,15 +19,14 @@ from app.core.security import Actor
 from app.modules.auth.audit import record_audit
 from app.modules.starts.common import (
     ConflictError,
-    FieldConflictError,
     NotFoundError,
-    called_entry_ids,
-    called_on_range,
     event_ids,
     get_entry,
     get_range,
     get_start,
     get_tournament,
+    occupied_on_range,
+    on_lane_entry_ids,
     writable_tournament,
 )
 from app.modules.starts.lifecycle import StatusChange, publish_status, transition
@@ -106,17 +105,17 @@ def _check_no_overlap(
             continue
         for starts_at, ends_at in windows:
             if overlaps(heat.starts_at, heat.ends_at, starts_at, ends_at):
-                raise FieldConflictError(
-                    "starts_at",
+                raise ConflictError(
                     f"Der Durchgang überschneidet sich mit Durchgang {heat.number} auf diesem "
                     "Stand.",
+                    field="starts_at",
                 )
 
 
 def _check_number_free(existing: Sequence[Heat], number: int, own_id: uuid.UUID | None) -> None:
     if any(heat.number == number and heat.id != own_id for heat in existing):
-        raise FieldConflictError(
-            "number", f"Einen Durchgang {number} gibt es auf diesem Stand schon."
+        raise ConflictError(
+            f"Einen Durchgang {number} gibt es auf diesem Stand schon.", field="number"
         )
 
 
@@ -340,8 +339,8 @@ async def place(
     elif lane > range_.lane_count:
         raise InputError.single("lane", f"Der Stand hat nur {range_.lane_count} Bahnen.")
     elif lane in taken:
-        raise FieldConflictError(
-            "lane", f"Bahn {lane} im Durchgang {heat.number} ist schon belegt."
+        raise ConflictError(
+            f"Bahn {lane} im Durchgang {heat.number} ist schon belegt.", field="lane"
         )
     await _check_person_free(
         session, entry.id, heat.starts_at, heat.ends_at, exclude_start=start.id
@@ -483,15 +482,15 @@ async def call_heat(
     ).all()
     if not rows:
         raise ConflictError(f"Im Durchgang {heat.number} wartet kein Start.")
-    occupied = await called_on_range(session, range_id)
+    occupied = await occupied_on_range(session, range_id)
     blocked = sorted(start.lane for start, _ in rows if start.lane in occupied)
     if blocked:
         lanes = ", ".join(str(lane) for lane in blocked)
         raise ConflictError(
-            f"Bahn {lanes} ist noch belegt. Bitte die laufenden Starts erst erfassen, "
-            "zurückstellen oder abbrechen."
+            f"Bahn {lanes} ist noch belegt. Bitte die laufenden Starts erst abschließen, "
+            "die Bahn freigeben, zurückstellen oder abbrechen."
         )
-    busy = await called_entry_ids(session, tournament_id)
+    busy = await on_lane_entry_ids(session, tournament_id)
     doubled = sorted(number for start, number in rows if start.entry_id in busy)
     if doubled:
         numbers = ", ".join(str(number) for number in doubled)

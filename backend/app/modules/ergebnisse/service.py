@@ -30,7 +30,7 @@ from app.core.security import Actor
 from app.modules.ergebnisse import journal
 from app.modules.ergebnisse.models import ResultCurrent, ResultEvent
 from app.modules.ergebnisse.rules import Evaluation, evaluate, request_hash, scoring_definition
-from app.modules.ergebnisse.schemas import ResultState
+from app.modules.ergebnisse.schemas import PreviewOut, ResultState
 from app.modules.starts.common import (
     ConflictError,
     NotFoundError,
@@ -46,6 +46,9 @@ from app.modules.turnier.models import Competition, Tournament
 from app.scoring import DefinitionError, Issue, validate_raw
 
 EVENT_PREFIX = "result."
+EVENT_RECOMPUTED = "result.recomputed"
+# Schlüssel in `tournament.settings`: Beginnt die Einspruchsfrist mit einer Korrektur neu?
+PROTEST_RESTART_SETTING = "protest_restart_on_correction"
 
 
 class SeqConflict(Exception):
@@ -233,6 +236,40 @@ async def get_state(
     return loaded, state
 
 
+async def preview(
+    session: AsyncSession, tournament_id: uuid.UUID, start_id: uuid.UUID, raw: dict[str, Any]
+) -> PreviewOut:
+    """Rechnet Rohwerte gegen die aktuelle Definition durch, ohne etwas zu speichern.
+
+    `errors` sind die Fehler, die auch `PUT …/raw` meldete (Zwischenstand), `finalize_errors`
+    die, an denen Abschließen oder Korrigieren scheiterte. Bestätigt wird nichts: Auch ein beim
+    Laden nachgezogener Stand verfällt mit dem Ende der Anfrage.
+    """
+    loaded = await load(session, tournament_id, start_id, lock=False)
+    definition, mode = loaded.definition, loaded.competition.capture_mode
+    try:
+        partial = validate_raw(definition, mode, raw, partial=True)
+        full = validate_raw(definition, mode, raw, partial=False)
+    except DefinitionError as exc:
+        raise ConflictError(
+            f"Die Definition des Wettbewerbs lässt sich nicht werten: {exc}. Bitte in der "
+            "Turnierleitung prüfen."
+        ) from exc
+    evaluation = None if partial else evaluation_of(loaded, raw, is_final=False)
+    return PreviewOut(
+        start_id=loaded.start.id,
+        status=loaded.start.status,
+        seq=loaded.seq,
+        definition_revision=loaded.competition.definition_revision,
+        valid=not partial,
+        errors=raw_issues(partial).errors,
+        complete=not partial and not full,
+        finalize_errors=raw_issues(full).errors,
+        computed=evaluation.computed if evaluation is not None else None,
+        score=evaluation.score if evaluation is not None else None,
+    )
+
+
 # --- Bausteine der Vorgänge ------------------------------------------------------------
 
 
@@ -337,6 +374,12 @@ def provisional_until(loaded: Loaded, now: datetime) -> datetime | None:
     return now + timedelta(minutes=minutes)
 
 
+def protest_restarts_on_correction(loaded: Loaded) -> bool:
+    """Einstellung `protest_restart_on_correction` des Turniers (Standard: ja)."""
+    value = loaded.tournament.settings.get(PROTEST_RESTART_SETTING, True)
+    return value if isinstance(value, bool) else True
+
+
 async def finish(
     session: AsyncSession, events: EventHub, loaded: Loaded, event: ResultEvent | None
 ) -> ResultState:
@@ -395,13 +438,11 @@ async def set_raw(
 
     event = append(session, loaded, request, actor, "raw_set", {"raw": raw})
     store(session, loaded, raw, is_final=False, seq=event.seq)
-    if status == "registered" and loaded.start.lane is not None:
-        # Zeitplan: Die Bahn steht fest, der Start ist damit aufgerufen.
-        await move(session, loaded, "called", actor)
-    elif status == "registered":
-        # Nachträgliche Erfassung ohne Aufrufen (Reihenfolge): Die Bahn bleibt leer.
-        await move(session, loaded, "captured", actor)
-    if loaded.start.status == "called":
+    if status in ("registered", "called"):
+        # Aus „angemeldet“: nachträgliche Erfassung ohne Aufrufen. Der Start belegt dann keine
+        # Bahn (bei der Reihenfolge bleibt `lane` leer, beim Zeitplan steht die gebuchte Bahn
+        # nur als Angabe da). Aus „aufgerufen“ bleibt die Bahn belegt, bis abgeschlossen,
+        # abgebrochen oder freigegeben wird.
         await move(session, loaded, "captured", actor)
     return await finish(session, events, loaded, event)
 
@@ -465,15 +506,27 @@ async def correct(
         )
     check_raw(loaded, raw, partial=False)
     now = await server_now(session)
-    until = provisional_until(loaded, now)
-    payload = {"raw": raw, "provisional_until": until.isoformat() if until else None}
+    restart = protest_restarts_on_correction(loaded)
+    if restart:
+        finalized_at: datetime | None = now
+        until = provisional_until(loaded, now)
+    else:
+        # Einstellung: Die Frist läuft weiter wie nach dem Abschluss.
+        assert loaded.current is not None  # abgeschlossen heißt: es gibt einen Stand
+        finalized_at = loaded.current.finalized_at
+        until = loaded.current.provisional_until
+    payload = {
+        "raw": raw,
+        "provisional_until": until.isoformat() if until else None,
+        "protest_restarted": restart,
+    }
     event = append(session, loaded, request, actor, "corrected", payload, reason)
     store(
         session,
         loaded,
         raw,
         is_final=True,
-        finalized_at=now,
+        finalized_at=finalized_at,
         provisional_until=until,
         seq=event.seq,
     )

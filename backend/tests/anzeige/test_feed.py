@@ -38,8 +38,10 @@ async def test_idle_without_tournament(api: Api) -> None:
         ("live-wertung", defaults.IDLE_NO_TOURNAMENT),
         ("startliste", defaults.IDLE_NO_TOURNAMENT),
     ]
-    assert "result.*" in feed["reload_on"]
+    # Genaue Namen statt Muster (siehe auch test_politur.py).
+    assert "result.finalized" in feed["reload_on"]
     assert "display.changed" in feed["reload_on"]
+    assert not any(name.endswith("*") for name in feed["reload_on"])
     assert feed["poll_seconds"] == defaults.POLL_SECONDS
 
 

@@ -10,7 +10,8 @@ from uuid import UUID
 
 from pydantic import AfterValidator, AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
-from app.core.errors import FieldError
+# 409-Antwort: gemeinsamer Baustein, hier weiter erreichbar.
+from app.core.errors import ConflictOut as ConflictOut
 from app.modules.starts.rules import AbortReason, StartStatus
 from app.modules.turnier.schemas import Id, PositiveInt, StrictModel
 
@@ -45,13 +46,6 @@ class EntryPersonOut(BaseModel):
     club: str | None
 
 
-class ConflictOut(BaseModel):
-    """HTTP 409. Bezieht sich der Konflikt auf ein Eingabefeld, nennt `errors` es (wie bei 422)."""
-
-    detail: str
-    errors: list[FieldError] | None = None
-
-
 class StartOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -65,6 +59,8 @@ class StartOut(BaseModel):
     queue_position: int | None
     heat_id: UUID | None
     lane: int | None
+    # Steht gerade auf `lane` und belegt sie (aufgerufen oder erfasst, noch nicht freigegeben).
+    on_lane: bool
     # Zeitpunkt des Aufrufs auf die Bahn („seit hh:mm“); leer, solange der Start wartet.
     called_at: datetime | None
     created_at: datetime
@@ -191,6 +187,8 @@ class StationStartOut(BaseModel):
     abort_reason: AbortReason | None
     queue_position: int | None
     lane: int | None
+    # Steht gerade auf `lane` und belegt sie (aufgerufen oder erfasst, noch nicht freigegeben).
+    on_lane: bool = False
     # Zeitpunkt des Aufrufs auf die Bahn; leer, solange der Start wartet.
     called_at: datetime | None
     heat_id: UUID | None
@@ -198,10 +196,24 @@ class StationStartOut(BaseModel):
     heat_starts_at: datetime | None
 
 
+class LaneProgressOut(BaseModel):
+    """Erfassungsfortschritt eines Starts auf der Bahn (aus dem aktuellen Ergebnis-Stand)."""
+
+    # Abschnitt, in dem gerade geschossen wird: der erste unvollständige, sonst der letzte.
+    section_id: str | None
+    # Vollständig erfasste Serien dieses Abschnitts und seine Serienzahl.
+    series_done: int
+    series_total: int
+    # Alle Rohwerte vollständig (bereit zum Abschließen).
+    complete: bool
+
+
 class LaneOut(BaseModel):
     lane: int
-    # Der aufgerufene Start auf dieser Bahn, null wenn frei.
+    # Der Start auf dieser Bahn (aufgerufen oder erfasst, noch nicht freigegeben), null wenn frei.
     start: StationStartOut | None
+    # Erfassungsfortschritt des Starts; null ohne Start oder solange nichts erfasst ist.
+    progress: LaneProgressOut | None = None
 
 
 class QueueOut(BaseModel):
