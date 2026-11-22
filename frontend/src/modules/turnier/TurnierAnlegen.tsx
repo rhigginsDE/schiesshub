@@ -1,7 +1,8 @@
-import { Button, Checkbox, Group, Modal, Radio, TextInput } from "@mantine/core";
+import { Button, Checkbox, Group, Radio, TextInput } from "@mantine/core";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Dialog } from "../../components/Dialog";
 import { useTurnierAnlegen } from "./abfragen";
 import a from "./aufgaben.module.css";
 import { EINRICHTEN_PFAD } from "./pfade";
@@ -72,14 +73,7 @@ export function TurnierAnlegen({ offen, onSchliessen }: TurnierAnlegenProps) {
   };
 
   return (
-    <Modal
-      opened={offen}
-      onClose={onSchliessen}
-      title={t("anlegen.titel")}
-      closeButtonProps={{ "aria-label": t("aktion.abbrechen") }}
-      centered
-      size="lg"
-    >
+    <Dialog opened={offen} onClose={onSchliessen} title={t("anlegen.titel")} centered size="lg">
       <form
         className={s.formular}
         noValidate
@@ -181,6 +175,6 @@ export function TurnierAnlegen({ offen, onSchliessen }: TurnierAnlegenProps) {
           </Button>
         </Group>
       </form>
-    </Modal>
+    </Dialog>
   );
 }

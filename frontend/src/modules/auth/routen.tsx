@@ -46,6 +46,12 @@ export function istAnmeldePfad(pfad: string): boolean {
   return Object.values(ANMELDE_PFADE).some((ziel) => pfad === ziel);
 }
 
+/** Welche Anmelde-Seite unter der Adresse liegt, sonst `null`. */
+export function anmeldeSeiteZuPfad(pfad: string): AnmeldeSeite | null {
+  const treffer = Object.entries(ANMELDE_PFADE).find(([, ziel]) => ziel === pfad);
+  return treffer ? (treffer[0] as AnmeldeSeite) : null;
+}
+
 /** Die Seite, die erscheint, wenn der Server eine Anmeldung verlangt und etwas fehlt. */
 export function PflichtSeite({ seite }: { seite: AnmeldeSeite }) {
   if (seite === "einrichtung") return <EinrichtungSeite />;

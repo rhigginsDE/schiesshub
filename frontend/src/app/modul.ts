@@ -27,6 +27,11 @@ export interface ModulManifest {
   routen: AnyRoute[];
   /** Server-Ereignisse, nach denen Daten dieses Moduls neu geladen werden. */
   ereignisse?: EreignisZuordnung;
+  /**
+   * Turniername im Seitentitel: `aktiv` = das an diesem Gerät gewählte Turnier (Stationen wie
+   * Anmeldung oder Erfassung), `adresse` = die Turnier-ID direkt hinter dem Pfad (`/turnier/<id>`).
+   */
+  titelTurnier?: "aktiv" | "adresse";
 }
 
 export type ModulNavigation =

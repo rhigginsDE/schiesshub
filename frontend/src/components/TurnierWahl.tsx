@@ -149,7 +149,6 @@ export function TurnierWechsel({ turnier, onWechseln }: TurnierWechselProps) {
       <Button
         variant="subtle"
         color="gray"
-        size="compact-sm"
         leftSection={<Repeat aria-hidden />}
         onClick={onWechseln}
         aria-label={t("wechseln_lang", { name: turnier.name })}

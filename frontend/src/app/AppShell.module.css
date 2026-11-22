@@ -119,6 +119,7 @@
 
 /* Koppeln/Einloggen im offenen Betrieb: freiwillig, deshalb leise */
 .leise {
+  min-width: 44px;
   color: var(--sh-text-gedaempft);
   font-weight: 500;
   padding-inline: 10px;
@@ -189,11 +190,12 @@
 }
 
 .bannerText {
-  flex: 1 1 320px;
+  flex: 1 1 min(320px, 100%);
   display: grid;
   gap: 4px;
   min-width: 0;
   font-size: 15px;
+  overflow-wrap: anywhere;
 }
 
 .bannerTitel {
@@ -233,6 +235,36 @@
   display: grid;
   gap: 16px;
   min-width: 0;
+}
+
+/* Ziel des Sprunglinks und des Fokus nach einem Seitenwechsel: ohne Rahmen, die Überschrift steht oben. */
+.inhalt:focus,
+.inhalt :global(h1[tabindex="-1"]:focus) {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Erstes Fokusziel; erscheint nur, wenn es per Tastatur erreicht wird. */
+.sprunglink {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--sh-linie-stark);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-flaeche);
+  color: var(--sh-text);
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(calc(-100% - 16px));
+}
+
+.sprunglink:focus {
+  transform: none;
 }
 
 /* Laptop: alles in einer Zeile. Damit das passt, zeigt der freiwillige Knopf (Koppeln/Einloggen)

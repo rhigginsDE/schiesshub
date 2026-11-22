@@ -224,7 +224,6 @@ export function PersonenSuche({
           {onNeu && (
             <Button
               variant={primaerNeu ? "filled" : "default"}
-              size="sm"
               leftSection={<UserPlus aria-hidden />}
               onClick={() => onNeu(eingabe.trim())}
             >

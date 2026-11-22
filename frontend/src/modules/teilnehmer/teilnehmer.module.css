@@ -14,10 +14,15 @@
 }
 
 .pfad a {
+  /* Tippziel 44 px, ohne die Zeile höher zu machen */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-block: -8px;
   color: var(--sh-akzent-text);
   text-decoration: none;
   font-weight: 600;
-  padding-block: 4px;
 }
 
 .pfad a:hover {
@@ -46,7 +51,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 8px 14px;
   border-radius: var(--sh-radius-s);
   color: var(--sh-text-gedaempft);
@@ -169,9 +174,28 @@
     display: none;
   }
 
-  .seite[data-detail="offen"] .listenSpalte,
-  .seite[data-detail="offen"] .kopf {
+  .seite[data-detail="offen"] .listenSpalte {
     display: none;
+  }
+
+  /* Die Kopfzeile verschwindet, die Seitenüberschrift bleibt für Screenreader (genau ein h1). */
+  .seite[data-detail="offen"] .kopf,
+  .seite[data-detail="offen"] .kopfzeile {
+    display: contents;
+  }
+
+  .seite[data-detail="offen"] .kopf > :not(.kopfzeile),
+  .seite[data-detail="offen"] .kopfzeile > :not(h1) {
+    display: none;
+  }
+
+  .seite[data-detail="offen"] .kopf h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .zurueck {

@@ -248,7 +248,7 @@ function Import() {
       ) : (
         <div className={s.dateiZeile}>
           <span className={s.dateiName}>{t("import.datei", { name: datei.name })}</span>
-          <Button variant="default" size="sm" onClick={zuruecksetzen}>
+          <Button variant="default" onClick={zuruecksetzen}>
             {t("import.andere")}
           </Button>
         </div>

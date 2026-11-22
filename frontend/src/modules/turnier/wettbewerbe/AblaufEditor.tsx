@@ -303,7 +303,6 @@ function Feld({
               // biome-ignore lint/suspicious/noArrayIndexKey: ein Feld je Serie
               key={nr}
               label={t("ablauf.serie_nr", { nr: nr + 1 })}
-              size="sm"
               min={0}
               allowNegative={false}
               decimalSeparator=","

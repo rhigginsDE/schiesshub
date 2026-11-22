@@ -166,7 +166,7 @@
 .wahlchip {
   display: inline-flex;
   align-items: center;
-  min-height: 40px;
+  min-height: 44px;
   padding: 6px 14px;
   border: 1px solid var(--sh-linie-stark);
   border-radius: 999px;
@@ -257,6 +257,7 @@
 }
 
 .turnierText {
+  position: relative;
   display: grid;
   gap: 2px;
   min-width: 0;
@@ -267,6 +268,14 @@
   font: 600 16px / 1.3 var(--sh-font-text);
   text-decoration: none;
   overflow-wrap: anywhere;
+}
+
+/* Tippziel: Name und Angaben darunter öffnen das Turnier (mindestens 44 px hoch). */
+.turnierName::after {
+  content: "";
+  position: absolute;
+  inset: -6px 0;
+  min-height: 44px;
 }
 
 .turnierName:hover {
@@ -323,7 +332,12 @@
 
 .pfad {
   justify-self: start;
-  padding-block: 4px;
+  /* Tippziel 44 px, ohne die Zeile höher zu machen */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-block: -8px;
   font-size: 13px;
   font-weight: 600;
   color: var(--sh-akzent-text);

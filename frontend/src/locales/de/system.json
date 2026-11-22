@@ -317,6 +317,11 @@
     "geraet": "Gerät {{name}}",
     "bereich": "Einträge {{von}}–{{bis}} von {{gesamt}}",
     "seiten": "Seiten des Protokolls",
+    "seite_first": "Erste Seite",
+    "seite_previous": "Vorige Seite",
+    "seite_next": "Nächste Seite",
+    "seite_last": "Letzte Seite",
+    "seite_nummer": "Seite {{nummer}}",
     "aktionen": {
       "auth_setup": "Ersteinrichtung",
       "auth_login": "Anmeldung",

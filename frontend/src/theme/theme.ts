@@ -4,6 +4,7 @@ import {
   createTheme,
   Input,
   type MantineColorsTuple,
+  PasswordInput,
   rem,
 } from "@mantine/core";
 import { marke, radius, schriften } from "./tokens";
@@ -111,6 +112,20 @@ export const theme = createTheme({
         },
       }),
     }),
+    // Blätterknöpfe in Größe „xl“ sind 44 px groß.
+    Pagination: { defaultProps: { size: "xl" } },
+    // Der Knopf „Passwort zeigen“ füllt den rechten Bereich des Feldes (42 px bei 44 px Feldhöhe).
+    PasswordInput: PasswordInput.extend({
+      defaultProps: { size: "md" },
+      vars: () => ({
+        root: {
+          "--psi-button-size": rem(TIPPZIEL_PX - 2),
+          "--psi-icon-size": rem(20),
+        },
+      }),
+    }),
+    // Menüeinträge sind auch mit Tab erreichbar, nicht nur mit den Pfeiltasten.
+    Menu: { defaultProps: { menuItemTabIndex: 0, loop: true } },
     Tooltip: { defaultProps: { withArrow: true, openDelay: 300 } },
   },
 });

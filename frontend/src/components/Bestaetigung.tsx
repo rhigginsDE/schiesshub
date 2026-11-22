@@ -1,7 +1,7 @@
-import { Button, Modal } from "@mantine/core";
+import { Button } from "@mantine/core";
 import type { ReactNode } from "react";
-import { useTranslation } from "react-i18next";
 import s from "./Bestaetigung.module.css";
+import { Dialog } from "./Dialog";
 
 interface BestaetigungProps {
   offen: boolean;
@@ -43,16 +43,8 @@ export function Bestaetigung({
   onBestaetigen,
   children,
 }: BestaetigungProps) {
-  const { t } = useTranslation();
   return (
-    <Modal
-      opened={offen}
-      onClose={onSchliessen}
-      title={titel}
-      centered
-      size="md"
-      closeButtonProps={{ "aria-label": t("shell:dialog.schliessen") }}
-    >
+    <Dialog opened={offen} onClose={onSchliessen} title={titel} centered size="md">
       <div className={s.inhalt}>
         <div className={s.text}>{text}</div>
         {children}
@@ -76,6 +68,6 @@ export function Bestaetigung({
           </Button>
         </div>
       </div>
-    </Modal>
+    </Dialog>
   );
 }

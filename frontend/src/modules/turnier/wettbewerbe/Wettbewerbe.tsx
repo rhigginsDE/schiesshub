@@ -1,4 +1,4 @@
-import { ActionIcon, Button, CloseButton, Modal, Radio, Skeleton, TextInput } from "@mantine/core";
+import { ActionIcon, Button, CloseButton, Radio, Skeleton, TextInput } from "@mantine/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -24,6 +24,7 @@ import {
 import type { Disziplin, DisziplinDetail, Gruppe, Verband } from "../../../api/typen";
 import { Bestaetigung } from "../../../components/Bestaetigung";
 import { Chip } from "../../../components/Chip";
+import { Dialog } from "../../../components/Dialog";
 import { formatGeld } from "../../../components/geld";
 import { ReihenfolgeKnoepfe, verschiebe } from "../../../components/Reihenfolge";
 import { Fehlerzustand, Leerzustand } from "../../../components/Zustand";
@@ -429,7 +430,6 @@ function Treffer({
               ) : (
                 <Button
                   variant="default"
-                  size="sm"
                   leftSection={<Plus aria-hidden />}
                   disabled={gesperrt}
                   loading={laedt === disziplin.kennziffer}
@@ -447,10 +447,9 @@ function Treffer({
           );
         })}
       </ul>
-      <Modal
+      <Dialog
         opened={wahl !== null}
         onClose={() => setWahl(null)}
-        closeButtonProps={{ "aria-label": t("aktion.abbrechen") }}
         title={wahl ? t("katalog.variante_titel", { name: wahl.detail.name }) : ""}
         centered
       >
@@ -488,7 +487,7 @@ function Treffer({
             </div>
           </form>
         )}
-      </Modal>
+      </Dialog>
     </>
   );
 }

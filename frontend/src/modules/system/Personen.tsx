@@ -2,7 +2,6 @@ import {
   ActionIcon,
   Button,
   Menu,
-  Modal,
   PasswordInput,
   Select,
   Skeleton,
@@ -20,6 +19,7 @@ import { useAnmeldung } from "../../app/anmeldung";
 import { useDarf } from "../../app/berechtigungen";
 import { Bestaetigung } from "../../components/Bestaetigung";
 import { Chip } from "../../components/Chip";
+import { Dialog } from "../../components/Dialog";
 import { FehlerHinweis, useFehlerText } from "../../components/FehlerHinweis";
 import { zeigeMeldung } from "../../components/Meldungen";
 import { Fehlerzustand, Leerzustand } from "../../components/Zustand";
@@ -284,7 +284,7 @@ function PersonAnlegen({ rollen, onSchliessen }: { rollen: Rolle[]; onSchliessen
   };
 
   return (
-    <Modal opened onClose={onSchliessen} title={t("personen.anlegen_titel")} centered>
+    <Dialog opened onClose={onSchliessen} title={t("personen.anlegen_titel")} centered>
       <form className={s.formular} onSubmit={absenden} noValidate>
         <TextInput
           size="md"
@@ -315,7 +315,7 @@ function PersonAnlegen({ rollen, onSchliessen }: { rollen: Rolle[]; onSchliessen
           </Button>
         </div>
       </form>
-    </Modal>
+    </Dialog>
   );
 }
 
@@ -344,7 +344,7 @@ function PinZuruecksetzen({ person, onSchliessen }: { person: Person; onSchliess
   };
 
   return (
-    <Modal
+    <Dialog
       opened
       onClose={onSchliessen}
       title={t("personen.pin_titel", { name: person.name })}
@@ -363,6 +363,6 @@ function PinZuruecksetzen({ person, onSchliessen }: { person: Person; onSchliess
           </Button>
         </div>
       </form>
-    </Modal>
+    </Dialog>
   );
 }

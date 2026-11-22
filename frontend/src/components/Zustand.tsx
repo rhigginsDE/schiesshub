@@ -13,14 +13,24 @@ interface LeerzustandProps {
   children?: ReactNode;
   /** Ohne eigenen Rahmen, z. B. in einer Fläche mit Rahmen. Direkt in `.panel` geschieht das von selbst. */
   ohneRahmen?: boolean;
+  /** `h1`, wenn der Zustand die ganze Seite ist (Seite fehlt, keine Berechtigung) */
+  ueberschrift?: "h1" | "h2";
 }
 
 /** Nichts anzuzeigen: sagt, warum, und bietet wenn möglich den nächsten Schritt an. */
-export function Leerzustand({ icon: Icon, titel, text, children, ohneRahmen }: LeerzustandProps) {
+export function Leerzustand({
+  icon: Icon,
+  titel,
+  text,
+  children,
+  ohneRahmen,
+  ueberschrift,
+}: LeerzustandProps) {
+  const Titel = ueberschrift ?? "strong";
   return (
     <div className={ohneRahmen ? `${s.zustand} ${s.ohneRahmen}` : s.zustand}>
       <Icon className={s.symbol} aria-hidden />
-      <strong className={s.titel}>{titel}</strong>
+      <Titel className={s.titel}>{titel}</Titel>
       <p className={s.text}>{text}</p>
       {children && <div className={s.aktionen}>{children}</div>}
     </div>

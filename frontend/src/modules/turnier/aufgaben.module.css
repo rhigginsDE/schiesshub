@@ -39,11 +39,6 @@
   color: var(--sh-text);
 }
 
-.schritt:focus-visible {
-  outline: 2px solid var(--sh-akzent);
-  outline-offset: 1px;
-}
-
 .schritt[aria-current="step"] {
   background: var(--sh-flaeche-2);
   color: var(--sh-text);
@@ -183,11 +178,6 @@
   display: none;
 }
 
-.erweitert > summary:focus-visible {
-  outline: 2px solid var(--sh-akzent);
-  outline-offset: 2px;
-}
-
 .erweitertPfeil {
   flex: none;
   color: var(--sh-text-gedaempft);
@@ -297,11 +287,6 @@
 .art[data-checked] {
   border-color: var(--sh-akzent);
   background: var(--sh-akzent-flaeche);
-}
-
-.art:focus-visible {
-  outline: 2px solid var(--sh-akzent);
-  outline-offset: 2px;
 }
 
 .artText {

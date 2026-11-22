@@ -17,11 +17,6 @@
   text-align: center;
 }
 
-.anzeige:focus-visible {
-  outline: 2px solid var(--sh-akzent-text);
-  outline-offset: 1px;
-}
-
 .tasten {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

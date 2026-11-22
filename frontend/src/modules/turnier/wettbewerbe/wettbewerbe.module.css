@@ -124,11 +124,6 @@
   background: var(--sh-flaeche);
 }
 
-.erweitertKopf:focus-visible {
-  outline: 2px solid var(--sh-akzent);
-  outline-offset: 2px;
-}
-
 .erweitertKopf > svg {
   color: var(--sh-text-gedaempft);
 }
@@ -171,9 +166,17 @@
 }
 
 .planungKarte {
+  position: relative;
   padding: 12px 14px;
   border: 1px solid var(--sh-linie);
   border-radius: var(--sh-radius-m);
+}
+
+/* Tippziel: die ganze Karte wählt die Planung. */
+.planungKarte :global(.mantine-Radio-label)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
 }
 
 .planungKarte:has(input:checked) {

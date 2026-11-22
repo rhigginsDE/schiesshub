@@ -3,7 +3,6 @@ import {
   Button,
   Checkbox,
   Menu,
-  Modal,
   SegmentedControl,
   Select,
   Skeleton,
@@ -20,6 +19,7 @@ import { apiSenden } from "../../api/client";
 import type { Rolle } from "../../api/typenSystem";
 import { gewaehrt } from "../../app/berechtigungen";
 import { Bestaetigung } from "../../components/Bestaetigung";
+import { Dialog } from "../../components/Dialog";
 import { FehlerHinweis, useFehlerText } from "../../components/FehlerHinweis";
 import { zeigeMeldung } from "../../components/Meldungen";
 import { Fehlerzustand } from "../../components/Zustand";
@@ -439,7 +439,7 @@ function RollenKopf({ rolle }: { rolle: Rolle }) {
         {t("rollen.personen", { count: rolle.user_count, anzahl: formatZahl(rolle.user_count) })}
       </small>
 
-      <Modal
+      <Dialog
         opened={frage === "umbenennen"}
         onClose={() => setFrage(null)}
         title={t("rollen.umbenennen_titel")}
@@ -470,7 +470,7 @@ function RollenKopf({ rolle }: { rolle: Rolle }) {
             </Button>
           </div>
         </form>
-      </Modal>
+      </Dialog>
       <Bestaetigung
         offen={frage === "loeschen"}
         titel={t("rollen.loeschen_titel", { name: rolle.name })}
@@ -506,7 +506,7 @@ function RolleAnlegen({ rollen, onSchliessen }: { rollen: Rolle[]; onSchliessen:
   });
 
   return (
-    <Modal opened onClose={onSchliessen} title={t("rollen.anlegen_titel")} centered>
+    <Dialog opened onClose={onSchliessen} title={t("rollen.anlegen_titel")} centered>
       <form
         className={s.formular}
         onSubmit={(e: FormEvent) => {
@@ -544,6 +544,6 @@ function RolleAnlegen({ rollen, onSchliessen }: { rollen: Rolle[]; onSchliessen:
           </Button>
         </div>
       </form>
-    </Modal>
+    </Dialog>
   );
 }

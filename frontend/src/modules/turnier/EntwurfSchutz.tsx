@@ -1,8 +1,9 @@
-import { Button, Modal } from "@mantine/core";
+import { Button } from "@mantine/core";
 import { useBlocker } from "@tanstack/react-router";
 import { CircleAlert, Save, Trash2 } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
+import { Dialog } from "../../components/Dialog";
 import a from "./aufgaben.module.css";
 import type { EntwurfRegister } from "./useEntwurf";
 
@@ -36,14 +37,7 @@ export function EntwurfSchutz({ register, ort }: { register: EntwurfRegister; or
   };
 
   return (
-    <Modal
-      opened={offen}
-      onClose={schliessen}
-      title={t("entwurf.titel")}
-      centered
-      size="lg"
-      closeButtonProps={{ "aria-label": t("shell:dialog.schliessen") }}
-    >
+    <Dialog opened={offen} onClose={schliessen} title={t("entwurf.titel")} centered size="lg">
       <div className={a.rueckfrage}>
         <p>{t(speicherbar ? "entwurf.text" : "entwurf.text_ohne_speichern", { ort })}</p>
         {fehler && (
@@ -91,6 +85,6 @@ export function EntwurfSchutz({ register, ort }: { register: EntwurfRegister; or
           )}
         </div>
       </div>
-    </Modal>
+    </Dialog>
   );
 }

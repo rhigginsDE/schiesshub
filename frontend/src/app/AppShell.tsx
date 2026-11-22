@@ -34,12 +34,14 @@ import { useFehlerText } from "../components/FehlerHinweis";
 import { Meldungen, zeigeMeldung } from "../components/Meldungen";
 import { Leerzustand } from "../components/Zustand";
 import { formatUhrzeit } from "../lib/format";
-import { istAnmeldePfad, PflichtSeite } from "../modules/auth/routen";
+import { anmeldeSeiteZuPfad, PflichtSeite } from "../modules/auth/routen";
 import s from "./AppShell.module.css";
 import { AnmeldungProvider, useAnmeldung } from "./anmeldung";
 import { darfMit, useRechte } from "./berechtigungen";
-import { type ModulManifest, useAlleModule, useStationen } from "./modul";
+import { INHALT_ID, springeZumInhalt, useFokusNachSeitenwechsel } from "./fokusNavigation";
+import { useAlleModule, useStationen } from "./modul";
 import { useSeitenbreite } from "./seitenbreite";
+import { modulZuPfad, useSeitentitel } from "./seitentitel";
 import { useServerStatus } from "./serverStatus";
 import { bannerAktion, useSicherungsLage } from "./sicherungsLage";
 
@@ -85,7 +87,10 @@ function Rahmen() {
   useShellEreignisse();
   const { lage } = useAnmeldung();
   const pfad = useRouterState({ select: (zustand) => zustand.location.pathname });
-  const anmeldeSeite = istAnmeldePfad(pfad);
+  const anmeldeArt = anmeldeSeiteZuPfad(pfad);
+  const anmeldeSeite = anmeldeArt !== null;
+  useSeitentitel(pfad, anmeldeArt ?? lage.pflicht);
+  useFokusNachSeitenwechsel(pfad);
 
   if (lage.pruefe) {
     return (
@@ -101,6 +106,7 @@ function Rahmen() {
   if (anmeldeSeite || lage.pflicht) {
     return (
       <div className={s.rahmen}>
+        <Sprunglink />
         <header className={s.leiste}>
           <Marke />
           <div className={s.status}>
@@ -109,7 +115,7 @@ function Rahmen() {
             <Uhr />
           </div>
         </header>
-        <main className={s.inhalt}>
+        <main className={s.inhalt} id={INHALT_ID} tabIndex={-1}>
           {anmeldeSeite ? <Outlet /> : lage.pflicht && <PflichtSeite seite={lage.pflicht} />}
         </main>
       </div>
@@ -118,6 +124,7 @@ function Rahmen() {
 
   return (
     <div className={s.rahmen}>
+      <Sprunglink />
       <div className={s.oben}>
         <header className={s.leiste}>
           <Marke />
@@ -131,12 +138,31 @@ function Rahmen() {
             <Uhr />
           </div>
         </header>
-        <SicherungsBanner istAnzeige={pfad === "/anzeige" || pfad.startsWith("/anzeige/")} />
+        {/* Nur der Bildschirm (`/anzeige/schirm…`) folgt „auf der Anzeige warnen“; die Verwaltung
+            unter `/anzeige` ist eine Station wie jede andere. */}
+        <SicherungsBanner istAnzeige={pfad.startsWith("/anzeige/schirm")} />
       </div>
-      <main className={s.inhalt}>
+      <main className={s.inhalt} id={INHALT_ID} tabIndex={-1}>
         <Seitenschutz pfad={pfad} />
       </main>
     </div>
+  );
+}
+
+/** Erstes Fokusziel jeder Seite: springt über Kopfzeile und Hinweise direkt zum Inhalt. */
+function Sprunglink() {
+  const { t } = useTranslation("shell");
+  return (
+    <a
+      href={`#${INHALT_ID}`}
+      className={s.sprunglink}
+      onClick={(ereignis) => {
+        ereignis.preventDefault();
+        springeZumInhalt();
+      }}
+    >
+      {t("sprunglink")}
+    </a>
   );
 }
 
@@ -152,16 +178,7 @@ function Marke() {
   );
 }
 
-/** Modul zur Adresse: das mit dem längsten passenden Pfad. */
-export function modulZuPfad(module: ModulManifest[], pfad: string): ModulManifest | undefined {
-  let treffer: ModulManifest | undefined;
-  for (const modul of module) {
-    const ziel = modul.navigation.pfad;
-    if (pfad !== ziel && !pfad.startsWith(`${ziel}/`)) continue;
-    if (!treffer || ziel.length > treffer.navigation.pfad.length) treffer = modul;
-  }
-  return treffer;
-}
+export { modulZuPfad } from "./seitentitel";
 
 /** Ohne die Berechtigung des Moduls erscheint statt der Seite ein klarer Hinweis. */
 function Seitenschutz({ pfad }: { pfad: string }) {
@@ -175,6 +192,7 @@ function Seitenschutz({ pfad }: { pfad: string }) {
           icon={ShieldAlert}
           titel={t("shell:berechtigung.seite_titel", { titel: t(`${modul.namensraum}:titel`) })}
           text={t("shell:berechtigung.seite_text")}
+          ueberschrift="h1"
         >
           <Button component={Link} to="/" variant="default">
             {t("aktion.zur_startseite")}

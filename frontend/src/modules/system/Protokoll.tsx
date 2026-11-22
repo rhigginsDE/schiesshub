@@ -209,9 +209,14 @@ export function ProtokollBereich({
                 total={seiten}
                 value={seite}
                 onChange={onSeite}
-                size="lg"
                 siblings={1}
                 aria-label={t("protokoll.seiten")}
+                getControlProps={(knopf) => ({ "aria-label": t(`protokoll.seite_${knopf}`) })}
+                getItemProps={(nummer) => ({
+                  "aria-label": t("protokoll.seite_nummer", {
+                    nummer: formatZahl(nummer, {}, sprache),
+                  }),
+                })}
               />
             )}
           </div>

@@ -262,7 +262,7 @@ export function PersonFormular({
           )}
         </div>
         <CloseButton
-          size="lg"
+          size={44}
           className={s.schliessen}
           aria-label={t("formular.schliessen")}
           onClick={onSchliessen}
@@ -282,7 +282,6 @@ export function PersonFormular({
           <p>{t("formular.fremd_geaendert")}</p>
           <Button
             variant="default"
-            size="xs"
             onClick={() => {
               setBasis(person);
               setWerte(werteAus(person));
@@ -338,7 +337,6 @@ export function PersonFormular({
               <span className={s.feldHilfe}>{t("formular.anzeige_hilfe")}</span>
               <SegmentedControl
                 fullWidth
-                size="sm"
                 orientation={schmal ? "vertical" : "horizontal"}
                 value={werte.display_mode}
                 onChange={(wert) => aendern("display_mode", wert as Anzeigeart)}
@@ -393,7 +391,7 @@ export function PersonFormular({
                         ` · ${t("suche.mitgliedsnummer", { nr: kandidat.member_no })}`}
                     </span>
                   </span>
-                  <Button variant="default" size="sm" onClick={() => onOeffnen(kandidat.id)}>
+                  <Button variant="default" onClick={() => onOeffnen(kandidat.id)}>
                     {t("dublette.oeffnen")}
                   </Button>
                 </li>

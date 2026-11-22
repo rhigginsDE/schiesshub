@@ -40,7 +40,7 @@ export interface Farbschema {
   /** Hervorgehobene Fläche (Auswahl, Hover, neutrale Chips) */
   flaeche2: string;
   linie: string;
-  /** Kräftigere Linie für Eingabefelder */
+  /** Kräftigere Linie für Eingabefelder und Schalter (mindestens 3 : 1 zu allen Flächen) */
   linieStark: string;
   text: string;
   textWeich: string;
@@ -50,8 +50,15 @@ export interface Farbschema {
   akzentHover: string;
   /** Schrift auf Markengrün */
   aufAkzent: string;
-  /** Grün als Text, Symbol oder Fokusrahmen */
+  /** Grün als Text oder Symbol */
   akzentText: string;
+  /** Äußerer Fokusrahmen (2 px): mindestens 3 : 1 zu allen Flächen */
+  fokus: string;
+  /**
+   * Innerer Fokusrahmen im Abstand zwischen Element und Rahmen: trennt den Rahmen auch von
+   * grünen Flächen (Primär-Button, Schalter), mindestens 3 : 1 zu Akzent und zum äußeren Rahmen.
+   */
+  fokusInnen: string;
   akzentFlaeche: string;
   warn: string;
   warnFlaeche: string;
@@ -71,7 +78,7 @@ export const dunkel: Farbschema = {
   flaeche: marke.nacht2,
   flaeche2: marke.nacht3,
   linie: marke.linie,
-  linieStark: "#3B4D61",
+  linieStark: "#64768A",
   text: marke.weiss,
   textWeich: "#C9D2DB",
   textGedaempft: "#9AA8B6",
@@ -79,6 +86,8 @@ export const dunkel: Farbschema = {
   akzentHover: marke.gruenHell,
   aufAkzent: marke.nacht,
   akzentText: marke.gruenHell,
+  fokus: marke.gruenHell,
+  fokusInnen: marke.nacht,
   akzentFlaeche: "rgba(108, 187, 36, 0.16)",
   warn: "#F0B54A",
   warnFlaeche: "rgba(240, 181, 74, 0.14)",
@@ -97,7 +106,7 @@ export const hell: Farbschema = {
   flaeche: "#FFFFFF",
   flaeche2: "#E8ECF1",
   linie: "#CBD3DC",
-  linieStark: "#7F8C9A",
+  linieStark: "#76838F",
   text: marke.nacht,
   textWeich: "#2B3948",
   textGedaempft: "#56636F",
@@ -105,6 +114,9 @@ export const hell: Farbschema = {
   akzentHover: "#7CC62B",
   aufAkzent: marke.nacht,
   akzentText: marke.gruenText,
+  // Grün erreicht auf Hell gegen Weiß und Schuss-Grün zugleich keine 3 : 1; deshalb Nachtblau.
+  fokus: marke.nacht,
+  fokusInnen: "#FFFFFF",
   akzentFlaeche: "rgba(108, 187, 36, 0.14)",
   warn: "#7A4F00",
   warnFlaeche: "rgba(240, 181, 74, 0.22)",

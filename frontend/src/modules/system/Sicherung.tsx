@@ -1,12 +1,4 @@
-import {
-  Button,
-  Checkbox,
-  Modal,
-  NumberInput,
-  PasswordInput,
-  Skeleton,
-  Switch,
-} from "@mantine/core";
+import { Button, Checkbox, NumberInput, PasswordInput, Skeleton, Switch } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Circle,
@@ -40,7 +32,9 @@ import type {
 import { useDarf } from "../../app/berechtigungen";
 import { useSicherungsLage } from "../../app/sicherungsLage";
 import { Bestaetigung } from "../../components/Bestaetigung";
+import { scrollVerhalten } from "../../components/bewegung";
 import { Chip } from "../../components/Chip";
+import { Dialog } from "../../components/Dialog";
 import { FehlerHinweis, useFehlerText } from "../../components/FehlerHinweis";
 import { zeigeMeldung } from "../../components/Meldungen";
 import { Fehlerzustand, Leerzustand } from "../../components/Zustand";
@@ -140,7 +134,7 @@ function StatusPanel({ status }: { status: SicherungsStatus }) {
 
   const zumPasswort = () => {
     const feld = document.getElementById(PASSWORT_FELD);
-    feld?.scrollIntoView({ behavior: "smooth", block: "center" });
+    feld?.scrollIntoView({ behavior: scrollVerhalten(), block: "center" });
     feld?.focus({ preventScroll: true });
   };
 
@@ -778,7 +772,6 @@ function LaeufePanel() {
                   <span className={`${s.aktionen} ${s.laufAktionen}`}>
                     {darfVerwalten && abzug && (
                       <Button
-                        size="sm"
                         variant="default"
                         leftSection={<FileCheck aria-hidden />}
                         onClick={() => setPruefling(lauf)}
@@ -788,7 +781,6 @@ function LaeufePanel() {
                     )}
                     {darfVerwalten && abzug && lauf.target === "local" && (
                       <Button
-                        size="sm"
                         variant="default"
                         leftSection={<Download aria-hidden />}
                         loading={laedtHerunter === lauf.id}
@@ -838,14 +830,7 @@ function PruefDialog({ lauf, onSchliessen }: { lauf: SicherungsLauf; onSchliesse
   const ergebnis = pruefen.data;
 
   return (
-    <Modal
-      opened
-      onClose={onSchliessen}
-      title={t("sicherung.pruefen_titel")}
-      centered
-      size="md"
-      closeButtonProps={{ "aria-label": t("allgemein.schliessen") }}
-    >
+    <Dialog opened onClose={onSchliessen} title={t("sicherung.pruefen_titel")} centered size="md">
       <div className={s.formular}>
         <p className={s.einleitung}>{t("sicherung.pruefen_text")}</p>
         <p className="num">
@@ -941,6 +926,6 @@ function PruefDialog({ lauf, onSchliessen }: { lauf: SicherungsLauf; onSchliesse
           )}
         </div>
       </div>
-    </Modal>
+    </Dialog>
   );
 }

@@ -174,5 +174,13 @@
   "sichtbar_umschalten": "Eingabe zeigen oder verbergen",
   "dialog": {
     "schliessen": "Dialog schließen, ohne etwas zu ändern"
+  },
+  "sprunglink": "Zum Inhalt springen",
+  "seitentitel": {
+    "marke": "Schiesshub",
+    "start": "Start",
+    "einrichtung": "Ersteinrichtung",
+    "koppeln": "Gerät koppeln",
+    "anmelden": "Einloggen"
   }
 }

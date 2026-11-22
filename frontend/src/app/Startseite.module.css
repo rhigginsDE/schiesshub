@@ -86,6 +86,7 @@
 }
 
 .inhalt {
+  position: relative;
   display: grid;
   gap: 2px;
   min-width: 0;
@@ -97,6 +98,14 @@
 
 .titelLink {
   text-decoration: none;
+}
+
+/* Tippziel: Titel und Beschreibung des Schritts führen zum Ziel (mindestens 44 px hoch). */
+.titelLink::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  min-height: 44px;
 }
 
 .titelLink:hover {
@@ -115,6 +124,8 @@
 }
 
 .nebenLink {
+  position: relative;
+  z-index: 1;
   color: var(--sh-akzent-text);
   text-underline-offset: 3px;
   white-space: nowrap;

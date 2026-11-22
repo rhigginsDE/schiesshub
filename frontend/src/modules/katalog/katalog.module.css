@@ -20,10 +20,15 @@
 }
 
 .pfad a {
+  /* Tippziel 44 px, ohne die Zeile höher zu machen */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-block: -8px;
   color: var(--sh-akzent-text);
   text-decoration: none;
   font-weight: 600;
-  padding-block: 4px;
 }
 
 .pfad a:hover {
@@ -127,6 +132,7 @@
 }
 
 .wahlchip {
+  position: relative;
   display: inline-flex;
   align-items: center;
   min-height: 34px;
@@ -137,6 +143,13 @@
   color: var(--sh-text-gedaempft);
   font: 600 13px / 1 var(--sh-font-text);
   cursor: pointer;
+}
+
+/* Tippziel 44 px hoch, der Chip selbst bleibt schlank. */
+.wahlchip::after {
+  content: "";
+  position: absolute;
+  inset: -5px 0;
 }
 
 .wahlchip:hover {
@@ -167,7 +180,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 10px;
-  min-height: 38px;
+  min-height: 44px;
   padding: 8px 10px;
   border: 0;
   border-radius: var(--sh-radius-s);
@@ -473,9 +486,28 @@
   }
 
   .seite[data-detail="offen"] .filter,
-  .seite[data-detail="offen"] .liste,
-  .seite[data-detail="offen"] .kopf {
+  .seite[data-detail="offen"] .liste {
     display: none;
+  }
+
+  /* Die Kopfzeile verschwindet, die Seitenüberschrift bleibt für Screenreader (genau ein h1). */
+  .seite[data-detail="offen"] .kopf,
+  .seite[data-detail="offen"] .kopfzeile {
+    display: contents;
+  }
+
+  .seite[data-detail="offen"] .kopf > :not(.kopfzeile),
+  .seite[data-detail="offen"] .kopfzeile > :not(h1) {
+    display: none;
+  }
+
+  .seite[data-detail="offen"] .kopf h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .zurueck {

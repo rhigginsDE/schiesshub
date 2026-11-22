@@ -11,4 +11,5 @@ export const turnier: ModulManifest = {
   berechtigung: "tournament.read",
   routen: turnierRouten,
   ereignisse: turnierEreignisse,
+  titelTurnier: "adresse",
 };

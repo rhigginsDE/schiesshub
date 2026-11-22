@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Menu, Modal, Select, Skeleton, TextInput } from "@mantine/core";
+import { ActionIcon, Button, Menu, Select, Skeleton, TextInput } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Ban,
@@ -19,6 +19,7 @@ import type { Geraet, Kopplungscode, Rolle } from "../../api/typenSystem";
 import { useDarf } from "../../app/berechtigungen";
 import { Bestaetigung } from "../../components/Bestaetigung";
 import { Chip } from "../../components/Chip";
+import { Dialog } from "../../components/Dialog";
 import { FehlerHinweis, useFehlerText } from "../../components/FehlerHinweis";
 import { zeigeMeldung } from "../../components/Meldungen";
 import { QrCode } from "../../components/QrCode";
@@ -196,7 +197,7 @@ function GeraetZeile({ geraet, rollen }: { geraet: Geraet; rollen: Rolle[] | und
         </Menu.Dropdown>
       </Menu>
 
-      <Modal
+      <Dialog
         opened={frage === "umbenennen"}
         onClose={() => setFrage(null)}
         title={t("geraete.umbenennen_titel")}
@@ -221,7 +222,7 @@ function GeraetZeile({ geraet, rollen }: { geraet: Geraet; rollen: Rolle[] | und
             </Button>
           </div>
         </form>
-      </Modal>
+      </Dialog>
       <Bestaetigung
         offen={frage === "sperren"}
         titel={t("geraete.sperren_titel", { name: geraet.name })}
@@ -360,7 +361,7 @@ function KoppelDialog({
   };
 
   return (
-    <Modal opened onClose={onSchliessen} title={t("geraete.code_titel")} centered size="lg">
+    <Dialog opened onClose={onSchliessen} title={t("geraete.code_titel")} centered size="lg">
       {!code ? (
         <form className={s.formular} onSubmit={absenden}>
           <p className={s.einleitung}>{t("geraete.code_einleitung")}</p>
@@ -476,6 +477,6 @@ function KoppelDialog({
           </div>
         </div>
       )}
-    </Modal>
+    </Dialog>
   );
 }

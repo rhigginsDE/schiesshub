@@ -328,7 +328,6 @@ function VereinZeile({ verein, onMeldung, onZusammenfuehren, onLoeschen }: Verei
       <div className={s.vereinAktionen}>
         <Button
           variant="default"
-          size="sm"
           leftSection={<Pencil aria-hidden />}
           onClick={oeffnen}
           aria-describedby={id}
@@ -337,7 +336,6 @@ function VereinZeile({ verein, onMeldung, onZusammenfuehren, onLoeschen }: Verei
         </Button>
         <Button
           variant="default"
-          size="sm"
           leftSection={<GitMerge aria-hidden />}
           onClick={onZusammenfuehren}
           aria-describedby={id}
@@ -346,7 +344,6 @@ function VereinZeile({ verein, onMeldung, onZusammenfuehren, onLoeschen }: Verei
         </Button>
         <Button
           variant="default"
-          size="sm"
           className={s.gefahr}
           leftSection={<Trash2 aria-hidden />}
           onClick={onLoeschen}

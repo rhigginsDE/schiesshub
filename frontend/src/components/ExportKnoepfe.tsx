@@ -1,4 +1,4 @@
-import { Button, Modal, NumberInput, SegmentedControl, Select, Switch } from "@mantine/core";
+import { Button, NumberInput, SegmentedControl, Select, Switch } from "@mantine/core";
 import { useMutation } from "@tanstack/react-query";
 import { Download, FileSpreadsheet, FileText, ShieldAlert } from "lucide-react";
 import { type ReactNode, useState } from "react";
@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { type AbfrageParameter, ApiFehler, apiDatei, serverMeldung } from "../api/client";
 import { useDarf } from "../app/berechtigungen";
 import type { TurnierUebersicht } from "../modules/turnier/typen";
+import { Dialog } from "./Dialog";
 import s from "./ExportKnoepfe.module.css";
 import { useFehlerText } from "./FehlerHinweis";
 import { zeigeMeldung } from "./Meldungen";
@@ -232,7 +233,7 @@ function ExportDialog({
   );
 
   return (
-    <Modal opened onClose={onSchliessen} title={t("export.dialog_titel")} size="xl" centered>
+    <Dialog opened onClose={onSchliessen} title={t("export.dialog_titel")} size="xl" centered>
       <div className={s.dialog}>
         {darfVoll && (
           <div className={s.namen}>
@@ -322,6 +323,6 @@ function ExportDialog({
         )}
         {block("results", dateiKnoepfe("results", ["csv"], {}))}
       </div>
-    </Modal>
+    </Dialog>
   );
 }
