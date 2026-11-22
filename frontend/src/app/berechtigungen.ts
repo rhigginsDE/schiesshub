@@ -7,12 +7,10 @@ import type { ModulManifest } from "./modul";
  * - `offen`: Der Server setzt keine Anmeldung durch und niemand ist angemeldet. Dann ist alles
  *   sichtbar, damit die App ohne Ersteinrichtung benutzbar bleibt.
  * - sonst: `erlaubt` enthält Berechtigungen (`tournament.edit`) oder Muster (`person.*`, `*`).
- *   `bekannt` sind alle Berechtigungen, die der Server kennt (falls lesbar). Eine Berechtigung,
- *   die der Server gar nicht kennt, ist ein Platzhalter im Frontend und sperrt nichts.
+ *   Es zählt nur, was dort steht: Eine Berechtigung, die der Server nicht vergibt, sperrt. Module
+ *   nennen deshalb nur echte Berechtigungen (`manifeste.test.ts` prüft das).
  */
-export type Rechte =
-  | { offen: true }
-  | { offen: false; erlaubt: readonly string[]; bekannt?: ReadonlySet<string> };
+export type Rechte = { offen: true } | { offen: false; erlaubt: readonly string[] };
 
 export const OFFENE_RECHTE: Rechte = { offen: true };
 
@@ -35,9 +33,7 @@ export function darfMit(rechte: Rechte, anforderung: Anforderung): boolean {
   if (typeof anforderung !== "string") {
     return anforderung.length === 0 || anforderung.some((eine) => darfMit(rechte, eine));
   }
-  if (rechte.offen) return true;
-  if (gewaehrt(rechte.erlaubt, anforderung)) return true;
-  return rechte.bekannt !== undefined && !rechte.bekannt.has(anforderung);
+  return rechte.offen || gewaehrt(rechte.erlaubt, anforderung);
 }
 
 let aktuelleRechte: Rechte = OFFENE_RECHTE;

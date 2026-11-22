@@ -191,3 +191,50 @@
     font-size: 15px;
   }
 }
+
+/* Nur eine Station: Titel, Zweck und ihre Hauptaktion. */
+.einzige {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  max-width: 65ch;
+  padding: 8px 4px 0;
+}
+
+.einzige p {
+  margin-bottom: 8px;
+}
+
+/* Anzeige-Gerät ohne zugeordnete Anzeige: ruhig, mittig, mit den Schritten für die Turnierleitung. */
+.anzeigeLeer {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 16px;
+  min-height: 60vh;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.anzeigeLeer .anzeigeLeerSymbol {
+  width: 56px;
+  height: 56px;
+  color: var(--sh-text-weich);
+}
+
+.anzeigeLeerText {
+  max-width: 60ch;
+  color: var(--sh-text-weich);
+  font-size: 18px;
+}
+
+.anzeigeLeerSchritte {
+  display: grid;
+  gap: 8px;
+  max-width: 60ch;
+  margin: 0;
+  padding-left: 1.4em;
+  list-style: decimal;
+  text-align: left;
+  font-size: 17px;
+}

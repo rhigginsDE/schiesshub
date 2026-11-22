@@ -38,7 +38,11 @@
     "auswahl_hinweis": "Der Ablauf und die Stationen auf diesem Gerät arbeiten in diesem Turnier.",
     "weitere": "Weitere Bereiche",
     "offline": "Keine Verbindung zum Server. Du siehst den zuletzt geladenen Stand; er aktualisiert sich von selbst, sobald der Server wieder antwortet.",
-    "laden": "Ablauf wird geladen"
+    "laden": "Ablauf wird geladen",
+    "einleitung_eigene": "Das sind die Schritte, die du an diesem Gerät übernimmst. Der markierte ist als Nächstes dran.",
+    "keine_aufgabe_titel": "Dir ist noch keine Aufgabe zugeteilt",
+    "keine_aufgabe_text": "Deine Rolle erlaubt hier noch keine Station. Sprich die Turnierleitung an: Sie gibt deiner Rolle unter System → Personen & Rollen die nötigen Rechte.",
+    "zur_station": "{{titel}} öffnen"
   },
   "ablauf": {
     "titel": "Ablauf",
@@ -48,7 +52,8 @@
       "anmeldung": "Schützen anmelden",
       "erfassung": "Am Stand aufrufen und Ergebnisse erfassen",
       "anzeige": "Ergebnisse zeigen",
-      "sicherung": "Daten sichern"
+      "sicherung": "Daten sichern",
+      "erfassung_stand": "Am Stand aufrufen"
     },
     "stand": {
       "offen": "Offen",
@@ -101,7 +106,8 @@
       "anzeige_oeffnen": "Anzeige öffnen",
       "siegerliste": "Siegerliste zeigen",
       "passwort_festlegen": "Passwort festlegen",
-      "zur_sicherung": "Sicherung prüfen"
+      "zur_sicherung": "Sicherung prüfen",
+      "zum_stand": "Zum Stand"
     },
     "stand_link": "Ablauf am Stand",
     "ohne_recht": "Das übernimmt jemand mit passender Rolle.",
@@ -183,5 +189,21 @@
     "einrichtung": "Ersteinrichtung",
     "koppeln": "Gerät koppeln",
     "anmelden": "Einloggen"
+  },
+  "anzeige_geraet": {
+    "titel": "Diesem Gerät ist noch keine Anzeige zugeordnet",
+    "text": "Sobald die Turnierleitung eine Anzeige zuordnet, erscheint sie hier von selbst. Du musst an diesem Gerät nichts tun.",
+    "schritt_1": "An einem Gerät der Turnierleitung die Station Anzeige öffnen und eine Anzeige wählen oder anlegen.",
+    "schritt_2": "Unter „Gekoppeltes Gerät“ dieses Gerät wählen: „{{name}}“.",
+    "schritt_3": "Speichern. Dieser Bildschirm zeigt die Anzeige nach wenigen Sekunden."
+  },
+  "entwurf": {
+    "titel": "Änderungen speichern?",
+    "text": "Du hast in „{{ort}}“ etwas geändert und noch nicht gespeichert.",
+    "text_ohne_speichern": "Du hast in „{{ort}}“ etwas geändert und noch nicht gespeichert. Speichere es im Formular, oder verwirf die Änderungen.",
+    "speichern": "Speichern und weiter",
+    "verwerfen": "Verwerfen",
+    "weiter_bearbeiten": "Weiter bearbeiten",
+    "fehler": "Speichern hat nicht geklappt. Was zu ändern ist, steht am Formular."
   }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bestimmeLage, rechteAus } from "./anmeldeLage";
+import { abweisGrund, bestimmeLage, rechteAus } from "./anmeldeLage";
 import { darfMit, passt, type Rechte } from "./berechtigungen";
 import { sichtbareWarnung } from "./sicherungsLage";
 
@@ -30,7 +30,6 @@ describe("darfMit", () => {
   const rechte: Rechte = {
     offen: false,
     erlaubt: ["person.*", "backup.read"],
-    bekannt: new Set(["person.read", "backup.read", "backup.manage", "system.manage"]),
   };
 
   it("erlaubt alles im offenen Betrieb", () => {
@@ -44,9 +43,11 @@ describe("darfMit", () => {
     expect(darfMit(rechte, null)).toBe(true);
   });
 
-  it("lässt Platzhalter durch, die der Server nicht kennt", () => {
-    expect(darfMit(rechte, "anmeldung.nutzen")).toBe(true);
-    expect(darfMit({ offen: false, erlaubt: [] }, "anmeldung.nutzen")).toBe(false);
+  it("eine Berechtigung, die die Rolle nicht hat, sperrt – auch eine unbekannte", () => {
+    expect(darfMit(rechte, "anmeldung.nutzen")).toBe(false);
+    expect(darfMit({ offen: false, erlaubt: ["entry.edit"] }, ["entry.read", "entry.edit"])).toBe(
+      true,
+    );
   });
 });
 
@@ -116,6 +117,22 @@ describe("rechteAus", () => {
     const s = status({ user: null, role: null, permissions: [] });
     const lage = bestimmeLage({ status: s, statusFehler: false, abgewiesen: false });
     expect(rechteAus(s, lage)).toEqual({ offen: true });
+  });
+});
+
+describe("abweisGrund", () => {
+  const ohneGeraet = status({ auth_enforced: true, device: null, user: null, role: null });
+
+  it("gesperrtes Gerät aus dem Status oder aus dem Code der 401", () => {
+    expect(abweisGrund({ ...ohneGeraet, device_revoked: true } as never, null)).toBe("gesperrt");
+    expect(abweisGrund(ohneGeraet, "device_revoked")).toBe("gesperrt");
+    expect(abweisGrund(ohneGeraet, "device_unknown")).toBeNull();
+  });
+
+  it("abgelaufene Anmeldung", () => {
+    const ohnePerson = status({ auth_enforced: true, user: null, role: null });
+    expect(abweisGrund(ohnePerson, "session_expired")).toBe("abgelaufen");
+    expect(abweisGrund(status(), "session_expired")).toBeNull();
   });
 });
 

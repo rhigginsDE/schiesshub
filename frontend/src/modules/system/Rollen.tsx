@@ -11,8 +11,8 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Lock, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
-import { type FormEvent, type ReactNode, useMemo, useState } from "react";
+import { Lock, MoreVertical, Pencil, Plus, Trash2, TriangleAlert } from "lucide-react";
+import { type FormEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { berechtigungenAbfrage, rollenAbfrage, schluessel } from "../../api/abfragen";
 import { apiSenden } from "../../api/client";
@@ -20,18 +20,25 @@ import type { Rolle } from "../../api/typenSystem";
 import { gewaehrt } from "../../app/berechtigungen";
 import { Bestaetigung } from "../../components/Bestaetigung";
 import { Dialog } from "../../components/Dialog";
+import { EntwurfSchutz } from "../../components/EntwurfSchutz";
 import { FehlerHinweis, useFehlerText } from "../../components/FehlerHinweis";
 import { zeigeMeldung } from "../../components/Meldungen";
+import { EntwurfRegister } from "../../components/useEntwurf";
 import { Fehlerzustand } from "../../components/Zustand";
 import { formatZahl } from "../../lib/format";
+import r from "./Rollen.module.css";
 import {
   type Berechtigungsgruppe,
+  fehlendeVoraussetzungen,
   gleicheEintraege,
   gruppieren,
+  hinzufuegen,
+  luecke,
   rechtTaetigkeit,
   textSchluessel,
   ueberMuster,
   umschalten,
+  voraussetzungen,
 } from "./rollenMatrix";
 import s from "./system.module.css";
 
@@ -55,6 +62,22 @@ function useRechtName() {
   };
 }
 
+/** „Turnier ansehen“ und „Starts ansehen“: Namen in Anführungszeichen, als Aufzählung. */
+function useRechteListe() {
+  const { i18n } = useTranslation();
+  const rechtName = useRechtName();
+  return (rechte: readonly string[]) =>
+    new Intl.ListFormat(i18n.language, { type: "conjunction" }).format(
+      rechte.map((recht) => `„${rechtName(recht)}“`),
+    );
+}
+
+/** Voraussetzungen aller Berechtigungen, wie der Server sie meldet. */
+function useVoraussetzungen() {
+  const berechtigungen = useQuery(berechtigungenAbfrage());
+  return useMemo(() => voraussetzungen(berechtigungen.data ?? []), [berechtigungen.data]);
+}
+
 export function RollenPanel() {
   const { t } = useTranslation("system");
   const queryClient = useQueryClient();
@@ -67,6 +90,7 @@ export function RollenPanel() {
 
   const gruppen = useMemo(() => gruppieren(berechtigungen.data ?? []), [berechtigungen.data]);
   const bekannte = useMemo(() => gruppen.flatMap((gruppe) => gruppe.berechtigungen), [gruppen]);
+  const braucht = useVoraussetzungen();
 
   const geaendert = (rollen.data ?? []).filter((rolle) => {
     const neu = entwurf[rolle.id];
@@ -97,6 +121,43 @@ export function RollenPanel() {
       ...alt,
       [rolle.id]: umschalten(eintraegeVon(rolle), bekannte, recht, an),
     }));
+  const ergaenzen = (rolle: Rolle, rechte: readonly string[]) =>
+    setEntwurf((alt) => ({
+      ...alt,
+      [rolle.id]: hinzufuegen(eintraegeVon(rolle), bekannte, rechte),
+    }));
+
+  // Beim Verlassen der Seite mit ungesetzten Häkchen nachfragen, wie im Turnier-Editor.
+  const [register] = useState(() => new EntwurfRegister());
+  const meldungId = useId();
+  const ungespeichert = geaendert.length > 0;
+  const meldung = useRef({
+    geaendert: ungespeichert,
+    verwerfen: () => setEntwurf({}),
+    speichern: async () => false,
+  });
+  useEffect(() => {
+    meldung.current = {
+      geaendert: ungespeichert,
+      verwerfen: () => setEntwurf({}),
+      speichern: async () => {
+        try {
+          await speichern.mutateAsync();
+          return true;
+        } catch {
+          return false;
+        }
+      },
+    };
+  });
+  useEffect(() => {
+    register.setze(meldungId, meldung);
+    return () => register.entferne(meldungId);
+  }, [register, meldungId]);
+  useEffect(() => {
+    meldung.current = { ...meldung.current, geaendert: ungespeichert };
+    register.melde();
+  }, [register, ungespeichert]);
 
   return (
     <section className="panel" aria-labelledby="rollen-titel">
@@ -133,6 +194,7 @@ export function RollenPanel() {
           gruppen={gruppen}
           eintraegeVon={eintraegeVon}
           setzen={setzen}
+          braucht={braucht}
         />
       ) : (
         <RollenMatrix
@@ -140,7 +202,18 @@ export function RollenPanel() {
           gruppen={gruppen}
           eintraegeVon={eintraegeVon}
           setzen={setzen}
+          braucht={braucht}
           entwurf={entwurf}
+        />
+      )}
+
+      {rollen.data && (
+        <Luecken
+          rollen={rollen.data}
+          bekannte={bekannte}
+          braucht={braucht}
+          eintraegeVon={eintraegeVon}
+          ergaenzen={ergaenzen}
         />
       )}
 
@@ -170,6 +243,7 @@ export function RollenPanel() {
       {anlegen && rollen.data && (
         <RolleAnlegen rollen={rollen.data} onSchliessen={() => setAnlegen(false)} />
       )}
+      <EntwurfSchutz register={register} ort={t("rollen.ort")} />
     </section>
   );
 }
@@ -179,6 +253,72 @@ interface AnsichtProps {
   gruppen: Berechtigungsgruppe[];
   eintraegeVon: (rolle: Rolle) => string[];
   setzen: (rolle: Rolle, recht: string, an: boolean) => void;
+  braucht: ReadonlyMap<string, readonly string[]>;
+}
+
+/**
+ * Rollen, denen für ein gesetztes Recht ein anderes fehlt, ohne das es an der Station nichts nützt
+ * (z. B. „Starts aufrufen“ ohne „Turnier ansehen“). Nur ein Hinweis mit Knopf; gesetzt wird nichts
+ * von selbst.
+ */
+function Luecken({
+  rollen,
+  bekannte,
+  braucht,
+  eintraegeVon,
+  ergaenzen,
+}: {
+  rollen: Rolle[];
+  bekannte: readonly string[];
+  braucht: ReadonlyMap<string, readonly string[]>;
+  eintraegeVon: (rolle: Rolle) => string[];
+  ergaenzen: (rolle: Rolle, rechte: readonly string[]) => void;
+}) {
+  const { t } = useTranslation("system");
+  const liste = useRechteListe();
+  const eintraege = rollen.flatMap((rolle) => {
+    if (rolle.is_system) return [];
+    const offen = luecke(eintraegeVon(rolle), bekannte, braucht);
+    return offen ? [{ rolle, ...offen }] : [];
+  });
+  if (eintraege.length === 0) return null;
+  return (
+    <ul className={r.luecken} aria-label={t("rollen.luecken")}>
+      {eintraege.map(({ rolle, rechte, fehlt }) => (
+        <li key={rolle.id} className={r.luecke}>
+          <TriangleAlert className={r.symbol} aria-hidden />
+          <span className={r.lueckeText}>
+            {t("rollen.luecke", {
+              count: rechte.length,
+              rolle: rolle.name,
+              rechte: liste(rechte),
+              fehlt: liste(fehlt),
+            })}
+          </span>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => ergaenzen(rolle, fehlt)}
+            aria-label={t("rollen.braucht_setzen_hinweis", {
+              rolle: rolle.name,
+              rechte: liste(fehlt),
+            })}
+          >
+            {t("rollen.braucht_setzen")}
+          </Button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Unter dem Namen einer Berechtigung: was sie außerdem braucht. */
+function BrauchtZeile({ recht, braucht }: { recht: string; braucht: AnsichtProps["braucht"] }) {
+  const { t } = useTranslation("system");
+  const liste = useRechteListe();
+  const noetig = braucht.get(recht);
+  if (!noetig?.length) return null;
+  return <span className={r.braucht}>{t("rollen.braucht", { rechte: liste(noetig) })}</span>;
 }
 
 function RechtZelle({
@@ -186,14 +326,18 @@ function RechtZelle({
   recht,
   eintraege,
   setzen,
+  braucht,
 }: {
   rolle: Rolle;
   recht: string;
   eintraege: string[];
   setzen: AnsichtProps["setzen"];
+  braucht: AnsichtProps["braucht"];
 }) {
   const { t } = useTranslation("system");
   const rechtName = useRechtName();
+  const liste = useRechteListe();
+  const fehlt = rolle.is_system ? [] : fehlendeVoraussetzungen(eintraege, recht, braucht);
   const berechtigungen = useQuery(berechtigungenAbfrage());
   const an = rolle.is_system || gewaehrt(eintraege, recht);
   const muster = rolle.is_system ? null : ueberMuster(eintraege, recht);
@@ -221,6 +365,16 @@ function RechtZelle({
         onChange={(e) => setzen(rolle, recht, e.currentTarget.checked)}
       />
       {muster && <span className={s.muster}>{musterKurz}</span>}
+      {fehlt.length > 0 && (
+        <Tooltip label={t("rollen.braucht_fehlt", { rechte: liste(fehlt) })} multiline maw={280}>
+          <span className={r.fehlt}>
+            <TriangleAlert aria-hidden />
+            <span className="nur-screenreader">
+              {t("rollen.braucht_fehlt", { rechte: liste(fehlt) })}
+            </span>
+          </span>
+        </Tooltip>
+      )}
     </span>
   );
   return muster ? (
@@ -235,6 +389,7 @@ function RollenMatrix({
   gruppen,
   eintraegeVon,
   setzen,
+  braucht,
   entwurf,
 }: AnsichtProps & { entwurf: Record<string, string[]> }) {
   const { t } = useTranslation("system");
@@ -267,6 +422,7 @@ function RollenMatrix({
                 <tr key={recht}>
                   <th scope="row" className={s.rechtName} title={recht}>
                     <span>{rechtName(recht)}</span>
+                    <BrauchtZeile recht={recht} braucht={braucht} />
                   </th>
                   {rollen.map((rolle) => (
                     <td key={rolle.id}>
@@ -275,6 +431,7 @@ function RollenMatrix({
                         recht={recht}
                         eintraege={eintraegeVon(rolle)}
                         setzen={setzen}
+                        braucht={braucht}
                       />
                     </td>
                   ))}
@@ -310,7 +467,7 @@ function GruppeZeilen({
 }
 
 /** Schmale Bildschirme: eine Rolle wählen, ihre Rechte als Liste. */
-function RollenListe({ rollen, gruppen, eintraegeVon, setzen }: AnsichtProps) {
+function RollenListe({ rollen, gruppen, eintraegeVon, setzen, braucht }: AnsichtProps) {
   const { t } = useTranslation("system");
   const rechtName = useRechtName();
   const [gewaehlt, setGewaehlt] = useState(rollen[0]?.id ?? "");
@@ -346,12 +503,14 @@ function RollenListe({ rollen, gruppen, eintraegeVon, setzen }: AnsichtProps) {
               <li key={recht}>
                 <span className={s.rechtName} title={recht}>
                   <span>{rechtName(recht)}</span>
+                  <BrauchtZeile recht={recht} braucht={braucht} />
                 </span>
                 <RechtZelle
                   rolle={rolle}
                   recht={recht}
                   eintraege={eintraegeVon(rolle)}
                   setzen={setzen}
+                  braucht={braucht}
                 />
               </li>
             ))}

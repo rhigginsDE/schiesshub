@@ -22,6 +22,22 @@
       "titel": "Keine Verbindung zum Server",
       "text": "Der Schiesshub-Server antwortet nicht. Bitte prüfen, ob der Server läuft und dieses Gerät im selben Netz ist. Sobald die Verbindung wieder steht, lädt die Seite von selbst neu."
     },
+    "nicht_angemeldet": {
+      "titel": "Bitte einloggen",
+      "text": "Die Anmeldung ist abgelaufen oder dieses Gerät ist nicht mehr gekoppelt. Bitte erneut einloggen; hilft das nicht, wende dich an die Turnierleitung."
+    },
+    "verboten": {
+      "titel": "Dafür fehlt deiner Rolle ein Recht",
+      "text": "Diese Daten darf deine Rolle nicht ansehen. Die Turnierleitung kann das Recht unter System → Personen & Rollen ergänzen; welches fehlt, steht unten."
+    },
+    "konflikt": {
+      "titel": "Das geht gerade nicht",
+      "text": "Der Stand auf dem Server hat sich inzwischen geändert. Bitte die Seite neu laden und erneut versuchen."
+    },
+    "gesperrt": {
+      "titel": "Zu viele Versuche",
+      "text": "Bitte kurz warten und dann erneut versuchen."
+    },
     "nicht_gefunden": {
       "titel": "Nicht gefunden",
       "text": "Der Server kennt diesen Eintrag nicht. Er wurde möglicherweise umbenannt oder entfernt."

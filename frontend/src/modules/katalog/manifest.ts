@@ -15,7 +15,8 @@ export const katalog: ModulManifest = {
     icon: BookOpenText,
     reihenfolge: 10,
   },
-  berechtigung: "katalog.lesen",
+  // Der Katalog ist öffentlich lesbar (`/katalog/*` ohne Berechtigung): für jede Rolle.
+  berechtigung: null,
   routen: katalogRouten,
   ereignisse: {
     // Der Server hat catalog/ neu eingelesen: Katalogdaten und Importstatus neu laden.

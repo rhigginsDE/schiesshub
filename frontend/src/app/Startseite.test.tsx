@@ -50,3 +50,62 @@ describe("Startseite: Ablauf", () => {
     expect(screen.queryByText("Noch nicht möglich")).not.toBeInTheDocument();
   });
 });
+
+describe("Startseite: nur was die Rolle darf", () => {
+  const turnier = { ...beispielTurnier("active"), ranges: [], classes: [], competitions: [] };
+  const mitRolle = (permissions: string[], teil: Record<string, unknown> = {}) => ({
+    ...STATUS,
+    auth_enforced: true,
+    device: { id: "g1", name: "Tablet Stand", default_role_id: null },
+    user: { id: "p1", name: "S. Krämer" },
+    role: { id: "r1", name: "Standaufsicht" },
+    permissions,
+    pin_min_length: 4,
+    max_failed_logins: 5,
+    lockout_minutes: 5,
+    ...teil,
+  });
+
+  it("Standaufsicht: nur der Stand, mit „Zum Stand“ als Hauptaktion und eigenem Menüpunkt", async () => {
+    apiAttrappe({
+      "/health": HEALTH,
+      "/auth/status": mitRolle(["start.call", "start.read", "tournament.read"]),
+      "/tournaments": [turnier],
+      [`/tournaments/${TURNIER_ID}/overview`]: turnier,
+      [`/tournaments/${TURNIER_ID}/startlist`]: [start(1, "final"), start(2, "registered")],
+    });
+    renderApp("/");
+    const knopf = await screen.findByRole("link", { name: "Zum Stand" });
+    expect(knopf).toHaveAttribute("href", "/erfassung/stand");
+    expect(screen.getByRole("heading", { name: "Am Stand aufrufen" })).toBeInTheDocument();
+    expect(screen.queryByText("Schützen anmelden")).not.toBeInTheDocument();
+    expect(screen.queryByText("Turnier einrichten")).not.toBeInTheDocument();
+    const navigation = screen.getByRole("navigation", { name: "Stationen" });
+    expect(within(navigation).getByRole("link", { name: "Stand" })).toHaveAttribute(
+      "href",
+      "/erfassung/stand",
+    );
+  });
+
+  it("ohne jede Station: ein Satz statt einer leeren Seite", async () => {
+    apiAttrappe({ "/health": HEALTH, "/auth/status": mitRolle([]) });
+    renderApp("/");
+    expect(await screen.findByText("Dir ist noch keine Aufgabe zugeteilt")).toBeVisible();
+  });
+
+  it("Anzeige-Gerät ohne zugeordnete Anzeige: ruhige Seite statt Turnier und Verwaltung", async () => {
+    apiAttrappe({
+      "/health": HEALTH,
+      "/auth/status": mitRolle(["display.read"], {
+        user: null,
+        role: { id: "r5", name: "Anzeige" },
+      }),
+    });
+    renderApp("/");
+    expect(
+      await screen.findByRole("heading", {
+        name: "Diesem Gerät ist noch keine Anzeige zugeordnet",
+      }),
+    ).toBeVisible();
+  });
+});

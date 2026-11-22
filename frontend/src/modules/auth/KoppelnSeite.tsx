@@ -1,7 +1,7 @@
 import { Button, TextInput } from "@mantine/core";
 import { useMutation } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, MonitorSmartphone } from "lucide-react";
+import { ArrowLeft, MonitorSmartphone, ShieldX } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiSenden } from "../../api/client";
@@ -16,7 +16,9 @@ import { codeGruppiert, codeNormalisieren } from "./eingaben";
 export function KoppelnSeite({ code: vorgabe }: { code?: string }) {
   const { t } = useTranslation("auth");
   const navigate = useNavigate();
-  const { status, lage, uebernehmen } = useAnmeldung();
+  const { status, lage, grund, uebernehmen } = useAnmeldung();
+  // Gesperrt: Das ist kein „noch nicht gekoppelt“. Erst sagen, was passiert ist und wer hilft.
+  const gesperrt = grund === "gesperrt";
   const [code, setCode] = useState(() => (vorgabe ? codeGruppiert(vorgabe) : ""));
   const [name, setName] = useState("");
   const [fehlerCode, setFehlerCode] = useState<string>();
@@ -50,12 +52,14 @@ export function KoppelnSeite({ code: vorgabe }: { code?: string }) {
     <section className={`panel ${s.karte}`} aria-labelledby="koppeln-titel">
       <header className={s.kopf}>
         <span className={s.symbol}>
-          <MonitorSmartphone aria-hidden />
+          {gesperrt ? <ShieldX aria-hidden /> : <MonitorSmartphone aria-hidden />}
         </span>
         <h1 className="h-display" id="koppeln-titel">
-          {t("koppeln.titel")}
+          {gesperrt ? t("koppeln.gesperrt_titel") : t("koppeln.titel")}
         </h1>
-        <p className="gedaempft">{t("koppeln.einleitung")}</p>
+        <p className="gedaempft">
+          {gesperrt ? t("koppeln.gesperrt_text") : t("koppeln.einleitung")}
+        </p>
       </header>
       {status?.device && (
         <p className={s.notiz}>{t("koppeln.bereits", { name: status.device.name })}</p>

@@ -9,16 +9,24 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { authStatusAbfrage, berechtigungenAbfrage, schluessel } from "../api/abfragen";
+import { authStatusAbfrage, schluessel } from "../api/abfragen";
 import { apiSenden, beiApiFehler, serverMeldung } from "../api/client";
 import type { AuthStatus } from "../api/typenSystem";
 import { zeigeMeldung } from "../components/Meldungen";
-import { type AnmeldeLage, bestimmeLage, rechteAus } from "./anmeldeLage";
-import { darfMit, RechteProvider, setzeAktuelleRechte } from "./berechtigungen";
+import {
+  type AbweisGrund,
+  type AnmeldeLage,
+  abweisGrund,
+  bestimmeLage,
+  rechteAus,
+} from "./anmeldeLage";
+import { RechteProvider, setzeAktuelleRechte } from "./berechtigungen";
 
 export interface Anmeldung {
   status: AuthStatus | undefined;
   lage: AnmeldeLage;
+  /** Warum der Server das Gerät zuletzt abgewiesen hat (gesperrt, abgelaufen …); sonst `null`. */
+  grund: AbweisGrund | null;
   /** Meldet die Person ab; das Gerät bleibt gekoppelt. */
   abmelden: () => Promise<void>;
   /** Nach Einrichtung, Kopplung oder Anmeldung: neuen Status übernehmen, alles neu laden. */
@@ -30,6 +38,7 @@ const LEERE_LAGE: AnmeldeLage = { pruefe: false, sperren: false, ausstehend: nul
 const AnmeldungKontext = createContext<Anmeldung>({
   status: undefined,
   lage: LEERE_LAGE,
+  grund: null,
   abmelden: async () => {},
   uebernehmen: () => {},
 });
@@ -47,6 +56,8 @@ export function AnmeldungProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const abfrage = useQuery(authStatusAbfrage());
   const [abgewiesen, setAbgewiesen] = useState(false);
+  // Code aus der letzten 401 (`device_revoked`, `session_expired` …), falls der Server einen liefert.
+  const [abweisCode, setAbweisCode] = useState<unknown>(null);
 
   useEffect(
     () =>
@@ -54,6 +65,7 @@ export function AnmeldungProvider({ children }: { children: ReactNode }) {
         if (fehler.pfad.startsWith("/auth/")) return;
         if (fehler.art === "nicht_angemeldet") {
           setAbgewiesen(true);
+          setAbweisCode((fehler.inhalt as { code?: unknown } | undefined)?.code ?? null);
           void queryClient.invalidateQueries({ queryKey: schluessel.auth.status });
         } else if (fehler.art === "verboten") {
           zeigeMeldung({
@@ -75,26 +87,15 @@ export function AnmeldungProvider({ children }: { children: ReactNode }) {
     [status, abfrage.isError, abgewiesen],
   );
 
-  // Welche Berechtigungen der Server kennt: Nur damit lassen sich Platzhalter im Frontend erkennen.
-  const vorlaeufig = rechteAus(status, lage);
-  const bekannteAbfrage = useQuery({
-    ...berechtigungenAbfrage({ still: true }),
-    enabled: !lage.pruefe && darfMit(vorlaeufig, "role.manage"),
-  });
-  const bekannt = useMemo(
-    () =>
-      bekannteAbfrage.data
-        ? new Set(bekannteAbfrage.data.map((eintrag) => eintrag.permission))
-        : undefined,
-    [bekannteAbfrage.data],
-  );
-  const rechte = useMemo(() => rechteAus(status, lage, bekannt), [status, lage, bekannt]);
+  const grund = abweisGrund(status, abgewiesen ? abweisCode : null);
+  const rechte = useMemo(() => rechteAus(status, lage), [status, lage]);
   // Für `darf()` ohne Hook; im Rendern gesetzt, damit die Kinder schon die neuen Rechte sehen.
   setzeAktuelleRechte(rechte);
 
   const uebernehmen = useCallback(
     (neu: AuthStatus) => {
       setAbgewiesen(false);
+      setAbweisCode(null);
       // Das Server-Ereignis (z. B. `auth.setup`) kommt oft vor der Antwort an und stößt eine
       // Abfrage noch ohne die neuen Cookies an. Die darf den neuen Status nicht überschreiben.
       void queryClient.cancelQueries({ queryKey: schluessel.auth.status }).then(() => {
@@ -113,8 +114,8 @@ export function AnmeldungProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const wert = useMemo<Anmeldung>(
-    () => ({ status, lage, abmelden, uebernehmen }),
-    [status, lage, abmelden, uebernehmen],
+    () => ({ status, lage, grund, abmelden, uebernehmen }),
+    [status, lage, grund, abmelden, uebernehmen],
   );
 
   return (

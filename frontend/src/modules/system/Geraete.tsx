@@ -26,6 +26,7 @@ import { QrCode } from "../../components/QrCode";
 import { Fehlerzustand, Leerzustand } from "../../components/Zustand";
 import { codeGruppiert, formatRestzeit } from "../auth/eingaben";
 import { formatWann, formatZeitpunkt } from "./format";
+import { taugtAlsStandardrolle } from "./rollenMatrix";
 import s from "./system.module.css";
 
 const OHNE_ROLLE = "";
@@ -72,10 +73,27 @@ export function GeraeteBereich() {
   );
 }
 
-function rollenAuswahl(rollen: Rolle[] | undefined, ohne: string) {
+/**
+ * Rollen zur Wahl als Standardrolle. Eine Rolle mit Verwaltungsrechten (Administrator, Rollen,
+ * Personen, Geräte, System, Sicherung) gibt es ohne PIN nicht: sichtbar, aber nicht wählbar. Die
+ * gerade eingestellte bleibt wählbar, damit nichts still verschwindet.
+ */
+function rollenAuswahl(
+  rollen: Rolle[] | undefined,
+  ohne: string,
+  nurMitPin: string,
+  aktuell?: string | null,
+) {
   return [
     { value: OHNE_ROLLE, label: ohne },
-    ...(rollen ?? []).map((rolle) => ({ value: rolle.id, label: rolle.name })),
+    ...(rollen ?? []).map((rolle) => {
+      const gesperrt = !taugtAlsStandardrolle(rolle) && rolle.id !== aktuell;
+      return {
+        value: rolle.id,
+        label: gesperrt ? `${rolle.name} (${nurMitPin})` : rolle.name,
+        disabled: gesperrt,
+      };
+    }),
   ];
 }
 
@@ -151,7 +169,12 @@ function GeraetZeile({ geraet, rollen }: { geraet: Geraet; rollen: Rolle[] | und
         className={s.auswahl}
         size="md"
         label={t("geraete.rolle")}
-        data={rollenAuswahl(rollen, t("geraete.rolle_keine"))}
+        data={rollenAuswahl(
+          rollen,
+          t("geraete.rolle_keine"),
+          t("geraete.rolle_nur_mit_pin"),
+          geraet.default_role_id,
+        )}
         value={geraet.default_role_id ?? OHNE_ROLLE}
         placeholder={rolleBekannt ? undefined : t("geraete.rolle_unbekannt")}
         disabled={!rollen || aendern.isPending}
@@ -391,7 +414,7 @@ function KoppelDialog({
           <Select
             size="md"
             label={t("geraete.code_rolle")}
-            data={rollenAuswahl(rollen, t("geraete.rolle_keine"))}
+            data={rollenAuswahl(rollen, t("geraete.rolle_keine"), t("geraete.rolle_nur_mit_pin"))}
             value={rolle}
             allowDeselect={false}
             disabled={!rollen}

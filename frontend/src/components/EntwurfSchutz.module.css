@@ -1,0 +1,25 @@
+.rueckfrage {
+  display: grid;
+  gap: 16px;
+}
+
+.knoepfe {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.fehler {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: var(--sh-fz-klein);
+  line-height: 1.35;
+  color: var(--sh-warn);
+}
+
+.fehler svg {
+  flex: none;
+  margin-top: 1px;
+}

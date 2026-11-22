@@ -19,8 +19,8 @@ export interface ModulManifest {
   navigation: ModulNavigation;
   /**
    * Berechtigung, die ein Gerät oder eine Person braucht, um das Modul zu sehen, so wie das
-   * Backend sie vergibt (`tournament.read`). Bei einer Liste reicht eine davon; `null` = für alle.
-   * Kennt der Server die Berechtigung nicht, gilt sie als Platzhalter und sperrt nichts.
+   * Backend sie vergibt (`tournament.read`). Bei einer Liste reicht eine davon; `null` = für alle,
+   * die eingeloggt sind. Nur echte Berechtigungen des Servers; Platzhalter sperren.
    */
   berechtigung: Anforderung;
   /** Fertige Routen des Moduls; Eltern-Route ist `rootRoute` aus `src/app/rootRoute.ts`. */
@@ -37,8 +37,19 @@ export interface ModulManifest {
 export type ModulNavigation =
   /** Eigene Station: Eintrag in der Kopfzeile und Kachel auf der Startseite */
   | { art: "station"; pfad: string; icon: LucideIcon; reihenfolge: number }
-  /** Bereich innerhalb einer Station: erscheint auf der Seite der Station */
-  | { art: "bereich"; station: string; pfad: string; icon: LucideIcon; reihenfolge: number };
+  /**
+   * Bereich innerhalb einer Station: erscheint auf der Seite der Station. Mit `eigenstaendig`
+   * erscheint er selbst als Station (an deren Platz), wenn die Rolle die Station nicht sieht,
+   * wohl aber den Bereich – z. B. der Stand für die Standaufsicht ohne Rechte an der Erfassung.
+   */
+  | {
+      art: "bereich";
+      station: string;
+      pfad: string;
+      icon: LucideIcon;
+      reihenfolge: number;
+      eigenstaendig?: boolean;
+    };
 
 const ModulKontext = createContext<ModulManifest[]>([]);
 
@@ -60,11 +71,32 @@ export function useAlleModule(): ModulManifest[] {
   return useContext(ModulKontext);
 }
 
-/** Module, die als Station in Kopfzeile und Startseite erscheinen. */
+/**
+ * Module, die als Station in Kopfzeile und Startseite erscheinen: alle Stationen, dazu
+ * eigenständige Bereiche, deren Station die Rolle nicht sieht (auf dem Platz dieser Station).
+ */
+export function stationenAus(alle: ModulManifest[], sichtbar: ModulManifest[]): ModulManifest[] {
+  const sichtbareIds = new Set(sichtbar.map((modul) => modul.id));
+  const platz = (modul: ModulManifest) => {
+    const nav = modul.navigation;
+    if (nav.art === "station") return nav.reihenfolge;
+    const station = alle.find((m) => m.id === nav.station);
+    return (station?.navigation.reihenfolge ?? nav.reihenfolge) + nav.reihenfolge / 1000;
+  };
+  return sichtbar
+    .filter((modul) => {
+      const nav = modul.navigation;
+      return (
+        nav.art === "station" || (nav.eigenstaendig === true && !sichtbareIds.has(nav.station))
+      );
+    })
+    .sort((a, b) => platz(a) - platz(b));
+}
+
 export function useStationen(): ModulManifest[] {
-  return useModule()
-    .filter((modul) => modul.navigation.art === "station")
-    .sort(nachReihenfolge);
+  const alle = useContext(ModulKontext);
+  const sichtbar = useModule();
+  return useMemo(() => stationenAus(alle, sichtbar), [alle, sichtbar]);
 }
 
 /** Module, die als Bereich zu einer Station gehören. */

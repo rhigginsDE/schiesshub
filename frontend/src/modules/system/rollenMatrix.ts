@@ -1,4 +1,4 @@
-import type { Berechtigung } from "../../api/typenSystem";
+import type { Berechtigung, Rolle } from "../../api/typenSystem";
 import { gewaehrt, passt } from "../../app/berechtigungen";
 
 /**
@@ -87,4 +87,85 @@ export function rechtTaetigkeit(name: string): string | null {
 /** Schlüssel in der Sprachdatei: Punkte trennen dort Ebenen, darum `backup.read` → `backup_read`. */
 export function textSchluessel(name: string): string {
   return name.replace(/\./g, "_").replace(/\*/g, "alle");
+}
+
+/**
+ * Was eine Berechtigung braucht, damit sie an ihrer Station etwas nützt, so wie der Server es meldet
+ * (`GET /auth/permissions` → `requires`, ermittelt aus den Prüfungen der Endpunkte). Ein älterer
+ * Server meldet nichts; dann behauptet die Matrix auch nichts.
+ */
+export function voraussetzungen(liste: readonly Berechtigung[]): Map<string, string[]> {
+  const karte = new Map<string, string[]>();
+  for (const eintrag of liste) {
+    const braucht = (eintrag as { requires?: unknown }).requires;
+    if (!Array.isArray(braucht)) continue;
+    const bekannte = braucht.filter(
+      (recht): recht is string => typeof recht === "string" && recht !== eintrag.permission,
+    );
+    if (bekannte.length > 0) karte.set(eintrag.permission, bekannte);
+  }
+  return karte;
+}
+
+export interface Luecke {
+  /** Gewährte Berechtigungen, denen etwas fehlt, in der Reihenfolge der bekannten */
+  rechte: string[];
+  /** Was ihnen fehlt, ohne Doppelte */
+  fehlt: string[];
+}
+
+/** Gewährte Berechtigungen einer Rolle, deren Voraussetzungen fehlen; `null`, wenn nichts fehlt. */
+export function luecke(
+  eintraege: readonly string[],
+  bekannte: readonly string[],
+  braucht: ReadonlyMap<string, readonly string[]>,
+): Luecke | null {
+  const rechte: string[] = [];
+  const fehlt: string[] = [];
+  for (const recht of bekannte) {
+    if (!gewaehrt(eintraege, recht)) continue;
+    const offen = (braucht.get(recht) ?? []).filter((noetig) => !gewaehrt(eintraege, noetig));
+    if (offen.length === 0) continue;
+    rechte.push(recht);
+    for (const noetig of offen) if (!fehlt.includes(noetig)) fehlt.push(noetig);
+  }
+  return rechte.length > 0 ? { rechte, fehlt } : null;
+}
+
+/** Fehlende Voraussetzungen einer Berechtigung (für die Zelle der Matrix). */
+export function fehlendeVoraussetzungen(
+  eintraege: readonly string[],
+  recht: string,
+  braucht: ReadonlyMap<string, readonly string[]>,
+): string[] {
+  if (!gewaehrt(eintraege, recht)) return [];
+  return (braucht.get(recht) ?? []).filter((noetig) => !gewaehrt(eintraege, noetig));
+}
+
+/** Setzt mehrere Berechtigungen zusätzlich (z. B. die fehlenden Voraussetzungen). */
+export function hinzufuegen(
+  eintraege: readonly string[],
+  bekannte: readonly string[],
+  rechte: readonly string[],
+): string[] {
+  return rechte.reduce<string[]>(
+    (neu, recht) => umschalten(neu, bekannte, recht, true),
+    [...eintraege],
+  );
+}
+
+/**
+ * Verwaltungsrechte wie im Server (`ADMINISTRATION_PERMISSIONS`): Eine Rolle, die eines davon
+ * gewährt, taugt nicht als Standardrolle eines Geräts, weil dort niemand eine PIN eingibt.
+ */
+export const VERWALTUNGSRECHTE = [
+  "role.manage",
+  "user.manage",
+  "device.manage",
+  "system.manage",
+  "backup.manage",
+] as const;
+
+export function taugtAlsStandardrolle(rolle: Pick<Rolle, "is_system" | "permissions">): boolean {
+  return !rolle.is_system && !VERWALTUNGSRECHTE.some((recht) => gewaehrt(rolle.permissions, recht));
 }

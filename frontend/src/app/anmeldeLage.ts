@@ -49,12 +49,27 @@ export function bestimmeLage({ status, statusFehler, abgewiesen }: LageEingaben)
 }
 
 /** Rechte aus dem Status. Ohne Rolle und ohne Sperre ist alles offen. */
-export function rechteAus(
-  status: AuthStatus | undefined,
-  lage: AnmeldeLage,
-  bekannt?: ReadonlySet<string>,
-): Rechte {
+export function rechteAus(status: AuthStatus | undefined, lage: AnmeldeLage): Rechte {
   if (!status) return lage.sperren ? { offen: false, erlaubt: [] } : { offen: true };
   if (!status.role && !lage.sperren) return { offen: true };
-  return { offen: false, erlaubt: status.permissions, bekannt };
+  return { offen: false, erlaubt: status.permissions };
+}
+
+/**
+ * Warum das Gerät nicht (mehr) hineinkommt, soweit der Server es sagt:
+ * - `gesperrt`: Das Gerät wurde unter System → Geräte gesperrt.
+ * - `abgelaufen`: Die Anmeldung ist abgelaufen oder wurde beendet.
+ */
+export type AbweisGrund = "gesperrt" | "abgelaufen";
+
+/**
+ * Grund aus `GET /auth/status` (`device_revoked`) oder dem `code` der letzten 401-Antwort
+ * (`device_revoked`, `session_expired`). Ältere Server liefern beides nicht: dann `null`.
+ */
+export function abweisGrund(status: AuthStatus | undefined, code401: unknown): AbweisGrund | null {
+  const gesperrt = (status as { device_revoked?: unknown } | undefined)?.device_revoked === true;
+  if (gesperrt && !status?.device) return "gesperrt";
+  if (code401 === "device_revoked" && !status?.device) return "gesperrt";
+  if (code401 === "session_expired" && !status?.user) return "abgelaufen";
+  return null;
 }

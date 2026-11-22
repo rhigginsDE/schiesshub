@@ -19,7 +19,8 @@ export const anmeldung: ModulManifest = {
   namensraum: ANMELDUNG_ID,
   navigation: { art: "station", pfad: PFAD, icon: UserPlus, reihenfolge: 20 },
   titelTurnier: "aktiv",
-  berechtigung: "anmeldung.nutzen",
+  // Ansehen reicht für die Station; buchen und kassieren braucht `entry.edit`.
+  berechtigung: ["entry.read", "entry.edit"],
   routen: [route],
   ereignisse: startsEreignisse,
 };

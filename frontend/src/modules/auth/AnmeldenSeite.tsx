@@ -18,7 +18,7 @@ import { formatRestzeit, initialen, PIN_MAX_LAENGE } from "./eingaben";
 /** Personenauswahl mit großen Kacheln, danach PIN über das Ziffernfeld. */
 export function AnmeldenSeite() {
   const { t } = useTranslation("auth");
-  const { status, lage } = useAnmeldung();
+  const { status, lage, grund } = useAnmeldung();
   const navigate = useNavigate();
   const pfad = useRouterState({ select: (zustand) => zustand.location.pathname });
   // Ohne Kopplung antwortet der Server mit 401; dann gar nicht erst fragen.
@@ -85,6 +85,12 @@ export function AnmeldenSeite() {
           </p>
         )}
       </header>
+
+      {grund === "abgelaufen" && !auswahl && (
+        <p className={s.notiz} role="status">
+          {t("anmelden.abgelaufen")}
+        </p>
+      )}
 
       {auswahl ? (
         <PinSchritt

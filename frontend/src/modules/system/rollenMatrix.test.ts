@@ -3,12 +3,17 @@ import { codeGruppiert, formatRestzeit, initialen, pinGueltig } from "../auth/ei
 import { kopplungsAdresse } from "./Geraete";
 import { detailsText } from "./Protokoll";
 import {
+  fehlendeVoraussetzungen,
   gleicheEintraege,
   gruppieren,
+  hinzufuegen,
+  luecke,
   rechtTaetigkeit,
+  taugtAlsStandardrolle,
   textSchluessel,
   ueberMuster,
   umschalten,
+  voraussetzungen,
 } from "./rollenMatrix";
 
 const bekannte = ["person.delete", "person.edit", "person.read", "club.edit", "backup.read"];
@@ -150,5 +155,58 @@ describe("Eingaben der Anmeldung", () => {
     expect(initialen("M. Brandt")).toBe("MB");
     expect(initialen("Kasse")).toBe("K");
     expect(initialen("Test-Admin")).toBe("TA");
+  });
+});
+
+describe("Voraussetzungen", () => {
+  const liste = [
+    {
+      permission: "start.call",
+      module: "starts",
+      module_title: "Starts",
+      requires: ["start.read", "tournament.read"],
+    },
+    {
+      permission: "start.read",
+      module: "starts",
+      module_title: "Starts",
+      requires: ["tournament.read"],
+    },
+    { permission: "tournament.read", module: "turnier", module_title: "Turnier", requires: [] },
+    // Älterer Server: kein Feld `requires`.
+    { permission: "backup.read", module: "backup", module_title: "Sicherung" },
+  ];
+  const braucht = voraussetzungen(liste as never);
+  const alle = ["start.call", "start.read", "tournament.read", "backup.read"];
+
+  it("liest nur, was der Server meldet", () => {
+    expect([...braucht.keys()]).toEqual(["start.call", "start.read"]);
+  });
+
+  it("findet die Lücke der Standaufsicht und schließt sie auf Wunsch", () => {
+    const rolle = ["start.call", "start.read"];
+    expect(luecke(rolle, alle, braucht)).toEqual({
+      rechte: ["start.call", "start.read"],
+      fehlt: ["tournament.read"],
+    });
+    expect(fehlendeVoraussetzungen(rolle, "start.call", braucht)).toEqual(["tournament.read"]);
+    const neu = hinzufuegen(rolle, alle, ["tournament.read"]);
+    expect(neu).toEqual(["start.call", "start.read", "tournament.read"]);
+    expect(luecke(neu, alle, braucht)).toBeNull();
+  });
+
+  it("ein Muster deckt Voraussetzungen ab; nicht gesetzte Rechte brauchen nichts", () => {
+    expect(luecke(["start.*", "tournament.*"], alle, braucht)).toBeNull();
+    expect(fehlendeVoraussetzungen([], "start.call", braucht)).toEqual([]);
+  });
+});
+
+describe("taugtAlsStandardrolle", () => {
+  it("ohne PIN keine Verwaltungsrechte", () => {
+    expect(taugtAlsStandardrolle({ is_system: true, permissions: [] })).toBe(false);
+    expect(taugtAlsStandardrolle({ is_system: false, permissions: ["*"] })).toBe(false);
+    expect(taugtAlsStandardrolle({ is_system: false, permissions: ["backup.*"] })).toBe(false);
+    expect(taugtAlsStandardrolle({ is_system: false, permissions: ["display.read"] })).toBe(true);
+    expect(taugtAlsStandardrolle({ is_system: false, permissions: ["backup.read"] })).toBe(true);
   });
 });

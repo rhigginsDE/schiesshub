@@ -1,0 +1,50 @@
+/* Unter dem Namen einer Berechtigung: was sie außerdem braucht (Klartext, nicht technisch). */
+.braucht {
+  font-size: var(--sh-fz-klein);
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--sh-text-gedaempft);
+}
+
+/* In der Zelle: Recht gesetzt, Voraussetzung fehlt. */
+.fehlt {
+  display: inline-flex;
+  color: var(--sh-warn);
+}
+
+.fehlt > svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Hinweise je Rolle mit fehlender Voraussetzung, mit Knopf zum Ergänzen. */
+.luecken {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.luecke {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--sh-warn-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-warn-flaeche);
+}
+
+.luecke .symbol {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--sh-warn);
+}
+
+.lueckeText {
+  flex: 1 1 260px;
+  min-width: 0;
+}

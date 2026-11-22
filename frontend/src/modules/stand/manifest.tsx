@@ -35,6 +35,8 @@ export const stand: ModulManifest = {
     pfad: STAND_PFAD,
     icon: LayoutGrid,
     reihenfolge: 10,
+    // Die Standaufsicht (nur `start.*`) sieht die Erfassung nicht: dann ist der Stand ihre Station.
+    eigenstaendig: true,
   },
   titelTurnier: "aktiv",
   berechtigung: ["start.read", "start.call"],

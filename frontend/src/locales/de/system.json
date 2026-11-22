@@ -193,7 +193,8 @@
     "schritt_2": "Fragt das Gerät nach einem Code, diesen Code eingeben:",
     "schritt_3": "Fertig: Das Gerät erscheint danach hier in der Liste.",
     "schritt_3_warten": "Wartet auf das neue Gerät …",
-    "gekoppelt": "Hinzugefügt: {{name}}"
+    "gekoppelt": "Hinzugefügt: {{name}}",
+    "rolle_nur_mit_pin": "nur mit PIN"
   },
   "personen": {
     "titel": "Personen",
@@ -271,7 +272,15 @@
     "hat": "{{rolle}}: {{recht}} erlaubt",
     "hat_nicht": "{{rolle}}: {{recht}} nicht erlaubt",
     "leer": "Der Server meldet keine Berechtigungen.",
-    "umbenannt": "Rolle umbenannt"
+    "umbenannt": "Rolle umbenannt",
+    "braucht": "Wirkt nur zusammen mit {{rechte}}.",
+    "braucht_fehlt": "Wirkt erst zusammen mit {{rechte}}: Die Station lädt diese Daten zuerst.",
+    "braucht_setzen_hinweis": "{{rolle}}: {{rechte}} zusätzlich erlauben",
+    "ort": "Rollen und Rechte",
+    "braucht_setzen": "Auch setzen",
+    "luecken": "Fehlende Rechte",
+    "luecke_one": "{{rolle}}: {{rechte}} wirkt erst zusammen mit {{fehlt}}.",
+    "luecke_other": "{{rolle}}: {{rechte}} wirken erst zusammen mit {{fehlt}}."
   },
   "berechtigungen": {
     "backup_read": "Sicherung ansehen",
@@ -299,7 +308,8 @@
     "display_control": "Anzeige steuern",
     "export_read": "Listen exportieren",
     "start_edit": "Starts bearbeiten",
-    "export_full_names": "Volle Namen exportieren"
+    "export_full_names": "Volle Namen exportieren",
+    "start_abort": "Starts abbrechen"
   },
   "protokoll": {
     "titel": "Protokoll",
@@ -359,7 +369,17 @@
       "display_config_changed": "Anzeige eingestellt",
       "display_deleted": "Anzeige gelöscht",
       "result_finalized": "Ergebnis abgeschlossen",
-      "result_corrected": "Ergebnis korrigiert"
+      "result_corrected": "Ergebnis korrigiert",
+      "display_device_assigned": "Gerät einer Anzeige zugewiesen",
+      "display_device_released": "Gerät von einer Anzeige gelöst",
+      "display_scenes_reordered": "Ansichten der Anzeige neu geordnet",
+      "start_lane_released": "Bahn freigegeben",
+      "start_moved": "Reihenfolge am Stand geändert",
+      "start_returned": "Start zurückgestellt",
+      "start_slot_assigned": "Start einem Durchgang zugewiesen",
+      "start_slot_cleared": "Start aus dem Durchgang genommen",
+      "heat_created": "Durchgang angelegt",
+      "heat_updated": "Durchgang geändert"
     },
     "gegenstaende": {
       "user_account": "Person",
@@ -404,7 +424,12 @@
       "score_before": "Ergebnis vorher",
       "competition_code": "Kennziffer",
       "competition_name": "Wettbewerb",
-      "scenes": "Ansichten"
+      "scenes": "Ansichten",
+      "device_id": "Gerät",
+      "lane": "Bahn",
+      "position": "Platz",
+      "from_position": "vorher Platz",
+      "heat_number": "Durchgang"
     },
     "werte": {
       "registered": "angemeldet",
@@ -413,7 +438,7 @@
       "final": "abgeschlossen",
       "aborted": "abgebrochen",
       "dns": "nicht angetreten",
-      "dnf": "nicht beendet",
+      "dnf": "aufgegeben",
       "dsq": "disqualifiziert",
       "manual": "von Hand",
       "definition_changed": "Wettbewerb geändert",
