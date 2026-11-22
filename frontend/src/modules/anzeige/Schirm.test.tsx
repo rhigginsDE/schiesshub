@@ -72,7 +72,7 @@ describe("Bildschirm", () => {
     zeige(beispielFeed({ scenes: [szenen.range] }));
     const stand = screen.getByRole("region", { name: "25-m-Stand" });
     expect(within(stand).getByText("1201")).toBeVisible();
-    expect(within(stand).getByText("Abweichend vom Sporthandbuch")).toBeVisible();
+    expect(within(stand).getByText("Abweichend vom Katalog")).toBeVisible();
     expect(within(stand).getByText("Sollzeit 60 s statt 50 s")).toBeVisible();
     expect(within(stand).getByRole("list", { name: "Parcours" })).toBeVisible();
     expect(within(stand).getByText("Es zählen 2 von 3 Serien")).toBeVisible();

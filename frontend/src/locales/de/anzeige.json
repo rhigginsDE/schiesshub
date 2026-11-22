@@ -58,8 +58,8 @@
       "schuss_other": "{{count}} Schuss",
       "gestrichen": "gestrichen – zählt nicht",
       "trefferaufnahme": "Trefferaufnahme",
-      "abschnitt_abweichend": "Abweichend vom Sporthandbuch: {{text}}",
-      "abweichend": "Abweichend vom Sporthandbuch"
+      "abschnitt_abweichend": "Abweichend vom Katalog: {{text}}",
+      "abweichend": "Abweichend vom Katalog"
     },
     "stand": {
       "am_stand": "Am Stand",
