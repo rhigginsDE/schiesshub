@@ -1,9 +1,18 @@
-import { ChevronRight } from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
 import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PositionsAblauf } from "../../../components/anschlag/PositionsAblauf";
-import { formatDauer, formatUhrzeit, formatZahl } from "../../../lib/format";
-import { alsPosition, hatPositionen, trefferaufnahmeNach } from "../format";
+import { formatDauer, formatZahl } from "../../../lib/format";
+import {
+  alsPosition,
+  type BahnFortschritt,
+  bahnFortschritt,
+  feedUhrzeit,
+  hatPositionen,
+  hauptSerie,
+  laufendeSerien,
+  trefferaufnahmeNach,
+} from "../format";
 import { seiteZurZeit, type Takt, teilTakt } from "../rotation";
 import type { FeedAblauf, FeedAbschnitt, FeedPerson, SzeneVon } from "../typen";
 import {
@@ -48,17 +57,44 @@ function AbschnittFakten({ abschnitt }: { abschnitt: FeedAbschnitt }) {
   );
 }
 
+/** „Bahn 2“ oder „Bahnen 1, 3“ für die laufende Serie. */
+function useBahnenText(): (bahnen: readonly number[]) => string {
+  const { t } = useTranslation("anzeige");
+  return (bahnen) => t("schirm.ablauf.bahnen", { count: bahnen.length, bahnen: bahnen.join(", ") });
+}
+
 /** Serien-Übersicht für Disziplinen ohne Positionen: Schuss, Zeit, Distanz, gestrichen, Trefferaufnahme. */
-function SerienFolge({ abschnitt }: { abschnitt: FeedAbschnitt }) {
+function SerienFolge({
+  abschnitt,
+  laufend,
+}: {
+  abschnitt: FeedAbschnitt;
+  laufend: ReadonlyMap<number, readonly number[]>;
+}) {
   const { t } = useTranslation("anzeige");
   const { sprache } = useSchirm();
+  const bahnenText = useBahnenText();
   return (
     <ol className={s.serienFolge} aria-label={abschnitt.name}>
       {abschnitt.series.map((serie, nr) => {
         const letzte = nr === abschnitt.series.length - 1;
+        const bahnen = laufend.get(serie.number);
         return (
-          <li key={serie.number} className={s.serienEintrag}>
-            <div className={s.serienKachel} data-gestrichen={!serie.counted || undefined}>
+          <li
+            key={serie.number}
+            className={s.serienEintrag}
+            aria-current={bahnen ? "step" : undefined}
+          >
+            <div
+              className={s.serienKachel}
+              data-gestrichen={!serie.counted || undefined}
+              data-aktiv={bahnen ? "" : undefined}
+            >
+              {bahnen && (
+                <span className={s.jetztMarke}>
+                  {t("schirm.ablauf.jetzt_kurz", { bahnen: bahnenText(bahnen) })}
+                </span>
+              )}
               <span className={s.serienNr}>{t("schirm.ablauf.serie", { nr: serie.number })}</span>
               {serie.shots != null && (
                 <span className={`num ${s.serienGross}`}>
@@ -133,8 +169,39 @@ function Skaliert({ children }: { children: ReactNode }) {
   );
 }
 
-function Abschnitt({ abschnitt, nr }: { abschnitt: FeedAbschnitt; nr: number }) {
+/**
+ * Unter dem Positions-Ablauf: welche Bahn gerade an welcher Position ist. Der Ablauf selbst hebt
+ * nur eine Position hervor; hier stehen alle, auch wenn die Bahnen verschieden weit sind.
+ */
+function JetztZeile({ laufend }: { laufend: ReadonlyMap<number, readonly number[]> }) {
   const { t } = useTranslation("anzeige");
+  const bahnenText = useBahnenText();
+  if (laufend.size === 0) return null;
+  return (
+    <p className={s.jetztZeile}>
+      <strong className={s.jetztMarke}>{t("schirm.ablauf.jetzt")}</strong>
+      {[...laufend].map(([serie, bahnen]) => (
+        <span key={serie}>
+          {t("schirm.ablauf.position_bahnen", { nr: serie, bahnen: bahnenText(bahnen) })}
+        </span>
+      ))}
+    </p>
+  );
+}
+
+function Abschnitt({
+  abschnitt,
+  nr,
+  ablauf,
+}: {
+  abschnitt: FeedAbschnitt;
+  nr: number;
+  ablauf: FeedAblauf;
+}) {
+  const { t } = useTranslation("anzeige");
+  const laufend = laufendeSerien(ablauf, abschnitt.id);
+  const haupt = hauptSerie(laufend);
+  const aktivIndex = abschnitt.series.findIndex((serie) => serie.number === haupt);
   const abweichung =
     abschnitt.deviations.length > 0
       ? t("schirm.ablauf.abschnitt_abweichend", { text: abschnitt.deviations.join(" · ") })
@@ -143,24 +210,28 @@ function Abschnitt({ abschnitt, nr }: { abschnitt: FeedAbschnitt; nr: number }) 
     <section className={s.abschnitt}>
       <AbschnittFakten abschnitt={abschnitt} />
       {hatPositionen(abschnitt) ? (
-        <Skaliert>
-          <PositionsAblauf
-            positionen={abschnitt.series.flatMap((serie) =>
-              serie.position ? [alsPosition(serie.position)] : [],
-            )}
-            trefferaufnahmeNach={trefferaufnahmeNach(abschnitt)}
-            serienGewertet={abschnitt.counted_series}
-            schussJeSerie={abschnitt.shots_per_series}
-            zeitJeSerieS={abschnitt.time_per_series_s}
-            ton={nr % 2 === 0 ? "a" : "b"}
-            hinweis={abweichung}
-            label={abschnitt.name}
-          />
-        </Skaliert>
+        <>
+          <Skaliert>
+            <PositionsAblauf
+              positionen={abschnitt.series.flatMap((serie) =>
+                serie.position ? [alsPosition(serie.position)] : [],
+              )}
+              trefferaufnahmeNach={trefferaufnahmeNach(abschnitt)}
+              serienGewertet={abschnitt.counted_series}
+              schussJeSerie={abschnitt.shots_per_series}
+              zeitJeSerieS={abschnitt.time_per_series_s}
+              aktivIndex={aktivIndex >= 0 ? aktivIndex : null}
+              ton={nr % 2 === 0 ? "a" : "b"}
+              hinweis={abweichung}
+              label={abschnitt.name}
+            />
+          </Skaliert>
+          <JetztZeile laufend={laufend} />
+        </>
       ) : (
         <>
           {abweichung && <p className={s.abweichungText}>{abweichung}</p>}
-          <SerienFolge abschnitt={abschnitt} />
+          <SerienFolge abschnitt={abschnitt} laufend={laufend} />
         </>
       )}
     </section>
@@ -214,10 +285,42 @@ function AblaufBlock({ ablauf, takt }: { ablauf: FeedAblauf; takt: Takt }) {
       )}
       <div ref={ref} className={s.abschnitte}>
         {sichtbar.map((abschnitt) => (
-          <Abschnitt key={abschnitt.id} abschnitt={abschnitt} nr={abschnitte.indexOf(abschnitt)} />
+          <Abschnitt
+            key={abschnitt.id}
+            abschnitt={abschnitt}
+            nr={abschnitte.indexOf(abschnitt)}
+            ablauf={ablauf}
+          />
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * „Serie 2 von 4“ (bei Positionen „Position 2 von 6“) in zwei Zeilen, damit der Name Platz behält:
+ * klein die Art (mit Abschnitt), groß die Zahlen. Fertig erfasst: Haken und „fertig“.
+ */
+function FortschrittMarke({ fortschritt }: { fortschritt: BahnFortschritt }) {
+  const { t } = useTranslation("anzeige");
+  if (fortschritt.fertig) {
+    return (
+      <span className={s.bahnStand} data-fertig="">
+        <Check aria-hidden />
+        {t("schirm.stand.fertig")}
+      </span>
+    );
+  }
+  const art = t(fortschritt.positionen ? "schirm.stand.position" : "schirm.stand.serie");
+  return (
+    <span className={s.bahnStand}>
+      <span className={s.bahnStandArt}>
+        {fortschritt.abschnitt ? `${fortschritt.abschnitt} · ${art}` : art}
+      </span>{" "}
+      <span className={`num ${s.bahnStandZahl}`}>
+        {t("schirm.stand.von", { nr: fortschritt.serie, gesamt: fortschritt.serien })}
+      </span>
+    </span>
   );
 }
 
@@ -225,10 +328,12 @@ function PersonZeile({
   person,
   nr,
   frei,
+  fortschritt,
 }: {
   person: FeedPerson | null;
   nr: string;
   frei?: boolean;
+  fortschritt?: BahnFortschritt | null;
 }) {
   const { t } = useTranslation("anzeige");
   const name = useName();
@@ -254,7 +359,12 @@ function PersonZeile({
           {[person.club, person.class_short, person.competition_name].filter(Boolean).join(" · ")}
         </span>
       </span>
-      {person.status === "called" && <LivePunkt />}
+      {(fortschritt || person.status === "called") && (
+        <span className={s.bahnRechts}>
+          {fortschritt && <FortschrittMarke fortschritt={fortschritt} />}
+          {person.status === "called" && <LivePunkt />}
+        </span>
+      )}
     </div>
   );
 }
@@ -271,7 +381,12 @@ function AmStand({ stand, takt }: { stand: SzeneVon<"range">["range"]; takt: Tak
       />
       <div ref={seiten.ref} className={s.bahnListe}>
         {seiten.eintraege.map((bahn) => (
-          <PersonZeile key={bahn.lane} person={bahn.start} nr={String(bahn.lane)} />
+          <PersonZeile
+            key={bahn.lane}
+            person={bahn.start}
+            nr={String(bahn.lane)}
+            fortschritt={bahnFortschritt(bahn, stand.procedures)}
+          />
         ))}
       </div>
     </section>
@@ -283,6 +398,9 @@ function AlsNaechstes({ stand, takt }: { stand: SzeneVon<"range">["range"]; takt
   const { sprache } = useSchirm();
   const seiten = useSeiten(stand.next, takt);
   const durchgang = stand.next_heat;
+  const beginn = durchgang
+    ? feedUhrzeit(durchgang.starts_at_local, durchgang.starts_at, sprache)
+    : null;
   return (
     <section className={s.standBlock} data-art="naechste">
       <AbschnittKopf
@@ -294,9 +412,7 @@ function AlsNaechstes({ stand, takt }: { stand: SzeneVon<"range">["range"]; takt
         }
         meta={
           <>
-            {durchgang && (
-              <span className="num">{formatUhrzeit(new Date(durchgang.starts_at), sprache)}</span>
-            )}
+            {beginn && <span className="num">{beginn}</span>}
             <SeitenMarke seite={seiten.seite} seiten={seiten.seiten} />
           </>
         }

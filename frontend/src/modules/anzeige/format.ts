@@ -1,7 +1,9 @@
 import type { Position } from "../../components/anschlag/typen";
-import { formatHundertstel, formatZahl } from "../../lib/format";
+import { formatHundertstel, formatUhrzeit, formatZahl } from "../../lib/format";
 import type {
+  FeedAblauf,
   FeedAbschnitt,
+  FeedBahn,
   FeedGruppe,
   FeedPosition,
   FeedRangliste,
@@ -125,6 +127,142 @@ export function ranglistenSeiten(
   }
   if (seite.length > 0) seiten.push(seite);
   return seiten;
+}
+
+/**
+ * Uhrzeit aus einem `*_local`-Feld des Feeds („2027-03-06T10:00:00+01:00“ → „10:00“). Der Server
+ * hat schon in die Ortszeit des Turniers umgerechnet; hier wird nur noch die Uhrzeit abgelesen.
+ */
+export function uhrzeitLokal(lokal: string | null | undefined, sprache: string): string | null {
+  const treffer = lokal ? /T(\d{2}):(\d{2})/.exec(lokal) : null;
+  if (!treffer) return null;
+  const nurUhrzeit = new Date(Date.UTC(2000, 0, 1, Number(treffer[1]), Number(treffer[2])));
+  return new Intl.DateTimeFormat(sprache, {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+  }).format(nurUhrzeit);
+}
+
+/** Uhrzeit aus dem Feed: die Ortszeit des Servers, sonst (ältere Server) der UTC-Zeitpunkt. */
+export function feedUhrzeit(
+  lokal: string | null | undefined,
+  utc: string | null | undefined,
+  sprache: string,
+): string | null {
+  const zeit = uhrzeitLokal(lokal, sprache);
+  if (zeit !== null) return zeit;
+  return utc ? formatUhrzeit(new Date(utc), sprache) : null;
+}
+
+/** Uhrzeit in der Zeitzone des Turniers (für die laufende Uhr); unbekannte Zone: Geräteuhr. */
+export function uhrzeitInZone(
+  datum: Date,
+  zone: string | null | undefined,
+  sprache: string,
+): string {
+  if (zone) {
+    try {
+      return new Intl.DateTimeFormat(sprache, {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: zone,
+      }).format(datum);
+    } catch {
+      // Zone unbekannt: unten weiter mit der Geräteuhr.
+    }
+  }
+  return formatUhrzeit(datum, sprache);
+}
+
+/** Wo eine Bahn im Ablauf gerade steht. */
+export interface BahnFortschritt {
+  /** Laufende Serie (1-basiert); bei `fertig` die letzte */
+  serie: number;
+  serien: number;
+  fertig: boolean;
+  /** Name des Abschnitts, nur wenn der Ablauf mehrere hat */
+  abschnitt: string | null;
+  /** Serien sind Positionen (Mehrdistanz, Parcours) */
+  positionen: boolean;
+}
+
+/**
+ * Fortschritt einer Bahn aus dem Feed: die laufende Serie aus `procedures[].current` (dieselbe,
+ * die im Ablauf hervorgehoben ist), sonst aus `progress`. Ohne beides: `null` (nichts anzeigen).
+ */
+export function bahnFortschritt(
+  bahn: FeedBahn,
+  ablaeufe: readonly FeedAblauf[],
+): BahnFortschritt | null {
+  const start = bahn.start;
+  if (!start) return null;
+  const ablauf = ablaeufe.find((a) => a.competition_id === start.competition_id);
+  const laufend = ablauf?.current?.find(
+    (c) => c.lane === bahn.lane && c.start_id === start.start_id,
+  );
+  const fortschritt = bahn.progress ?? null;
+  const abschnittId = laufend?.section_id ?? fortschritt?.section_id ?? null;
+  const abschnitt = ablauf?.sections.find((a) => a.id === abschnittId) ?? null;
+  const mehrere = (ablauf?.sections.length ?? 0) > 1;
+  const name = mehrere && abschnitt ? abschnitt.name : null;
+  const mitPositionen = abschnitt ? hatPositionen(abschnitt) : false;
+
+  if (fortschritt?.complete) {
+    const serien = fortschritt.series_total || abschnitt?.series_count || 0;
+    return { serie: serien, serien, fertig: true, abschnitt: null, positionen: mitPositionen };
+  }
+  if (laufend) {
+    const serien = abschnitt?.series_count ?? fortschritt?.series_total ?? 0;
+    if (serien <= 0) return null;
+    return {
+      serie: Math.min(laufend.series_number, serien),
+      serien,
+      fertig: false,
+      abschnitt: name,
+      positionen: mitPositionen,
+    };
+  }
+  if (fortschritt && fortschritt.series_total > 0) {
+    const serien = fortschritt.series_total;
+    return {
+      serie: Math.min(fortschritt.series_done + 1, serien),
+      serien,
+      fertig: false,
+      abschnitt: name,
+      positionen: mitPositionen,
+    };
+  }
+  return null;
+}
+
+/** Laufende Serien eines Abschnitts: Seriennummer → Bahnen (aufsteigend). */
+export function laufendeSerien(ablauf: FeedAblauf, abschnittId: string): Map<number, number[]> {
+  const serien = new Map<number, number[]>();
+  for (const eintrag of ablauf.current ?? []) {
+    if (eintrag.section_id !== abschnittId) continue;
+    const bahnen = serien.get(eintrag.series_number) ?? [];
+    bahnen.push(eintrag.lane);
+    serien.set(eintrag.series_number, bahnen);
+  }
+  for (const bahnen of serien.values()) bahnen.sort((a, b) => a - b);
+  return new Map([...serien.entries()].sort(([a], [b]) => a - b));
+}
+
+/**
+ * Die Serie, die im Positions-Ablauf hervorgehoben wird (er kann nur eine): die mit den meisten
+ * Bahnen, bei Gleichstand die frühere. Ohne laufende Serie `null`.
+ */
+export function hauptSerie(laufend: ReadonlyMap<number, readonly number[]>): number | null {
+  let beste: number | null = null;
+  let anzahl = 0;
+  for (const [serie, bahnen] of laufend) {
+    if (bahnen.length > anzahl) {
+      beste = serie;
+      anzahl = bahnen.length;
+    }
+  }
+  return beste;
 }
 
 /** Position aus dem Feed in der Form, die `PositionsAblauf` erwartet. */

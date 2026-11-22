@@ -3,7 +3,11 @@ import { csvIstLeer, exportPfad } from "../../components/ExportKnoepfe";
 import { ereignisseZumNachladen, passtEreignis } from "./ereignisse";
 import {
   alsPosition,
+  bahnFortschritt,
+  feedUhrzeit,
   gesamtTeile,
+  hauptSerie,
+  laufendeSerien,
   mitAbgebrochenenAmEnde,
   podestReihenfolge,
   podestStufe,
@@ -14,6 +18,8 @@ import {
   serienPassen,
   serienWert,
   siegerAufteilung,
+  uhrzeitInZone,
+  uhrzeitLokal,
 } from "./format";
 import {
   indexNachWechsel,
@@ -25,7 +31,7 @@ import {
   zeilenProSeite,
 } from "./rotation";
 import { startlistenZeilen } from "./schirm/Startliste";
-import { beispielFeed, rangliste, zeile } from "./testdaten";
+import { beispielFeed, rangliste, szenen, zeile } from "./testdaten";
 import {
   type Entwurf,
   fehlerZu,
@@ -34,6 +40,7 @@ import {
   neueSzenenId,
   speicherSchritte,
   uebrigeFehler,
+  vorschauAnfrage,
 } from "./verwaltung/entwurf";
 
 describe("Szenenwechsel", () => {
@@ -110,6 +117,96 @@ describe("Server-Ereignisse", () => {
     expect(namen).toContain("result.finalized");
     expect(namen).toContain("start.status_changed");
     expect(namen).toContain("backup.status");
+  });
+
+  it("nimmt die genauen Namen aus dem Feed, auch unbekannte", () => {
+    const namen = ereignisseZumNachladen(["start.called", "display.changed", "start.called"]);
+    expect(namen).toEqual(["display.changed", "start.called"]);
+  });
+
+  it("fällt ohne `reload_on` auf die bekannte Liste zurück", () => {
+    expect(ereignisseZumNachladen(undefined, ["b", "a"])).toEqual(["a", "b"]);
+    expect(ereignisseZumNachladen(null)).toContain("result.finalized");
+  });
+});
+
+describe("Standanzeige: laufende Serie und Fortschritt", () => {
+  const stand = szenen.range.kind === "range" ? szenen.range.range : null;
+  if (!stand) throw new Error("Testdaten ohne Stand");
+  const [ablauf] = stand.procedures;
+  if (!ablauf) throw new Error("Testdaten ohne Ablauf");
+  const person = stand.lanes[1]?.start;
+  if (!person) throw new Error("Testdaten ohne Person");
+  const mitLauf = {
+    ...ablauf,
+    current: [
+      { lane: 3, start_id: "x3", section_id: "praezision", series_number: 2 },
+      { lane: 1, start_id: "x1", section_id: "praezision", series_number: 2 },
+      { lane: 2, start_id: "x2", section_id: "praezision", series_number: 1 },
+    ],
+  };
+
+  it("gruppiert laufende Serien je Abschnitt nach Bahnen und wählt die häufigste", () => {
+    const laufend = laufendeSerien(mitLauf, "praezision");
+    expect([...laufend]).toEqual([
+      [1, [2]],
+      [2, [1, 3]],
+    ]);
+    expect(hauptSerie(laufend)).toBe(2);
+    expect(laufendeSerien(mitLauf, "parcours").size).toBe(0);
+    expect(hauptSerie(new Map())).toBeNull();
+    expect(laufendeSerien({ ...ablauf, current: [] }, "praezision").size).toBe(0);
+  });
+
+  it("zeigt je Bahn die laufende Serie aus `current`, sonst aus `progress`", () => {
+    const start = { ...person, start_id: "x1", competition_id: ablauf.competition_id };
+    const bahn = {
+      lane: 1,
+      start,
+      progress: { section_id: "praezision", series_done: 1, series_total: 3, complete: false },
+    };
+    expect(bahnFortschritt(bahn, [mitLauf])).toEqual({
+      serie: 2,
+      serien: 3,
+      fertig: false,
+      abschnitt: "Präzision",
+      positionen: false,
+    });
+    // Ohne `current`: aus dem Erfassungsfortschritt
+    expect(bahnFortschritt(bahn, [{ ...ablauf, current: [] }])).toMatchObject({ serie: 2 });
+    // Positionen im Parcours
+    const parcours = {
+      ...bahn,
+      progress: { section_id: "parcours", series_done: 0, series_total: 2, complete: false },
+    };
+    expect(bahnFortschritt(parcours, [{ ...ablauf, current: [] }])).toMatchObject({
+      serie: 1,
+      serien: 2,
+      positionen: true,
+    });
+    // Fertig erfasst
+    const fertig = { ...bahn, progress: { ...bahn.progress, series_done: 3, complete: true } };
+    expect(bahnFortschritt(fertig, [mitLauf])).toMatchObject({ fertig: true });
+    // Ohne Fortschritt und ohne `current`: nichts, wie bisher
+    expect(bahnFortschritt({ lane: 1, start, progress: null }, [ablauf])).toBeNull();
+    expect(bahnFortschritt({ lane: 1, start: null }, [mitLauf])).toBeNull();
+  });
+});
+
+describe("Zeiten aus dem Feed", () => {
+  it("liest die Ortszeit aus `*_local`, ohne umzurechnen", () => {
+    expect(uhrzeitLokal("2027-03-06T10:05:00+01:00", "de")).toBe("10:05");
+    expect(uhrzeitLokal("2027-07-06T23:30:00-04:00", "de")).toBe("23:30");
+    expect(uhrzeitLokal(null, "de")).toBeNull();
+    expect(feedUhrzeit("2027-03-06T10:05:00+01:00", "2027-03-06T09:05:00Z", "de")).toBe("10:05");
+    expect(feedUhrzeit(null, null, "de")).toBeNull();
+  });
+
+  it("stellt die Uhr in der Zone des Turniers, unbekannte Zone nach Geräteuhr", () => {
+    const zeit = new Date("2026-11-22T12:42:00Z");
+    expect(uhrzeitInZone(zeit, "Europe/Berlin", "de")).toBe("13:42");
+    expect(uhrzeitInZone(zeit, "UTC", "de")).toBe("12:42");
+    expect(uhrzeitInZone(zeit, "Mars/Olympus", "de")).toMatch(/^\d{2}:\d{2}$/);
   });
 });
 
@@ -251,22 +348,35 @@ describe("Entwurf der Verwaltung", () => {
     );
   });
 
-  it("speichert beim Turnierwechsel über „automatisch“", () => {
+  it("speichert Turnier und Inhalt in einer Anfrage, das Gerät danach", () => {
     const neu: Entwurf = {
       tournament_id: "t2",
       device_id: "g1",
       konfig: { ...konfig, ticker: "Hallo" },
     };
     expect(speicherSchritte(server, neu)).toEqual([
-      { art: "turnier", wert: null },
-      { art: "konfig" },
-      { art: "turnier", wert: "t2" },
+      {
+        art: "anzeige",
+        aenderung: {
+          tournament_id: "t2",
+          config: expect.objectContaining({ ticker: "Hallo", scenes: [] }),
+        },
+      },
       { art: "geraet", wert: "g1" },
     ]);
     expect(speicherSchritte(server, { ...server, tournament_id: null })).toEqual([
-      { art: "turnier", wert: null },
+      { art: "anzeige", aenderung: { tournament_id: null } },
+    ]);
+    expect(speicherSchritte(server, { ...server, device_id: "g2" })).toEqual([
+      { art: "geraet", wert: "g2" },
     ]);
     expect(speicherSchritte(server, server)).toEqual([]);
+  });
+
+  it("schickt für die Vorschau den normalisierten Entwurf mit Turnier", () => {
+    const anfrage = vorschauAnfrage({ ...server, konfig: { ...konfig, ticker: "  " } });
+    expect(anfrage.tournament_id).toBe("t1");
+    expect(anfrage.config.ticker).toBeNull();
   });
 
   it("ordnet Feldfehler des Servers zu", () => {

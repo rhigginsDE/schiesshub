@@ -25,6 +25,16 @@ describe("vereinTreffer", () => {
     expect(ergebnis.treffer.map((v) => v.id)).toEqual(["2"]);
   });
 
+  it("stellt Vereine, deren Name oder Kürzel mit dem Suchtext beginnt, nach vorn", () => {
+    const liste = [
+      { id: "a", name: "Freie Schützen Tellingen", short: null },
+      { id: "b", name: "SV Tell Musterstadt", short: "SV Tell" },
+      { id: "c", name: "Tell-Schützen Bergheim", short: null },
+    ];
+    expect(vereinTreffer(liste, "tell").treffer.map((v) => v.id)).toEqual(["c", "a", "b"]);
+    expect(vereinTreffer(liste, "sv").treffer.map((v) => v.id)).toEqual(["b"]);
+  });
+
   it("ignoriert Umlaute und kurze Wörter beim Ähnlichkeitsvergleich", () => {
     expect(vereinTreffer(vereine, "Schuetzengilde").treffer.map((v) => v.id)).toEqual(["3"]);
     expect(vereinTreffer(vereine, "SV e.V. Irgendwo").aehnlich).toEqual([]);

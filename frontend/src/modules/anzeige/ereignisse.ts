@@ -1,11 +1,11 @@
 /**
- * Server-Ereignisse für den Bildschirm. Der Feed nennt in `reload_on`, wann er neu geladen werden
- * soll; Einträge mit `*` am Ende stehen für alle Ereignisse mit diesem Anfang.
+ * Server-Ereignisse für den Bildschirm. Der Feed nennt in `reload_on` die genauen Ereignisnamen,
+ * bei denen er neu geladen werden soll; sie gehen direkt an `EventSource.addEventListener`.
  *
- * Server-Sent Events kommen als benannte Ereignisse (`event: start.booked`). Ein Browser kann nur
- * auf einzelne Namen hören, nicht auf Muster. Deshalb steht hier die Liste der Ereignisse, die das
- * Backend sendet (Stand: Module turnier, starts, ergebnisse, teilnehmer, anzeige, backup).
- * Ein Name ohne `*` aus `reload_on` gilt immer, auch wenn er hier fehlt.
+ * Rückfall für ältere Server: Fehlt `reload_on`, gilt die Liste unten. Stehen darin noch Muster
+ * (`start.*` für alle Ereignisse mit diesem Anfang), werden sie gegen diese Liste aufgelöst, denn
+ * ein Browser kann nur auf einzelne Namen hören (Stand: Module turnier, starts, ergebnisse,
+ * teilnehmer, anzeige, backup).
  */
 export const BEKANNTE_EREIGNISSE: readonly string[] = [
   "display.changed",
@@ -69,11 +69,15 @@ export function passtEreignis(muster: string, name: string): boolean {
   return muster === name;
 }
 
-/** Alle Ereignisnamen, auf die der Bildschirm hören muss, ohne Doppelte, sortiert. */
+/**
+ * Alle Ereignisnamen, auf die der Bildschirm hören muss, ohne Doppelte, sortiert: die Namen aus
+ * `reload_on`; ohne das Feld die bekannte Liste.
+ */
 export function ereignisseZumNachladen(
-  reloadOn: readonly string[],
+  reloadOn: readonly string[] | null | undefined,
   bekannte: readonly string[] = BEKANNTE_EREIGNISSE,
 ): string[] {
+  if (!Array.isArray(reloadOn)) return [...new Set(bekannte)].sort();
   const namen = new Set<string>();
   for (const muster of reloadOn) {
     if (!muster.includes("*")) {

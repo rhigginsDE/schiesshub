@@ -141,34 +141,45 @@ export function neueSzene(
   }
 }
 
-/** Ein Schritt beim Speichern; die Reihenfolge vermeidet Prüffehler beim Turnierwechsel. */
+/** Turnier und Inhalt in einem `PATCH /displays/{id}`. */
+export interface AnzeigeAenderung {
+  tournament_id?: string | null;
+  config?: AnzeigeKonfig;
+}
+
+/** Ein Schritt beim Speichern: Turnier und Inhalt zusammen, das Gerät für sich. */
 export type SpeicherSchritt =
-  | { art: "turnier"; wert: string | null }
-  | { art: "konfig" }
+  | { art: "anzeige"; aenderung: AnzeigeAenderung }
   | { art: "geraet"; wert: string | null };
 
 /**
- * Was beim Speichern an den Server geht. Der Server prüft die Szenen gegen das Turnier der Anzeige
- * (fest gewählt: alles muss dazugehören). Wechselt das Turnier, wird es deshalb kurz auf
- * „automatisch“ gestellt (dort genügt, dass es die Einträge gibt), dann die Szenen gesetzt, dann
- * das neue Turnier.
+ * Was beim Speichern an den Server geht. Turnier und Szenen gehen in einer Anfrage
+ * (`PATCH` mit `config`); der Server prüft die Szenen gegen das neue Turnier. Das Gerät hat einen
+ * eigenen Endpunkt und kommt danach.
  */
 export function speicherSchritte(server: Entwurf, entwurf: Entwurf): SpeicherSchritt[] {
   const schritte: SpeicherSchritt[] = [];
-  const turnierNeu = server.tournament_id !== entwurf.tournament_id;
-  const konfigNeu =
-    JSON.stringify(konfigNormal(server.konfig)) !== JSON.stringify(konfigNormal(entwurf.konfig));
-  if (turnierNeu && server.tournament_id !== null && konfigNeu) {
-    schritte.push({ art: "turnier", wert: null });
+  const aenderung: AnzeigeAenderung = {};
+  if (server.tournament_id !== entwurf.tournament_id) {
+    aenderung.tournament_id = entwurf.tournament_id;
   }
-  if (konfigNeu) schritte.push({ art: "konfig" });
-  if (turnierNeu && (entwurf.tournament_id !== null || !konfigNeu)) {
-    schritte.push({ art: "turnier", wert: entwurf.tournament_id });
+  const konfig = konfigNormal(entwurf.konfig);
+  if (JSON.stringify(konfigNormal(server.konfig)) !== JSON.stringify(konfig)) {
+    aenderung.config = konfig;
   }
+  if (Object.keys(aenderung).length > 0) schritte.push({ art: "anzeige", aenderung });
   if (server.device_id !== entwurf.device_id) {
     schritte.push({ art: "geraet", wert: entwurf.device_id });
   }
   return schritte;
+}
+
+/** Was die Vorschau an den Server schickt: der Entwurf, ohne ihn zu speichern. */
+export function vorschauAnfrage(entwurf: Entwurf): {
+  config: AnzeigeKonfig;
+  tournament_id: string | null;
+} {
+  return { config: konfigNormal(entwurf.konfig), tournament_id: entwurf.tournament_id };
 }
 
 /** Feldpfad des Servers ohne `config.`-Vorsilbe: `config.scenes.0.rows` → `scenes.0.rows`. */

@@ -73,7 +73,8 @@
     "text_one": "Im selben Verein steht schon eine Person mit diesem Namen:",
     "text_other": "Im selben Verein stehen schon {{count}} Personen mit diesem Namen:",
     "oeffnen": "Diese Person öffnen",
-    "trotzdem": "Trotzdem anlegen"
+    "trotzdem": "Trotzdem anlegen",
+    "live": "Gibt es schon: {{name}}, {{verein}}"
   },
   "loeschen": {
     "titel": "Person endgültig löschen?",

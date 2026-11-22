@@ -124,7 +124,7 @@ describe("Personen", () => {
     await userEvent.click(within(bereich).getByRole("button", { name: "Trotzdem anlegen" }));
     expect(await screen.findByText("Person angelegt.")).toBeInTheDocument();
 
-    const anlegen = aufrufe.filter((a) => a.methode === "POST");
+    const anlegen = aufrufe.filter((a) => a.methode === "POST" && a.pfad !== "/persons/check");
     expect(anlegen.map((a) => a.pfad)).toEqual(["/persons", "/persons?force=true"]);
     expect(anlegen[1]?.inhalt).toEqual({
       name: "Markus Brandt",
@@ -133,6 +133,42 @@ describe("Personen", () => {
       display_mode: "short",
       show_club: true,
     });
+  });
+
+  it("weist schon während der Eingabe auf mögliche Dubletten hin, Speichern bleibt möglich", async () => {
+    const aufrufe = serverAttrappe({
+      [LISTE]: { inhalt: [BRANDT] },
+      "GET /clubs": VEREINE,
+      "POST /persons/check": ({ inhalt }) => ({
+        inhalt: {
+          duplicates: (inhalt as { name: string }).name === "Markus Brandt" ? [BRANDT] : [],
+        },
+      }),
+      [`GET /persons/${BRANDT.id}`]: { inhalt: BRANDT },
+    });
+    renderAnsicht(() => <Seite start={{ neu: true }} />);
+
+    await userEvent.type(await screen.findByRole("textbox", { name: /^Name/ }), "Markus Brandt");
+    const hinweis = await screen.findByText("Gibt es schon: Markus Brandt, SV Tell Musterstadt");
+    const pruefungen = aufrufe.filter((a) => a.pfad === "/persons/check");
+    // Entprellt: nicht für jeden Buchstaben eine Anfrage
+    expect(pruefungen.length).toBeLessThan(3);
+    expect(pruefungen.at(-1)?.inhalt).toEqual({ name: "Markus Brandt", club_id: null });
+    expect(screen.getByRole("button", { name: "Person anlegen" })).toBeEnabled();
+
+    // Weiter getippt: der alte Hinweis verschwindet
+    await userEvent.type(screen.getByRole("textbox", { name: /^Name/ }), "t");
+    await waitFor(() => expect(hinweis).not.toBeInTheDocument());
+
+    await userEvent.type(screen.getByRole("textbox", { name: /^Name/ }), "{Backspace}");
+    const wieder = await screen.findByText("Gibt es schon: Markus Brandt, SV Tell Musterstadt");
+    await userEvent.click(
+      within(wieder.closest("li") as HTMLElement).getByRole("button", {
+        name: "Diese Person öffnen",
+      }),
+    );
+    // Die Eingabe geht nicht still verloren: erst die bekannte Rückfrage
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
   });
 
   it("speichert mit dem neu angelegten Verein, auch wenn sofort nach der Vereinswahl abgeschickt wird", async () => {

@@ -184,6 +184,85 @@ describe("Bildschirm", () => {
     expect(within(stand).getByText("Dora Nächste")).toBeVisible();
   });
 
+  it("Standanzeige: ohne `current` keine Hervorhebung und kein Fortschritt", () => {
+    zeige(beispielFeed({ scenes: [szenen.range] }));
+    const stand = screen.getByRole("region", { name: "25-m-Stand" });
+    expect(within(stand).queryByText(/^Jetzt/)).toBeNull();
+    expect(within(stand).queryByText(/^\d+ von \d+$/)).toBeNull();
+    expect(stand.querySelector("[aria-current]")).toBeNull();
+    // Uhrzeit des nächsten Durchgangs aus `starts_at_local`
+    expect(within(stand).getByText("14:20")).toBeVisible();
+  });
+
+  it("Standanzeige: hebt die laufende Serie hervor und zeigt je Bahn den Fortschritt", () => {
+    const basis = szenen.range as SzeneVon<"range">;
+    const [ablauf] = basis.range.procedures;
+    if (!ablauf) throw new Error("Testdaten ohne Ablauf");
+    const auf = (lane: number, nr: number): FeedPerson => ({
+      start_id: `s${lane}`,
+      start_number: 10 + lane,
+      display_name: `Schütze ${lane}`,
+      club: null,
+      class_short: "S",
+      competition_id: ablauf.competition_id,
+      competition_name: ablauf.competition_name,
+      attempt: 1,
+      status: nr === 1 ? "called" : "captured",
+      lane,
+      heat_number: null,
+      heat_starts_at: null,
+      heat_starts_at_local: null,
+    });
+    const szene: SzeneVon<"range"> = {
+      ...basis,
+      range: {
+        ...basis.range,
+        procedures: [
+          {
+            ...ablauf,
+            current: [
+              { lane: 1, start_id: "s1", section_id: "parcours", series_number: 2 },
+              { lane: 2, start_id: "s2", section_id: "praezision", series_number: 3 },
+            ],
+          },
+        ],
+        lanes: [
+          {
+            lane: 1,
+            start: auf(1, 2),
+            progress: { section_id: "parcours", series_done: 1, series_total: 2, complete: false },
+          },
+          {
+            lane: 2,
+            start: auf(2, 3),
+            progress: {
+              section_id: "praezision",
+              series_done: 2,
+              series_total: 3,
+              complete: false,
+            },
+          },
+        ],
+      },
+    };
+    zeige(beispielFeed({ scenes: [szene] }));
+    const stand = screen.getByRole("region", { name: "25-m-Stand" });
+    // Parcours (Positionen): aktive Karte und Textzeile
+    const parcours = within(stand).getByRole("list", { name: "Parcours" });
+    expect(within(parcours).getAllByRole("listitem")[1]).toHaveAttribute("aria-current", "step");
+    expect(within(stand).getByText("Position 2: Bahn 1")).toBeVisible();
+    // Präzision (Serien): Kachel mit Marke
+    const praezision = within(stand).getByRole("list", { name: "Präzision" });
+    const serien = within(praezision).getAllByRole("listitem");
+    expect(serien[2]).toHaveAttribute("aria-current", "step");
+    expect(within(serien[2] as HTMLElement).getByText("Jetzt · Bahn 2")).toBeVisible();
+    // Fortschritt je Bahn
+    const bahn1 = within(stand).getByText("Schütze 1").closest("[data-zeile]") as HTMLElement;
+    expect(bahn1).toHaveTextContent("Parcours · Position 2 von 2");
+    const bahn2 = within(stand).getByText("Schütze 2").closest("[data-zeile]") as HTMLElement;
+    expect(bahn2).toHaveTextContent("Präzision · Serie 3 von 3");
+  });
+
   it("Hinweis und Ruhe zeigen den Text des Servers", () => {
     const { unmount } = zeige(beispielFeed({ scenes: [szenen.notice] }));
     expect(screen.getByRole("heading", { name: "Siegerehrung um 16:00 Uhr" })).toBeVisible();

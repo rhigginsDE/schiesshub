@@ -23,6 +23,8 @@ const ERWEITERT = [
   "default_changeover_minutes",
   "first_start_number",
   "protest_minutes",
+  "protest_restart_on_correction",
+  "timezone",
 ] as const;
 
 export type EinstellungsWerte = Omit<TurnierEinstellungen, "display" | "first_start_number"> &
@@ -39,7 +41,49 @@ const FELDER = [
   "default_changeover_minutes",
   "default_capture_mode",
   "first_start_number",
+  "protest_restart_on_correction",
+  "timezone",
 ] as const;
+
+/**
+ * Zeitzonen zur Auswahl: Deutschland zuerst, dann die Nachbarländer und übliche Zonen in Europa.
+ * Ein gespeicherter Wert, der hier fehlt, kommt beim Anzeigen dazu (`zeitzonenAuswahl`).
+ */
+export const ZEITZONEN = [
+  "Europe/Berlin",
+  "Europe/Vienna",
+  "Europe/Zurich",
+  "Europe/Luxembourg",
+  "Europe/Brussels",
+  "Europe/Amsterdam",
+  "Europe/Paris",
+  "Europe/Copenhagen",
+  "Europe/Prague",
+  "Europe/Warsaw",
+  "Europe/Rome",
+  "Europe/Madrid",
+  "Europe/Stockholm",
+  "Europe/London",
+  "Europe/Lisbon",
+  "Europe/Helsinki",
+  "Europe/Athens",
+  "UTC",
+] as const;
+
+/** Auswahl der Zeitzonen; ein gespeicherter Wert außerhalb der Liste steht mit seinem Namen dabei. */
+export function zeitzonenAuswahl(
+  gespeichert: string | undefined,
+  t: (schluessel: string) => string,
+): { value: string; label: string }[] {
+  const liste: { value: string; label: string }[] = ZEITZONEN.map((zone) => ({
+    value: zone,
+    label: t(`zeitzone.${zone.replace("/", "_")}`),
+  }));
+  if (gespeichert && !liste.some((eintrag) => eintrag.value === gespeichert)) {
+    liste.push({ value: gespeichert, label: gespeichert.replace(/_/g, " ") });
+  }
+  return liste;
+}
 
 export const REGELN = ["best", "first", "all"] as const;
 
@@ -124,6 +168,9 @@ export function Einstellungen({
   // Gesetzte Werte bleiben im Entwurf; „aus“ blendet nur das Feld aus.
   const [fristMinuten, setFristMinuten] = useState(werte.protest_minutes ?? 30);
   const mitStartnummer = "first_start_number" in quelle;
+  const fristAn = werte.protest_minutes !== null && werte.protest_minutes !== undefined;
+  // Fehlt der Wert (älterer Server), gilt wie beim Server: Frist beginnt neu.
+  const neuNachKorrektur = werte.protest_restart_on_correction ?? true;
 
   const eigene = geprueft ? pruefeEinstellungen(werte, t) : {};
   const server = aendern.isError ? feldFehlerFuer(aendern.error, FELDER, "settings") : {};
@@ -288,17 +335,15 @@ export function Einstellungen({
             size="md"
             label={t("einstellungen.einspruch")}
             description={
-              werte.protest_minutes === null || werte.protest_minutes === undefined
-                ? t("einstellungen.einspruch_aus")
-                : t("einstellungen.einspruch_an")
+              fristAn ? t("einstellungen.einspruch_an") : t("einstellungen.einspruch_aus")
             }
             disabled={gesperrt}
-            checked={werte.protest_minutes !== null && werte.protest_minutes !== undefined}
+            checked={fristAn}
             onChange={(e) =>
               setze("protest_minutes", e.currentTarget.checked ? fristMinuten : null)
             }
           />
-          {werte.protest_minutes !== null && werte.protest_minutes !== undefined && (
+          {fristAn && (
             <NumberInput
               aria-label={t("einstellungen.einspruch_minuten")}
               size="md"
@@ -307,7 +352,7 @@ export function Einstellungen({
               suffix={` ${t("einheit.min")}`}
               className={s.schmal}
               disabled={gesperrt}
-              value={werte.protest_minutes}
+              value={werte.protest_minutes ?? ""}
               error={fehler.protest_minutes}
               onChange={(wert) => {
                 const zahl = alsZahl(wert);
@@ -317,6 +362,35 @@ export function Einstellungen({
             />
           )}
         </div>
+        {fristAn && (
+          <Switch
+            size="md"
+            label={t("einstellungen.einspruch_neu")}
+            description={
+              neuNachKorrektur
+                ? t("einstellungen.einspruch_neu_an")
+                : t("einstellungen.einspruch_neu_aus")
+            }
+            disabled={gesperrt}
+            checked={neuNachKorrektur}
+            error={fehler.protest_restart_on_correction}
+            onChange={(e) => setze("protest_restart_on_correction", e.currentTarget.checked)}
+          />
+        )}
+        <Select
+          label={t("einstellungen.zeitzone")}
+          description={t("einstellungen.zeitzone_hilfe")}
+          inputWrapperOrder={HILFE_UNTEN}
+          size="md"
+          classNames={{ wrapper: s.schmal }}
+          allowDeselect={false}
+          checkIconPosition="right"
+          disabled={gesperrt}
+          value={werte.timezone ?? null}
+          data={zeitzonenAuswahl(werte.timezone, t)}
+          error={fehler.timezone}
+          onChange={(wert) => wert && setze("timezone", wert)}
+        />
         <TextInput
           label={t("einstellungen.waehrung")}
           description={t("einstellungen.waehrung_hilfe")}

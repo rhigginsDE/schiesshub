@@ -8,7 +8,8 @@ import {
   Textarea,
   Tooltip,
 } from "@mantine/core";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useDebouncedValue } from "@mantine/hooks";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, ExternalLink, Info, Save, TriangleAlert, Undo2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -26,20 +27,20 @@ import {
   anzeigeSchluessel,
   geraetLoesen,
   geraetZuweisen,
-  konfigSetzen,
   schirmPfad,
+  vorschauFeed,
 } from "../api";
 import { SchirmAnsicht } from "../schirm/Schirm";
 import { useFeed } from "../schirm/useFeed";
-import type { Anzeige, AnzeigeKonfig } from "../typen";
+import type { Anzeige, AnzeigeKonfig, Feed } from "../typen";
 import {
   type Entwurf,
   entwurfAus,
   fehlerZu,
   gleicherEntwurf,
-  konfigNormal,
   speicherSchritte,
   uebrigeFehler,
+  vorschauAnfrage,
 } from "./entwurf";
 import { SzenenEditor, szenenUnvollstaendig } from "./SzenenEditor";
 import s from "./verwaltung.module.css";
@@ -98,12 +99,9 @@ export function Bearbeiten({ anzeige, anzeigen, turniere, onGeaendert }: Bearbei
 
   const speichern = useMutation({
     mutationFn: async () => {
-      const konfig = konfigNormal(entwurf.konfig);
       for (const schritt of speicherSchritte(server, entwurf)) {
-        if (schritt.art === "turnier") {
-          await anzeigeAendern(anzeige.id, { tournament_id: schritt.wert });
-        } else if (schritt.art === "konfig") {
-          await konfigSetzen(anzeige.id, konfig);
+        if (schritt.art === "anzeige") {
+          await anzeigeAendern(anzeige.id, schritt.aenderung);
         } else if (schritt.wert === null) {
           await geraetLoesen(anzeige.id);
         } else {
@@ -275,7 +273,12 @@ export function Bearbeiten({ anzeige, anzeigen, turniere, onGeaendert }: Bearbei
         </section>
       </div>
       <div className={s.spalte}>
-        <Vorschau anzeige={anzeige} geaendert={geaendert} />
+        <Vorschau
+          anzeige={anzeige}
+          entwurf={entwurf}
+          geaendert={geaendert}
+          unvollstaendig={unvollstaendig}
+        />
         {optionenTurnier && (
           <ExportKnoepfe
             turnierId={optionenTurnier}
@@ -426,14 +429,64 @@ function Adresse({ pfad, label }: { pfad: string; label: string }) {
   );
 }
 
-/** Rechts: dieselbe Bildschirm-Komponente verkleinert im 16:9-Rahmen, dazu Adresse und Knopf. */
-function Vorschau({ anzeige, geaendert }: { anzeige: Anzeige; geaendert: boolean }) {
+/** Wartezeit nach der letzten Änderung, bevor die Vorschau den Entwurf beim Server anfragt. */
+const VORSCHAU_ENTPRELLEN_MS = 400;
+
+/**
+ * Feed für den nicht gespeicherten Entwurf (`POST …/preview-feed`), entprellt. Lädt neu, wenn sich
+ * der gespeicherte Feed ändert (neue Ergebnisse). `null`, solange nichts offen ist, der Entwurf
+ * unvollständig ist oder der Server ihn ablehnt; dann zeigt die Vorschau den gespeicherten Stand.
+ */
+function useEntwurfsFeed(
+  anzeigeId: string,
+  entwurf: Entwurf,
+  aktiv: boolean,
+  version: string | undefined,
+): { feed: Feed | null; fehler: unknown } {
+  const anfrage = aktiv ? JSON.stringify(vorschauAnfrage(entwurf)) : null;
+  const [ruhig] = useDebouncedValue(anfrage, VORSCHAU_ENTPRELLEN_MS);
+  const abfrage = useQuery({
+    queryKey: [...anzeigeSchluessel.vorschau(anzeigeId), ruhig, version],
+    queryFn: ({ signal }) => vorschauFeed(anzeigeId, JSON.parse(ruhig ?? "{}"), signal),
+    enabled: aktiv && ruhig !== null,
+    placeholderData: keepPreviousData,
+    retry: false,
+  });
+  if (!aktiv || abfrage.isError) return { feed: null, fehler: abfrage.error };
+  return { feed: abfrage.data ?? null, fehler: null };
+}
+
+/**
+ * Rechts: dieselbe Bildschirm-Komponente verkleinert im 16:9-Rahmen, dazu Adresse und Knopf.
+ * Mit offenen Änderungen zeigt sie den Entwurf (noch nicht gespeichert), sonst den Bildschirm.
+ */
+function Vorschau({
+  anzeige,
+  entwurf,
+  geaendert,
+  unvollstaendig,
+}: {
+  anzeige: Anzeige;
+  entwurf: Entwurf;
+  geaendert: boolean;
+  unvollstaendig: boolean;
+}) {
   const { t } = useTranslation("anzeige");
+  const fehlerText = useFehlerText();
   const quelle = useMemo(() => ({ art: "anzeige" as const, id: anzeige.id }), [anzeige.id]);
-  const zustand = useFeed(quelle);
+  const gespeichert = useFeed(quelle);
+  const vorschau = useEntwurfsFeed(
+    anzeige.id,
+    entwurf,
+    geaendert && !unvollstaendig,
+    gespeichert.feed?.version,
+  );
+  const zeigtEntwurf = vorschau.feed !== null;
+  const zustand = zeigtEntwurf ? { ...gespeichert, feed: vorschau.feed } : gespeichert;
   const uebersprungen = zustand.feed?.skipped ?? [];
+  const szenen = zeigtEntwurf ? entwurf.konfig.scenes : anzeige.config.scenes;
   const szenenName = (id: string) => {
-    const szene = anzeige.config.scenes?.find((x) => x.id === id);
+    const szene = szenen?.find((x) => x.id === id);
     return szene ? (szene.title ?? t(`art.${szene.kind}`)) : id;
   };
 
@@ -454,13 +507,22 @@ function Vorschau({ anzeige, geaendert }: { anzeige: Anzeige; geaendert: boolean
           {t("vorschau.oeffnen")}
         </Button>
       </div>
-      <div className={s.rahmen}>
+      <div className={s.rahmen} data-entwurf={zeigtEntwurf || undefined}>
         <SchirmAnsicht zustand={zustand} quelle={quelle} vorschau />
       </div>
-      {geaendert ? (
+      {zeigtEntwurf ? (
+        <p className={s.vorschauHinweis} role="status">
+          <Info aria-hidden />
+          {t("vorschau.entwurf")}
+        </p>
+      ) : geaendert ? (
         <p className={s.vorschauHinweis}>
           <Info aria-hidden />
-          {t("vorschau.gespeicherter_stand")}
+          {vorschau.fehler
+            ? t("vorschau.entwurf_fehler", { grund: fehlerText(vorschau.fehler) })
+            : unvollstaendig
+              ? t("vorschau.entwurf_unvollstaendig")
+              : t("vorschau.entwurf_laedt")}
         </p>
       ) : (
         <p className={s.hilfe}>{t("vorschau.hilfe")}</p>

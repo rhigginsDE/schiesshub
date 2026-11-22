@@ -20,6 +20,7 @@ type Schemas = components["schemas"];
 export type Person = Schemas["PersonOut"];
 export type Verein = Schemas["ClubOut"];
 export type Dublette = Schemas["DuplicateOut"];
+export type DublettenPruefung = Schemas["DuplicateCheckOut"];
 export type ImportBericht = Schemas["ImportReportOut"];
 export type ImportZeile = Schemas["ImportRowOut"];
 export type PersonNeu = Schemas["PersonCreate"];
@@ -38,6 +39,8 @@ export const teilnehmerSchluessel = {
   personen: (q: string) => ["teilnehmer", "personen", q] as const,
   person: (id: string) => ["teilnehmer", "person", id] as const,
   vereine: () => ["teilnehmer", "vereine"] as const,
+  dubletten: (name: string, vereinId: string | null) =>
+    ["teilnehmer", "dubletten", name, vereinId ?? ""] as const,
 };
 
 export interface Trefferliste {
@@ -79,6 +82,34 @@ export const vereineAbfrage = () =>
   queryOptions({
     queryKey: teilnehmerSchluessel.vereine(),
     queryFn: async ({ signal }) => (await apiGet<Verein[]>("/clubs", { signal })).sort(nachName),
+  });
+
+/**
+ * `POST /persons/check`: dieselbe Dublettenprüfung wie beim Anlegen, ohne Fehlerstatus und ohne
+ * etwas anzulegen. Für den Hinweis schon während der Eingabe. `still`: Ein Fehler (z. B. 403) soll
+ * hier niemanden zur Anmeldung schicken; ohne Antwort gibt es eben keinen Hinweis.
+ */
+export function personPruefen(
+  name: string,
+  vereinId: string | null,
+  signal?: AbortSignal,
+): Promise<DublettenPruefung> {
+  return apiSenden<DublettenPruefung>(
+    "POST",
+    "/persons/check",
+    { name, club_id: vereinId },
+    { signal, still: true },
+  );
+}
+
+/** Dublettenprüfung für den bereinigten Namen; nur abfragen, wenn ein Name da ist. */
+export const dublettenAbfrage = (name: string, vereinId: string | null) =>
+  queryOptions({
+    queryKey: teilnehmerSchluessel.dubletten(name, vereinId),
+    queryFn: ({ signal }) => personPruefen(name, vereinId, signal),
+    enabled: name !== "",
+    retry: false,
+    staleTime: 10_000,
   });
 
 export type AnlegenErgebnis =

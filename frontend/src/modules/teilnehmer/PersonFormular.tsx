@@ -1,7 +1,7 @@
 import { Button, CloseButton, SegmentedControl, Switch, TextInput } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
+import { useDebouncedValue, useMediaQuery } from "@mantine/hooks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, Shield, Trash2, TriangleAlert, UserRound } from "lucide-react";
+import { ArrowLeft, Check, Info, Shield, Trash2, TriangleAlert, UserRound } from "lucide-react";
 import { type FormEvent, useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiFehler } from "../../api/client";
@@ -10,6 +10,7 @@ import { Chip } from "../../components/Chip";
 import { type Anzeigeart, anzeigename, bereinigen } from "./anzeigename";
 import {
   type Dublette,
+  dublettenAbfrage,
   fehlertext,
   type Person,
   type PersonAenderung,
@@ -65,6 +66,9 @@ function neuAus(werte: Werte): PersonNeu {
 }
 
 const ANZEIGEARTEN: Anzeigeart[] = ["full", "short", "hidden"];
+
+/** Wartezeit nach der letzten Eingabe, bevor der Server nach Dubletten gefragt wird. */
+export const DUBLETTEN_PAUSE_MS = 400;
 
 interface PersonFormularProps {
   /** Vorhandene Person; fehlt sie, legt das Formular eine neue an. */
@@ -216,6 +220,15 @@ export function PersonFormular({
     speichern.mutate({ trotzdem: false, stand: werte });
   }, [wartetAufVerein, vereinStatus, basis, ungespeichert, speichern, werte]);
 
+  // Mögliche Dubletten schon während der Eingabe (nur beim Anlegen): Der Server prüft wie beim
+  // Speichern. Gezeigt wird nur, was zur aktuellen Eingabe gehört, nicht ein älteres Ergebnis.
+  const pruefSchluessel = JSON.stringify([basis ? "" : bereinigen(werte.name), werte.club_id]);
+  const [entprellt] = useDebouncedValue(pruefSchluessel, DUBLETTEN_PAUSE_MS);
+  const [pruefName, pruefVerein] = JSON.parse(entprellt) as [string, string | null];
+  const pruefung = useQuery(dublettenAbfrage(pruefName, pruefVerein));
+  const moegliche =
+    !basis && !dublette && entprellt === pruefSchluessel ? (pruefung.data?.duplicates ?? []) : [];
+
   const speichertGerade = speichern.isPending || wartetAufVerein;
   useEffect(() => {
     onSpeichert?.(speichertGerade);
@@ -315,6 +328,30 @@ export function PersonFormular({
               onAendern={(id) => aendern("club_id", id)}
               onAnlegenStatus={setVereinStatus}
             />
+            {moegliche.length > 0 && (
+              <div className={s.moeglicheDublette} role="status">
+                <Info aria-hidden />
+                <ul>
+                  {moegliche.map((kandidat) => (
+                    <li key={kandidat.id}>
+                      <span>
+                        {t("dublette.live", {
+                          name: kandidat.name,
+                          verein: kandidat.club_name ?? t("suche.ohne_verein"),
+                        })}
+                      </span>
+                      <Button
+                        variant="subtle"
+                        size="compact-md"
+                        onClick={() => onOeffnen(kandidat.id)}
+                      >
+                        {t("dublette.oeffnen")}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <TextInput
               size="md"
               label={

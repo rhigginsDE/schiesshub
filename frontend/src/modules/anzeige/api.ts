@@ -1,12 +1,13 @@
 import { queryOptions } from "@tanstack/react-query";
 import { apiGet, apiSenden } from "../../api/client";
 import { EREIGNIS_VERBUNDEN, type EreignisZuordnung } from "../../api/ereignisse";
-import type { Anzeige, AnzeigeKonfig } from "./typen";
+import type { Anzeige, AnzeigeKonfig, Feed, FeedVorschauAnfrage } from "./typen";
 
 /** Query-Keys des Moduls; alles beginnt mit `anzeige`. */
 export const anzeigeSchluessel = {
   alle: ["anzeige"] as const,
   liste: () => ["anzeige", "liste"] as const,
+  vorschau: (id: string) => ["anzeige", "vorschau", id] as const,
 };
 
 /** Verwaltung lädt neu, wenn sich eine Anzeige ändert (auch von einem anderen Gerät aus). */
@@ -87,19 +88,29 @@ export function standardAnlegen() {
   return apiSenden<Anzeige>("POST", `${pfad.liste}/defaults`);
 }
 
+/** Name, Turnier, Reihenfolge und (mit `config`) den Inhalt in einer Anfrage ändern. */
 export function anzeigeAendern(
   id: string,
-  aenderung: { name?: string; tournament_id?: string | null; sort?: number },
+  aenderung: {
+    name?: string;
+    tournament_id?: string | null;
+    sort?: number;
+    config?: AnzeigeKonfig;
+  },
 ) {
   return apiSenden<Anzeige>("PATCH", pfad.anzeige(id), aenderung);
 }
 
-export function anzeigeLoeschen(id: string) {
-  return apiSenden("DELETE", pfad.anzeige(id));
+/**
+ * Feed für einen nicht gespeicherten Entwurf (Vorschau in der Verwaltung). Prüft die Szenen wie
+ * beim Speichern (422), speichert aber nichts.
+ */
+export function vorschauFeed(id: string, anfrage: FeedVorschauAnfrage, signal?: AbortSignal) {
+  return apiSenden<Feed>("POST", `${pfad.anzeige(id)}/preview-feed`, anfrage, { signal });
 }
 
-export function konfigSetzen(id: string, konfig: AnzeigeKonfig) {
-  return apiSenden<Anzeige>("PUT", `${pfad.anzeige(id)}/config`, konfig);
+export function anzeigeLoeschen(id: string) {
+  return apiSenden("DELETE", pfad.anzeige(id));
 }
 
 export function geraetZuweisen(id: string, geraetId: string) {

@@ -45,6 +45,11 @@ export class ApiFehler extends Error {
    * Standardliste von FastAPI in `detail`). Leer, wenn der Server keine geliefert hat.
    */
   readonly felder: readonly FeldFehler[];
+  /**
+   * Gelesener JSON-Inhalt der Fehlerantwort, für Stellen mit eigenen Zusatzangaben (z. B. 409 mit
+   * dem aktuellen Stand eines Ergebnisses). `undefined`, wenn die Antwort kein JSON hatte.
+   */
+  readonly inhalt?: unknown;
 
   constructor(
     art: ApiFehlerArt,
@@ -53,6 +58,7 @@ export class ApiFehler extends Error {
     detail?: string,
     wiederholenNachSekunden?: number,
     felder: readonly FeldFehler[] = [],
+    inhalt?: unknown,
   ) {
     super(
       `API-Fehler (${art}${status ? ` ${status}` : ""}) bei ${pfad}${detail ? `: ${detail}` : ""}`,
@@ -64,6 +70,7 @@ export class ApiFehler extends Error {
     this.detail = detail;
     this.wiederholenNachSekunden = wiederholenNachSekunden;
     this.felder = felder;
+    this.inhalt = inhalt;
   }
 }
 
@@ -102,7 +109,7 @@ function sekundenAus(antwort: Response): number | undefined {
 }
 
 async function fehlerAus(antwort: Response, pfad: string, optionen: AnfrageOptionen) {
-  const { detail, felder } = await inhaltAus(antwort);
+  const { detail, felder, inhalt } = await inhaltAus(antwort);
   return melden(
     new ApiFehler(
       artAusStatus(antwort.status),
@@ -111,6 +118,7 @@ async function fehlerAus(antwort: Response, pfad: string, optionen: AnfrageOptio
       detail,
       sekundenAus(antwort),
       felder,
+      inhalt,
     ),
     optionen,
   );
@@ -161,6 +169,8 @@ function pfadAusLoc(loc: unknown): string {
 /**
  * Feldfehler aus einer Fehlerantwort: bevorzugt `errors: [{field, message}]` (deutsch, siehe
  * `backend/app/core/errors.py`), sonst die Standardliste von FastAPI in `detail` (`loc`, `msg`).
+ * Gilt für jeden Status: 422 (Prüffehler) ebenso wie 409 mit Feldbezug, z. B.
+ * `{detail: "Bahn 2 ist schon belegt.", errors: [{field: "lane", message: …}]}`.
  * `field` wie `abschnitte[0].serien` wird zu `abschnitte.0.serien`.
  */
 export function feldFehlerAus(inhalt: unknown): FeldFehler[] {
@@ -190,7 +200,7 @@ export function feldFehlerAus(inhalt: unknown): FeldFehler[] {
 
 async function inhaltAus(
   antwort: Response,
-): Promise<{ detail: string | undefined; felder: FeldFehler[] }> {
+): Promise<{ detail: string | undefined; felder: FeldFehler[]; inhalt: unknown }> {
   try {
     const inhalt: unknown = await antwort.json();
     let detail: string | undefined;
@@ -198,10 +208,10 @@ async function inhaltAus(
       const wert = (inhalt as { detail: unknown }).detail;
       detail = typeof wert === "string" ? wert : JSON.stringify(wert);
     }
-    return { detail, felder: feldFehlerAus(inhalt) };
+    return { detail, felder: feldFehlerAus(inhalt), inhalt };
   } catch {
     // Antwort ohne JSON-Inhalt: kein Detail
-    return { detail: undefined, felder: [] };
+    return { detail: undefined, felder: [], inhalt: undefined };
   }
 }
 
@@ -262,12 +272,20 @@ export type Schreibmethode = "POST" | "PUT" | "PATCH" | "DELETE";
 export interface SendeOptionen extends AnfrageOptionen {
   /** Inhalt ohne JSON-Umwandlung senden, z. B. CSV. */
   roh?: { inhalt: BodyInit; typ: string };
+  /**
+   * Zusätzliche Kopfzeilen, z. B. `Idempotency-Key`. `X-Schiesshub-Request` und `Content-Type`
+   * setzt die Funktion selbst; gleichnamige Einträge hier werden nicht übernommen.
+   */
+  kopf?: Record<string, string>;
 }
+
+/** Kopfzeilen, die `apiSenden` selbst setzt (Vergleich ohne Groß-/Kleinschreibung). */
+const GESCHUETZTE_KOPFZEILEN = new Set(["x-schiesshub-request", "content-type"]);
 
 /**
  * Schreibende Anfrage. Sendet den Inhalt als JSON und den Header `X-Schiesshub-Request`,
  * den das Backend für alle schreibenden Methoden verlangt (Schutz vor fremden Seiten).
- * Antworten ohne Inhalt (204) ergeben `undefined`.
+ * Antworten ohne Inhalt (204) ergeben `undefined`. Eigene Kopfzeilen über `optionen.kopf`.
  */
 export async function apiSenden<T = void>(
   methode: Schreibmethode,
@@ -275,10 +293,11 @@ export async function apiSenden<T = void>(
   inhalt?: unknown,
   optionen: SendeOptionen = {},
 ): Promise<T> {
-  const kopf: Record<string, string> = {
-    Accept: "application/json",
-    "X-Schiesshub-Request": "1",
-  };
+  const kopf: Record<string, string> = { Accept: "application/json" };
+  for (const [name, wert] of Object.entries(optionen.kopf ?? {})) {
+    if (!GESCHUETZTE_KOPFZEILEN.has(name.toLowerCase())) kopf[name] = wert;
+  }
+  kopf["X-Schiesshub-Request"] = "1";
   let koerper: BodyInit | undefined;
   if (optionen.roh) {
     kopf["Content-Type"] = optionen.roh.typ;

@@ -4,7 +4,11 @@ import { formatBetrag, formatGeld, leseBetrag } from "../../components/geld";
 import { verschiebe } from "../../components/Reihenfolge";
 import { druckModell, istLeer } from "./ausschreibung/dokument";
 import type { AusschreibungDokument } from "./ausschreibung/typen";
-import { type EinstellungsWerte, einstellungsAenderung } from "./bereiche/Einstellungen";
+import {
+  type EinstellungsWerte,
+  einstellungsAenderung,
+  zeitzonenAuswahl,
+} from "./bereiche/Einstellungen";
 import { kennungAus, klasseAusWerten } from "./bereiche/Klassen";
 import { stammdatenAenderung } from "./bereiche/Stammdaten";
 import { ablaufKurz, planungKurz, startsKurz, zeitraum } from "./klartext";
@@ -182,6 +186,31 @@ describe("Formulare des Turniers", () => {
     expect(
       einstellungsAenderung({ ...basis, default_multi_start: false, protest_minutes: 30 }, basis),
     ).toEqual({ default_multi_start: false, default_max_starts: 1, protest_minutes: 30 });
+  });
+
+  it("schickt Zeitzone und Neubeginn der Einspruchsfrist nur, wenn geändert", () => {
+    const basis = {
+      ...(beispielTurnier().settings as EinstellungsWerte),
+      timezone: "Europe/Berlin",
+      protest_restart_on_correction: true,
+    };
+    expect(einstellungsAenderung(basis, basis)).toEqual({});
+    expect(
+      einstellungsAenderung(
+        { ...basis, timezone: "Europe/Vienna", protest_restart_on_correction: false },
+        basis,
+      ),
+    ).toEqual({ timezone: "Europe/Vienna", protest_restart_on_correction: false });
+  });
+
+  it("bietet übliche Zeitzonen an und behält einen gespeicherten Wert außerhalb der Liste", () => {
+    const t = (schluessel: string) => schluessel;
+    const ueblich = zeitzonenAuswahl("Europe/Berlin", t);
+    expect(ueblich[0]).toEqual({ value: "Europe/Berlin", label: "zeitzone.Europe_Berlin" });
+    expect(ueblich.some((z) => z.value === "America/New_York")).toBe(false);
+    const fremd = zeitzonenAuswahl("America/New_York", t);
+    expect(fremd.at(-1)).toEqual({ value: "America/New_York", label: "America/New York" });
+    expect(fremd.filter((z) => z.value === "Europe/Berlin")).toHaveLength(1);
   });
 
   it("bildet die Kennung einer Klasse aus dem Kurznamen", () => {

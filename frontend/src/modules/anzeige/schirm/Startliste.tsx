@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
-import { formatUhrzeit } from "../../../lib/format";
+import { feedUhrzeit } from "../format";
 import type { Takt } from "../rotation";
 import type { FeedPerson, SzeneVon } from "../typen";
 import {
@@ -19,8 +19,8 @@ export function usePlatzText(): (person: FeedPerson) => string {
   const { t } = useTranslation("anzeige");
   const { sprache } = useSchirm();
   return (person) => {
-    if (person.heat_number != null && person.heat_starts_at) {
-      const zeit = formatUhrzeit(new Date(person.heat_starts_at), sprache);
+    const zeit = feedUhrzeit(person.heat_starts_at_local, person.heat_starts_at, sprache);
+    if (person.heat_number != null && zeit) {
       return person.lane != null
         ? t("schirm.platz.durchgang_bahn", { nummer: person.heat_number, zeit, bahn: person.lane })
         : t("schirm.platz.durchgang", { nummer: person.heat_number, zeit });

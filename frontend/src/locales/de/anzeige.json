@@ -59,7 +59,12 @@
       "gestrichen": "gestrichen – zählt nicht",
       "trefferaufnahme": "Trefferaufnahme",
       "abschnitt_abweichend": "Abweichend vom Katalog: {{text}}",
-      "abweichend": "Abweichend vom Katalog"
+      "abweichend": "Abweichend vom Katalog",
+      "jetzt": "Jetzt",
+      "jetzt_kurz": "Jetzt · {{bahnen}}",
+      "bahnen_one": "Bahn {{bahnen}}",
+      "bahnen_other": "Bahnen {{bahnen}}",
+      "position_bahnen": "Position {{nr}}: {{bahnen}}"
     },
     "stand": {
       "am_stand": "Am Stand",
@@ -67,7 +72,11 @@
       "durchgang": "Durchgang {{nummer}}",
       "reihenfolge": "Reihenfolge",
       "frei": "frei",
-      "niemand": "Niemand wartet."
+      "niemand": "Niemand wartet.",
+      "serie": "Serie",
+      "position": "Position",
+      "von": "{{nr}} von {{gesamt}}",
+      "fertig": "fertig"
     },
     "szene_teil": "{{titel}} · {{teil}}/{{teile}}",
     "rotation": "{{nr}}/{{anzahl}} · als Nächstes {{naechste}} in {{sekunden}} s",
@@ -221,7 +230,10 @@
   "vorschau": {
     "titel": "Vorschau",
     "oeffnen": "Anzeige öffnen",
-    "gespeicherter_stand": "Die Vorschau zeigt den gespeicherten Stand. Nach dem Speichern erscheinen die Änderungen hier und auf dem Bildschirm.",
+    "entwurf": "Vorschau – noch nicht gespeichert. Auf dem Bildschirm erscheinen die Änderungen erst nach dem Speichern.",
+    "entwurf_laedt": "Die Vorschau mit deinen Änderungen wird erstellt …",
+    "entwurf_unvollstaendig": "Die Vorschau zeigt den gespeicherten Stand, bis alle Ansichten vollständig eingestellt sind.",
+    "entwurf_fehler": "Die Vorschau zeigt den gespeicherten Stand: {{grund}}",
     "hilfe": "So sieht der Bildschirm gerade aus. Er aktualisiert sich von selbst.",
     "uebersprungen": "Gerade übersprungen",
     "adresse": "Adresse für den Fernseher",

@@ -2,6 +2,7 @@ import { MonitorOff, TriangleAlert, Unplug } from "lucide-react";
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatDatum, formatUhrzeit } from "../../../lib/format";
+import { uhrzeitInZone } from "../format";
 import {
   indexNachWechsel,
   naechsterIndex,
@@ -256,7 +257,7 @@ function Kopf({ kopf, szene, vorschau }: { kopf: FeedKopf; szene: string; vorsch
       <div className={s.jetzt}>
         <span className={s.szenenName}>{szene}</span>
         <time className={`num ${s.uhr}`} dateTime={zeit.toISOString()}>
-          {formatUhrzeit(zeit, sprache)}
+          {uhrzeitInZone(zeit, kopf.timezone, sprache)}
         </time>
       </div>
     </header>

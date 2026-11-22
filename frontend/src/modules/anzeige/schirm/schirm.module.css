@@ -858,6 +858,33 @@
   color: var(--sh-text-gedaempft);
 }
 
+/* Laufende Serie: dicker Rahmen, Fläche und die Marke „Jetzt · Bahn 2“ (nicht nur Farbe) */
+.serienKachel[data-aktiv] {
+  border-width: 0.5cqmin;
+  border-color: var(--sh-akzent);
+  background: var(--sh-akzent-flaeche);
+}
+
+.jetztMarke {
+  padding: 0.3cqmin 1cqmin;
+  border-radius: 99cqmin;
+  background: var(--sh-akzent);
+  color: var(--sh-auf-akzent);
+  font: 700 1.7cqmin / 1.2 var(--sh-font-text);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.jetztZeile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8cqmin 2cqmin;
+  font: 600 2.4cqmin / 1.2 var(--sh-font-text);
+  color: var(--sh-text);
+}
+
 .serienNr {
   font: 600 1.9cqmin / 1 var(--sh-font-text);
   letter-spacing: 0.08em;
@@ -969,6 +996,44 @@
 .bahnNr {
   font: 700 3cqmin / 1 var(--sh-font-mono);
   color: var(--sh-akzent-text);
+}
+
+.bahnRechts {
+  display: flex;
+  align-items: center;
+  gap: 1.4cqmin;
+}
+
+/* „Serie 2 von 4“ je Bahn: groß genug für 5 m, flach, ohne Schatten */
+.bahnStand {
+  display: grid;
+  justify-items: end;
+  gap: 0.4cqmin;
+  color: var(--sh-text);
+  white-space: nowrap;
+}
+
+.bahnStandArt {
+  font: 600 1.6cqmin / 1 var(--sh-font-text);
+  color: var(--sh-text-weich);
+}
+
+.bahnStandZahl {
+  font: 700 2.8cqmin / 1 var(--sh-font-mono);
+  letter-spacing: -0.02em;
+}
+
+.bahnStand[data-fertig] {
+  display: flex;
+  align-items: center;
+  gap: 0.6cqmin;
+  font: 700 2.4cqmin / 1 var(--sh-font-text);
+  color: var(--sh-akzent-text);
+}
+
+.bahnStand[data-fertig] svg {
+  width: 2.6cqmin;
+  height: 2.6cqmin;
 }
 
 .bahn[data-frei] .bahnNr,
