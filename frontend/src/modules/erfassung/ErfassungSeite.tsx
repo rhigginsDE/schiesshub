@@ -197,6 +197,8 @@ function Station({ station, icon, turnier, onWechseln, suche, onSuche }: Station
             vorschlag={() => vorschlag(startId)}
             namen={namen}
             onOeffnen={oeffnen}
+            aufgeben={suche.aufgeben}
+            onAufgebenGelesen={() => onSuche({ start: startId, art: suche.art })}
           />
         ) : alleErledigt ? (
           <AlleErfasst turnier={turnier} anzahl={starts.length} uebersicht={uebersicht.data} />

@@ -622,21 +622,21 @@
       "begruessung": "Üblich: Einladung zum Turnier und ein kurzer Gruß des Vereins.",
       "veranstalter-und-ort": "Üblich: ausrichtender Verein, Schützenhaus, Anfahrt und Parken.",
       "teilnahmeberechtigung": "Üblich: wer starten darf, z. B. Mitglieder, Gäste, nötige Ausweise oder Waffenbesitzkarte.",
-      "anmeldung": "Üblich: wie und bis wann gemeldet wird, Nachmeldung am Schießstand, Bezahlung.",
-      "ablauf": "Üblich: Öffnungszeiten, Beginn der Durchgänge, Einteilung auf die Schützenstände.",
+      "anmeldung": "Üblich: wie und bis wann gemeldet wird, Nachmeldung am {{schiessstand}}, Bezahlung.",
+      "ablauf": "Üblich: Öffnungszeiten, Beginn der Durchgänge, Einteilung auf die {{schuetzenstaende}}.",
       "sicherheit": "Üblich: Waffenkontrolle, Transport, Gehörschutz und Schutzbrille.",
       "wertung": "Üblich: Wertung, Ehrung der Sieger, Preise und Urkunden.",
-      "einsprueche": "Üblich: Frist und Weg für Einsprüche, Einspruchsgebühr.",
-      "datenschutz": "Üblich: welche Daten erhoben und ob Ergebnislisten veröffentlicht werden.",
+      "einsprueche": "Üblich: Frist und Weg für Einsprüche, {{gebuehr_einspruch}}.",
+      "datenschutz": "Üblich: welche Daten erhoben werden und ob die {{ergebnisliste}} veröffentlicht wird.",
       "kontakt": "Üblich: Ansprechperson mit Telefon oder E-Mail."
     },
     "art": {
       "text": "Eigener Text",
       "competitions": "Aus dem Turnier: Wettbewerbe",
       "classes": "Aus dem Turnier: Klassen",
-      "fees": "Aus dem Turnier: Startgeld",
+      "fees": "Aus dem Turnier: {{startgeld}}",
       "dates": "Aus dem Turnier: Termine",
-      "ranges": "Aus dem Turnier: Schießstände"
+      "ranges": "Aus dem Turnier: {{schiessstaende}}"
     },
     "eckdaten": {
       "venue": "Ort",
@@ -649,7 +649,7 @@
     "platzhalter": {
       "venue": "z. B. Schützenhaus Musterstadt",
       "address": "Straße, PLZ und Ort",
-      "registration_info": "z. B. per E-Mail bis zum Meldeschluss, Nachmeldung am Schießstand möglich",
+      "registration_info": "z. B. per E-Mail bis zum Meldeschluss, Nachmeldung am {{schiessstand}} möglich",
       "contact_info": "z. B. 0123 456789"
     },
     "termine": {
@@ -657,8 +657,7 @@
       "meldeschluss": "Meldeschluss"
     },
     "staende": {
-      "zeile_one": "{{name}} ({{count}} Schützenstand)",
-      "zeile_other": "{{name}} ({{count}} Schützenstände)"
+      "zeile": "{{name}} ({{schuetzenstaende}})"
     },
     "druck": {
       "zurueck": "Zurück",
@@ -666,11 +665,9 @@
       "hinweis": "Im Druckdialog „Als PDF speichern“ wählen, um eine Datei zu erhalten.",
       "stand": "Stand {{datum}}",
       "erstellt_mit": "erstellt mit Schiesshub",
-      "kennziffer": "Kennziffer",
       "wettbewerb": "Wettbewerb",
       "ablauf": "Ablauf",
-      "stand_spalte": "Schießstand",
-      "startgeld": "Startgeld / Nachkauf",
+      "startgeld": "{{startgeld}} / Nachkauf",
       "erster_start": "Erster Start",
       "nachkauf": "Nachkauf"
     }

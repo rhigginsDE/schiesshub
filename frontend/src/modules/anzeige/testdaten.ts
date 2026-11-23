@@ -91,6 +91,83 @@ export function rangliste(): FeedRangliste {
   };
 }
 
+/**
+ * Rangliste mit Abbrüchen wie vom Server seit dem Sporthandbuch-Abgleich: Abbruch nach „Feuer“ mit
+ * Platz und gewertetem Ergebnis in `rows`; ohne Platz in `unplaced` mit fertigem Kennzeichen und
+ * Begründung. Gleichstand mit dem formellen Wort im Hinweis.
+ */
+export function abbruchRangliste(): FeedRangliste {
+  return {
+    competition_id: "w9",
+    competition_name: "Fallscheibe",
+    competition_code: "1901",
+    direction: "aufsteigend",
+    unit: "s",
+    combined: false,
+    groups: [
+      {
+        class_id: "k1",
+        class_name: "Schützenklasse",
+        class_short: "S",
+        rows: [
+          zeile({ start_id: "f1", place: 1, display_name: "Anna Beispiel", score_text: "21,40 s" }),
+          zeile({
+            start_id: "f2",
+            place: 2,
+            display_name: "Egon Abbruch",
+            status: "aborted",
+            abort_reason: "dnf",
+            abort_label: "Abbruch (AB)",
+            score_text: "25,10 s",
+          }),
+          zeile({
+            start_id: "f3",
+            place: 3,
+            tied: true,
+            needs_shootoff: true,
+            tie_note: "gleiches Ergebnis auf Platz 3: Stechen",
+            display_name: "Bernd Muster",
+            score_text: "26,00 s",
+          }),
+          zeile({
+            start_id: "f4",
+            place: 3,
+            tied: true,
+            needs_shootoff: true,
+            tie_note: "gleiches Ergebnis auf Platz 3: Stechen",
+            display_name: "Clara Probe",
+            score_text: "26,00 s",
+          }),
+        ],
+        more: 0,
+        unplaced: [
+          zeile({
+            start_id: "f5",
+            place: null,
+            group: "unranked",
+            status: "aborted",
+            abort_reason: "dnf",
+            abort_label: "Abbruch (AB)",
+            abort_note: "Ergebnis nicht vergleichbar: Serie 2 unvollständig erfasst",
+            display_name: "Rita Fern",
+            score_text: null,
+          }),
+          zeile({
+            start_id: "f6",
+            place: null,
+            group: "unranked",
+            status: "aborted",
+            abort_reason: "dsq",
+            abort_label: "disqualifiziert",
+            display_name: "Karl Weiß",
+            score_text: null,
+          }),
+        ],
+      },
+    ],
+  };
+}
+
 function person(teil: Partial<FeedPerson> & Pick<FeedPerson, "start_id">): FeedPerson {
   return {
     start_number: 5,

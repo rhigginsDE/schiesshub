@@ -18,12 +18,25 @@ export function formatZeit(hundertstel: number | null | undefined): string {
   return hundertstel === null || hundertstel === undefined ? "–" : formatHundertstel(hundertstel);
 }
 
-/** „16 von 20 Schuss · 1 von 2 Serien“: nur, was diese Wertung zählt. */
-export function fortschrittText(fortschritt: Fortschritt, t: TFunction<"erfassung">): string {
+/**
+ * Zählt die Wertung Treffer statt Ringe (Wurfscheibe: ein Wert je Ziel)? Der Server sagt es mit der
+ * Einheit („Treffer“, `app.scoring.models.HITS_UNIT`); dann heißt der Serienwert „Treffer“, der
+ * Fortschritt zählt Ziele, und Zehner gibt es nicht.
+ */
+export function zaehltTreffer(einheit: string | null | undefined): boolean {
+  return einheit === "Treffer";
+}
+
+/** „16 von 20 Schuss · 1 von 2 Serien“: nur, was diese Wertung zählt. `treffer`: Ziele statt Schuss. */
+export function fortschrittText(
+  fortschritt: Fortschritt,
+  t: TFunction<"erfassung">,
+  treffer = false,
+): string {
   const teile: string[] = [];
   if (fortschritt.shots_expected > 0) {
     teile.push(
-      t("fortschritt.schuss", {
+      t(treffer ? "fortschritt.ziele" : "fortschritt.schuss", {
         anzahl: fortschritt.shots_entered,
         count: fortschritt.shots_expected,
       }),
@@ -49,9 +62,13 @@ export function fortschrittText(fortschritt: Fortschritt, t: TFunction<"erfassun
 }
 
 /** Was noch fehlt, als kurzer Hinweis unter dem Abschluss-Knopf. */
-export function restText(fortschritt: Fortschritt, t: TFunction<"erfassung">): string | null {
+export function restText(
+  fortschritt: Fortschritt,
+  t: TFunction<"erfassung">,
+  treffer = false,
+): string | null {
   const schuss = fortschritt.shots_expected - fortschritt.shots_entered;
-  if (schuss > 0) return t("rest.schuss", { count: schuss });
+  if (schuss > 0) return t(treffer ? "rest.ziele" : "rest.schuss", { count: schuss });
   const serien = fortschritt.series_expected - fortschritt.series_complete;
   if (serien > 0) return t("rest.serien", { count: serien });
   const zeiten = fortschritt.section_times_expected - fortschritt.section_times_entered;
@@ -62,15 +79,16 @@ export function restText(fortschritt: Fortschritt, t: TFunction<"erfassung">): s
 export interface SerienAnzeige {
   /** Hauptwert der Serie (Ringe oder Zeit mit Zuschlag) */
   wert: string;
-  einheit: "ringe" | "sekunden" | null;
+  einheit: "ringe" | "treffer" | "sekunden" | null;
   /** Zusatz, z. B. „12,84 + 10,00“ */
   zusatz: string | null;
 }
 
-/** Ergebnis einer Serie, wie der Server es liefert. */
+/** Ergebnis einer Serie, wie der Server es liefert. `treffer`: Wertung zählt Treffer statt Ringe. */
 export function serienAnzeige(
   serie: SerienWertung | undefined,
   t: TFunction<"erfassung">,
+  treffer = false,
 ): SerienAnzeige {
   // Noch nichts erfasst: kein „0,00 s“, das wie ein Ergebnis aussieht.
   if (!serie || serie.captured === false) return { wert: "–", einheit: null, zusatz: null };
@@ -93,7 +111,7 @@ export function serienAnzeige(
   if (serie.rings !== null) {
     const zusatz =
       serie.time_cs !== null ? t("serie.zeit", { zeit: formatZeit(serie.time_cs) }) : null;
-    return { wert: formatWert(serie.rings), einheit: "ringe", zusatz };
+    return { wert: formatWert(serie.rings), einheit: treffer ? "treffer" : "ringe", zusatz };
   }
   if (serie.time_cs !== null) {
     return { wert: formatZeit(serie.time_cs), einheit: "sekunden", zusatz: null };

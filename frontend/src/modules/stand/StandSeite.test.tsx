@@ -4,6 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RechteProvider } from "../../app/berechtigungen";
 import { Meldungen, meldungenLeeren } from "../../components/Meldungen";
 import { abbruchInhalt } from "../anmeldung/api";
+import type { SerienWertung } from "../erfassung/api";
+import {
+  maske as erfassungMaske,
+  stand as erfassungStand,
+  wertung as erfassungWertung,
+  FALLSCHEIBE,
+} from "../erfassung/testdaten";
 import {
   type Aufruf,
   renderAnsicht,
@@ -101,6 +108,25 @@ const aufgerufen = stationStart({
   // Ortszeit 09:05 – die Kachel zeigt die Aufrufzeit des Servers, nicht die des Browsers.
   called_at: new Date(2026, 10, 22, 9, 5).toISOString(),
 });
+
+/** Serie in der Wertung des Servers (nur die Felder, die hier zählen, sinnvoll belegt). */
+const serienWertung: SerienWertung = {
+  number: 1,
+  struck: false,
+  status: "normal",
+  captured: false,
+  complete: false,
+  shots_entered: 0,
+  shots_expected: 0,
+  rings: null,
+  tens: null,
+  inner_tens: null,
+  measured_time_cs: null,
+  time_cs: null,
+  standing: null,
+  penalty_cs: null,
+  total_cs: null,
+};
 
 function routen(
   planungen: ("queue" | "schedule")[],
@@ -358,6 +384,89 @@ describe("Schießstand", { timeout: 15000 }, () => {
       abort_reason: "dnf",
       note: "Waffenstörung, nicht behebbar",
     });
+  }, 15_000);
+
+  it("aufgegeben mit angefangener Serie: führt in die Erfassung statt ohne Platz abzubrechen", async () => {
+    const inErfassung = { ...aufgerufen, status: "captured" as const };
+    const angefangen = {
+      fallscheibe: { series: [{ time_cs: 2000, standing: 0 }, { time_cs: 900 }] },
+    };
+    const fallscheibeSerie = (number: number, captured: boolean, complete: boolean) => ({
+      ...serienWertung,
+      number,
+      captured,
+      complete,
+    });
+    const aufrufe = routen(["queue"], {
+      [`GET /tournaments/${T}/ranges/${R}/queue?names=full`]: {
+        inhalt: {
+          range_id: R,
+          lane_count: 2,
+          waiting: [],
+          lanes: [
+            { lane: 1, start: inErfassung },
+            { lane: 2, start: null },
+          ],
+        },
+      },
+      [`GET /tournaments/${T}/starts/s-2/form`]: {
+        inhalt: erfassungMaske(FALLSCHEIBE, {
+          ...erfassungStand(),
+          status: "captured",
+          raw: { sections: angefangen },
+          computed: erfassungWertung({
+            model: "zeit_plus_zuschlaege",
+            sections: [
+              {
+                id: "fallscheibe",
+                name: "Fallscheibe",
+                complete: false,
+                rings: null,
+                time_cs: null,
+                penalty_cs: null,
+                overtime_s: null,
+                deduction: null,
+                subtotal: "0",
+                result: "0",
+                floored: false,
+                series: [
+                  fallscheibeSerie(1, true, true),
+                  fallscheibeSerie(2, true, false),
+                  fallscheibeSerie(3, false, false),
+                ],
+              },
+            ],
+          }),
+        }),
+      },
+      [`POST /tournaments/${T}/starts/s-2/abort`]: {
+        inhalt: { ...inErfassung, status: "aborted" },
+      },
+    });
+    const benutzer = userEvent.setup();
+    renderAnsicht(() => <StandSeite suche={{}} onSuche={() => {}} />);
+
+    const geduld = { timeout: 10_000 };
+    await benutzer.click(await abbruchPunkt(benutzer, "Aufgegeben"));
+    const dialog = await screen.findByRole("dialog", {}, geduld);
+    expect(
+      await within(dialog).findByText("Serie 2 ist noch nicht fertig erfasst.", {}, geduld),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(/trag für diese Serie „Abbruch durch den Schützen“ ein/),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("button", { name: "In der Erfassung eintragen" }),
+    ).toBeEnabled();
+    expect(within(dialog).queryByRole("button", { name: "Start abbrechen" })).toBeNull();
+    expect(aufrufe.some((a) => a.pfad.endsWith("/abort"))).toBe(false);
+
+    // Wer es bewusst will, gibt trotzdem auf (dann ohne Platz).
+    await benutzer.click(
+      within(dialog).getByRole("button", { name: "Trotzdem aufgeben, ohne Platz" }),
+    );
+    await waitFor(() => expect(aufrufe.some((a) => a.pfad.endsWith("/abort"))).toBe(true));
+    expect(aufrufe.find((a) => a.pfad.endsWith("/abort"))?.inhalt).toEqual({ abort_reason: "dnf" });
   }, 15_000);
 
   it("schickt nur Leerzeichen nicht als Bemerkung", () => {

@@ -14,6 +14,11 @@ const STATUS_FELD: FeldBeschreibung = {
       required_fields: ["standing"],
     },
     {
+      key: "aborted_by_shooter",
+      label: "Abbruch durch den Schützen",
+      required_fields: ["standing"],
+    },
+    {
       key: "malfunction_before_first_shot",
       label: "Waffenstörung vor dem ersten Wertungsschuss",
       required_fields: [],

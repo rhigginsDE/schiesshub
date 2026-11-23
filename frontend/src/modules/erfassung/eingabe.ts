@@ -6,6 +6,8 @@
  *   einstelligen Feldern (z. B. stehende Scheiben 0 bis 5) also nach jeder Ziffer, auch nach „0“.
  * - „Weiter“ direkt nach dem selbsttätigen Weiterschalten bestätigt nur und bleibt im neuen Feld:
  *   Wer aus Gewohnheit nach der Ziffer noch Enter oder „Weiter“ drückt, überspringt kein Feld.
+ *   Ebenso ein Komma mit Nullen: Wer den Höchstwert ausschreibt („109,0“), hat nach „109“ schon
+ *   das nächste Feld; „,0“ gehört noch zum vorigen Wert und landet nicht als „0“ im nächsten.
  * - Selbsttätig weiter geht es nur in ein leeres Feld. Hat das nächste Feld schon einen Wert, bleibt
  *   das Terminal stehen (Hinweis); erst Enter oder ein Tipp auf das Feld führt dorthin. So wird nie
  *   ein vorhandener Wert ohne ausdrückliche Auswahl überschrieben.
@@ -41,6 +43,11 @@ export interface ZahlEingabe {
    * dorthin und werden abgelehnt, statt diesen Wert zu ändern. Rück, Enter oder Antippen lösen das.
    */
   voll?: boolean;
+  /**
+   * Nach dem selbsttätigen Weiterschalten kam ein Komma: Es und folgende Nullen gehören noch zum
+   * vorigen Wert („109,0“) und werden übergangen. Die erste andere Ziffer beginnt neu.
+   */
+  nachlauf?: boolean;
 }
 
 export const FRISCH: ZahlEingabe = { text: "", frisch: true };
@@ -74,6 +81,25 @@ export interface ZahlErgebnis {
 }
 
 const MAX_SEKUNDEN_STELLEN = 4;
+
+/** Komma direkt nach dem selbsttätigen Weiterschalten: übergehen (siehe `ZahlEingabe.nachlauf`). */
+const NACHLAUF: ZahlEingabe = { ...ANGEKOMMEN, nachlauf: true };
+
+/**
+ * Nachlauf des vorigen Werts („,0“ nach „109“): Komma direkt nach dem Ankommen und Nullen danach
+ * werden übergangen. Sonst `null`; eine andere Ziffer beginnt dann frisch.
+ */
+function nachlauf(eingabe: ZahlEingabe, taste: Taste): ZahlErgebnis | null {
+  if (taste.art === "komma" && eingabe.angekommen && !eingabe.nachlauf) {
+    return ergebnis({ eingabe: NACHLAUF });
+  }
+  if (eingabe.nachlauf && taste.art === "ziffer" && taste.ziffer === "0") {
+    return ergebnis({ eingabe: NACHLAUF });
+  }
+  // „109,0“ und dann Enter: bestätigt wie direkt nach dem Ankommen, springt nicht.
+  if (eingabe.nachlauf && taste.art === "weiter") return ergebnis({ eingabe: FRISCH });
+  return null;
+}
 
 /** Hundertstelsekunden als Eingabetext: `1284` → „12,84“ (Komma der aktiven Sprache). */
 export function zeitText(hundertstel: number): string {
@@ -309,6 +335,9 @@ export function zahlTaste(
   taste: Taste,
   naechstesBelegt = false,
 ): ZahlErgebnis {
+  const uebergangen = nachlauf(eingabe, taste);
+  if (uebergangen) return uebergangen;
+  if (eingabe.nachlauf) eingabe = { ...eingabe, angekommen: false, nachlauf: false };
   if (istKommaFeld(feld)) return kommaTaste(feld, eingabe, aktuell, taste, naechstesBelegt);
   const zeit = feld.kind === "time";
   switch (taste.art) {

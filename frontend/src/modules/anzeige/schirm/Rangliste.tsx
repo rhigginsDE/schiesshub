@@ -1,8 +1,11 @@
 import { type CSSProperties, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  abbruchText,
   gesamtTeile,
   gleichstandHinweis,
+  gleichstandWort,
+  istPlatzierterAbbruch,
   laengstesWort,
   mitErgebnis,
   mitWeiterenPlaetzen,
@@ -53,23 +56,68 @@ function Platz({ zeile }: { zeile: FeedZeile }) {
   );
 }
 
+/**
+ * Text eines offenen Gleichstands mit dem formellen Wort („Ringgleichheit: Stechen“), sonst wie
+ * bisher nur „Stechen“ bzw. „manuell entscheiden“. `null` ohne offenen Gleichstand.
+ */
+function useGleichstandText(): (zeile: FeedZeile) => string | null {
+  const { t } = useTranslation("anzeige");
+  return (zeile) => {
+    const hinweis = zeile.place !== null ? gleichstandHinweis(zeile) : null;
+    if (!hinweis) return null;
+    const wort = gleichstandWort(zeile);
+    return wort
+      ? t(`schirm.gleichstand.${hinweis}_wort`, { wort })
+      : t(`schirm.gleichstand.${hinweis}`);
+  };
+}
+
 /** Offener Gleichstand (Stechen, von Hand), dezent hinter Verein und Zusätzen. */
 function Gleichstand({ zeile }: { zeile: FeedZeile }) {
-  const { t } = useTranslation("anzeige");
-  const hinweis = zeile.place !== null ? gleichstandHinweis(zeile) : null;
-  if (!hinweis) return null;
+  const text = useGleichstandText()(zeile);
+  if (!text) return null;
   return (
     <>
       {" "}
       <em className={s.gleichstand} title={zeile.tie_note ?? undefined}>
-        {t(`schirm.gleichstand.${hinweis}`)}
+        {text}
       </em>
     </>
   );
 }
 
-function Unterzeile({ zeile }: { zeile: FeedZeile }) {
+/** Kennzeichen des Abbruchs: vom Server (`abort_label`), sonst der bisherige Text zum Grund. */
+function useAbbruchText(): (zeile: FeedZeile) => string | null {
   const { t } = useTranslation("anzeige");
+  return (zeile) => abbruchText(zeile, (grund) => t(`abbruch.${grund}`));
+}
+
+/**
+ * Abbruch mit Platz (nach „Feuer“): dezentes Kennzeichen an der Zeile, nicht gold und nicht grün,
+ * damit klar ist, dass das Ergebnis nicht zu Ende geschossen ist. `als`: `em` in einer
+ * Unterzeile, `span` als eigene Zeile auf dem Podest.
+ */
+function AbbruchMarke({ zeile, als = "em" }: { zeile: FeedZeile; als?: "em" | "span" }) {
+  const text = useAbbruchText()(zeile);
+  if (!text || !istPlatzierterAbbruch(zeile)) return null;
+  const Element = als;
+  return (
+    <>
+      {" "}
+      <Element
+        className={s.abbruchMarke}
+        data-abbruch={zeile.abort_reason ?? undefined}
+        title={zeile.abort_note ?? undefined}
+      >
+        {text}
+      </Element>
+    </>
+  );
+}
+
+function Unterzeile({ zeile, ohnePlatz }: { zeile: FeedZeile; ohnePlatz?: boolean }) {
+  const { t } = useTranslation("anzeige");
+  const abbruch = useAbbruchText()(zeile);
   const teile: string[] = [];
   if (zeile.club) teile.push(zeile.club);
   if (zeile.attempt > 1) teile.push(t("schirm.versuch", { nr: zeile.attempt }));
@@ -84,11 +132,21 @@ function Unterzeile({ zeile }: { zeile: FeedZeile }) {
           <em className={s.live}>{t("schirm.laeuft")}</em>
         </>
       )}
-      {zeile.abort_reason && (
-        <>
-          {" "}
-          <em className={s.abbruch}>{t(`abbruch.${zeile.abort_reason}`)}</em>
-        </>
+      {ohnePlatz || !istPlatzierterAbbruch(zeile) ? (
+        abbruch && (
+          <>
+            {" "}
+            <em className={s.abbruch}>{abbruch}</em>
+            {zeile.abort_note && (
+              <>
+                {" "}
+                <em className={s.abbruchNotiz}>{zeile.abort_note}</em>
+              </>
+            )}
+          </>
+        )
+      ) : (
+        <AbbruchMarke zeile={zeile} />
       )}
       {zeile.provisional && (
         <>
@@ -129,7 +187,7 @@ function RangZeile({
           <span className={`num ${s.startnr}`}>{zeile.start_number}</span>
           {name(zeile)}
         </b>
-        <Unterzeile zeile={zeile} />
+        <Unterzeile zeile={zeile} ohnePlatz={ohnePlatz} />
       </span>
       {Array.from({ length: serien }, (_, nr) => {
         const serie = zeile.series[nr];
@@ -261,8 +319,8 @@ function PodestStufe({
   rang: number;
   einheit: string | null;
 }) {
-  const { t } = useTranslation("anzeige");
   const name = useName();
+  const gleichstand = useGleichstandText()(zeile);
   const teile = gesamtTeile(zeile.score_text, einheit);
   const text = name(zeile);
   return (
@@ -271,15 +329,17 @@ function PodestStufe({
       data-rang={rang}
       data-stufe={podestStufe(zeile.place, rang)}
       data-erster={zeile.place === 1 || undefined}
+      data-abbruch={istPlatzierterAbbruch(zeile) || undefined}
     >
       <div className={s.stufeName} style={{ "--wort": laengstesWort(text) } as CSSProperties}>
         <b className={s.stufeNameText}>{text}</b>
         {zeile.club && <span>{zeile.club}</span>}
-        {gleichstandHinweis(zeile) && (
+        {gleichstand && (
           <span className={s.gleichstand} title={zeile.tie_note ?? undefined}>
-            {t(`schirm.gleichstand.${gleichstandHinweis(zeile)}`)}
+            {gleichstand}
           </span>
         )}
+        <AbbruchMarke zeile={zeile} als="span" />
       </div>
       <div className={s.sockel} style={{ "--zeichen": teile.wert.length } as CSSProperties}>
         <span className={`num ${s.sockelPlatz}`}>{zeile.place ?? "–"}</span>
@@ -315,10 +375,11 @@ function WeitereListe({
             <span className={`num ${s.platz}`}>{zeile.place ?? "–"}</span>
             <span className={s.wer}>
               <b className={s.weitereName}>{name(zeile)}</b>
-              {(zeile.club || gleichstandHinweis(zeile)) && (
+              {(zeile.club || gleichstandHinweis(zeile) || istPlatzierterAbbruch(zeile)) && (
                 <span className={s.unter}>
                   {zeile.club}
                   <Gleichstand zeile={zeile} />
+                  <AbbruchMarke zeile={zeile} />
                 </span>
               )}
             </span>
@@ -333,12 +394,14 @@ function WeitereListe({
 }
 
 /**
- * Abgebrochene einer Klasse, deutlich von den Plätzen abgesetzt: Name, Verein und Grund; ein Wert
- * nur, wenn es einen gibt, klein und gedämpft hinter dem Grund (nie an der Stelle eines Platzes).
+ * Starts ohne Platz einer Klasse, deutlich von den Plätzen abgesetzt: Name, Verein und Grund
+ * (`abort_label`), dazu die Begründung (`abort_note`), soweit die Zeile Platz hat; ein Wert nur,
+ * wenn es einen gibt, klein und gedämpft hinter dem Grund (nie an der Stelle eines Platzes).
  */
 function OhnePlatzListe({ zeilen, takt }: { zeilen: FeedZeile[]; takt: Takt }) {
   const { t } = useTranslation("anzeige");
   const name = useName();
+  const abbruch = useAbbruchText();
   const seiten = useSeiten(zeilen, takt);
   return (
     <section className={s.weitereBlock} data-art="ohne">
@@ -351,12 +414,12 @@ function OhnePlatzListe({ zeilen, takt }: { zeilen: FeedZeile[]; takt: Takt }) {
           <div key={zeile.start_id} className={s.ohneZeile} data-zeile="">
             <span className={s.wer}>
               <b className={s.weitereName}>{name(zeile)}</b>
-              <span className={s.unter}>
+              <span className={s.unter} title={zeile.abort_note ?? undefined}>
                 {zeile.club}
-                {zeile.abort_reason && (
+                {abbruch(zeile) && (
                   <>
                     {" "}
-                    <em className={s.abbruch}>{t(`abbruch.${zeile.abort_reason}`)}</em>
+                    <em className={s.abbruch}>{abbruch(zeile)}</em>
                   </>
                 )}
                 {mitErgebnis(zeile) && zeile.score_text && (
@@ -365,6 +428,12 @@ function OhnePlatzListe({ zeilen, takt }: { zeilen: FeedZeile[]; takt: Takt }) {
                     <em className={`num ${s.ohneWert}`}>
                       {t("schirm.erreicht", { wert: zeile.score_text })}
                     </em>
+                  </>
+                )}
+                {zeile.abort_note && (
+                  <>
+                    {" "}
+                    <em className={s.abbruchNotiz}>{zeile.abort_note}</em>
                   </>
                 )}
               </span>

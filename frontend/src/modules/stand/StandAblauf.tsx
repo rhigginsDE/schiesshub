@@ -1,9 +1,10 @@
 import { Button, Skeleton, Textarea } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, CalendarClock, PlayCircle } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useDarf } from "../../app/berechtigungen";
 import { Bestaetigung } from "../../components/Bestaetigung";
 import { Chip } from "../../components/Chip";
 import { useFehlerText } from "../../components/FehlerHinweis";
@@ -29,6 +30,10 @@ import {
   useStartZurueckstellen,
   type Verschiebung,
 } from "../anmeldung/api";
+import { maskeAbfrage } from "../erfassung/api";
+import { offeneSerien } from "../erfassung/aufgeben";
+import { OffeneSerienHinweis } from "../erfassung/Dialoge";
+import { ERFASSUNG_PFAD } from "../erfassung/pfade";
 import type { TurnierUebersicht } from "../turnier/typen";
 import {
   standStartlisteAbfrage,
@@ -101,6 +106,24 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
   const [rueckfrage, setRueckfrage] = useState<{ text: string; bestaetigen: () => void } | null>(
     null,
   );
+
+  // Aufgeben mit angefangener Serie (erfassung/aufgeben.ts): Ist eine Serie nur halb erfasst,
+  // stünde der Start ohne Platz da. Die Erfassung trägt „Abbruch durch den Schützen“ ein.
+  const navigate = useNavigate();
+  const darfErgebnisLesen = useDarf("result.read");
+  const serienPruefen =
+    abbruch?.grund === "dnf" && abbruch.start.status === "captured" && darfErgebnisLesen;
+  const abbruchMaske = useQuery({
+    ...maskeAbfrage(turnierId, abbruch?.start.start_id ?? "", null),
+    enabled: serienPruefen,
+  });
+  const abbruchOffene =
+    serienPruefen && abbruchMaske.data
+      ? offeneSerien(abbruchMaske.data.form, abbruchMaske.data.current.computed)
+      : [];
+  const abbruchStatus = abbruchOffene.every((o) => o.abbruchStatus)
+    ? (abbruchOffene[0]?.abbruchStatus ?? null)
+    : null;
 
   if (warteschlange.isPending || durchgaenge.isPending || startliste.isPending) {
     return <Skeleton height={320} radius="md" />;
@@ -210,6 +233,23 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
       ? t("abbruch.wer_nr", { nr: start.start_number })
       : t("abbruch.wer", { nr: start.start_number, name: name.text });
   };
+  const abbruchSenden = (start: StationStart, grund: Abbruchgrund) =>
+    abbrechen.mutate(
+      { startId: start.start_id, grund, bemerkung },
+      {
+        onSuccess: () => {
+          setAbbruch(null);
+          setBemerkung("");
+          zeigeMeldung({
+            ton: "erfolg",
+            titel: t("abbruch.gemacht", {
+              wer: werText(start),
+              grund: t(`abbruch.grund.${grund}`),
+            }),
+          });
+        },
+      },
+    );
   const verschiebe = (start: StationStart, wohin: Verschiebung) =>
     verschieben.mutate({ startId: start.start_id, wohin }, { onError: fehlerMelden });
 
@@ -393,10 +433,13 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
               })
             : ""
         }
-        bestaetigen={t("abbruch.bestaetigen")}
+        bestaetigen={
+          abbruchOffene.length > 0 ? t("abbruch.zur_erfassung") : t("abbruch.bestaetigen")
+        }
         abbrechen={t("abbruch.zurueck")}
-        ton="gefahr"
+        ton={abbruchOffene.length > 0 ? "normal" : "gefahr"}
         laedt={abbrechen.isPending}
+        gesperrt={serienPruefen && abbruchMaske.isPending}
         fehler={abbrechen.isError ? fehlerText(abbrechen.error) : undefined}
         onSchliessen={() => {
           setAbbruch(null);
@@ -405,25 +448,31 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
         }}
         onBestaetigen={() => {
           if (!abbruch) return;
-          const { start, grund } = abbruch;
-          abbrechen.mutate(
-            { startId: start.start_id, grund, bemerkung },
-            {
-              onSuccess: () => {
-                setAbbruch(null);
-                setBemerkung("");
-                zeigeMeldung({
-                  ton: "erfolg",
-                  titel: t("abbruch.gemacht", {
-                    wer: werText(start),
-                    grund: t(`abbruch.grund.${grund}`),
-                  }),
-                });
-              },
-            },
-          );
+          if (abbruchOffene.length > 0) {
+            // In der Erfassung öffnet sich die Rückfrage „aufgegeben“ mit dem Weg zur Serie.
+            const startId = abbruch.start.start_id;
+            setAbbruch(null);
+            setBemerkung("");
+            void navigate({ to: ERFASSUNG_PFAD, search: { start: startId, aufgeben: true } });
+            return;
+          }
+          abbruchSenden(abbruch.start, abbruch.grund);
         }}
       >
+        {abbruch && abbruchOffene.length > 0 && (
+          <OffeneSerienHinweis
+            liste={abbruchOffene}
+            name={anzeigename(abbruch.start).text}
+            status={abbruchStatus}
+            trotzdemGesperrt={abbrechen.isPending}
+            onTrotzdem={() => abbruchSenden(abbruch.start, abbruch.grund)}
+          />
+        )}
+        {serienPruefen && abbruchMaske.isPending && (
+          <p className="gedaempft" role="status">
+            {t("abbruch.pruefe")}
+          </p>
+        )}
         <Textarea
           label={t("abbruch.bemerkung")}
           description={t("abbruch.bemerkung_hilfe", {

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Bestaetigung } from "../../components/Bestaetigung";
 import { Dialog } from "../../components/Dialog";
 import { useFehlerText } from "../../components/FehlerHinweis";
-import { formatWert, serienAnzeige } from "./anzeige";
+import { formatWert, serienAnzeige, zaehltTreffer } from "./anzeige";
 import {
   ABBRUCHGRUENDE,
   type Abbruchgrund,
@@ -14,6 +14,7 @@ import {
   type Formular,
   type Rohwerte,
 } from "./api";
+import { type OffeneSerie, orteText } from "./aufgeben";
 import { wertText } from "./eingabe";
 import s from "./erfassung.module.css";
 import {
@@ -249,7 +250,11 @@ function ServerSerien({ form, stand }: { form: Formular; stand: ErgebnisStand })
                 const option = statusAus(entwurf, abschnitt.id, serie);
                 const roh = serieAus(entwurf, abschnitt.id, serie.index);
                 if (serie.struck && Object.keys(roh).length === 0) return null;
-                const anzeige = serienAnzeige(wertungAbschnitt?.series[serie.index], t);
+                const anzeige = serienAnzeige(
+                  wertungAbschnitt?.series[serie.index],
+                  t,
+                  zaehltTreffer(form.unit),
+                );
                 const werte = serie.fields
                   .filter((feld) => feld.kind !== "choice")
                   .map((feld) => ({
@@ -348,6 +353,21 @@ export function AenderungsListe({ liste }: { liste: readonly Aenderung[] }) {
   );
 }
 
+interface AbbruchDialogProps extends VorgangProps {
+  onBestaetigen: (grund: Abbruchgrund, text: string | null) => void;
+  wer: string;
+  /** Name für den Hinweis zu offenen Serien */
+  name: string;
+  /** Vorgewählter Grund (z. B. „aufgegeben“ nach „Jetzt aufgeben“) */
+  startGrund?: Abbruchgrund | null;
+  /** Angefangene, unvollständige Serien laut Server (siehe `aufgeben.ts`) */
+  offeneSerien?: readonly OffeneSerie[];
+  /** Hauptaktion bei offenen Serien: Status eintragen bzw. zur Serie */
+  onSerienAbschliessen?: () => void;
+  /** Alle Eingaben sind beim Server; sonst wartet der Abbruch */
+  bereit?: boolean;
+}
+
 export function AbbruchDialog({
   offen,
   laedt,
@@ -355,27 +375,44 @@ export function AbbruchDialog({
   onSchliessen,
   onBestaetigen,
   wer,
-}: VorgangProps & {
-  onBestaetigen: (grund: Abbruchgrund, text: string | null) => void;
-  wer: string;
-}) {
+  name,
+  startGrund = null,
+  offeneSerien = [],
+  onSerienAbschliessen,
+  bereit = true,
+}: AbbruchDialogProps) {
   const { t } = useTranslation("erfassung");
   const fehlerText = useFehlerText();
-  const [grund, setGrund] = useState<Abbruchgrund | null>(null);
+  const [grund, setGrund] = useState<Abbruchgrund | null>(startGrund);
   const [text, setText] = useState("");
+  // Aufgeben mit angefangener Serie: erst die Serie richtig erfassen (sonst ohne Platz).
+  const offeneDa = grund === "dnf" && offeneSerien.length > 0 && onSerienAbschliessen;
+  const status = offeneSerien.every((o) => o.abbruchStatus)
+    ? (offeneSerien[0]?.abbruchStatus ?? null)
+    : null;
+  const bemerkung = () => text.trim() || null;
   return (
     <Bestaetigung
       offen={offen}
       titel={t("abbruch.titel")}
       text={t("abbruch.text", { wer })}
-      bestaetigen={t("abbruch.bestaetigen")}
+      bestaetigen={
+        offeneDa
+          ? status
+            ? t("abbruch.offen.eintragen", { status })
+            : t("abbruch.offen.zur_serie")
+          : t("abbruch.bestaetigen")
+      }
       abbrechen={t("dialog.abbrechen")}
-      ton="gefahr"
+      ton={offeneDa ? "normal" : "gefahr"}
       laedt={laedt}
-      gesperrt={grund === null}
+      gesperrt={grund === null || (!bereit && !offeneDa)}
       fehler={fehler ? fehlerText(fehler) : undefined}
       onSchliessen={onSchliessen}
-      onBestaetigen={() => grund && onBestaetigen(grund, text.trim() || null)}
+      onBestaetigen={() => {
+        if (offeneDa) onSerienAbschliessen?.();
+        else if (grund) onBestaetigen(grund, bemerkung());
+      }}
     >
       <Radio.Group
         value={grund}
@@ -394,6 +431,20 @@ export function AbbruchDialog({
           ))}
         </Stack>
       </Radio.Group>
+      {offeneDa && (
+        <OffeneSerienHinweis
+          liste={offeneSerien}
+          name={name}
+          status={status}
+          trotzdemGesperrt={laedt || !bereit}
+          onTrotzdem={() => onBestaetigen("dnf", bemerkung())}
+        />
+      )}
+      {!bereit && (
+        <p className={s.klein} role="status">
+          {t("abbruch.nicht_bereit")}
+        </p>
+      )}
       <Textarea
         label={t("abbruch.grund")}
         value={text}
@@ -403,6 +454,71 @@ export function AbbruchDialog({
         minRows={2}
       />
     </Bestaetigung>
+  );
+}
+
+/**
+ * Hinweis „Serie 2 ist noch nicht fertig erfasst …“: was beim Aufgeben passiert und welcher Schritt
+ * das Ergebnis wertbar hält. `status`: Bezeichnung von „Abbruch durch den Schützen“, wenn alle
+ * offenen Serien ihn kennen; sonst heißt der Schritt „fertig erfassen“.
+ */
+export function OffeneSerienHinweis({
+  liste,
+  name,
+  status,
+  ohnePlatz = false,
+  onTrotzdem,
+  trotzdemGesperrt = false,
+}: {
+  liste: readonly OffeneSerie[];
+  name: string;
+  status: string | null;
+  /** Der Start ist schon aufgegeben und steht deshalb ohne Platz da */
+  ohnePlatz?: boolean;
+  /** Nebenweg „Trotzdem aufgeben, ohne Platz“ (leise, unter dem Hinweis) */
+  onTrotzdem?: () => void;
+  trotzdemGesperrt?: boolean;
+}) {
+  const { t } = useTranslation("erfassung");
+  const werte = {
+    count: liste.length,
+    orte: orteText(liste, t("abbruch.und")),
+    name,
+    status: status ?? "",
+  };
+  if (ohnePlatz) {
+    return (
+      <div className={s.banner} data-ton="warn" role="status" data-ohne-platz>
+        <TriangleAlert aria-hidden />
+        <div>
+          <strong>{t("abbruch.ohne_platz.titel")}</strong>
+          <p>{t("abbruch.ohne_platz.text", werte)}</p>
+          <p className={s.klein}>
+            {status ? t("abbruch.ohne_platz.weg", werte) : t("abbruch.ohne_platz.weg_ohne_status")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className={s.banner} data-ton="warn" role="alert" data-offene-serien>
+      <TriangleAlert aria-hidden />
+      <div>
+        <strong>{t("abbruch.offen.titel", werte)}</strong>
+        <p>{status ? t("abbruch.offen.text", werte) : t("abbruch.offen.text_fertig", werte)}</p>
+        <p className={s.klein}>{t("abbruch.offen.folge", werte)}</p>
+        {onTrotzdem && (
+          <button
+            type="button"
+            className={s.trotzdem}
+            disabled={trotzdemGesperrt}
+            onClick={onTrotzdem}
+          >
+            {t("abbruch.offen.trotzdem")}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 

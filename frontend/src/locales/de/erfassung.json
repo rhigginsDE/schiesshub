@@ -85,6 +85,7 @@
     "versuch": "Start {{nr}} von {{von}}",
     "vorlaeufig": "vorläufig bis {{zeit}}",
     "max_ringe": "Wertung: Ringe, höchstens {{max}}",
+    "max_treffer": "Wertung: Treffer, höchstens {{max}}",
     "richtung": {
       "absteigend": "höchster Wert gewinnt",
       "aufsteigend": "niedrigster Wert gewinnt"
@@ -116,6 +117,7 @@
   },
   "einheit": {
     "ringe": "Ringe",
+    "treffer": "Treffer",
     "sekunden": "s"
   },
   "feld": {
@@ -185,6 +187,10 @@
       "innenzehner": "Anzahl Innenzehner",
       "neuner_abwaerts": "Anzahl Neuner, Achter und weiter abwärts (nur mit Einzelschuss)",
       "parcours_zeit": "Parcourszeit",
+      "letzte_serie_rueckwaerts": "Ringe der letzten Serie und rückwärts",
+      "schuesse_rueckwaerts": "Schusswerte vom letzten Schuss rückwärts",
+      "trefferfolge_rueckwaerts": "Trefferfolge ab der letzten Scheibe rückwärts",
+      "zehntel_gesamt": "Gesamtergebnis in Zehnteln",
       "unbekannt": "eine weitere Angabe"
     },
     "wird_berechnet": "wird neu berechnet"
@@ -192,6 +198,8 @@
   "fortschritt": {
     "schuss_one": "{{anzahl}} von {{count}} Schuss",
     "schuss_other": "{{anzahl}} von {{count}} Schuss",
+    "ziele_one": "{{anzahl}} von {{count}} Ziel",
+    "ziele_other": "{{anzahl}} von {{count}} Zielen",
     "serien_one": "{{anzahl}} von {{count}} Serie",
     "serien_other": "{{anzahl}} von {{count}} Serien",
     "gesamtzeiten_one": "{{anzahl}} von {{count}} Gesamtzeit",
@@ -200,6 +208,8 @@
   "rest": {
     "schuss_one": "noch {{count}} Schuss",
     "schuss_other": "noch {{count}} Schuss",
+    "ziele_one": "noch {{count}} Ziel",
+    "ziele_other": "noch {{count}} Ziele",
     "serien_one": "noch {{count}} Serie",
     "serien_other": "noch {{count}} Serien",
     "gesamtzeiten_one": "noch {{count}} Gesamtzeit",
@@ -273,6 +283,36 @@
       "dns": "Nicht angetreten",
       "dnf": "Aufgegeben",
       "dsq": "Disqualifiziert"
+    },
+    "nicht_bereit": "Die letzten Eingaben werden noch gespeichert. Warte auf „Gespeichert“, dann geht es weiter.",
+    "und": "und",
+    "offen": {
+      "titel_one": "{{orte}} ist noch nicht fertig erfasst.",
+      "titel_other": "{{orte}} sind noch nicht fertig erfasst.",
+      "text_one": "Damit {{name}} mit dem bisherigen Ergebnis gewertet wird, trag für diese Serie „{{status}}“ ein.",
+      "text_other": "Damit {{name}} mit dem bisherigen Ergebnis gewertet wird, trag für diese Serien „{{status}}“ ein.",
+      "text_fertig_one": "Damit {{name}} mit dem bisherigen Ergebnis gewertet wird, erfasse diese Serie fertig.",
+      "text_fertig_other": "Damit {{name}} mit dem bisherigen Ergebnis gewertet wird, erfasse diese Serien fertig.",
+      "folge": "Gibst du jetzt trotzdem auf, steht {{name}} ohne Platz in der Rangliste.",
+      "eintragen": "„{{status}}“ eintragen",
+      "zur_serie": "Zur Serie",
+      "trotzdem": "Trotzdem aufgeben, ohne Platz"
+    },
+    "vorgemerkt": {
+      "titel": "Aufgeben vorbereitet",
+      "fehlt": "{{orte}}: „{{status}}“ ist eingetragen. Trag noch {{felder}} ein, dann tipp auf „Jetzt aufgeben“.",
+      "fehlt_ohne_status": "Erfasse {{orte}} fertig ({{felder}} fehlt), dann tipp auf „Jetzt aufgeben“.",
+      "wartet": "Wird gespeichert …",
+      "bereit": "Alles erfasst. Tipp auf „Jetzt aufgeben“, um den Start als aufgegeben zu vermerken.",
+      "jetzt": "Jetzt aufgeben",
+      "doch_nicht": "Doch nicht aufgeben"
+    },
+    "ohne_platz": {
+      "titel": "Ohne Platz in der Rangliste",
+      "text_one": "{{orte}} war beim Aufgeben nicht fertig erfasst. Deshalb lässt sich das bisherige Ergebnis nicht mit den anderen vergleichen, und {{name}} steht ohne Platz in der Rangliste.",
+      "text_other": "{{orte}} waren beim Aufgeben nicht fertig erfasst. Deshalb lässt sich das bisherige Ergebnis nicht mit den anderen vergleichen, und {{name}} steht ohne Platz in der Rangliste.",
+      "weg": "Gewertet würde der Start, wenn für diese Serie „{{status}}“ erfasst wäre. Ein aufgegebener Start lässt sich aber nachträglich nicht mehr ändern, auch nicht als Korrektur.",
+      "weg_ohne_status": "Ein aufgegebener Start lässt sich nachträglich nicht mehr ändern, auch nicht als Korrektur."
     }
   },
   "korrektur": {

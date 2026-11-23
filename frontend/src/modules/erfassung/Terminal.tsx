@@ -30,7 +30,14 @@ import { zeigeMeldung } from "../../components/Meldungen";
 import { Fehlerzustand } from "../../components/Zustand";
 import { formatUhrzeit } from "../../lib/format";
 import type { StationStart } from "../anmeldung/api";
-import { formatWert, formatZeit, fortschrittText, restText, vorgaben } from "./anzeige";
+import {
+  formatWert,
+  formatZeit,
+  fortschrittText,
+  restText,
+  vorgaben,
+  zaehltTreffer,
+} from "./anzeige";
 import {
   type Abbruchgrund,
   type AbschnittForm,
@@ -47,11 +54,13 @@ import {
   vorschauAbfrage,
   type Wertung,
 } from "./api";
+import { ABBRUCH_DURCH_SCHUETZEN, type OffeneSerie, offeneSerien, orteText } from "./aufgeben";
 import { type Namen, nameVon } from "./auswahl";
 import {
   AbbruchDialog,
   AenderungsListe,
   GrundDialog,
+  OffeneSerienHinweis,
   PruefDialog,
   type PruefKopf,
 } from "./Dialoge";
@@ -87,6 +96,7 @@ import {
   type Schusswert,
   schuesseAus,
   serieAus,
+  serienPfad,
   setzeWert,
   stabil,
   uebrigeMeldungen,
@@ -127,6 +137,10 @@ interface TerminalProps {
   vorschlag: () => StationStart | null;
   namen: Namen;
   onOeffnen: (startId: string) => void;
+  /** Vom Schießstand mit „aufgegeben“ hierher geschickt: Rückfrage zum Aufgeben gleich öffnen */
+  aufgeben?: boolean;
+  /** Die Bitte `aufgeben` ist angekommen (aus der Adresse nehmen) */
+  onAufgebenGelesen?: () => void;
 }
 
 /** Mitte und rechte Spalte: Erfassungsfläche eines Starts mit Ziffernfeld und Aktionen. */
@@ -176,6 +190,8 @@ function Flaeche({
   vorschlag,
   namen,
   onOeffnen,
+  aufgeben,
+  onAufgebenGelesen,
   maske,
   wechselt,
 }: FlaecheProps) {
@@ -713,10 +729,69 @@ function Flaeche({
     vorgang(
       (schluessel) => ergebnisApi.abbrechen(turnierId, startId, grund, text, schluessel),
       () => {
+        setVorgemerkt(null);
         zeigeMeldung({ ton: "info", titel: t("abbruch.erledigt", { wer }) });
         setVorgeschlagen(vorschlag());
       },
     );
+
+  // --- Aufgeben mit angefangener Serie (aufgeben.ts) ---
+
+  // Laut Server angefangene, unvollständige Serien: Ein Aufgeben ließe den Start ohne Platz.
+  const offene = offeneSerien(form, basis.computed);
+  const [abbruchGrund, setAbbruchGrund] = useState<Abbruchgrund | null>(null);
+  /** „Abbruch durch den Schützen“ ist eingetragen, das Aufgeben steht noch aus. */
+  const [vorgemerkt, setVorgemerkt] = useState<readonly OffeneSerie[] | null>(null);
+
+  const abbruchOeffnen = (grund: Abbruchgrund | null) => {
+    setAbbruchGrund(grund);
+    oeffneDialog("abbruch");
+  };
+
+  /**
+   * Hauptaktion der Rückfrage bei offenen Serien: trägt „Abbruch durch den Schützen“ ein (wo die
+   * Serie den Status kennt) und führt zum ersten noch leeren Feld dieser Serien. Aufgegeben wird
+   * danach ausdrücklich mit „Jetzt aufgeben“, wenn der Server die Serien vollständig hat.
+   */
+  const serienAbschliessen = () => {
+    let e = sitzung.lesen().entwurf;
+    for (const offen of offene) {
+      if (!offen.abbruchStatus) continue;
+      e = setzeWert(
+        e,
+        { abschnitt: offen.abschnitt.id, serie: offen.serie.index, key: "status" },
+        ABBRUCH_DURCH_SCHUETZEN,
+      );
+    }
+    if (e !== sitzung.lesen().entwurf) sitzung.aendern(e);
+    setDialog(null);
+    setVorgemerkt(offene);
+    tastaturZurueck();
+    const refs = liste(e);
+    const ziel = offene
+      .map((offen) =>
+        erstesOffenes(
+          refs.filter((r) => r.abschnitt === offen.abschnitt.id && r.serie === offen.serie.index),
+          e,
+        ),
+      )
+      .find((ref) => ref !== null);
+    gehe(ziel ?? null);
+  };
+
+  // Vom Schießstand mit „aufgegeben“ geschickt: Rückfrage einmal öffnen.
+  const aufgebenGelesen = useRef(false);
+  useEffect(() => {
+    if (!aufgeben || aufgebenGelesen.current) return;
+    aufgebenGelesen.current = true;
+    onAufgebenGelesen?.();
+    if (basis.status !== "final" && basis.status !== "aborted" && darfErfassen) {
+      setAbbruchGrund("dnf");
+      vorgangSchluessel.current = neuerSchluessel();
+      setVorgangFehler(null);
+      setDialog("abbruch");
+    }
+  }, [aufgeben, onAufgebenGelesen, basis.status, darfErfassen]);
 
   const wiederOeffnen = (grund: string) =>
     vorgang(
@@ -809,6 +884,22 @@ function Flaeche({
     !vorschau.isPlaceholderData &&
     !vorschau.isFetching;
   const naechsterVorschlag = vorgeschlagen ?? (abgeschlossen || abgebrochen ? vorschlag() : null);
+  /** Alle Eingaben hat der Server (Grundlage für die offenen Serien und das Aufgeben). */
+  const allesBeimServer = !zustand.ungespeichert && phase === "gespeichert";
+  /** Bezeichnung von „Abbruch durch den Schützen“, wenn alle Serien der Liste ihn kennen */
+  const statusVon = (liste: readonly OffeneSerie[]) =>
+    liste.length > 0 && liste.every((o) => o.abbruchStatus)
+      ? (liste[0]?.abbruchStatus ?? null)
+      : null;
+  // Vorgemerktes Aufgeben: was in diesen Serien laut Eingabe noch fehlt.
+  const vorgemerktPfade = new Set(
+    (vorgemerkt ?? []).map((o) => serienPfad(o.abschnitt.id, o.serie.index)),
+  );
+  const vorgemerktFehlt = vorgemerkt
+    ? fehlstellen(form, entwurf).filter((f) => vorgemerktPfade.has(f.pfad))
+    : [];
+  // Aufgegeben mit offener Serie: steht ohne Platz in der Rangliste (Hinweis am Start).
+  const ohnePlatz = abgebrochen && basis.abort_reason === "dnf" ? offene : [];
 
   return (
     <>
@@ -860,6 +951,26 @@ function Flaeche({
               <AenderungsListe liste={korrekturAenderungen} />
             </div>
           </div>
+        )}
+        {vorgemerkt && !abgeschlossen && !abgebrochen && !korrektur && (
+          <AufgebenVorgemerkt
+            liste={vorgemerkt}
+            status={statusVon(vorgemerkt)}
+            fehlt={vorgemerktFehlt.flatMap((f) => f.felder)}
+            bereit={allesBeimServer && offene.length === 0}
+            wartet={!allesBeimServer}
+            darf={darfErfassen}
+            onJetzt={() => abbruchOeffnen("dnf")}
+            onDochNicht={() => setVorgemerkt(null)}
+          />
+        )}
+        {ohnePlatz.length > 0 && (
+          <OffeneSerienHinweis
+            liste={ohnePlatz}
+            name={pruefKopf.name}
+            status={statusVon(ohnePlatz)}
+            ohnePlatz
+          />
         )}
 
         {(ringe || form.notes.length > 0) && (
@@ -1062,7 +1173,8 @@ function Flaeche({
                   : luecken.length > 0
                     ? t("abschluss.fehlt")
                     : wertung
-                      ? (restText(wertung.progress, t) ?? t("abschluss.warten"))
+                      ? (restText(wertung.progress, t, zaehltTreffer(wertung.unit)) ??
+                        t("abschluss.warten"))
                       : t("abschluss.warten")}
               </p>
               {!vollstaendig && luecken.length > 0 && (
@@ -1094,7 +1206,7 @@ function Flaeche({
                 color="red"
                 leftSection={<Ban aria-hidden />}
                 disabled={!darfErfassen}
-                onClick={() => oeffneDialog("abbruch")}
+                onClick={() => abbruchOeffnen(null)}
               >
                 {t("abbruch.knopf")}
               </Button>
@@ -1128,6 +1240,11 @@ function Flaeche({
           onSchliessen={() => setDialog(null)}
           onBestaetigen={(grund, text) => void abbrechen(grund, text)}
           wer={wer}
+          name={pruefKopf.name}
+          startGrund={abbruchGrund}
+          offeneSerien={offene}
+          onSerienAbschliessen={serienAbschliessen}
+          bereit={allesBeimServer || phase === "abgelehnt"}
         />
       )}
       {dialog === "oeffnen" && (
@@ -1245,7 +1362,9 @@ function Kopf({
           <span className="gedaempft">
             {maske.form.variant_name !== "Standard" ? `${maske.form.variant_name} · ` : ""}
             {maske.form.max_rings != null
-              ? t("kopf.max_ringe", { max: formatWert(maske.form.max_rings) })
+              ? t(zaehltTreffer(maske.form.unit) ? "kopf.max_treffer" : "kopf.max_ringe", {
+                  max: formatWert(maske.form.max_rings),
+                })
               : t(`kopf.richtung.${maske.form.direction}`)}
           </span>
           {vorgabenListe.length > 0 && (
@@ -1319,10 +1438,12 @@ function Gesamtstand({
   const korrekturGeaendert = korrektur && (vorschau !== null || berechnet);
   const nochNichts = gleicheRohwerte(basis.raw, {});
   const nebenwerte: { name: string; wert: string }[] = [];
-  if (wertung.tens !== null && wertung.rings !== null) {
+  // Treffer je Ziel (Wurfscheibe): Zehner und Innenzehner gibt es dort nicht.
+  const treffer = zaehltTreffer(wertung.unit);
+  if (wertung.tens !== null && wertung.rings !== null && !treffer) {
     nebenwerte.push({ name: t("gesamt.zehner"), wert: formatWert(wertung.tens) });
   }
-  if (wertung.inner_tens !== null && wertung.rings !== null) {
+  if (wertung.inner_tens !== null && wertung.rings !== null && !treffer) {
     nebenwerte.push({ name: t("gesamt.innenzehner"), wert: formatWert(wertung.inner_tens) });
   }
   if (wertung.penalty_cs) {
@@ -1358,7 +1479,7 @@ function Gesamtstand({
         )}
       </div>
       <p className={s.fortschritt}>
-        <span className="num">{fortschrittText(wertung.progress, t)}</span>
+        <span className="num">{fortschrittText(wertung.progress, t, treffer)}</span>
         {(korrektur ? korrekturGeaendert && !vorschauAktuell && !vorschauFehler : berechnet) && (
           <span className={s.berechnet}>
             <Loader size={12} aria-hidden />
@@ -1411,6 +1532,65 @@ function Gesamtstand({
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * Nach „Abbruch durch den Schützen eintragen“: sagt, was in der Serie noch fehlt, und bietet
+ * „Jetzt aufgeben“ an, sobald der Server die Serie vollständig hat.
+ */
+function AufgebenVorgemerkt({
+  liste,
+  status,
+  fehlt,
+  bereit,
+  wartet,
+  darf,
+  onJetzt,
+  onDochNicht,
+}: {
+  liste: readonly OffeneSerie[];
+  status: string | null;
+  /** Bezeichnungen der fehlenden Felder in diesen Serien (laut Eingabe) */
+  fehlt: readonly string[];
+  bereit: boolean;
+  wartet: boolean;
+  darf: boolean;
+  onJetzt: () => void;
+  onDochNicht: () => void;
+}) {
+  const { t } = useTranslation("erfassung");
+  const orte = orteText(liste, t("abbruch.und"));
+  const felder = [...new Set(fehlt)].join(", ");
+  const text = bereit
+    ? t("abbruch.vorgemerkt.bereit")
+    : felder
+      ? status
+        ? t("abbruch.vorgemerkt.fehlt", { orte, status, felder })
+        : t("abbruch.vorgemerkt.fehlt_ohne_status", { orte, felder })
+      : t("abbruch.vorgemerkt.wartet");
+  return (
+    <div className={s.banner} data-ton="info" data-aufgeben-vorgemerkt>
+      <Ban aria-hidden />
+      <div>
+        <strong>{t("abbruch.vorgemerkt.titel")}</strong>
+        <p aria-live="polite">{wartet && !felder ? t("abbruch.vorgemerkt.wartet") : text}</p>
+      </div>
+      <div className={s.bannerAktionen}>
+        <Button
+          variant="light"
+          color="red"
+          leftSection={<Ban aria-hidden />}
+          disabled={!bereit || !darf}
+          onClick={onJetzt}
+        >
+          {t("abbruch.vorgemerkt.jetzt")}
+        </Button>
+        <Button variant="subtle" onClick={onDochNicht}>
+          {t("abbruch.vorgemerkt.doch_nicht")}
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -1485,7 +1665,7 @@ function KonfliktHinweis({
           <p className="num">
             {t("konflikt.server", {
               ergebnis: `${formatWert(wertung.score)} ${wertung.unit}`,
-              fortschritt: fortschrittText(wertung.progress, t),
+              fortschritt: fortschrittText(wertung.progress, t, zaehltTreffer(wertung.unit)),
             })}
           </p>
         )}

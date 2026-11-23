@@ -267,6 +267,26 @@
   color: var(--sh-warn);
 }
 
+/* Abbruch mit Platz (nach „Feuer“): dezentes Kennzeichen mit feinem Rahmen, neutral – nicht gold
+   (Platz 1), nicht grün (läuft), nicht rot (ohne Platz). */
+.abbruchMarke {
+  display: inline-block;
+  padding: 0 0.7cqmin;
+  border: 0.12cqmin solid var(--sh-linie-stark);
+  border-radius: 0.6cqmin;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--sh-text-weich);
+  white-space: nowrap;
+}
+
+/* Begründung zu einem Start ohne Platz („Ergebnis nicht vergleichbar: …“): leiser als der Grund */
+.unter .abbruchNotiz {
+  font-weight: 400;
+  color: var(--sh-text-gedaempft);
+}
+
 /* Geteilter Platz, offen (Stechen oder von Hand): dezent, kein Alarm. */
 .gleichstand {
   color: var(--sh-info);
@@ -685,6 +705,16 @@
 .stufeName span.gleichstand {
   font-weight: 600;
   color: var(--sh-info);
+}
+
+/* Auf dem Podest: das Kennzeichen als kleines Etikett unter dem Verein, mittig */
+.stufeName span.abbruchMarke {
+  justify-self: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: calc(2cqmin * var(--skala));
+  color: var(--sh-text-weich);
 }
 
 .sockel {

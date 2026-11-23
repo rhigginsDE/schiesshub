@@ -2,12 +2,15 @@ import { describe, expect, it } from "vitest";
 import { csvIstLeer, exportPfad } from "../../components/ExportKnoepfe";
 import { ereignisseZumNachladen, passtEreignis } from "./ereignisse";
 import {
+  abbruchText,
   alsPosition,
   bahnFortschritt,
   feedUhrzeit,
   gesamtTeile,
   gleichstandHinweis,
+  gleichstandWort,
   hauptSerie,
+  istPlatzierterAbbruch,
   laengstesWort,
   laufendeSerien,
   mitErgebnis,
@@ -36,7 +39,7 @@ import {
   zeilenProSeite,
 } from "./rotation";
 import { startlistenZeilen } from "./schirm/Startliste";
-import { beispielFeed, rangliste, szenen, zeile } from "./testdaten";
+import { abbruchRangliste, beispielFeed, rangliste, szenen, zeile } from "./testdaten";
 import type { SzeneVon } from "./typen";
 import {
   type Entwurf,
@@ -278,6 +281,30 @@ describe("Gleichstand (Stechen, von Hand)", () => {
     ).toBe("manuell");
   });
 
+  it("liest das formelle Wort (tie_word) vorn aus dem Hinweis des Servers", () => {
+    expect(gleichstandWort({ tie_note: "Ringgleichheit auf Platz 1: Stechen" })).toBe(
+      "Ringgleichheit",
+    );
+    expect(
+      gleichstandWort({
+        tie_note:
+          "Treffergleichheit: nach Sportordnung manuell entscheiden (nächstes Kriterium: x)",
+      }),
+    ).toBe("Treffergleichheit");
+    expect(gleichstandWort({ tie_note: "gleiches Ergebnis nicht auflösbar: Angaben fehlen" })).toBe(
+      "gleiches Ergebnis",
+    );
+    // Ein mitgeliefertes Wort (RankingOut.tie_word) hat Vorrang.
+    expect(
+      gleichstandWort({ tie_note: "Ringgleichheit auf Platz 1: Stechen" }, "Treffergleichheit"),
+    ).toBe("Treffergleichheit");
+    // Alter Text ohne erkennbares Wort, kein Hinweis: kein Wort
+    expect(
+      gleichstandWort({ tie_note: "Gleichstand nach Sportordnung manuell entscheiden (x: y)" }),
+    ).toBeNull();
+    expect(gleichstandWort({ tie_note: null })).toBeNull();
+  });
+
   it("ein geteilter Platz ohne offene Frage (z. B. Fallscheibe) bleibt ohne Hinweis", () => {
     expect(gleichstandHinweis({ tied: true, needs_shootoff: false, tie_note: null })).toBeNull();
     expect(gleichstandHinweis({ tied: false, needs_shootoff: false })).toBeNull();
@@ -500,6 +527,43 @@ describe("Abgebrochene Starts", () => {
     expect(mitWeiterenPlaetzen([eins, zwei, ab])).toBe(false);
     expect(mitWeiterenPlaetzen([eins, zwei, drei, ab])).toBe(false);
     expect(mitWeiterenPlaetzen([eins, zwei, drei, vier])).toBe(true);
+  });
+
+  it("Abbruch nach „Feuer“ hat einen Platz: steht unter den Plätzen und kann aufs Podest", () => {
+    const liste = abbruchRangliste();
+    const gruppe = liste.groups[0];
+    if (!gruppe) throw new Error("Testdaten");
+    const platziert = gruppe.rows.find((z) => z.start_id === "f2");
+    if (!platziert) throw new Error("Testdaten");
+    expect(istPlatzierterAbbruch(platziert)).toBe(true);
+    expect(istPlatzierterAbbruch(gruppe.unplaced[0] as typeof platziert)).toBe(false);
+    expect(istPlatzierterAbbruch(zwei)).toBe(false);
+    expect(siegerAufteilung(gruppe.rows).podest.map((z) => z.start_id)).toContain("f2");
+    const arten = ranglistenEintraege(liste).map((e) =>
+      e.art === "zeile" || e.art === "ohne" ? `${e.art}:${e.zeile.start_id}` : e.art,
+    );
+    expect(arten).toEqual([
+      "zeile:f1",
+      "zeile:f2",
+      "zeile:f3",
+      "zeile:f4",
+      "ohne_kopf",
+      "ohne:f5",
+      "ohne:f6",
+    ]);
+  });
+
+  it("Kennzeichen kommt vom Server (abort_label); eigener Text nur als Rückfall", () => {
+    const rueckfall = (grund: string) => `fest:${grund}`;
+    expect(abbruchText({ abort_reason: "dnf", abort_label: "Abbruch (AB)" }, rueckfall)).toBe(
+      "Abbruch (AB)",
+    );
+    expect(abbruchText({ abort_reason: "dnf", abort_label: "aufgegeben" }, rueckfall)).toBe(
+      "aufgegeben",
+    );
+    expect(abbruchText({ abort_reason: "dsq" }, rueckfall)).toBe("fest:dsq");
+    expect(abbruchText({ abort_reason: "dns", abort_label: "  " }, rueckfall)).toBe("fest:dns");
+    expect(abbruchText({ abort_reason: null, abort_label: null }, rueckfall)).toBeNull();
   });
 
   it("QA G-8: das längste Wort bestimmt die Schrift auf dem Podest („Startnummer 5“)", () => {

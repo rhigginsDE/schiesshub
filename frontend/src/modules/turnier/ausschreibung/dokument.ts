@@ -1,5 +1,12 @@
 import { formatGeld } from "../../../components/geld";
 import i18n, { aktiveSprache } from "../../../i18n";
+import {
+  BEGRIFFE_RUECKFALL,
+  type Begriffe,
+  type BegriffSchluessel,
+  type Begriffssaetze,
+  begriffeFuer,
+} from "../../../lib/begriffe";
 import { formatDatum } from "../../../lib/format";
 import { abschnittKurz, startsKurz, zeitraum } from "../klartext";
 import type { TurnierUebersicht } from "../typen";
@@ -8,9 +15,49 @@ import type {
   AusschreibungDokument,
   Baustein,
   DokumentBaustein,
+  DokumentStand,
   DokumentWettbewerb,
   Eckdaten,
 } from "./typen";
+
+/**
+ * Ein vollständiger Begriffssatz: je Wort das erste nicht leere aus den Sätzen (in der genannten
+ * Reihenfolge), sonst das bisherige feste Wort (`BEGRIFFE_RUECKFALL`).
+ */
+export function begriffeAus(...saetze: (Partial<Begriffe> | null | undefined)[]): Begriffe {
+  const ergebnis = { ...BEGRIFFE_RUECKFALL };
+  for (const schluessel of Object.keys(ergebnis) as BegriffSchluessel[]) {
+    for (const satz of saetze) {
+      const wort = satz?.[schluessel];
+      if (typeof wort === "string" && wort.trim() !== "") {
+        ergebnis[schluessel] = wort;
+        break;
+      }
+    }
+  }
+  return ergebnis;
+}
+
+/**
+ * Begriffe für turnierweite Teile wie der Server (`document_terms`): der Satz des Verbands, wenn
+ * alle Katalog-Wettbewerbe aus einem Verband stammen; sonst der Standardsatz.
+ */
+export function dokumentBegriffe(
+  saetze: Begriffssaetze | null | undefined,
+  wettbewerbe: readonly { catalog_federation: string | null }[],
+): Begriffe {
+  const verbaende = new Set(
+    wettbewerbe.flatMap((w) =>
+      w.catalog_federation ? [w.catalog_federation.trim().toLowerCase()] : [],
+    ),
+  );
+  return begriffeFuer(saetze, verbaende.size === 1 ? [...verbaende][0] : null);
+}
+
+/** „6 Schützenstände“, „1 Schützenstand“ – wie `lanes_text` des Servers. */
+export function schuetzenstaendeText(anzahl: number, begriffe: Begriffe): string {
+  return `${anzahl} ${anzahl === 1 ? begriffe.schuetzenstand : begriffe.schuetzenstaende}`;
+}
 
 /** Text in Absätze: Leerzeilen trennen, einfache Umbrüche bleiben im Absatz. */
 export function absaetze(text: string): string[] {
@@ -29,13 +76,15 @@ export function istLeer(baustein: Pick<Baustein, "kind" | "body">): boolean {
 /**
  * Dokument aus dem ungespeicherten Entwurf und den Turnierdaten, wie es der Server zusammensetzen
  * würde (`announcement.py`). Für die Live-Vorschau und als Ersatz, wenn `…/document` fehlt.
- * Abweichungen vom Katalog kennt nur der Server; sie kommen aus `server`, wenn vorhanden.
+ * Die formellen Wörter (`terms`) nimmt sie vom Server-Dokument, sonst aus den Begriffssätzen
+ * (`GET /terms`); fehlt beides, bleiben sie leer und das Druckmodell nimmt den Rückfall.
  */
 export function dokumentAusEntwurf(
   entwurf: Ausschreibung,
   turnier: TurnierUebersicht,
   server?: AusschreibungDokument | null,
   sprache: string = aktiveSprache(),
+  saetze?: Begriffssaetze | null,
 ): AusschreibungDokument {
   const waehrung = turnier.settings.currency;
   const standName = new Map(turnier.ranges.map((stand) => [stand.id, stand.name]));
@@ -45,10 +94,14 @@ export function dokumentAusEntwurf(
       w,
     ]),
   );
+  const begriffe: Partial<Begriffe> | null =
+    server?.terms ?? (saetze ? dokumentBegriffe(saetze, turnier.competitions) : null);
 
   const wettbewerbe = (): DokumentWettbewerb[] =>
     turnier.competitions.map((w) => {
       const vomServer = serverWettbewerbe.get(w.id);
+      const terms =
+        vomServer?.terms ?? (saetze ? begriffeFuer(saetze, w.catalog_federation) : null);
       return {
         id: w.id,
         name: w.name,
@@ -71,8 +124,7 @@ export function dokumentAusEntwurf(
         max_starts: w.max_starts,
         multi_start_rule: w.multi_start_rule,
         multi_start_text: startsKurz(w, sprache),
-        deviates_from_catalog: vomServer?.deviates_from_catalog ?? false,
-        deviations: vomServer?.deviations ?? [],
+        terms,
       };
     });
 
@@ -108,7 +160,13 @@ export function dokumentAusEntwurf(
         };
       }
       if (b.kind === "ranges") {
-        eintrag.ranges = turnier.ranges.map((r) => ({ name: r.name, lane_count: r.lane_count }));
+        eintrag.ranges = turnier.ranges.map(
+          (r): DokumentStand => ({
+            name: r.name,
+            lane_count: r.lane_count,
+            lanes_text: begriffe ? schuetzenstaendeText(r.lane_count, begriffeAus(begriffe)) : null,
+          }),
+        );
       }
       return eintrag;
     });
@@ -127,6 +185,7 @@ export function dokumentAusEntwurf(
     },
     facts: entwurf.facts,
     blocks: bausteine,
+    terms: begriffe,
   };
 }
 
@@ -162,10 +221,22 @@ interface DruckBasis {
   absaetze: string[];
 }
 
+/** Spaltenköpfe der Wettbewerbstabelle: formelle Wörter aus den Begriffen. */
+export interface WettbewerbSpalten {
+  kennziffer: string;
+  schiessstand: string;
+  startgeld: string;
+}
+
 export type DruckBaustein = DruckBasis &
   (
     | { art: "text" }
-    | { art: "wettbewerbe"; wettbewerbe: DruckWettbewerb[]; mitGeld: boolean }
+    | {
+        art: "wettbewerbe";
+        wettbewerbe: DruckWettbewerb[];
+        mitGeld: boolean;
+        spalten: WettbewerbSpalten;
+      }
     | { art: "klassen"; klassen: string[] }
     | { art: "gebuehren"; zeilen: DruckGebuehr[] }
     | { art: "termine"; zeilen: Zeile[] }
@@ -179,6 +250,21 @@ export interface DruckModell {
   zeitraum: string;
   eckdaten: Zeile[];
   bausteine: DruckBaustein[];
+  /** Formelle Wörter für turnierweite Teile, vollständig (mit Rückfall) */
+  begriffe: Begriffe;
+}
+
+/**
+ * Wort für einen Spaltenkopf über mehrere Wettbewerbe: Nennen alle Wettbewerbe dasselbe Wort, gilt
+ * es (Wettbewerbs-Begriffe); sonst das Wort des Dokuments.
+ */
+function gemeinsamesWort(
+  liste: readonly DokumentWettbewerb[],
+  schluessel: BegriffSchluessel,
+  dokument: Begriffe,
+): string {
+  const woerter = [...new Set(liste.map((w) => begriffeAus(w.terms, dokument)[schluessel]))];
+  return woerter.length === 1 && woerter[0] ? woerter[0] : dokument[schluessel];
 }
 
 function eckdatenZeilen(eckdaten: Eckdaten, sprache: string): Zeile[] {
@@ -213,6 +299,7 @@ export function druckModell(
   kennziffern: ReadonlyMap<string, string | null> = new Map(),
 ): DruckModell {
   const t = i18n.getFixedT(sprache, "turnier", "ausschreibung");
+  const begriffe = begriffeAus(dokument.terms);
   const waehrung = dokument.tournament.currency;
   const geld = (cent: number) => formatGeld(cent, waehrung, sprache);
   const gebuehren = new Map(
@@ -242,6 +329,11 @@ export function druckModell(
         ...basis,
         art: "wettbewerbe",
         mitGeld: gebuehren.size > 0,
+        spalten: {
+          kennziffer: gemeinsamesWort(liste, "kennziffer", begriffe),
+          schiessstand: gemeinsamesWort(liste, "schiessstand", begriffe),
+          startgeld: gemeinsamesWort(liste, "startgeld", begriffe),
+        },
         wettbewerbe: liste.map((w) => {
           const g = gebuehren.get(w.id);
           return {
@@ -297,8 +389,12 @@ export function druckModell(
       continue;
     }
     if (b.kind === "ranges") {
+      // Text zur Zahl der Schützenstände kommt fertig vom Server (`lanes_text`).
       const zeilen = (b.ranges ?? []).map((r) =>
-        t("staende.zeile", { name: r.name, count: r.lane_count }),
+        t("staende.zeile", {
+          name: r.name,
+          schuetzenstaende: r.lanes_text?.trim() || schuetzenstaendeText(r.lane_count, begriffe),
+        }),
       );
       if (zeilen.length === 0 && basis.absaetze.length === 0) continue;
       bausteine.push({ ...basis, art: "staende", zeilen });
@@ -312,5 +408,6 @@ export function druckModell(
     zeitraum: zeitraum(dokument.tournament, sprache),
     eckdaten: eckdatenZeilen(dokument.facts, sprache),
     bausteine,
+    begriffe,
   };
 }

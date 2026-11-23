@@ -71,13 +71,13 @@ export function BausteinBlatt({ baustein }: { baustein: DruckBaustein }) {
         <table className={s.tabelle}>
           <thead>
             <tr>
-              <th scope="col">{t("ausschreibung.druck.kennziffer")}</th>
+              <th scope="col">{baustein.spalten.kennziffer}</th>
               <th scope="col">{t("ausschreibung.druck.wettbewerb")}</th>
               <th scope="col">{t("ausschreibung.druck.ablauf")}</th>
-              <th scope="col">{t("ausschreibung.druck.stand_spalte")}</th>
+              <th scope="col">{baustein.spalten.schiessstand}</th>
               {baustein.mitGeld && (
                 <th scope="col" className={s.rechts}>
-                  {t("ausschreibung.druck.startgeld")}
+                  {t("ausschreibung.druck.startgeld", { startgeld: baustein.spalten.startgeld })}
                 </th>
               )}
             </tr>

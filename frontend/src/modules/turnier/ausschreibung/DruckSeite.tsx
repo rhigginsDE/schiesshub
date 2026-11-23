@@ -6,6 +6,7 @@ import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Fehlerzustand, Leerzustand } from "../../../components/Zustand";
+import { useBegriffe } from "../../../lib/begriffe";
 import { uebersichtAbfrage } from "../abfragen";
 import { EINRICHTEN_PFAD } from "../pfade";
 import { ausschreibungAbfrage, ausschreibungDokumentAbfrage } from "./abfragen";
@@ -41,6 +42,8 @@ export function DruckSeite({ turnierId }: { turnierId: string }) {
   // Auch mit Dokument: liefert die Kennziffern für die Startgeld-Tabelle.
   const turnier = useQuery(uebersichtAbfrage(turnierId));
   const [erstellt] = useState(() => new Date());
+  // Nur für den Ersatz ohne Server-Dokument: Begriffe der Verbände (das Dokument bringt sie mit).
+  const saetze = useBegriffe();
 
   const modell = useMemo(() => {
     const kennziffern = new Map(
@@ -49,13 +52,13 @@ export function DruckSeite({ turnierId }: { turnierId: string }) {
     if (dokument.data) return druckModell(dokument.data, i18n.language, kennziffern);
     if (ersatz && entwurf.data && turnier.data) {
       return druckModell(
-        dokumentAusEntwurf(entwurf.data, turnier.data),
+        dokumentAusEntwurf(entwurf.data, turnier.data, null, i18n.language, saetze),
         i18n.language,
         kennziffern,
       );
     }
     return null;
-  }, [dokument.data, ersatz, entwurf.data, turnier.data, i18n.language]);
+  }, [dokument.data, ersatz, entwurf.data, turnier.data, i18n.language, saetze]);
 
   useEffect(() => {
     if (!modell) return;

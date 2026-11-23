@@ -49,6 +49,48 @@ export function gleichstandHinweis(zeile: {
   return null;
 }
 
+/**
+ * Das formelle Wort für gleiche Ergebnisse („Ringgleichheit“, „Treffergleichheit“, „gleiches
+ * Ergebnis“). Der Feed liefert kein eigenes Feld dafür; der Hinweis `tie_note` des Servers beginnt
+ * aber mit genau diesem Wort („Ringgleichheit auf Platz 1: Stechen“, „Ringgleichheit: nach
+ * Sportordnung …“, „Ringgleichheit nicht auflösbar: …“). `wort` (z. B. `RankingOut.tie_word`)
+ * hat Vorrang. Ohne erkennbares Wort `null` – dann bleibt der Hinweis ohne Wort.
+ */
+export function gleichstandWort(
+  zeile: { tie_note?: string | null },
+  wort?: string | null,
+): string | null {
+  if (wort?.trim()) return wort.trim();
+  const treffer = zeile.tie_note
+    ? /^\s*([^:]{2,30}?)(?: auf Platz \d+:| nicht auflösbar|:)/.exec(zeile.tie_note)
+    : null;
+  return treffer?.[1]?.trim() || null;
+}
+
+export type AbbruchGrund = NonNullable<FeedZeile["abort_reason"]>;
+
+/**
+ * Kennzeichen eines Abbruchs, wie der Server es liefert (`abort_label`: „Abbruch (AB)“, „nicht
+ * angetreten“, „disqualifiziert“ – künftig je Verband). Fehlt das Feld (älterer Server), sagt
+ * `rueckfall` den bisherigen Text zum Grund. Ohne Abbruch `null`.
+ */
+export function abbruchText(
+  zeile: { abort_reason?: AbbruchGrund | null; abort_label?: string | null },
+  rueckfall: (grund: AbbruchGrund) => string,
+): string | null {
+  const label = zeile.abort_label?.trim();
+  if (label) return label;
+  return zeile.abort_reason ? rueckfall(zeile.abort_reason) : null;
+}
+
+/**
+ * Abbruch mit Platz (nach dem Kommando „Feuer“, Sporthandbuch K 1.14 / L 1.12): steht mit dem
+ * gewerteten Ergebnis unter den Plätzen und trägt nur ein dezentes Kennzeichen.
+ */
+export function istPlatzierterAbbruch(zeile: Pick<FeedZeile, "abort_reason" | "place">): boolean {
+  return zeile.abort_reason != null && zeile.place != null;
+}
+
 /** So viele Serienspalten braucht die Rangliste (die längste Zeile zählt). */
 export function serienAnzahl(rangliste: FeedRangliste): number {
   let anzahl = 0;
@@ -117,8 +159,9 @@ type Kopf = Extract<RanglistenEintrag, { art: "klasse" | "ohne_kopf" }>;
 /**
  * Macht aus den Wertungsgruppen eine flache Liste gleich hoher Einträge, damit sie sich nach der
  * verfügbaren Höhe in Seiten teilen lässt. Klassenköpfe nur, wenn es mehrere Gruppen gibt oder
- * die Gruppe einen Namen hat. Abgebrochene (`unplaced`) stehen je Gruppe in einem eigenen Block
- * „Ohne Platzierung“ hinter den Plätzen, nie dazwischen.
+ * die Gruppe einen Namen hat. Starts ohne Platz (`unplaced`: nicht angetreten, disqualifiziert,
+ * Abbruch ohne wertbares Ergebnis) stehen je Gruppe in einem eigenen Block „Ohne Platzierung“
+ * hinter den Plätzen, nie dazwischen. Ein Abbruch mit Platz steht in `rows` wie jedes Ergebnis.
  */
 export function ranglistenEintraege(rangliste: FeedRangliste): RanglistenEintrag[] {
   const eintraege: RanglistenEintrag[] = [];
@@ -397,8 +440,9 @@ export function podestStufe(platz: number | null, stelle: number): 1 | 2 | 3 {
 }
 
 /**
- * Siegerliste einer Klasse: aufs Podest die ersten drei Plätze, die weiteren Plätze danach.
- * Abgebrochene (nicht angetreten, aufgegeben, disqualifiziert) liefert der Feed getrennt in
+ * Ergebnisliste einer Klasse: aufs Podest die ersten drei Plätze, die weiteren Plätze danach. Ein
+ * Abbruch nach „Feuer“ hat einen Platz und kann auch aufs Podest. Starts ohne Platz (nicht
+ * angetreten, disqualifiziert, Abbruch ohne wertbares Ergebnis) liefert der Feed getrennt in
  * `unplaced`; sie stehen nie auf dem Podest und nie unter den Plätzen.
  */
 export function siegerAufteilung(zeilen: readonly FeedZeile[]): {

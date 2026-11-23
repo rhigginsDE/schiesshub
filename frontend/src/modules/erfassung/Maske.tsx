@@ -4,7 +4,14 @@ import type { CSSProperties, MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { PositionsAblauf } from "../../components/anschlag/PositionsAblauf";
 import type { Position } from "../../components/anschlag/typen";
-import { abschnittsHinweise, feldBereich, formatWert, formatZeit, serienAnzeige } from "./anzeige";
+import {
+  abschnittsHinweise,
+  feldBereich,
+  formatWert,
+  formatZeit,
+  serienAnzeige,
+  zaehltTreffer,
+} from "./anzeige";
 import type {
   AbschnittForm,
   AbschnittWertung,
@@ -214,7 +221,7 @@ function SerieKarte(props: SerieKarteProps) {
   const fehler = meldungenFuer(props.fehler, pfad);
   const warnungen = meldungenFuer(props.warnungen, pfad);
   const wertungSerie = wertungAbschnitt?.series[serie.index];
-  const anzeige = serienAnzeige(wertungSerie, t);
+  const anzeige = serienAnzeige(wertungSerie, t, zaehltTreffer(props.form.unit));
   const statusText = option && option.key !== NORMAL ? option.label : null;
   const hinweise = serie.hints.filter((h) => !(serie.struck && h.startsWith("gestrichen")));
 

@@ -469,6 +469,28 @@ describe("Zehntel: Eingabe am Feld", () => {
     expect(tippen(SCHUSS_ZEHNTEL, "<<<<", "10.4").wert).toBeUndefined();
   });
 
+  it("ausgeschriebener Höchstwert „109,0“: „,0“ landet nicht als Zehner 0 im nächsten Feld", () => {
+    const ZEHNER: FeldBeschreibung = {
+      key: "tens",
+      label: "Zehner",
+      kind: "integer",
+      required: false,
+      min: 0,
+      max: 10,
+    };
+    // Gefunden beim DSB-Probelauf: „1090“ bzw. „109,0“ ergab 109,0 und Zehner 0 (Server: 422).
+    const ausgeschrieben = folge(2, "109,0>6", [], [SUMME_ZEHNTEL, ZEHNER]);
+    expect(ausgeschrieben.jeSerie[0]).toEqual(["109.0", 6]);
+    expect(folge(2, "109,06", [], [SUMME_ZEHNTEL, ZEHNER]).jeSerie[0]).toEqual(["109.0", 6]);
+    // Ohne Komma bleibt die „0“ eine Eingabe im nächsten Feld (Zehner 0 ist erlaubt).
+    expect(folge(2, "1090", [], [SUMME_ZEHNTEL, ZEHNER]).jeSerie[0]).toEqual(["109.0", 0]);
+    // Fehlschuss „0,0“: ein Schuss, nicht zwei.
+    const schuesse = Array.from({ length: 3 }, () => SCHUSS_ZEHNTEL);
+    expect(folge(1, "0,098", [], schuesse).werte).toEqual(["0.0", "9.8", undefined]);
+    // „10,9“ wie bisher; eine andere Ziffer nach dem Komma beginnt frisch.
+    expect(folge(1, "109,98", [], schuesse).werte).toEqual(["10.9", "9.8", undefined]);
+  });
+
   it("eine Serie Zehntel in einem Zug: jede Zahl schaltet selbst weiter", () => {
     const felder = Array.from({ length: 5 }, () => SCHUSS_ZEHNTEL);
     const { werte, index } = folge(1, "10,498010>9,9", [], felder);

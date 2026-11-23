@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { theme } from "../../theme";
 import { SchirmAnsicht } from "./schirm/Schirm";
 import type { FeedQuelle, FeedZustand } from "./schirm/useFeed";
-import { beispielFeed, rangliste, szenen, zeile } from "./testdaten";
+import { abbruchRangliste, beispielFeed, rangliste, szenen, zeile } from "./testdaten";
 import type { Feed, FeedPerson, SzeneVon } from "./typen";
 
 const QUELLE: FeedQuelle = { art: "anzeige", id: "a1" };
@@ -191,7 +191,10 @@ describe("Bildschirm", () => {
     expect(within(liste).getByText("104,3")).toBeVisible();
     expect(within(liste).getByText("101,0")).toBeVisible();
     expect(within(liste).getAllByText("208,4")).toHaveLength(2);
-    expect(within(liste).getAllByText("Stechen")).toHaveLength(2);
+    // Das formelle Wort steht vorn im Hinweis des Servers (tie_note) und erscheint mit.
+    expect(within(liste).getAllByText("Ringgleichheit: Stechen")).toHaveLength(2);
+    expect(within(liste).queryByText(/Gleichstand/)).toBeNull();
+    // Ohne erkennbares Wort bleibt der Hinweis kurz.
     expect(within(liste).getByText("manuell entscheiden")).toBeVisible();
     const namen = Array.from(liste.querySelectorAll("[data-gruppe] b")).map((b) => b.textContent);
     expect(namen.map((n) => n?.replace(/^\d+/, ""))).toEqual([
@@ -236,6 +239,78 @@ describe("Bildschirm", () => {
     expect(within(region).getByText("Egon Abbruch")).toBeVisible();
     expect(within(region).getByText("SV Abbruch")).toBeVisible();
     expect(within(region).getByText("disqualifiziert")).toBeVisible();
+  });
+
+  it("Live-Wertung: Abbruch nach „Feuer“ mit Platz und Kennzeichen, ohne Platz mit Begründung", () => {
+    const live = szenen.live_ranking as SzeneVon<"live_ranking">;
+    zeige(beispielFeed({ scenes: [{ ...live, ranking: abbruchRangliste() }] }));
+    const liste = screen.getByRole("region", { name: "Live-Wertung" });
+    const zeilen = Array.from(liste.querySelectorAll<HTMLElement>("[data-gruppe]"));
+    const egon = zeilen.find((z) => z.textContent?.includes("Egon Abbruch"));
+    if (!egon) throw new Error("Egon fehlt");
+    // Unter den Plätzen, mit Platz und gewertetem Ergebnis, nicht im Block „Ohne Platzierung“
+    expect(egon).not.toHaveAttribute("data-ohne-platz");
+    expect(within(egon).getByText("2")).toBeVisible();
+    expect(within(egon).getByText("25,10")).toBeVisible();
+    const marke = within(egon).getByText("Abbruch (AB)");
+    expect(marke.className).toMatch(/abbruchMarke/);
+    expect(marke.className).not.toMatch(/(^|\s)\S*abbruch(\s|$)/);
+    // Ohne Platz: Kennzeichen und Begründung vom Server
+    const ohne = Array.from(liste.querySelectorAll<HTMLElement>("[data-ohne-platz]"));
+    expect(ohne).toHaveLength(2);
+    const [rita, karl] = ohne as [HTMLElement, HTMLElement];
+    expect(within(rita).getByText("Abbruch (AB)")).toBeVisible();
+    expect(
+      within(rita).getByText("Ergebnis nicht vergleichbar: Serie 2 unvollständig erfasst"),
+    ).toBeVisible();
+    expect(within(karl).getByText("disqualifiziert")).toBeVisible();
+    // Gleichstand mit dem Wort des Servers
+    expect(within(liste).getAllByText("gleiches Ergebnis: Stechen")).toHaveLength(2);
+  });
+
+  it("Ergebnisliste: Abbruch nach „Feuer“ auf dem Podest mit Kennzeichen, nicht gold", () => {
+    const sieger = szenen.winners as SzeneVon<"winners">;
+    zeige(beispielFeed({ scenes: [{ ...sieger, ranking: abbruchRangliste() }] }));
+    const region = screen.getByRole("region", { name: "Ergebnisliste" });
+    const stufen = Array.from(region.querySelectorAll<HTMLElement>("[data-rang]"));
+    expect(stufen).toHaveLength(3);
+    const zweiter = region.querySelector<HTMLElement>('[data-rang="2"]');
+    if (!zweiter) throw new Error("Platz 2 fehlt");
+    expect(within(zweiter).getByText("Egon Abbruch")).toBeVisible();
+    expect(within(zweiter).getByText("Abbruch (AB)")).toBeVisible();
+    expect(zweiter).toHaveAttribute("data-abbruch");
+    expect(zweiter).not.toHaveAttribute("data-erster");
+    // Ohne Platz: eigener Block mit Kennzeichen und Begründung
+    expect(within(region).getByText("Ohne Platzierung")).toBeVisible();
+    expect(within(region).getByText("Rita Fern")).toBeVisible();
+    expect(
+      within(region).getByText("Ergebnis nicht vergleichbar: Serie 2 unvollständig erfasst"),
+    ).toBeVisible();
+  });
+
+  it("Abbruch-Kennzeichen: Text des Servers vor dem eigenen, eigener nur als Rückfall", () => {
+    const basis = abbruchRangliste();
+    const gruppe = basis.groups[0];
+    if (!gruppe) throw new Error("Testdaten");
+    const ranking = {
+      ...basis,
+      groups: [
+        {
+          ...gruppe,
+          rows: gruppe.rows.map((z) =>
+            z.start_id === "f2" ? { ...z, abort_label: "aufgegeben (DSB)" } : z,
+          ),
+          unplaced: gruppe.unplaced.map((z) => ({ ...z, abort_label: undefined })),
+        },
+      ],
+    };
+    const live = szenen.live_ranking as SzeneVon<"live_ranking">;
+    zeige(beispielFeed({ scenes: [{ ...live, ranking }] }));
+    const liste = screen.getByRole("region", { name: "Live-Wertung" });
+    expect(within(liste).getByText("aufgegeben (DSB)")).toBeVisible();
+    // Ohne `abort_label`: bisheriger Text zum Grund
+    expect(within(liste).getByText("Abbruch (AB)")).toBeVisible();
+    expect(within(liste).getByText("disqualifiziert")).toBeVisible();
   });
 
   it("Startliste: Grund des Abbruchs statt „abgebrochen“, Kennziffer, kein Hinweis auf Katalog-Abweichung", () => {

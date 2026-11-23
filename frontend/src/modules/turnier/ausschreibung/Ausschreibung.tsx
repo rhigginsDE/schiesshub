@@ -14,6 +14,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ReihenfolgeKnoepfe, verschiebe } from "../../../components/Reihenfolge";
 import { Fehlerzustand, Leerzustand } from "../../../components/Zustand";
+import { useBegriffe } from "../../../lib/begriffe";
 import { fehlerText } from "../fehlertext";
 import { feldFehlerFuer } from "../senden";
 import t_s from "../turnier.module.css";
@@ -109,6 +110,7 @@ function Editor({
   const navigate = useNavigate();
   const speichern = useAusschreibungSpeichern(turnier.id);
   const server = useQuery(ausschreibungDokumentAbfrage(turnier.id));
+  const saetze = useBegriffe();
   const entwurf = useEntwurf<AusschreibungDaten>(
     { ...LEER, ...quelle, facts: quelle.facts ?? {} },
     {
@@ -130,8 +132,8 @@ function Editor({
   const index = werte.blocks.findIndex((b) => b.id === gewaehlt);
   const baustein = index >= 0 ? werte.blocks[index] : undefined;
   const dokument = useMemo(
-    () => dokumentAusEntwurf(werte, turnier, server.data, i18n.language),
-    [werte, turnier, server.data, i18n.language],
+    () => dokumentAusEntwurf(werte, turnier, server.data, i18n.language, saetze),
+    [werte, turnier, server.data, i18n.language, saetze],
   );
   const modell = useMemo(
     () =>
@@ -142,6 +144,8 @@ function Editor({
       ),
     [dokument, i18n.language, turnier.competitions],
   );
+  // Hilfetexte nennen die formellen Wörter, die auch im Blatt stehen (z. B. „Protestgebühr“).
+  const begriffe = modell.begriffe;
 
   const felder = [
     "title",
@@ -249,7 +253,7 @@ function Editor({
               >
                 <strong>{b.heading.trim() || t("ausschreibung.ohne_ueberschrift")}</strong>
                 <span>
-                  {t(`ausschreibung.art.${b.kind}`)}
+                  {t(`ausschreibung.art.${b.kind}`, begriffe)}
                   {!b.visible && ` · ${t("ausschreibung.ausgeblendet")}`}
                   {b.visible && istLeer(b) && (
                     <span className={s.leerMarke}> · {t("ausschreibung.noch_leer")}</span>
@@ -348,7 +352,7 @@ function Editor({
           />
           <Textarea
             label={t("ausschreibung.eckdaten.registration_info")}
-            placeholder={t("ausschreibung.platzhalter.registration_info")}
+            placeholder={t("ausschreibung.platzhalter.registration_info", begriffe)}
             autosize
             minRows={2}
             value={werte.facts.registration_info ?? ""}
@@ -375,7 +379,7 @@ function Editor({
         {baustein ? (
           <fieldset className={`panel ${s.ohneRahmen}`} disabled={gesperrt}>
             <legend className="h-label">
-              {t("ausschreibung.baustein")}: {t(`ausschreibung.art.${baustein.kind}`)}
+              {t("ausschreibung.baustein")}: {t(`ausschreibung.art.${baustein.kind}`, begriffe)}
             </legend>
             {fehler[`blocks.${index}`] && (
               <p className={t_s.fehlerText} role="alert">
@@ -405,6 +409,7 @@ function Editor({
               }
               description={t("ausschreibung.text_hilfe")}
               placeholder={t(`ausschreibung.hinweis.${baustein.id}`, {
+                ...begriffe,
                 defaultValue:
                   baustein.kind === "text"
                     ? t("ausschreibung.hinweis_text")

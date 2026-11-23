@@ -32,7 +32,9 @@
     "geteilt": "geteilt",
     "gleichstand": {
       "stechen": "Stechen",
-      "manuell": "manuell entscheiden"
+      "manuell": "manuell entscheiden",
+      "stechen_wort": "{{wort}}: Stechen",
+      "manuell_wort": "{{wort}}: manuell entscheiden"
     },
     "versuch": "{{nr}}. Start",
     "vorlaeufig": "vorläufig",
@@ -215,8 +217,8 @@
     "zeilen_hilfe": "Höchstens so viele Plätze je Klasse",
     "laufende": "Laufende Starts zeigen",
     "laufende_hilfe": "Zwischenstände mit Live-Punkt",
-    "abgebrochene": "Abgebrochene Starts zeigen",
-    "abgebrochene_hilfe": "Nicht angetreten, aufgegeben oder disqualifiziert: Sie stehen mit dem Grund am Ende der Liste und bekommen keinen Platz.",
+    "abgebrochene": "Starts ohne Platzierung zeigen",
+    "abgebrochene_hilfe": "Zeigt am Ende, wer keinen Platz hat: nicht angetreten, disqualifiziert, Abbruch ohne wertbares Ergebnis. Wer nach dem Kommando „Feuer“ abbricht, wird mit dem Ergebnis bis dahin platziert und steht immer in der Liste.",
     "staende": "Schießstände",
     "alle_staende": "Alle Schießstände",
     "starts": "Starts je Wettbewerb",

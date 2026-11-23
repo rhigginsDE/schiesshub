@@ -355,8 +355,6 @@ describe("Ausschreibung: Dokument → Druckansicht", () => {
             max_starts: 3,
             multi_start_rule: "best",
             multi_start_text: "Bestes Ergebnis zählt",
-            deviates_from_catalog: true,
-            deviations: ["3 von 4 Serien gewertet"],
           },
         ],
       },

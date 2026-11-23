@@ -330,8 +330,6 @@ describe("Ausschreibung als Blatt", () => {
                 max_starts: 1,
                 multi_start_rule: "best",
                 multi_start_text: "Ein Start je Teilnehmer",
-                deviates_from_catalog: true,
-                deviations: ["Fallscheibe: 3 von 4 Serien gewertet statt 4 von 4"],
               },
             ],
           },
