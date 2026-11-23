@@ -1,0 +1,94 @@
+# Gewehr 10 m Luftgewehr – DSB-Disziplinen (ENTWURF)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog dsb.de/fileadmin/dsb/sportordnung/, abgerufen 2026-11-22):
+#   Teil 1: 1.1.2 (stehend), Wettbewerbstabelle Gewehr (Teil 1 S. 19), Schusszahlen/Schießzeiten (Teil 1 S. 21);
+#   Teil 0: 0.21 (Teil 0 S. 76), Scheibe Nr. 1 (0.20, Teil 0 S. 63), Ergebnisgleichheit 0.12.1;
+#   Teil 15: 15.1.1 (Finale allgemein), Finale 10 m Luftgewehr (Teil 15 S. 15–17), 15.2 (Mix Team).
+#   Schusszahl je Klasse, Zehntelwertung und Finalklassen: DSB-Ausschreibung Deutsche Meisterschaften,
+#   "Schusszahlentabelle" (dsb.de/schiesssport/ausschreibungen-2027/deutsche-meisterschaften/wettbewerbe, Stand 20.11.2025).
+# Zehntelwertung: Die SpO schreibt sie für 1.10 nicht vor (0.11.3: ganze Ringe); die DSB-Schusszahlentabelle sieht für
+#   1.10 auf LM und DM Zehntel vor, für 1.12 regelt SpO 15.2.2.6 Zehntel. Eingetragen ist dieser Meisterschafts-Regelfall.
+# Änderungen 2026→2027 (Synopse 01.01.2027): 1.12 Mix Team jetzt 30 statt 40 Schuss je Sportler, 40 statt 50 Min.,
+#   eigene Papierscheiben-Zeit (60 Min.) gestrichen (15.2.2.5). Für 1.10 keine Änderung an Schusszahl/Zeit.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "gewehr-10m-luftgewehr"
+  name: "Gewehr 10 m Luftgewehr"
+  waffenart: "langwaffe"
+  distanz_m: 10
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  zehntelwertung: true
+  # SpO 0.12.1: letzte 10er-Serie und rückwärts, dann Anzahl 10er, 9er, 8er …, dann Innenzehner; sonst gleicher Rang.
+  #   Wie 0.12.1 bei Zehntelwertung anzuwenden ist (Serien in Zehnteln?), sagt die SpO nicht (offen, siehe Notiz).
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  geprueft: false
+ablaeufe:
+  luftgewehr:
+    beschreibung: "60, 40 oder 20 Schuss stehend je nach Klasse und Ebene; 90/60/35 Min. (Zuganlage) bzw. 75/50/30 Min. (andere Systeme); vorher 15 Min. Vorbereitung mit beliebig vielen Probeschüssen"
+    varianten:
+      # Teil 1 S. 21: Zeiten ohne die 15 Min. Vorbereitungs-/Probezeit (Anmerkung *).
+      - id: "60-andere-systeme"
+        name: "60 Schuss, andere Systeme (z. B. elektronisch)"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 4500, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+      - id: "60-zuganlage"
+        name: "60 Schuss, Zuganlage"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 5400, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+      - id: "40-andere-systeme"
+        name: "40 Schuss, andere Systeme (z. B. elektronisch)"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 4, schuss_je_serie: 10, wettkampfzeit_s: 3000, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+      - id: "40-zuganlage"
+        name: "40 Schuss, Zuganlage"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 4, schuss_je_serie: 10, wettkampfzeit_s: 3600, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+      - id: "20-andere-systeme"
+        name: "20 Schuss, andere Systeme (z. B. elektronisch)"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 2, schuss_je_serie: 10, wettkampfzeit_s: 1800, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+      - id: "20-zuganlage"
+        name: "20 Schuss, Zuganlage"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 2, schuss_je_serie: 10, wettkampfzeit_s: 2100, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+    finale:
+      teilnehmer: 8
+      hinweis: "Wertung beginnt bei null, Zehntel; 2 Serien à 5 Schuss in je 250 s, dann 14 Einzelschüsse in je 50 s; ab Schuss 12 scheidet nach je 2 Schüssen der Letzte aus (24 Schuss). DM: nur Finalklassen Herren I, Damen I, Junioren I m/w."
+      abschnitt: "15.1.1; Teil 15 S. 15–17"
+  mix-team:
+    beschreibung: "Mix Team: je Sportler 30 Schuss stehend (Team 60) in 40 Min.; 10 Min. Vorbereitungs- und Probezeit; Wertung Summe beider Sportler in Zehnteln"
+    varianten:
+      - id: "standard"
+        name: "Vorkampf (je Sportler)"
+        abschnitte:
+          # geprüft 2026-11-22: probeschuesse "unbegrenzt" nennt 15.2.2.4 nicht ausdrücklich; abgeleitet aus 15.2.2.5 (Durchführung
+          #   nach den LG-Regeln, Teil 1 S. 21 Anmerkung *). Serieneinteilung 3×10 nennt 15.2.2.5 ebenfalls nicht.
+          # SpO 15.2.2.4: 10 Min. Vorbereitung. Die DSB-Ausschreibung DM (4.6) nennt 15 Min. – Abweichung, siehe Notiz.
+          - { id: "wertung", name: "Wertung", serien: 3, schuss_je_serie: 10, wettkampfzeit_s: 2400, vorbereitung_probe_s: 600, probeschuesse: "unbegrenzt" }
+    finale:
+      teilnehmer: 5
+      hinweis: "Die besten 5 Teams; Wertung beginnt bei null, Zehntel; 3 Serien à 5 Schuss je Sportler in je 300 s, dann Einzelschüsse (je Team 2 Schuss in 60 s), Ausscheiden nach 17/19/21/24 Schuss je Sportler; Gleichstand: Stechen."
+      abschnitt: "15.2.2.7, 15.2.3"
+disziplinen:
+  - kennziffer: "1.10"
+    name: "Luftgewehr"
+    waffe: "Luftgewehr, Einzellader (Mehrlader als Einzellader); max. 5500 g, Systemlänge max. 850 mm, Lauflänge 40–85 cm"
+    munition: "4,5 mm (.177)"
+    visierung: "Diopter/Korn; Korntunnel max. 25 mm Ø, max. 50 mm lang; kein Zielfernrohr"
+    anschlag: "stehend"
+    scheibe: "DSB-Scheibe Nr. 1 (10 m Gewehr)"
+    ablauf: "luftgewehr"
+    hinweis: "DM: 60 Schuss Herren/Damen I–II und Junioren I–II m/w, 20 Schuss Schüler, sonst 40; LM: 40 Schuss (Schüler 20). Zehntel auf LM/DM laut DSB-Schusszahlentabelle. Abzug frei, kein Stecher; Laufbeschwerung radial max. 30 mm, nicht über die sichtbare Mündung. Auslösen der Treibladung ohne Geschoss im Wettkampf zählt als Fehler."
+  - kennziffer: "1.12"
+    name: "Luftgewehr Mix Team"
+    waffe: "Luftgewehr wie 1.10"
+    munition: "4,5 mm (.177)"
+    visierung: "wie 1.10"
+    anschlag: "stehend"
+    scheibe: "DSB-Scheibe Nr. 1 (10 m Gewehr)"
+    ablauf: "mix-team"
+    hinweis: "Team aus einem Mann und einer Frau desselben Vereins, Stände nebeneinander (Mann rechts). DM-Klassen: Team Junioren (Junioren I) und Team Dame/Herr (Damen/Herren I). Seit 01.01.2027 30 statt 40 Schuss je Sportler."

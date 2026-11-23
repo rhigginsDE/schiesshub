@@ -1,0 +1,939 @@
+# DSB – Startrecht je Wettbewerb bei der Deutschen Meisterschaft (Entwurf, nicht im Repo).
+# Quelle A: DSB, 'Deutsche Meisterschaft 2025 bis 2028 – Wettbewerbe / Klassen' (2 Seiten),
+#   https://www.dsb.de/fileadmin/DSB.DE/PDF/PDF_2025/Tabelle_Wettbewerbe-Klassen_Sportschiessen.pdf, abgerufen 2026-11-22.
+# Quelle B: DSB, 'Bogenwettbewerbe – nach Regelteil 6 der DSB-Sportordnung (Sportjahr 2026-2028)', Stand 04.11.2025,
+#   https://www.dsb.de/fileadmin/DSB.DE/PDF/PDF_2026/Tabelle_Wettbewerbe_Klassen_Bogen_2026.pdf, abgerufen 2026-11-22.
+# Rekonstruktion: Wortpositionen, Gitterlinien und Zellfarben mit PyMuPDF ausgelesen, Spalten über die Gitterlinien
+#   zugeordnet, danach Sichtprüfung an gerenderten Ausschnitten. Klassennummern als Text; Bedeutung je 'satz' (klassen.yaml).
+# Legende Quelle A: E = Einzel, M = Mannschaft; 'b NN' = startet bei Klasse NN; gelb = olympische Wettbewerbe und Klassen;
+#   grün = 'Startmöglichkeit nach SpO 0.7.1.1'; rot = 'Kein Startrecht'. Hellblau ('Änderungen gegenüber letztem
+#   Sportjahr') kommt in keiner Zelle vor. Bei Klassen mit zwei Spalten ist die linke E, die rechte M.
+# Felder: einzel/mannschaft = ausgeschriebene Klassen; startet_bei = Einzel-Zelle 'b NN'; mannschaft_startet_bei =
+#   Mannschafts-Zelle 'b NN' bzw. 'M NN'; olympisch = gelbe Zelle; startmoeglichkeit_0711 = grün ohne Eintrag;
+#   kein_startrecht = rot; endkampf = orange Zelle (nur Auflage); mix_team = verbundene Team-Zellen;
+#   neu_bei_dm = hellblau (nur Bogen).
+# geprüft 2026-11-22: alle 98 Einträge Zelle für Zelle gegen gerenderte Ausschnitte beider Tabellen geprüft (Quelle A S. 1–2,
+#   Quelle B), ohne Abweichung. Die offen-Einträge 2.45–2.60 (40 grün, 41 'b 10') und 8.12 (verbundene M-Zelle) sind so in der
+#   Tabelle gedruckt; die Bedeutung bleibt offen. Bogen-Mannschaften bleiben offen (Tabelle B nennt nur Einzel).
+schema: 1
+verband: "dsb"
+stand_tabelle: "DM 2025–2028 (Sportschießen), DM 2026–2028 (Bogen)"
+hinweise:
+  - "Mannschaft = drei Schützen desselben Vereins und derselben Wettkampfklasse; Abweichung per Ausschreibung als offene Klasse (SpO 0.7.2.2, Stand 01.01.2027). b-NN-Einträge in M-Spalten sind solche Abweichungen der DM-Tabelle."
+  - "Starten Schützen in Mannschaften einer leistungsstärkeren Klasse, wird ihr Einzelergebnis in ihrer eigenen Klasse gewertet (SpO 0.7.1.1)."
+  - "Sitzendanschlag Auflage (Legende unter der Auflagetabelle): Senioren I/II (70–73) nur mit Hilfsmittelausweis, Senioren III–VI (74–81) generell erlaubt."
+  - "Höhermeldung lt. Sportordnung zu Beginn des Sportjahres möglich (Hinweis unter der Auflagetabelle; SpO 0.7.1.1, 9.1.1)."
+  - "Grüne Zellen sind keine eigene Wertung: Wer dort steht, kann in der nach SpO 0.7.1.1 nächsthöheren bzw. leistungsstärkeren ausgeschriebenen Klasse starten."
+startrecht:
+  # --- Quelle A, Seite 1: Sportschießen, Tradition, Vorderlader
+  "1.10":
+    satz: "sportschiessen"
+    wettbewerb: "Luftgewehr"
+    einzel: ["20", "21", "30", "31", "42", "43", "40", "41", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"]
+    mannschaft: ["20", "30", "40", "41", "10", "11", "14", "15", "16"]
+    mannschaft_startet_bei: { "12": "10", "13": "11" }
+    olympisch: ["40", "41", "10", "11"]
+  "1.12":
+    satz: "sportschiessen"
+    wettbewerb: "10m Luftgewehr Mix Team"
+    einzel: []
+    mannschaft: []
+    olympisch: ["40", "41", "10", "11"]
+    startmoeglichkeit_0711: ["30", "31", "42", "43", "12", "13", "14", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21"]
+    mix_team:
+      - { name: "Team Junioren", klassen: ["40", "41"] }
+      - { name: "Team Dame/Herr", klassen: ["10", "11"] }
+    hinweis: "Mix-Team (gelbe, verbundene Zellen): 'Team Junioren' über Junioren I m/w, 'Team Dame/Herr' über Herren I/Damen I."
+  "1.20":
+    satz: "sportschiessen"
+    wettbewerb: "10m Luftgewehr 3-Stellung"
+    einzel: ["20", "21", "30", "31"]
+    mannschaft: ["20", "30"]
+    kein_startrecht: ["42", "43", "40", "41", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"]
+  "1.30":
+    satz: "sportschiessen"
+    wettbewerb: "Zimmerstutzen"
+    einzel: ["10", "11", "12", "14", "15", "16"]
+    mannschaft: ["10", "14"]
+    startet_bei: { "17": "15" }
+    mannschaft_startet_bei: { "11": "10", "15": "14" }
+    startmoeglichkeit_0711: ["42", "43", "40", "41", "13", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31"]
+  "1.35":
+    satz: "sportschiessen"
+    wettbewerb: "KK - 100m"
+    einzel: ["40", "41", "10", "11", "12", "13", "14", "15", "16"]
+    mannschaft: ["10", "14"]
+    startet_bei: { "17": "15" }
+    mannschaft_startet_bei: { "11": "10", "15": "14" }
+    startmoeglichkeit_0711: ["42", "43", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31"]
+  "1.40":
+    satz: "sportschiessen"
+    wettbewerb: "KK - 3x20 (3 Pos.)"
+    einzel: ["30", "31", "42", "43", "40", "41", "10", "11", "12", "13", "14", "15", "16", "18"]
+    mannschaft: ["30", "40", "41", "10", "11", "14", "15"]
+    olympisch: ["40", "41", "10", "11"]
+    startmoeglichkeit_0711: ["17", "19"]
+    kein_startrecht: ["20", "21"]
+  "1.42":
+    satz: "sportschiessen"
+    wettbewerb: "KK - Gewehr 30 Schuss"
+    einzel: ["40", "10"]
+    mannschaft: ["10"]
+    startet_bei: { "41": "40", "11": "10" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["30", "31", "42", "43", "12", "13", "14", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21"]
+    hinweis: "Tabelle, Spalte Sonstiges: Visierung Diopter oder Zielfernrohr; der ganze Wettkampf mit derselben Visierung (Fußnote *)."
+  "1.56":
+    satz: "sportschiessen"
+    wettbewerb: "KK-Unterhebelrepetierer"
+    einzel: ["10", "12", "14", "16"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10", "13": "12", "15": "14", "17": "16" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["40", "41", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31", "42", "43"]
+    hinweis: "DM Unterhebelrepetierer."
+  "1.58.O":
+    satz: "sportschiessen"
+    wettbewerb: "Ordonnanzgew. of. Visierung"
+    einzel: ["10", "12", "14", "16"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10", "13": "12", "15": "14", "17": "16" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["40", "41", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31", "42", "43"]
+    hinweis: "Tabelle: 'Ordonnanzgew. of. Visierung', Nummer '1.58 O'. DM Ordonnanzgewehr in Hannover."
+  "1.58.G":
+    satz: "sportschiessen"
+    wettbewerb: "Ordonnanzgew. g. Visierung"
+    einzel: ["10", "12", "14", "16"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10", "13": "12", "15": "14", "17": "16" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["40", "41", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31", "42", "43"]
+    hinweis: "Tabelle: 'Ordonnanzgew. g. Visierung', Nummer '1.58 G'. DM Ordonnanzgewehr in Hannover."
+  "1.60":
+    satz: "sportschiessen"
+    wettbewerb: "KK - 3x40"
+    einzel: ["40", "41", "10", "11", "12", "14"]
+    mannschaft: ["40", "10"]
+    startet_bei: { "13": "12", "15": "14" }
+    mannschaft_startet_bei: { "41": "40", "11": "10" }
+    startmoeglichkeit_0711: ["42", "43", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31"]
+    hinweis: "Tabelle, Spalte Sonstiges: Damen dürfen Sportgewehr verwenden."
+  "1.80":
+    satz: "sportschiessen"
+    wettbewerb: "KK - Liegendkampf"
+    einzel: ["30", "31", "42", "43", "40", "41", "10", "11", "12", "13", "14", "15", "16", "18"]
+    mannschaft: ["30", "40", "41", "10", "11", "14", "15", "16"]
+    startmoeglichkeit_0711: ["17", "19"]
+    kein_startrecht: ["20", "21"]
+  "1.90":
+    satz: "sportschiessen"
+    wettbewerb: "Liegendkampf 300m"
+    einzel: ["10", "14"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10", "15": "14" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["40", "41", "12", "13", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31", "42", "43"]
+  "2.10":
+    satz: "sportschiessen"
+    wettbewerb: "10m Luftpistole"
+    einzel: ["20", "21", "30", "31", "42", "43", "40", "41", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"]
+    mannschaft: ["20", "30", "40", "41", "10", "11", "14", "15"]
+    mannschaft_startet_bei: { "12": "10", "13": "11" }
+    olympisch: ["40", "41", "10", "11"]
+  "2.12":
+    satz: "sportschiessen"
+    wettbewerb: "10m LP Mix Team"
+    einzel: []
+    mannschaft: []
+    olympisch: ["40", "41", "10", "11"]
+    startmoeglichkeit_0711: ["30", "31", "42", "43", "12", "13", "14", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21"]
+    mix_team:
+      - { name: "Team Junioren", klassen: ["40", "41"] }
+      - { name: "Team Dame/Herr", klassen: ["10", "11"] }
+    hinweis: "Mix-Team (gelbe, verbundene Zellen): 'Team Junioren' über Junioren I m/w, 'Team Dame/Herr' über Herren I/Damen I."
+  "2.17":
+    satz: "sportschiessen"
+    wettbewerb: "10m LP Mehrkampf"
+    einzel: ["20", "30", "10"]
+    mannschaft: []
+    startet_bei: { "21": "20", "31": "30", "11": "10" }
+    startmoeglichkeit_0711: ["42", "43", "40", "41", "12", "13", "14", "15", "16", "17", "18", "19"]
+    hinweis: "Mannschaftsspalten aller Klassen rot: kein Mannschaftswettbewerb."
+  "2.18":
+    satz: "sportschiessen"
+    wettbewerb: "10m LP Standard"
+    einzel: ["20", "30", "10"]
+    mannschaft: []
+    startet_bei: { "21": "20", "31": "30", "11": "10" }
+    startmoeglichkeit_0711: ["42", "43", "40", "41", "12", "13", "14", "15", "16", "17", "18", "19"]
+    hinweis: "Mannschaftsspalten aller Klassen rot: kein Mannschaftswettbewerb."
+  "2.20":
+    satz: "sportschiessen"
+    wettbewerb: "50m Pistole"
+    einzel: ["40", "10", "12", "14", "16"]
+    mannschaft: ["10", "14"]
+    startet_bei: { "41": "40", "11": "10", "13": "12", "15": "14", "17": "16" }
+    mannschaft_startet_bei: { "11": "10", "15": "14" }
+    startmoeglichkeit_0711: ["42", "43", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31"]
+  "2.30":
+    satz: "sportschiessen"
+    wettbewerb: "25m Schnellfeuerpistole"
+    einzel: ["42", "40", "10", "14"]
+    mannschaft: ["40", "10"]
+    startet_bei: { "41": "40", "11": "10", "15": "14" }
+    mannschaft_startet_bei: { "41": "40", "11": "10" }
+    olympisch: ["40", "10"]
+    startmoeglichkeit_0711: ["43", "12", "13", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31"]
+  "2.40":
+    satz: "sportschiessen"
+    wettbewerb: "25m Pistole"
+    einzel: ["30", "31", "43", "40", "41", "10", "11", "12", "14", "15", "16", "18"]
+    mannschaft: ["30", "10", "11", "14"]
+    olympisch: ["41", "11"]
+    startmoeglichkeit_0711: ["42", "13", "17", "19"]
+    kein_startrecht: ["20", "21"]
+  "2.45":
+    satz: "sportschiessen"
+    wettbewerb: "25m Zentralfeuerpistole"
+    einzel: ["10", "12", "14", "16"]
+    mannschaft: ["10"]
+    startet_bei: { "41": "10", "11": "10", "13": "12", "15": "14", "17": "16" }
+    mannschaft_startet_bei: { "41": "10", "11": "10" }
+    startmoeglichkeit_0711: ["40", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31", "42", "43"]
+    offen: "Junioren I männlich (40) grün ohne Eintrag, Juniorinnen I (41) mit 'b 10' in E- und M-Spalte. Wörtlich so in der Tabelle; ob so gemeint, ist unklar."
+  "2.53":
+    satz: "sportschiessen"
+    wettbewerb: "25m Pistole 9x19"
+    einzel: ["10", "12", "14", "16"]
+    mannschaft: ["10"]
+    startet_bei: { "41": "10", "11": "10", "13": "12", "15": "14", "17": "16" }
+    mannschaft_startet_bei: { "41": "10", "11": "10" }
+    startmoeglichkeit_0711: ["40", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31", "42", "43"]
+    offen: "wie 2.45: 40 grün, 41 'b 10' in E und M."
+  "2.55":
+    satz: "sportschiessen"
+    wettbewerb: "25m Revolver .357 Magn."
+    einzel: ["10", "12", "14", "16"]
+    mannschaft: ["10"]
+    startet_bei: { "41": "10", "11": "10", "13": "12", "15": "14", "17": "16" }
+    mannschaft_startet_bei: { "41": "10", "11": "10" }
+    startmoeglichkeit_0711: ["40", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31", "42", "43"]
+    offen: "wie 2.45: 40 grün, 41 'b 10' in E und M."
+  "2.58":
+    satz: "sportschiessen"
+    wettbewerb: "25mRevolver .44 Magn."
+    einzel: ["10", "12", "14", "16"]
+    mannschaft: ["10"]
+    startet_bei: { "41": "10", "11": "10", "13": "12", "15": "14", "17": "16" }
+    mannschaft_startet_bei: { "41": "10", "11": "10" }
+    startmoeglichkeit_0711: ["40", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31", "42", "43"]
+    offen: "wie 2.45: 40 grün, 41 'b 10' in E und M."
+  "2.59":
+    satz: "sportschiessen"
+    wettbewerb: "25m Pistole .45 ACP"
+    einzel: ["10", "12", "14", "16"]
+    mannschaft: ["10"]
+    startet_bei: { "41": "10", "11": "10", "13": "12", "15": "14", "17": "16" }
+    mannschaft_startet_bei: { "41": "10", "11": "10" }
+    startmoeglichkeit_0711: ["40", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31", "42", "43"]
+    offen: "wie 2.45: 40 grün, 41 'b 10' in E und M."
+  "2.60":
+    satz: "sportschiessen"
+    wettbewerb: "25m Standardpistole"
+    einzel: ["10", "12", "14", "16"]
+    mannschaft: ["10"]
+    startet_bei: { "43": "10", "41": "10", "11": "10", "13": "12", "15": "14", "17": "16" }
+    mannschaft_startet_bei: { "41": "10", "11": "10" }
+    startmoeglichkeit_0711: ["42", "40", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31"]
+    offen: "wie 2.45 (40 grün, 41 'b 10' in E und M); zusätzlich Juniorinnen II (43) 'b 10', Junioren II (42) grün."
+  "3.10":
+    satz: "sportschiessen"
+    wettbewerb: "Flinte Trap"
+    einzel: ["20", "30", "42", "40", "41", "10", "11", "12", "13", "14", "16"]
+    mannschaft: ["40", "10", "11", "14"]
+    startet_bei: { "21": "20" }
+    olympisch: ["40", "41", "10", "11"]
+    startmoeglichkeit_0711: ["31", "43", "15", "17", "18", "19"]
+  "3.12":
+    satz: "sportschiessen"
+    wettbewerb: "Flinte Trap Mix m/w"
+    einzel: []
+    mannschaft: []
+    olympisch: ["40", "41", "10", "11"]
+    startmoeglichkeit_0711: ["30", "31", "42", "43", "12", "13", "14", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21"]
+    mix_team:
+      - { name: "Team Junioren", klassen: ["40", "41"] }
+      - { name: "Team Dame/Herr", klassen: ["10", "11"] }
+    hinweis: "Mix-Team m/w (gelbe, verbundene Zellen): 'Team Junioren' über Junioren I m/w, 'Team Dame/Herr' über Herren I/Damen I."
+  "3.15":
+    satz: "sportschiessen"
+    wettbewerb: "Flinte Doppeltrap"
+    einzel: ["10", "12", "14", "16"]
+    mannschaft: ["10", "14"]
+    startet_bei: { "11": "10", "13": "12", "15": "14", "17": "16" }
+    mannschaft_startet_bei: { "11": "10", "15": "14" }
+    startmoeglichkeit_0711: ["30", "31", "42", "43", "40", "41", "18", "19"]
+    kein_startrecht: ["20", "21"]
+  "3.20":
+    satz: "sportschiessen"
+    wettbewerb: "Flinte Skeet"
+    einzel: ["20", "30", "42", "40", "41", "10", "11", "12", "14", "16"]
+    mannschaft: ["40", "10", "11", "14"]
+    startet_bei: { "21": "20" }
+    mannschaft_startet_bei: { "41": "11" }
+    olympisch: ["40", "41", "10", "11"]
+    startmoeglichkeit_0711: ["31", "43", "13", "15", "17", "18", "19"]
+    hinweis: "Juniorinnen I (41): Mannschaftszelle 'M 11' = Mannschaft startet bei Damen I."
+  "3.22":
+    satz: "sportschiessen"
+    wettbewerb: "Flinte Skeet Mix m/w"
+    einzel: []
+    mannschaft: []
+    olympisch: ["10", "11"]
+    startmoeglichkeit_0711: ["30", "31", "42", "43", "40", "41", "12", "13", "14", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21"]
+    mix_team:
+      - { name: "Team Dame/Herr", klassen: ["10", "11"] }
+    hinweis: "Mix-Team m/w (gelbe, verbundene Zelle): nur 'Team Dame/Herr' über Herren I/Damen I."
+  "4.10":
+    satz: "sportschiessen"
+    wettbewerb: "Lfd. Scheibe 10m"
+    einzel: ["10"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["30", "31", "42", "43", "40", "41", "12", "13", "14", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21"]
+  "4.15":
+    satz: "sportschiessen"
+    wettbewerb: "Lfd. Scheibe 10m Mix"
+    einzel: ["10"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["30", "31", "42", "43", "40", "41", "12", "13", "14", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21"]
+  "4.20":
+    satz: "sportschiessen"
+    wettbewerb: "Lfd. Scheibe 50m"
+    einzel: ["10"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["30", "31", "42", "43", "40", "41", "12", "13", "14", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21"]
+  "4.25":
+    satz: "sportschiessen"
+    wettbewerb: "Lfd. Scheibe 50m Mix"
+    einzel: ["10"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["30", "31", "42", "43", "40", "41", "12", "13", "14", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21"]
+  "5.10":
+    satz: "sportschiessen"
+    wettbewerb: "Armbrust 10m"
+    einzel: ["10", "11", "12", "14", "16"]
+    mannschaft: ["10", "14"]
+    startet_bei: { "13": "12", "15": "14", "17": "16" }
+    mannschaft_startet_bei: { "11": "10", "15": "14" }
+    startmoeglichkeit_0711: ["30", "31", "42", "43", "40", "41", "18", "19"]
+    kein_startrecht: ["20", "21"]
+  "5.20":
+    satz: "sportschiessen"
+    wettbewerb: "Armbrust 30m"
+    einzel: ["10", "14"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10", "15": "14" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["30", "31", "42", "43", "40", "41", "12", "13", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21"]
+  "5.31":
+    satz: "sportschiessen"
+    wettbewerb: "Armbrust nat. Scheibe"
+    einzel: ["40", "10", "14", "16"]
+    mannschaft: ["10"]
+    startet_bei: { "41": "40", "11": "10", "15": "14", "17": "16" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["30", "31", "42", "43", "12", "13", "18", "19"]
+    kein_startrecht: ["20", "21"]
+  "5.32":
+    satz: "sportschiessen"
+    wettbewerb: "Armbrust nat. Stern"
+    einzel: ["10", "14", "16"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10", "15": "14", "17": "16" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["30", "31", "42", "43", "40", "41", "12", "13", "18", "19"]
+    kein_startrecht: ["20", "21"]
+  "5.33":
+    satz: "sportschiessen"
+    wettbewerb: "Armbrust nat. Kombi"
+    einzel: ["10"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["30", "31", "42", "43", "40", "41", "12", "13", "14", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21"]
+  "7.10":
+    satz: "sportschiessen"
+    wettbewerb: "Perkussionsgewehr"
+    einzel: ["10", "11", "12", "13", "14", "16", "18"]
+    mannschaft: ["10"]
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["42", "43", "40", "41", "15", "17", "19"]
+    kein_startrecht: ["20", "21", "30", "31"]
+    hinweis: "Junioren II (42/43): grüne Zelle mit 'ab 18 Jahre'. Tabelle, Spalte Sonstiges: gültige Erlaubnis nach § 27 Sprengstoffgesetz ist vorzulegen. DM Vorderlader in Hannover/Wiesbaden."
+  "7.15":
+    satz: "sportschiessen"
+    wettbewerb: "Perkussionsfreigewehr"
+    einzel: ["10", "14"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10", "15": "14" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["42", "43", "40", "41", "12", "13", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31"]
+    hinweis: "Junioren II (42/43): grüne Zelle mit 'ab 18 Jahre'. Tabelle, Spalte Sonstiges: gültige Erlaubnis nach § 27 Sprengstoffgesetz ist vorzulegen. DM Vorderlader in Hannover/Wiesbaden."
+  "7.20":
+    satz: "sportschiessen"
+    wettbewerb: "Perkussionsdienstgewehr"
+    einzel: ["10", "14"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10", "15": "14" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["42", "43", "40", "41", "12", "13", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31"]
+    hinweis: "Junioren II (42/43): grüne Zelle mit 'ab 18 Jahre'. Tabelle, Spalte Sonstiges: gültige Erlaubnis nach § 27 Sprengstoffgesetz ist vorzulegen. DM Vorderlader in Hannover/Wiesbaden."
+  "7.21":
+    satz: "sportschiessen"
+    wettbewerb: "Perkussionsdienstgewehr 50m"
+    einzel: ["10"]
+    mannschaft: []
+    startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["42", "43", "40", "41", "12", "13", "14", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31"]
+    hinweis: "Mannschaftsspalten rot: kein Mannschaftswettbewerb. Junioren II (42/43): grüne Zelle mit 'ab 18 Jahre'. Tabelle, Spalte Sonstiges: gültige Erlaubnis nach § 27 Sprengstoffgesetz ist vorzulegen. DM Vorderlader in Hannover/Wiesbaden."
+  "7.30":
+    satz: "sportschiessen"
+    wettbewerb: "Steinschlossgewehr"
+    einzel: ["10", "14"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10", "15": "14" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["42", "43", "40", "41", "12", "13", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31"]
+    hinweis: "Junioren II (42/43): grüne Zelle mit 'ab 18 Jahre'. Tabelle, Spalte Sonstiges: gültige Erlaubnis nach § 27 Sprengstoffgesetz ist vorzulegen. DM Vorderlader in Hannover/Wiesbaden."
+  "7.31":
+    satz: "sportschiessen"
+    wettbewerb: "Steinschlossgewehr liegend"
+    einzel: ["10"]
+    mannschaft: []
+    startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["42", "43", "40", "41", "12", "13", "14", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31"]
+    hinweis: "Mannschaftsspalten rot (außer Herren V/Damen V, dort grün): kein Mannschaftswettbewerb. Junioren II (42/43): grüne Zelle mit 'ab 18 Jahre'. Tabelle, Spalte Sonstiges: gültige Erlaubnis nach § 27 Sprengstoffgesetz ist vorzulegen. DM Vorderlader in Hannover/Wiesbaden."
+  "7.35":
+    satz: "sportschiessen"
+    wettbewerb: "Muskete"
+    einzel: ["10"]
+    mannschaft: []
+    startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["42", "43", "40", "41", "12", "13", "14", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31"]
+    hinweis: "Mannschaftsspalten rot (außer Herren V/Damen V, dort grün): kein Mannschaftswettbewerb. Junioren II (42/43): grüne Zelle mit 'ab 18 Jahre'. Tabelle, Spalte Sonstiges: gültige Erlaubnis nach § 27 Sprengstoffgesetz ist vorzulegen. DM Vorderlader in Hannover/Wiesbaden."
+  "7.40":
+    satz: "sportschiessen"
+    wettbewerb: "Perkussionsrevolver"
+    einzel: ["10", "14", "16", "18"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10", "15": "14", "17": "16", "19": "18" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["42", "43", "40", "41", "12", "13"]
+    kein_startrecht: ["20", "21", "30", "31"]
+    hinweis: "Junioren II (42/43): grüne Zelle mit 'ab 18 Jahre'. Tabelle, Spalte Sonstiges: gültige Erlaubnis nach § 27 Sprengstoffgesetz ist vorzulegen. DM Vorderlader in Hannover/Wiesbaden."
+  "7.50":
+    satz: "sportschiessen"
+    wettbewerb: "Perkussionspistole"
+    einzel: ["10", "11", "12", "14", "16", "18"]
+    mannschaft: ["10"]
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["42", "43", "40", "41", "13", "15", "17", "19"]
+    kein_startrecht: ["20", "21", "30", "31"]
+    hinweis: "Junioren II (42/43): grüne Zelle mit 'ab 18 Jahre'. Tabelle, Spalte Sonstiges: gültige Erlaubnis nach § 27 Sprengstoffgesetz ist vorzulegen. DM Vorderlader in Hannover/Wiesbaden."
+  "7.60":
+    satz: "sportschiessen"
+    wettbewerb: "Steinschlosspistole"
+    einzel: ["10", "14", "16"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10", "15": "14", "17": "16" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["42", "43", "40", "41", "12", "13", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31"]
+    hinweis: "Junioren II (42/43): grüne Zelle mit 'ab 18 Jahre'. Tabelle, Spalte Sonstiges: gültige Erlaubnis nach § 27 Sprengstoffgesetz ist vorzulegen. DM Vorderlader in Hannover/Wiesbaden."
+  "7.71":
+    satz: "sportschiessen"
+    wettbewerb: "Perkussionsflinte"
+    einzel: ["10"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["42", "43", "40", "41", "12", "13", "14", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31"]
+    hinweis: "Junioren II (42/43): grüne Zelle mit 'ab 18 Jahre'. Tabelle, Spalte Sonstiges: gültige Erlaubnis nach § 27 Sprengstoffgesetz ist vorzulegen. DM Vorderlader in Hannover/Wiesbaden."
+  "7.72":
+    satz: "sportschiessen"
+    wettbewerb: "Steinschlossflinte"
+    einzel: ["10"]
+    mannschaft: ["10"]
+    startet_bei: { "11": "10" }
+    mannschaft_startet_bei: { "11": "10" }
+    startmoeglichkeit_0711: ["42", "43", "40", "41", "12", "13", "14", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21", "30", "31"]
+    hinweis: "Junioren II (42/43): grüne Zelle mit 'ab 18 Jahre'. Tabelle, Spalte Sonstiges: gültige Erlaubnis nach § 27 Sprengstoffgesetz ist vorzulegen. DM Vorderlader in Hannover/Wiesbaden."
+  # --- Quelle A, Seite 2: Target Sprint / Sommerbiathlon (Regelteil 8)
+  "8.10":
+    satz: "sportschiessen"
+    wettbewerb: "LG Sprint"
+    einzel: ["20", "21", "30", "31", "40", "42", "41", "43", "10", "11", "12", "13", "14", "15"]
+    mannschaft: []
+    startmoeglichkeit_0711: ["16", "17", "18", "19"]
+    hinweis: "Junioren I und II stehen in gemeinsamen Spalten '40/42' (m) und '41/43' (w)."
+  "8.11":
+    satz: "sportschiessen"
+    wettbewerb: "LG Massenstart"
+    einzel: ["20", "21", "30", "31", "40", "42", "41", "43", "10", "11", "12", "13", "14", "15"]
+    mannschaft: []
+    startmoeglichkeit_0711: ["16", "17", "18", "19"]
+    hinweis: "Junioren I und II stehen in gemeinsamen Spalten '40/42' (m) und '41/43' (w)."
+  "8.12":
+    satz: "sportschiessen"
+    wettbewerb: "LG Staffel"
+    einzel: []
+    mannschaft: ["20", "21", "30", "31", "40", "42", "41", "43", "10", "11", "12", "13", "14", "15"]
+    startmoeglichkeit_0711: ["16", "17", "18", "19"]
+    hinweis: "Staffel: Bei Schüler und Jugend steht 'M' in einer über m/w verbundenen Zelle. Junioren I und II stehen in gemeinsamen Spalten '40/42' (m) und '41/43' (w)."
+    offen: "Bedeutung der über m/w verbundenen M-Zelle bei Schüler/Jugend (gemeinsame oder getrennte Staffel) nicht eindeutig."
+  "8.20":
+    satz: "sportschiessen"
+    wettbewerb: "KK Sprint"
+    einzel: ["30", "31", "40", "42", "41", "43", "10", "11", "14"]
+    mannschaft: []
+    startmoeglichkeit_0711: ["12", "13", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21"]
+    hinweis: "Junioren I und II stehen in gemeinsamen Spalten '40/42' (m) und '41/43' (w)."
+  "8.21":
+    satz: "sportschiessen"
+    wettbewerb: "KK Massenstart"
+    einzel: ["30", "31", "40", "42", "41", "43", "10", "11", "14"]
+    mannschaft: []
+    startmoeglichkeit_0711: ["12", "13", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21"]
+    hinweis: "Junioren I und II stehen in gemeinsamen Spalten '40/42' (m) und '41/43' (w)."
+  "8.22":
+    satz: "sportschiessen"
+    wettbewerb: "KK Staffel"
+    einzel: []
+    mannschaft: ["40", "42", "41", "43", "10", "11", "14", "15"]
+    startmoeglichkeit_0711: ["30", "31", "12", "13", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21"]
+    hinweis: "Junioren I und II stehen in gemeinsamen Spalten '40/42' (m) und '41/43' (w)."
+  "8.30":
+    satz: "sportschiessen"
+    wettbewerb: "Target Sprint Einzel"
+    einzel: ["20", "21", "30", "31", "40", "42", "41", "43", "10", "11", "12", "14", "15"]
+    mannschaft: []
+    startmoeglichkeit_0711: ["13", "16", "17", "18", "19"]
+    hinweis: "Junioren I und II stehen in gemeinsamen Spalten '40/42' (m) und '41/43' (w)."
+  "8.32":
+    satz: "sportschiessen"
+    wettbewerb: "Target Sprint Single Mix"
+    einzel: []
+    mannschaft: []
+    startmoeglichkeit_0711: ["30", "31", "14", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21"]
+    mix_team:
+      - { name: "Junioren", klassen: ["40", "42", "41", "43"] }
+      - { name: "Herren/Damen", klassen: ["10", "11"] }
+      - { name: "Herren II/Damen II", klassen: ["12", "13"] }
+    hinweis: "Single Mix: 'M' steht in über m/w verbundenen Zellen: Junioren (40/42 + 41/43), Herren/Damen (10 + 11), Herren II/Damen II (12 + 13). Junioren I und II stehen in gemeinsamen Spalten '40/42' (m) und '41/43' (w)."
+  "8.33":
+    satz: "sportschiessen"
+    wettbewerb: "Target Sprint Mix Team"
+    einzel: []
+    mannschaft: []
+    startmoeglichkeit_0711: ["30", "31", "14", "15", "16", "17", "18", "19"]
+    kein_startrecht: ["20", "21"]
+    mix_team:
+      - { name: "Junioren", klassen: ["40", "42", "41", "43"] }
+      - { name: "Herren/Damen", klassen: ["10", "11"] }
+      - { name: "Herren II/Damen II", klassen: ["12", "13"] }
+    hinweis: "Mix Team: 'M' steht in über m/w verbundenen Zellen: Junioren (40/42 + 41/43), Herren/Damen (10 + 11), Herren II/Damen II (12 + 13). Junioren I und II stehen in gemeinsamen Spalten '40/42' (m) und '41/43' (w)."
+  # --- Quelle A, Seite 2: Parawettbewerbe (Regelteil 10) – Schlüssel mit Präfix 'para-'
+  "para-1.10":
+    kennziffer: "1.10"
+    satz: "para"
+    wettbewerb: "Luftgewehr"
+    einzel: ["90", "92", "94", "96"]
+    mannschaft: []
+    startet_bei: { "93": "92" }
+  "para-1.18":
+    kennziffer: "1.18"
+    satz: "para"
+    wettbewerb: "LG liegend"
+    einzel: ["90", "92"]
+    mannschaft: []
+    startet_bei: { "93": "92" }
+    kein_startrecht: ["94", "96"]
+  "para-1.30":
+    kennziffer: "1.30"
+    satz: "para"
+    wettbewerb: "Zimmerstutzen"
+    einzel: ["90", "92"]
+    mannschaft: []
+    startet_bei: { "93": "92" }
+    kein_startrecht: ["94", "96"]
+  "para-1.35":
+    kennziffer: "1.35"
+    satz: "para"
+    wettbewerb: "KK - 100 m"
+    einzel: ["90", "92"]
+    mannschaft: []
+    startet_bei: { "93": "92" }
+    kein_startrecht: ["94", "96"]
+  "para-1.60":
+    kennziffer: "1.60"
+    satz: "para"
+    wettbewerb: "KK - 3x40"
+    einzel: ["92"]
+    mannschaft: []
+    startet_bei: { "93": "92" }
+    kein_startrecht: ["90", "94", "96"]
+  "para-1.80":
+    kennziffer: "1.80"
+    satz: "para"
+    wettbewerb: "KK - Liegendkampf"
+    einzel: ["90", "92"]
+    mannschaft: []
+    startet_bei: { "93": "92" }
+    kein_startrecht: ["94", "96"]
+  "para-2.10":
+    kennziffer: "2.10"
+    satz: "para"
+    wettbewerb: "10m Luftpistole"
+    einzel: ["92"]
+    mannschaft: []
+    startet_bei: { "93": "92" }
+    kein_startrecht: ["90", "94", "96"]
+  "para-2.18":
+    kennziffer: "2.18"
+    satz: "para"
+    wettbewerb: "10m LP Standard"
+    einzel: ["92"]
+    mannschaft: []
+    startet_bei: { "93": "92" }
+    kein_startrecht: ["90", "94", "96"]
+    hinweis: "Tabelle, Spalte Sonstiges: wird nur auf einscheibigen Anlagen geschossen."
+  "para-2.20":
+    kennziffer: "2.20"
+    satz: "para"
+    wettbewerb: "50m Pistole"
+    einzel: ["92"]
+    mannschaft: []
+    startet_bei: { "93": "92" }
+    kein_startrecht: ["90", "94", "96"]
+  "para-2.40":
+    kennziffer: "2.40"
+    satz: "para"
+    wettbewerb: "25m Pistole"
+    einzel: ["92"]
+    mannschaft: []
+    startet_bei: { "93": "92" }
+    kein_startrecht: ["90", "94", "96"]
+  # --- Quelle A, Seite 2: Auflagewettbewerbe (Regelteil 9)
+  "1.11":
+    satz: "auflage"
+    wettbewerb: "Luftgewehr Auflage"
+    einzel: ["70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "80", "81"]
+    mannschaft: ["70", "74"]
+    mannschaft_startet_bei: { "71": "70", "75": "74" }
+    endkampf: ["70", "71", "74", "75"]
+    hinweis: "DM Auflage in Dortmund. Orange Zellen (E bei 70, 71, 74, 75) = 'Wettbewerbe mit Endkampf' laut Legendenzeile unter der Auflagetabelle."
+  "1.41":
+    satz: "auflage"
+    wettbewerb: "KK-Gewehr Auflage 50m"
+    einzel: ["70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "80"]
+    mannschaft: ["70", "74"]
+    mannschaft_startet_bei: { "71": "70", "75": "74" }
+    startmoeglichkeit_0711: ["81"]
+    hinweis: "Visierung Diopter oder Zielfernrohr; der ganze Wettkampf mit derselben Visierung (Fußnote *)."
+  "1.36":
+    satz: "auflage"
+    wettbewerb: "KK Gewehr Auflage 100m"
+    einzel: ["70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "80"]
+    mannschaft: ["70", "74"]
+    mannschaft_startet_bei: { "71": "70", "75": "74" }
+    startmoeglichkeit_0711: ["81"]
+    hinweis: "Visierung Diopter oder Zielfernrohr; der ganze Wettkampf mit derselben Visierung (Fußnote *)."
+  "2.11":
+    satz: "auflage"
+    wettbewerb: "10m Luftpistole Auflage"
+    einzel: ["70", "71", "72", "73", "74", "75", "76", "77", "78", "80"]
+    mannschaft: ["70", "74"]
+    mannschaft_startet_bei: { "71": "70", "75": "74" }
+    startmoeglichkeit_0711: ["79", "81"]
+  "2.42":
+    satz: "auflage"
+    wettbewerb: "25m Sportpistole Auflage"
+    einzel: ["70", "71", "72", "74", "76", "78", "80"]
+    mannschaft: ["70", "74"]
+    startet_bei: { "75": "74", "77": "76", "79": "78", "81": "80" }
+    mannschaft_startet_bei: { "71": "70", "75": "74" }
+    startmoeglichkeit_0711: ["73"]
+  "2.21":
+    satz: "auflage"
+    wettbewerb: "50m Freie Pistole Auflage"
+    einzel: ["70", "72", "74", "76", "78"]
+    mannschaft: ["70", "74"]
+    startet_bei: { "71": "70", "73": "72", "75": "74", "77": "76", "79": "78" }
+    mannschaft_startet_bei: { "71": "70", "75": "74" }
+    startmoeglichkeit_0711: ["80", "81"]
+  # --- Quelle A, Seite 2: DM Flinte nach FITASC (offene Meldungen)
+  "3.30":
+    satz: "flinte-fitasc"
+    wettbewerb: "Compakt Sporting"
+    einzel: ["68", "60", "61", "62", "64", "66"]
+    mannschaft: ["60"]
+    mannschaft_startet_bei: { "61": "60" }
+  "3.35":
+    satz: "flinte-fitasc"
+    wettbewerb: "Parcours"
+    einzel: ["68", "60", "61", "62", "64", "66"]
+    mannschaft: ["60"]
+    mannschaft_startet_bei: { "61": "60" }
+  "3.40":
+    satz: "flinte-fitasc"
+    wettbewerb: "Universal Trap"
+    einzel: ["68", "60", "61", "62", "64", "66"]
+    mannschaft: ["60"]
+    mannschaft_startet_bei: { "61": "60" }
+  # --- Quelle A, Seite 2: Deutsche Lichtmeisterschaft (wettkampforientiert)
+  "11.10":
+    satz: "licht"
+    wettbewerb: "Lichtgewehr"
+    einzel: ["22", "23", "24", "25"]
+    mannschaft: []
+  "11.20":
+    satz: "licht"
+    wettbewerb: "Lichtgewehr 3-stellung"
+    einzel: ["22", "23"]
+    mannschaft: []
+    startet_bei: { "24": "22", "25": "23" }
+    hinweis: "Schüler III (24/25): 'b 22'/'b 23' in grünen Zellen."
+  "11.50":
+    satz: "licht"
+    wettbewerb: "Lichtpistole"
+    einzel: ["22", "23"]
+    mannschaft: []
+    startet_bei: { "24": "22", "25": "23" }
+    hinweis: "Schüler III (24/25): 'b 22'/'b 23' in grünen Zellen."
+  # --- Quelle A, Seite 2: Blasrohrsport
+  "12.10":
+    satz: ["blasrohr", "sportschiessen"]
+    wettbewerb: "Blasrohr"
+    einzel: ["24", "25", "22", "23", "20", "21", "30", "31", "40", "41", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"]
+    mannschaft: []
+    startmoeglichkeit_0711: ["42", "43"]
+    hinweis: "Tabelle: Ausschreibungspunkt 'Allgemeine Bestimmungen' 3.13 ist zu beachten. Schüler-Nummern 20–25 nach Satz 'blasrohr' (Schüler I/II/III), übrige nach 'sportschiessen'."
+  # --- Quelle B: Bogen (Regelteil 6). Nur Einzelwertung in der Tabelle; eine Spalte je Klasse.
+  # Legende B: weiß = bei DM ausgeschrieben; hellblau = neu bei der DM; grün = mögliche Teilnahme in leistungsstärkerer
+  # Klasse; rot = nicht zugelassen; 'b XX' = Start bei Klassennummer XX.
+  "6.10":
+    satz: "bogen"
+    wettbewerb: "Recurve"
+    meisterschaft: "DM Bogen im Freien"
+    einzel: ["10", "11", "30", "31", "40", "41", "12", "13", "14", "15"]
+    mannschaft: []
+    neu_bei_dm: ["15"]
+    kein_startrecht: ["20", "21", "22", "23"]
+    deutsche_schuelermeisterschaft:
+      einzel: ["20", "21", "22", "23"]
+      neu_bei_dm: ["22", "23"]
+      kein_startrecht: ["10", "11", "30", "31", "40", "41", "12", "13", "14", "15"]
+      hinweis: "Deutsche Schülermeisterschaft, neu nach Beschluss des Bundesausschusses Bogen vom 15.10.2025."
+    hinweis: "Mannschaftswertungen sind in der Bogentabelle nicht ausgewiesen."
+    offen: "Mannschaft (in der Tabelle nicht enthalten) aus Ausschreibung bzw. SpO Teil 6 ergänzen."
+  "6.15":
+    satz: "bogen"
+    wettbewerb: "Compound"
+    meisterschaft: "DM Bogen im Freien"
+    einzel: ["10", "11", "30", "12", "13", "14"]
+    mannschaft: []
+    startet_bei: { "31": "30", "40": "10", "41": "11", "15": "13" }
+    neu_bei_dm: ["40", "41", "13", "15"]
+    kein_startrecht: ["20", "21", "22", "23"]
+    deutsche_schuelermeisterschaft:
+      einzel: ["20", "21", "22", "23"]
+      neu_bei_dm: ["22", "23"]
+      kein_startrecht: ["10", "11", "30", "31", "40", "41", "12", "13", "14", "15"]
+      hinweis: "Deutsche Schülermeisterschaft, neu nach Beschluss des Bundesausschusses Bogen vom 15.10.2025."
+    hinweis: "Mannschaftswertungen sind in der Bogentabelle nicht ausgewiesen."
+    offen: "Mannschaft (in der Tabelle nicht enthalten) aus Ausschreibung bzw. SpO Teil 6 ergänzen."
+  "6.16":
+    satz: "bogen"
+    wettbewerb: "Blankbogen"
+    meisterschaft: "DM Bogen im Freien"
+    einzel: ["10", "11", "30", "12", "13", "14"]
+    mannschaft: []
+    startet_bei: { "31": "30" }
+    neu_bei_dm: ["13", "14"]
+    startmoeglichkeit_0711: ["40", "41", "15"]
+    kein_startrecht: ["20", "21", "22", "23"]
+    deutsche_schuelermeisterschaft:
+      einzel: ["20", "21", "22", "23"]
+      neu_bei_dm: ["22", "23"]
+      kein_startrecht: ["10", "11", "30", "31", "40", "41", "12", "13", "14", "15"]
+      hinweis: "Deutsche Schülermeisterschaft, neu nach Beschluss des Bundesausschusses Bogen vom 15.10.2025."
+    hinweis: "Mannschaftswertungen sind in der Bogentabelle nicht ausgewiesen."
+    offen: "Mannschaft (in der Tabelle nicht enthalten) aus Ausschreibung bzw. SpO Teil 6 ergänzen."
+  "6.20":
+    satz: "bogen"
+    wettbewerb: "Recurve"
+    meisterschaft: "DM Bogen in der Halle"
+    einzel: ["10", "11", "20", "21", "30", "31", "40", "41", "12", "13", "14", "15"]
+    mannschaft: []
+    neu_bei_dm: ["15"]
+    kein_startrecht: ["22", "23"]
+    hinweis: "Mannschaftswertungen sind in der Bogentabelle nicht ausgewiesen."
+    offen: "Mannschaft (in der Tabelle nicht enthalten) aus Ausschreibung bzw. SpO Teil 6 ergänzen."
+  "6.25":
+    satz: "bogen"
+    wettbewerb: "Compound"
+    meisterschaft: "DM Bogen in der Halle"
+    einzel: ["10", "11", "20", "30", "12", "13", "14"]
+    mannschaft: []
+    startet_bei: { "21": "20", "31": "30", "40": "10", "41": "11" }
+    neu_bei_dm: ["40", "41"]
+    startmoeglichkeit_0711: ["15"]
+    kein_startrecht: ["22", "23"]
+    hinweis: "Mannschaftswertungen sind in der Bogentabelle nicht ausgewiesen."
+    offen: "Mannschaft (in der Tabelle nicht enthalten) aus Ausschreibung bzw. SpO Teil 6 ergänzen."
+  "6.26":
+    satz: "bogen"
+    wettbewerb: "Blankbogen"
+    meisterschaft: "DM Bogen in der Halle"
+    einzel: ["10", "11", "20", "21", "30", "12", "13", "14"]
+    mannschaft: []
+    startet_bei: { "31": "30" }
+    neu_bei_dm: ["21", "14"]
+    startmoeglichkeit_0711: ["40", "41", "15"]
+    kein_startrecht: ["22", "23"]
+    hinweis: "Mannschaftswertungen sind in der Bogentabelle nicht ausgewiesen."
+    offen: "Mannschaft (in der Tabelle nicht enthalten) aus Ausschreibung bzw. SpO Teil 6 ergänzen."
+  "6.30":
+    satz: "bogen"
+    wettbewerb: "Recurve"
+    meisterschaft: "DM Feldbogen"
+    einzel: ["10", "11", "20", "30", "12"]
+    mannschaft: []
+    startet_bei: { "21": "20", "31": "30" }
+    startmoeglichkeit_0711: ["40", "41", "13", "14", "15"]
+    kein_startrecht: ["22", "23"]
+    hinweis: "Mannschaftswertungen sind in der Bogentabelle nicht ausgewiesen."
+    offen: "Mannschaft (in der Tabelle nicht enthalten) aus Ausschreibung bzw. SpO Teil 6 ergänzen."
+  "6.40":
+    satz: "bogen"
+    wettbewerb: "Blankbogen"
+    meisterschaft: "DM Feldbogen"
+    einzel: ["10", "11", "20", "30", "12"]
+    mannschaft: []
+    startet_bei: { "21": "20", "31": "30" }
+    startmoeglichkeit_0711: ["40", "41", "13", "14", "15"]
+    kein_startrecht: ["22", "23"]
+    hinweis: "Mannschaftswertungen sind in der Bogentabelle nicht ausgewiesen."
+    offen: "Mannschaft (in der Tabelle nicht enthalten) aus Ausschreibung bzw. SpO Teil 6 ergänzen."
+  "6.50":
+    satz: "bogen"
+    wettbewerb: "Compound"
+    meisterschaft: "DM Feldbogen"
+    einzel: ["10", "11", "12"]
+    mannschaft: []
+    startmoeglichkeit_0711: ["30", "31", "40", "41", "13", "14", "15"]
+    kein_startrecht: ["20", "21", "22", "23"]
+    hinweis: "Mannschaftswertungen sind in der Bogentabelle nicht ausgewiesen. Jugend m/w (30/31) in etwas anderem Grünton als die übrigen grünen Zellen; als grün gewertet."
+    offen: "Mannschaft (in der Tabelle nicht enthalten) aus Ausschreibung bzw. SpO Teil 6 ergänzen."
+  "6.60":
+    satz: "bogen"
+    wettbewerb: "Recurve"
+    meisterschaft: "DM Bogen 3D"
+    einzel: ["10", "11"]
+    mannschaft: []
+    startmoeglichkeit_0711: ["30", "31", "40", "41", "12", "13", "14", "15"]
+    kein_startrecht: ["20", "21", "22", "23"]
+    hinweis: "Mannschaftswertungen sind in der Bogentabelle nicht ausgewiesen."
+    offen: "Mannschaft (in der Tabelle nicht enthalten) aus Ausschreibung bzw. SpO Teil 6 ergänzen."
+  "6.65":
+    satz: "bogen"
+    wettbewerb: "Compound"
+    meisterschaft: "DM Bogen 3D"
+    einzel: ["10", "11", "12"]
+    mannschaft: []
+    startmoeglichkeit_0711: ["30", "31", "40", "41", "13", "14", "15"]
+    kein_startrecht: ["20", "21", "22", "23"]
+    hinweis: "Mannschaftswertungen sind in der Bogentabelle nicht ausgewiesen."
+    offen: "Mannschaft (in der Tabelle nicht enthalten) aus Ausschreibung bzw. SpO Teil 6 ergänzen."
+  "6.66":
+    satz: "bogen"
+    wettbewerb: "Blankbogen"
+    meisterschaft: "DM Bogen 3D"
+    einzel: ["10", "11", "20", "12", "13"]
+    mannschaft: []
+    startet_bei: { "21": "20" }
+    neu_bei_dm: ["20", "21", "13"]
+    startmoeglichkeit_0711: ["30", "31", "40", "41", "14", "15"]
+    kein_startrecht: ["22", "23"]
+    hinweis: "Mannschaftswertungen sind in der Bogentabelle nicht ausgewiesen."
+    offen: "Mannschaft (in der Tabelle nicht enthalten) aus Ausschreibung bzw. SpO Teil 6 ergänzen."
+  "6.67":
+    satz: "bogen"
+    wettbewerb: "Langbogen"
+    meisterschaft: "DM Bogen 3D"
+    einzel: ["10", "11", "12", "14"]
+    mannschaft: []
+    neu_bei_dm: ["14"]
+    startmoeglichkeit_0711: ["30", "31", "40", "41", "13", "15"]
+    kein_startrecht: ["20", "21", "22", "23"]
+    hinweis: "Mannschaftswertungen sind in der Bogentabelle nicht ausgewiesen."
+    offen: "Mannschaft (in der Tabelle nicht enthalten) aus Ausschreibung bzw. SpO Teil 6 ergänzen."
+  "6.68":
+    satz: "bogen"
+    wettbewerb: "Traditioneller Bogen"
+    meisterschaft: "DM Bogen 3D"
+    einzel: ["10", "11", "20", "30", "12", "13", "14"]
+    mannschaft: []
+    startet_bei: { "21": "20", "31": "30" }
+    neu_bei_dm: ["20", "21", "30", "31", "13", "14"]
+    startmoeglichkeit_0711: ["40", "41", "15"]
+    kein_startrecht: ["22", "23"]
+    hinweis: "Mannschaftswertungen sind in der Bogentabelle nicht ausgewiesen."
+    offen: "Mannschaft (in der Tabelle nicht enthalten) aus Ausschreibung bzw. SpO Teil 6 ergänzen."

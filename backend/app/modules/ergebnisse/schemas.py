@@ -247,6 +247,15 @@ class RankingRow(BaseModel):
     status: RowStatus
     abort_reason: AbortReason | None
     provisional_until: datetime | None
+    # Fertiger Text für formelle Ausgaben zum Abbruchgrund: „Abbruch (AB)“ (dnf),
+    # „nicht angetreten“ (dns), „disqualifiziert“ (dsq); null ohne Abbruch. Ein Abbruch nach
+    # dem Kommando „Feuer“ mit vergleichbarem Ergebnis hat einen Platz (Sporthandbuch K 1.14 /
+    # L 1.12); `score`/`series` sind dann das gewertete Ergebnis (nicht geschossene Serien nach
+    # der Regel der Wertung).
+    abort_label: str | None = None
+    # Warum ein Abbruch mit erfassten Werten ohne Platz bleibt, z. B. „Ergebnis nicht
+    # vergleichbar: Regel für nicht geschossene Serien fehlt“; sonst null.
+    abort_note: str | None = None
 
 
 class RankingGroup(BaseModel):
@@ -273,6 +282,9 @@ class RankingOut(BaseModel):
     unit: str | None
     generated_at: datetime
     groups: list[RankingGroup]
+    # Formelles Wort für gleiche Ergebnisse dieses Wettbewerbs: „Ringgleichheit“,
+    # „Treffergleichheit“ oder „gleiches Ergebnis“ (ohne Wort im Sporthandbuch).
+    tie_word: str = "gleiches Ergebnis"
 
 
 class StatusCounts(BaseModel):

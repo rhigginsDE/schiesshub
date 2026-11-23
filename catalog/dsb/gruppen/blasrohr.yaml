@@ -1,0 +1,81 @@
+# Blasrohr – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22), Teil 12: 12.1 (Klassen),
+#   12.2 (Entfernung), 12.3 (Programm), 12.6, 12.7, 12.10, 12.11 (Einschießen), 12.13, 12.14.2–12.14.7, 12.15
+#   und Tabelle Blasrohr (Teil 12 S. 11); Teil 0: Scheibe Nr. 24 (0.20, S. 75).
+#   DM-Klassen: Tabelle Wettbewerbe/Klassen DM 2025–2028 (Abschnitt Blasrohrsport).
+# Änderungen 2026→2027 in Teil 12: keine (Synopse ohne Teil-12-Eintrag; Vorwort 2027 nennt Teil 12 nicht).
+# Achtung: "12.10" ist zugleich Disziplinnummer (Tabelle) und Regelnummer "Verhaltensregeln" in Teil 12.
+# Klassen-IDs sind vorläufig. schueler-m/-w = Schüler I (Kl. 20/21).
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "blasrohr"
+  name: "Blasrohr"
+  waffenart: "blasrohr"         # Formatbedarf: neuer Wert
+  distanz_m: 7
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # SpO 12.14.7: mehr 10er, dann mehr 9er usw.; sonst gleicher Rang. Keine Zehntel.
+  gleichstand: ["zehner", "neuner_abwaerts"]
+  # geprüft 2026-11-22 gegen SpO 2027 Teil 12 (12.1–12.16, Tabelle S. 11) und Teil 0 (Scheibe Nr. 24). Hinweis: Tabelle
+  #   (Laufbeschwerung nur vordere 20 cm) und 12.6 (Laufgewichte frei verschiebbar) sind nicht deckungsgleich; im hinweis
+  #   stehen beide Angaben, für Ablauf und Wertung ohne Belang.
+  geprueft: true
+ablaeufe:
+  blasrohr-60:
+    beschreibung: "60 Pfeile: 2 Durchgänge zu 5 Passen à 6 Pfeile in je 180 s; Pause mind. 10 Min.; 2 Passen Einschießen"
+    varianten:
+      - id: "standard"
+        name: "7 m (alle Klassen außer Schüler III)"
+        abschnitte:
+          - id: "durchgang-1"
+            name: "1. Durchgang"
+            serien: 5
+            schuss_je_serie: 6
+            zeit_je_serie_s: 180
+            ringwerte: [10, 9, 8, 7, 6, 0]   # Scheibe Nr. 24: Wertungszonen 10–6; außerhalb 0 (M), 12.14.3
+            distanzen_m: [7, 7, 7, 7, 7]
+            probeschuesse: 12                 # 2 Passen zum Einschießen (12.11)
+            trefferaufnahme_nach: [1, 2, 3, 4, 5]
+          - id: "durchgang-2"
+            name: "2. Durchgang"
+            # Nach der Trefferaufnahme der 5. Passe Pause von mind. 10 Min. (12.3).
+            serien: 5
+            schuss_je_serie: 6
+            zeit_je_serie_s: 180
+            ringwerte: [10, 9, 8, 7, 6, 0]
+            distanzen_m: [7, 7, 7, 7, 7]
+            trefferaufnahme_nach: [1, 2, 3, 4, 5]
+      - id: "schueler-iii"
+        name: "5 m (Schüler III)"
+        abschnitte:
+          - id: "durchgang-1"
+            name: "1. Durchgang"
+            serien: 5
+            schuss_je_serie: 6
+            zeit_je_serie_s: 180
+            ringwerte: [10, 9, 8, 7, 6, 0]
+            distanzen_m: [5, 5, 5, 5, 5]
+            probeschuesse: 12
+            trefferaufnahme_nach: [1, 2, 3, 4, 5]
+          - id: "durchgang-2"
+            name: "2. Durchgang"
+            serien: 5
+            schuss_je_serie: 6
+            zeit_je_serie_s: 180
+            ringwerte: [10, 9, 8, 7, 6, 0]
+            distanzen_m: [5, 5, 5, 5, 5]
+            trefferaufnahme_nach: [1, 2, 3, 4, 5]
+disziplinen:
+  - kennziffer: "12.10"
+    name: "Blasrohr"
+    waffe: "Blasrohr mit Mundstück, Länge 100–170 cm (Schüler III max. 130 cm), Innendurchmesser max. 16 mm, max. 2500 g"
+    munition: "Pfeile, Schaft inkl. Spitze max. 4 mm Durchmesser; Jagd-, Stöpsel-, Multi-, Soft-, Helikopter-, Foliendarts verboten"
+    visierung: "keine; jegliche Zielhilfsmittel verboten"
+    anschlag: "stehend, ohne Stütze, unmittelbar hinter der Schießlinie"
+    scheibe: "DSB-Blasrohrscheibe Nr. 24 (Wertung 10–6, Zentren 22 cm); Dreifachauflage Nr. 19 zulässig"
+    ablauf: "blasrohr-60"
+    hinweis: "Entfernung 7 m, Schüler III 5 m (±10 cm). Ein Pfeil je Spot; mehrere Pfeile in einem Spot: nur der niedrigste zählt, die anderen 0 (12.14.3). Laufbeschwerungen laut Tabelle Teil 12 S. 11 nur in den vorderen 20 cm; 12.6 erlaubt frei verschiebbare Laufgewichte."

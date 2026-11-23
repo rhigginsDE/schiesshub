@@ -32,7 +32,8 @@ async def fallscheibe(api: Api) -> Setup:
     )
 
 
-async def test_winners_dnf_with_smaller_time_is_not_first(api: Api) -> None:
+async def test_winners_dnf_placed_by_result_with_unshot_series(api: Api) -> None:
+    """Abbruch nach „Feuer“ (K 1.14 / L 1.12): nicht geschossene Serien je 60 s + 5 × 10 s."""
     setup = await fallscheibe(api)
     alone_class = await api.klass(setup.tid, "alters")
     bernd = await person_start(api, setup, "Bernd Beispiel")
@@ -47,9 +48,9 @@ async def test_winners_dnf_with_smaller_time_is_not_first(api: Api) -> None:
     rows = as_dicts(read_csv((await api.get(export(setup, "winners.csv"))).content))
     assert [(r["Platz"], r["Name"], r["Status"], r["Ergebnis"]) for r in rows] == [
         ("1", "Bernd Beispiel", "endgültig", "48,00"),
-        ("", "Dieter Beispiel", "aufgegeben", ""),
+        ("2", "Dieter Beispiel", "Abbruch (AB)", "260,00"),
         ("", "Emil Beispiel", "nicht angetreten", ""),
-        ("", "Anton Allein", "aufgegeben", ""),
+        ("1", "Anton Allein", "Abbruch (AB)", "240,00"),
     ]
     # Reine Zeitwertung: keine Spalten für Zehner.
     assert "Zehner" not in rows[0]
@@ -58,17 +59,23 @@ async def test_winners_dnf_with_smaller_time_is_not_first(api: Api) -> None:
     only_ranked = as_dicts(
         read_csv((await api.get(export(setup, "winners.csv"), include_aborted="false")).content)
     )
-    assert [r["Name"] for r in only_ranked] == ["Bernd Beispiel"]
+    assert [r["Name"] for r in only_ranked] == [
+        "Bernd Beispiel",
+        "Dieter Beispiel",
+        "Anton Allein",
+    ]
 
     text = read_pdf((await api.get(export(setup, "winners.pdf"))).content).text
     lines = text.splitlines()
-    assert lines.count("1.") == 1
-    assert lines.index("Bernd Beispiel") < lines.index("Dieter Beispiel")
-    assert "aufgegeben" in text
+    assert lines.count("1.") == 2
+    assert lines.index("Bernd") < lines.index("Dieter") < lines.index("Emil")
+    assert "260,00" in lines
+    assert "Abbruch (AB)" in text
     without = read_pdf(
         (await api.get(export(setup, "winners.pdf"), include_aborted="false")).content
     ).text
-    assert "Dieter Beispiel" not in without
+    assert "Dieter" in without
+    assert "Emil" not in without
 
 
 async def test_ring_scoring_keeps_tens_columns(api: Api) -> None:

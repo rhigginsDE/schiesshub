@@ -6,9 +6,17 @@ nur ausgewählt, gruppiert und dargestellt. Personen erscheinen nur so, wie sie 
 `show_club`. Den vollen Namen liefern diese Sichten nie, wenn die Person ihn nicht freigibt.
 
 - Regel für Plätze: `RankPolicy.for_list` aus `app.scoring` – dieselbe für Rangliste, Anzeige
-  und Export. Abgebrochene Starts (nicht angetreten, aufgegeben, disqualifiziert) bekommen nie
-  einen Platz; sie stehen am Ende ihrer Gruppe ohne Platz (`group=unranked`, `abort_reason`),
-  mit `include_aborted=false` gar nicht.
+  und Export.
+- Abbruch (Sporthandbuch K 1.14 / L 1.12): Ein aufgegebener Start (`dnf`) mit erfassten
+  Wertungswerten wird nach dem bis dahin erzielten Ergebnis platziert; nicht geschossene Serien
+  zählen nach der Regel der Wertung (`rules.evaluate_aborted`, `app.scoring.compute_aborted`).
+  `score`, `series` und der Vergleichsschlüssel der Zeile sind dann dieses Ergebnis (nicht der
+  gespeicherte Zwischenstand); es wird beim Lesen aus Rohwerten und Definition gerechnet.
+- Ohne Platz bleiben: nicht angetreten (dns), disqualifiziert (dsq), Abbruch ohne
+  Wertungswert (Abbruch im Probeschießen, „AB“) und Abbrüche, deren Ergebnis sich nicht
+  vergleichen lässt (`abort_note`). Sie stehen am Ende ihrer Gruppe (`group=unranked`), mit
+  `include_aborted=false` gar nicht.
+- Formelle Wörter (Abbruchgrund, Gleichheit) kommen aus `begriffe.py`.
 - `scope=final`: abgeschlossene Ergebnisse und Abbrüche; ein unvollständiges Ergebnis (nach
   einer Änderung der Wertung) steht ohne Platz da.
 - `scope=live`: zusätzlich laufende Zwischenstände (Status `registered`/`called`/`captured` mit
@@ -30,9 +38,10 @@ from typing import Literal
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.ergebnisse import begriffe
 from app.modules.ergebnisse.models import ResultCurrent
 from app.modules.ergebnisse.recompute import ensure_current
-from app.modules.ergebnisse.rules import scoring_definition
+from app.modules.ergebnisse.rules import AbortedEvaluation, evaluate_aborted, scoring_definition
 from app.modules.ergebnisse.schemas import (
     CompetitionSummary,
     LeaderOut,
@@ -80,6 +89,18 @@ class Candidate:
     computed: ComputedResult | None
     key: list[int | None] | None
     status: RowStatus
+    aborted: AbortedEvaluation | None = None
+    """Nur bei aufgegebenen Starts (`dnf`): Wertung nach K 1.14 / L 1.12."""
+
+    @property
+    def abort_placed(self) -> bool:
+        return self.aborted is not None and self.aborted.placed
+
+    @property
+    def abort_note(self) -> str | None:
+        if self.aborted is None or self.aborted.placed:
+            return None
+        return begriffe.abort_note(self.aborted.reason, self.aborted.labels)
 
     def contender(self) -> Contender:
         return Contender(
@@ -89,6 +110,7 @@ class Candidate:
             key=self.key,
             complete=self.computed.complete if self.computed is not None else False,
             abort_reason=self.start.abort_reason,
+            abort_ranked=self.abort_placed,
         )
 
     @property
@@ -155,9 +177,16 @@ def _series(computed: ComputedResult | None) -> list[SeriesPart]:
     ]
 
 
-def _row(candidate: Candidate, placement: Placement | None) -> RankingRow:
+def _row(
+    candidate: Candidate, placement: Placement | None, tie_word: str = begriffe.NEUTRAL_TIE
+) -> RankingRow:
     computed = candidate.computed
     person = candidate.person
+    tie_note = (
+        begriffe.tie_note(placement.tie_reason, placement.tie_criterion, placement.place, tie_word)
+        if placement is not None and placement.tie_note is not None
+        else None
+    )
     return RankingRow(
         place=placement.place if placement is not None else None,
         tied=placement.tied if placement is not None else False,
@@ -165,7 +194,7 @@ def _row(candidate: Candidate, placement: Placement | None) -> RankingRow:
         tie_reason=placement.tie_reason if placement is not None else None,
         tie_criterion=placement.tie_criterion if placement is not None else None,
         needs_shootoff=placement.needs_shootoff if placement is not None else False,
-        tie_note=placement.tie_note if placement is not None else None,
+        tie_note=tie_note,
         group=placement.group if placement is not None else "unranked",
         start_id=candidate.start.id,
         entry_id=candidate.entry.id,
@@ -184,6 +213,8 @@ def _row(candidate: Candidate, placement: Placement | None) -> RankingRow:
         status=candidate.status,
         abort_reason=candidate.start.abort_reason,
         provisional_until=candidate.current.provisional_until if candidate.current else None,
+        abort_label=begriffe.abort_label(candidate.start.abort_reason),
+        abort_note=candidate.abort_note,
     )
 
 
@@ -208,6 +239,9 @@ async def _candidates(
             else None
         )
         key = current.rank_keys if current is not None else None
+        aborted = aborted_evaluation(competition, start.abort_reason, current)
+        if aborted is not None and aborted.placed:
+            computed, key = aborted.computed, aborted.rank_keys
         candidates.append(
             Candidate(
                 start,
@@ -219,9 +253,39 @@ async def _candidates(
                 computed,
                 key,
                 _status(start, current, now),
+                aborted,
             )
         )
     return candidates
+
+
+def aborted_evaluation(
+    competition: Competition, abort_reason: str | None, current: ResultCurrent | None
+) -> AbortedEvaluation | None:
+    """Aufgegebener Start (`dnf`): Wertung nach K 1.14 / L 1.12 aus Rohwerten und aktueller
+    Definition; None bei anderen Starts. Dieselbe Funktion für Rangliste, Anzeige und Export."""
+    if abort_reason != "dnf":
+        return None
+    if current is None:
+        return AbortedEvaluation(has_values=False)
+    try:
+        definition = scoring_definition(competition.definition)
+    except KeyError, TypeError:
+        return AbortedEvaluation(has_values=bool(current.raw), reason="invalid")
+    return evaluate_aborted(definition, competition.capture_mode, current.raw)
+
+
+def list_result(
+    competition: Competition, abort_reason: str | None, current: ResultCurrent | None
+) -> ComputedResult | None:
+    """Das Ergebnis, das in Listen steht: bei einem platzierten Abbruch das nach K 1.14 / L 1.12
+    gewertete, sonst das gespeicherte."""
+    aborted = aborted_evaluation(competition, abort_reason, current)
+    if aborted is not None and aborted.placed:
+        return aborted.computed
+    if current is None or current.computed is None:
+        return None
+    return ComputedResult.model_validate(current.computed)
 
 
 async def competition_ranking(
@@ -273,6 +337,7 @@ async def _ranking(
     every = await _candidates(session, competition, now)
     rule = competition.multi_start_rule
     rules = _tie_rules(competition)
+    word = _tie_word(competition)
 
     # Gruppen gibt es für jede Klasse mit Starts, auch wenn noch kein Ergebnis zählt.
     def group_of(candidate: Candidate) -> uuid.UUID | None:
@@ -303,7 +368,7 @@ async def _ranking(
     )
     for group_key in order:
         members = grouped.get(group_key, [])
-        rows = _rank_group(members, rule, policy, rules)
+        rows = _rank_group(members, rule, policy, rules, word)
         if competition.combined_ranking and class_id is not None:
             rows = [row for row in rows if row.class_id == class_id]
         group_class = classes.get(group_key) if group_key is not None else None
@@ -331,6 +396,7 @@ async def _ranking(
         unit=sample.unit if sample else None,
         generated_at=now,
         groups=groups,
+        tie_word=word,
     )
 
 
@@ -343,8 +409,17 @@ def _tie_rules(competition: Competition) -> TieRules | None:
         return None
 
 
+def _tie_word(competition: Competition) -> str:
+    scoring = (competition.definition or {}).get("scoring") or {}
+    return begriffe.tie_word(scoring.get("modell"), scoring.get("gleichstand") or ())
+
+
 def _rank_group(
-    members: list[Candidate], rule: str, policy: RankPolicy, rules: TieRules | None = None
+    members: list[Candidate],
+    rule: str,
+    policy: RankPolicy,
+    rules: TieRules | None = None,
+    tie_word: str = begriffe.NEUTRAL_TIE,
 ) -> list[RankingRow]:
     rankable = [c for c in members if c.rankable]
     unrankable = [c for c in members if not c.rankable]
@@ -358,11 +433,14 @@ def _rank_group(
         if lengths and lengths != {1 + len(rules.slots)}:
             rules = None
     placements = rank(contenders, policy, rules)
-    rows = [_row(by_id[placement.id], placement) for placement in placements]
+    rows = [_row(by_id[placement.id], placement, tie_word) for placement in placements]
     # Nach einer Änderung der Wertung nicht wertbar: ohne Platz, zum Prüfen – vor den
-    # Abgebrochenen, die immer am Ende stehen.
-    cut = next((i for i, row in enumerate(rows) if row.abort_reason is not None), len(rows))
-    rows[cut:cut] = [_row(candidate, None) for candidate in unrankable]
+    # Abgebrochenen ohne Platz, die immer am Ende stehen.
+    cut = next(
+        (i for i, row in enumerate(rows) if row.abort_reason is not None and row.place is None),
+        len(rows),
+    )
+    rows[cut:cut] = [_row(candidate, None, tie_word) for candidate in unrankable]
     return rows
 
 

@@ -62,5 +62,5 @@ async def turnier_deletion_check(
             if starts:
                 parts.append(_count(starts, "Start", "Starts"))
             if parts:
-                return f"Der Stand hat {' und '.join(parts)} und kann nicht gelöscht werden."
+                return f"Der Schießstand hat {' und '.join(parts)} und kann nicht gelöscht werden."
     return None

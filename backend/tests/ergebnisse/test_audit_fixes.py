@@ -47,65 +47,89 @@ async def abort(api: Api, tid: str, sid: str, reason: str) -> None:
     await api.ok("POST", f"/tournaments/{tid}/starts/{sid}/abort", json={"abort_reason": reason})
 
 
-# --- Befund 1: abgebrochene Starts nie mit Platz ---------------------------------------------
+# --- Befund 1 (Regel seit 23.11.: Sporthandbuch K 1.14 / L 1.12) ----------------------------
+# Abbruch nach „Feuer“: platziert nach dem bis dahin erzielten Ergebnis, nicht geschossene Serien
+# nach der Regel der Wertung. Ohne Platz: nicht angetreten, disqualifiziert, Abbruch ohne
+# Wertungswert (AB im Probeschießen).
 
 
-async def test_fallscheibe_dnf_with_smaller_partial_time_gets_no_place(
+async def test_fallscheibe_dnf_unshot_series_count_as_aborted_and_place_normally(
     api: Api, fallscheibe: Setup
 ) -> None:
+    """QA 22.11.: 2 von 4 Serien, dann aufgegeben, stand mit 30 s auf Platz 1."""
     tid = fallscheibe.tid
     alone_class = await api.klass(tid, "alters")
     (bernd,) = await person_start(api, fallscheibe)
     (dieter,) = await person_start(api, fallscheibe)
     (emil,) = await person_start(api, fallscheibe)
+    (fritz,) = await person_start(api, fallscheibe)
     (allein,) = await person_start(api, fallscheibe, alone_class)
-    await api.shoot(tid, bernd, falls(serie(12), serie(12), serie(12), serie(12)))  # 48,00 s
-    await give_up(api, tid, dieter, falls(serie(20), serie(20)))  # 40,00 s nach 2 von 4
+    await api.shoot(tid, bernd, falls(serie(40), serie(40), serie(40), serie(39)))  # 159,00 s
+    # 15 + 15 + (60 + 5 × 10) + (60 + 5 × 10) = 250,00 s
+    await give_up(api, tid, dieter, falls(serie(15), serie(15)))
     await abort(api, tid, emil, "dns")
+    await give_up(api, tid, fritz)  # ohne Wertungswert: Abbruch im Probeschießen
     await give_up(api, tid, allein, falls(serie(10), serie(10)))
 
     ranking = await api.ranking(tid, fallscheibe.cid)
+    assert ranking["tie_word"] == "gleiches Ergebnis"
     rows = {group["class_id"]: group["rows"] for group in ranking["groups"]}
+    main = rows[fallscheibe.class_id]
     assert [
-        (r["start_id"], r["place"], r["group"], r["abort_reason"])
-        for r in rows[fallscheibe.class_id]
+        (r["start_id"], r["place"], r["group"], r["abort_reason"], r["abort_label"]) for r in main
     ] == [
-        (bernd, 1, "ranked", None),
-        (dieter, None, "unranked", "dnf"),
-        (emil, None, "unranked", "dns"),
+        (bernd, 1, "ranked", None, None),
+        (dieter, 2, "ranked", "dnf", "Abbruch (AB)"),
+        (fritz, None, "unranked", "dnf", "Abbruch (AB)"),
+        (emil, None, "unranked", "dns", "nicht angetreten"),
     ]
-    assert [(r["place"], r["abort_reason"]) for r in rows[alone_class]] == [(None, "dnf")]
+    assert main[1]["score"] == "250.00"
+    assert main[1]["score_text"] == "250,00 s"
+    assert [s["total_cs"] for s in main[1]["series"]] == [1500, 1500, 11000, 11000]
+    assert [s["status"] for s in main[1]["series"]][2:] == ["aborted_by_shooter"] * 2
+    assert all(r["abort_note"] is None for r in main)
+    assert [(r["place"], r["abort_reason"]) for r in rows[alone_class]] == [(1, "dnf")]
 
-    # Ohne Abgebrochene: nur die Gewerteten.
+    # Ohne Abgebrochene ohne Platz: der platzierte Abbruch bleibt.
     without = await api.ranking(tid, fallscheibe.cid, include_aborted="false")
-    assert [r["start_id"] for r in rows_of(without)] == [bernd]
-    # Live: dieselbe Regel, Abbrüche nie vor Gewerteten.
+    assert [r["start_id"] for r in rows_of(without)] == [bernd, dieter, allein]
+    # Live: dieselbe Regel.
     live = rows_of(await api.ranking(tid, fallscheibe.cid, scope="live"))
-    assert [(r["start_id"], r["place"]) for r in live][:2] == [(bernd, 1), (dieter, None)]
+    assert [(r["start_id"], r["place"]) for r in live][:3] == [
+        (bernd, 1),
+        (dieter, 2),
+        (fritz, None),
+    ]
 
-    summary = await api.ok("GET", f"/tournaments/{tid}/ranking-summary")
-    leaders = summary["competitions"][0]["leaders"]
-    assert [leader["start_number"] for leader in leaders] == [1]
+    # Gespeichert bleibt der Zwischenstand der Erfassung (Rohwerte ändern sich nicht).
+    form = await api.ok("GET", f"{api.start_path(tid, dieter)}/form")
+    assert form["current"]["score"] == "30.00"
 
 
-async def test_ring_scoring_dnf_is_not_placed(api: Api, precision: Setup) -> None:
+async def test_ring_scoring_dnf_counts_missing_shots_as_zero(api: Api, precision: Setup) -> None:
     tid = precision.tid
     (fertig,) = await person_start(api, precision)
     (aufgegeben,) = await person_start(api, precision)
-    await api.shoot(tid, fertig, shots([9] * 5, [9] * 5))
-    await give_up(api, tid, aufgegeben, shots([10] * 5))
+    (stark,) = await person_start(api, precision)
+    await api.shoot(tid, fertig, shots([9] * 5, [9] * 5))  # 90
+    await give_up(api, tid, aufgegeben, shots([10] * 5))  # 50 + 0
+    await give_up(api, tid, stark, shots([10] * 5, [10, 10, 10, 10]))  # 90, ein Schuss fehlt
 
-    rows = rows_of(await api.ranking(tid, precision.cid))
-    assert [(r["start_id"], r["place"], r["group"]) for r in rows] == [
-        (fertig, 1, "ranked"),
-        (aufgegeben, None, "unranked"),
+    ranking = await api.ranking(tid, precision.cid)
+    assert ranking["tie_word"] == "Ringgleichheit"
+    rows = rows_of(ranking)
+    assert [(r["start_id"], r["place"], r["group"], r["score"]) for r in rows] == [
+        (stark, 1, "ranked", "90"),
+        (fertig, 2, "ranked", "90"),
+        (aufgegeben, 3, "ranked", "50"),
     ]
 
 
-async def test_live_ranking_never_places_aborted_both_directions(
+async def test_live_ranking_never_places_abort_without_values_both_directions(
     api: Api, precision: Setup, fallscheibe: Setup
 ) -> None:
-    """QA 22.11.: Aufgegeben ohne Eingabe stand live als „1“ mit 0 Ringen."""
+    """QA 22.11.: Aufgegeben ohne Eingabe stand live als „1“ mit 0 Ringen (bleibt ohne Platz:
+    Abbruch vor dem ersten Wertungsschuss)."""
     for setup, done, running in (
         (precision, shots([9] * 5, [9] * 5), shots([10] * 5)),
         (fallscheibe, falls(serie(12), serie(12), serie(12), serie(12)), falls(serie(5))),
@@ -153,10 +177,33 @@ async def test_multi_start_prefers_scored_attempt_over_aborted(api: Api) -> None
     await abort(api, tid, only_b, "dns")
 
     rows = rows_of(await api.ranking(tid, setup.cid))
+    # first: 10 + 10 + 110 + 110 = 240 s (Abbruch, platzierbar) gegen 48 s → zweiter Start.
+    # only_a: 5 + 3 × 110 = 335 s, platziert; der nicht angetretene Versuch zählt nicht.
     assert [(r["start_id"], r["place"], r["abort_reason"]) for r in rows] == [
         (second, 1, None),
-        (only_a, None, "dnf"),
+        (only_a, 2, "dnf"),
     ]
+
+
+async def test_multi_start_placed_abort_competes_like_a_result(api: Api) -> None:
+    for rule, expected in (("best", "first"), ("first", "first")):
+        setup = await make_setup(
+            api,
+            catalog_federation="bds",
+            catalog_code=FALLSCHEIBE,
+            capture_mode="series",
+            multi_start=True,
+            max_starts=2,
+            multi_start_rule=rule,
+        )
+        tid = setup.tid
+        first, second = await person_start(api, setup, count=2)
+        # Erster Start: 3 Serien à 10 s, dann Abbruch → 30 + 110 = 140 s; zweiter 200 s.
+        await give_up(api, tid, first, falls(serie(10), serie(10), serie(10)))
+        await api.shoot(tid, second, falls(serie(50), serie(50), serie(50), serie(50)))
+        rows = rows_of(await api.ranking(tid, setup.cid))
+        ids = {"first": first, "second": second}
+        assert [(r["start_id"], r["place"]) for r in rows] == [(ids[expected], 1)], rule
 
 
 # --- Befund 2: ältere Einstellungen ohne neue Schlüssel ----------------------------------
@@ -395,3 +442,24 @@ async def test_stored_implausible_result_becomes_review_on_recompute(
     )
     assert "unplausibel" in str(issue)
     assert "Zeitlimit erreicht" in str(issue)
+
+
+async def test_speed_abort_without_rule_stays_unplaced_with_note(api: Api) -> None:
+    """Ringe minus Zeit: für eine nicht geschossene Serie gibt es keine Regel – nichts erfinden."""
+    setup = await make_setup(api, catalog_federation="bds", catalog_code="1401")
+    tid = setup.tid
+    (fertig,) = await person_start(api, setup)
+    (aufgegeben,) = await person_start(api, setup)
+    serie_ = {"shots": [10, 10, 10, 10, 10], "time_cs": 500}
+    await api.shoot(tid, fertig, {"sections": {"speed": {"series": [serie_] * 4}}})
+    await give_up(api, tid, aufgegeben, {"sections": {"speed": {"series": [serie_]}}})
+
+    rows = rows_of(await api.ranking(tid, setup.cid))
+    assert [(r["start_id"], r["place"], r["group"]) for r in rows] == [
+        (fertig, 1, "ranked"),
+        (aufgegeben, None, "unranked"),
+    ]
+    assert rows[1]["abort_label"] == "Abbruch (AB)"
+    assert rows[1]["abort_note"] == (
+        "Ergebnis nicht vergleichbar: Regel für nicht geschossene Serien fehlt"
+    )

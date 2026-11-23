@@ -6,6 +6,8 @@ eines Starts entstehen Eingabemaske, Prüfung, Ergebnis mit Rechenweg und Rangfo
 - `describe_form(definition, capture_mode)` → `FormDescription`
 - `validate_raw(definition, capture_mode, raw, partial=True)` → `list[Issue]`
 - `compute(definition, capture_mode, raw)` → `ComputedResult`
+- `compute_aborted(definition, capture_mode, raw)` → `AbortedOutcome` (Abbruch durch den
+  Schützen: vergleichbares Ergebnis oder der Grund, warum es keines gibt)
 - `rank_key(definition, computed)` → Vergleichsschlüssel (Liste ganzer Zahlen)
 - `tie_rules(definition)` → `TieRules` (Stechen, manuell zu entscheidende Kriterien)
 - `rank(contenders, policy, rules)` → `list[Placement]`
@@ -15,6 +17,7 @@ Wertungsmodelle stehen im Register (`registry.py`); ein neues Modell ist eine Kl
 `@register_model`.
 """
 
+from app.scoring.aborted import AbortedOutcome, compute_aborted
 from app.scoring.compute import compute
 from app.scoring.definition import Definition, load_definition
 from app.scoring.errors import DefinitionError, InvalidRawError, Issue, ScoringError
@@ -34,6 +37,7 @@ from app.scoring.registry import ScoringModel, model_names, register_model
 from app.scoring.results import ComputedResult
 
 __all__ = [
+    "AbortedOutcome",
     "ComputedResult",
     "Contender",
     "Definition",
@@ -48,6 +52,7 @@ __all__ = [
     "TieRules",
     "best_of",
     "compute",
+    "compute_aborted",
     "describe_form",
     "load_definition",
     "model_names",

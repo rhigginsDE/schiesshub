@@ -1,0 +1,94 @@
+# Gewehr 100 m Ordonnanzgewehr – DSB-Disziplinen (ENTWURF)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22): Teil 1: 1.8 (Ordonnanzgewehr,
+#   1.58.O offene / 1.58.G geschlossene Visierung) mit 1.8.1–1.8.6, 1.1.1, 1.1.2, Wettbewerbstabelle (Teil 1 S. 19),
+#   Schusszahlen/Schießzeiten (Teil 1 S. 21: 40 Schuss, 55 Min. Zuganlage / 45 Min. andere Systeme); Teil 0: 0.21
+#   (Teil 0 S. 78), Scheibe Nr. 4, 0.12.1. DM: 40 Schuss, ganze Ringe (DSB-Schusszahlentabelle).
+# Ablauf (1.8.4): Gesamtzeit für Probe und Wettkampf; vor den Wertungsschüssen beliebig viele Probeschüsse liegend; vor
+#   stehend eine Probeserie von 5 Schuss, in der Wettkampfzeit enthalten. Standbelegung 15 Min. vorher (keine Probe).
+#   Gesamtzeit im vorgeschlagenen Feld Variante.wettkampfzeit_gesamt_s.
+# Wertung (1.8.5): Ring zählt nur, wenn die Einschussmitte auf der Ringlinie liegt (Zentrumswertung) – Abweichung von 0.11.3,
+#   im Format nicht abbildbar (siehe Formatbedarf). Gleichstand Vorkampf nach 0.12.1; Endkampf: Stechschuss.
+# Änderungen 2026→2027: keine.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "gewehr-100m-ordonnanz"
+  name: "Gewehr 100 m Ordonnanzgewehr"
+  waffenart: "langwaffe"
+  distanz_m: 100
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  zehntelwertung: false
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  geprueft: false
+ablaeufe:
+  ordonnanz-40:
+    beschreibung: "Vorkampf 40 Schuss: 2×10 liegend, 2×10 stehend; zusammen 55 Min. (Zuganlage) bzw. 45 Min. (andere Systeme) inkl. Probe; Endkampf der besten 6: 2×5 stehend in je 90 s, wird addiert"
+    varianten:
+      - id: "andere-systeme"
+        name: "Andere Systeme (z. B. elektronisch)"
+        wettkampfzeit_gesamt_s: 2700
+        abschnitte:
+          - id: "liegend"
+            name: "Liegend"
+            serien: 2
+            schuss_je_serie: 10
+            probeschuesse: "unbegrenzt"
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "liegend" }] }
+              - { nr: 2, anschlaege: [{ haltung: "liegend" }] }
+          - id: "stehend"
+            name: "Stehend"
+            serien: 2
+            schuss_je_serie: 10
+            probeschuesse: 5
+            positionen:
+              - { nr: 3, anschlaege: [{ haltung: "stehend" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend" }] }
+      - id: "zuganlage"
+        name: "Zuganlage"
+        wettkampfzeit_gesamt_s: 3300
+        abschnitte:
+          - id: "liegend"
+            name: "Liegend"
+            serien: 2
+            schuss_je_serie: 10
+            probeschuesse: "unbegrenzt"
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "liegend" }] }
+              - { nr: 2, anschlaege: [{ haltung: "liegend" }] }
+          - id: "stehend"
+            name: "Stehend"
+            serien: 2
+            schuss_je_serie: 10
+            probeschuesse: 5
+            positionen:
+              - { nr: 3, anschlaege: [{ haltung: "stehend" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend" }] }
+    finale:
+      teilnehmer: 6
+      hinweis: "Endkampf (kein Finale bei null): 2 Serien à 5 Schuss stehend in je 90 s ohne Probe, Ergebnis wird zum Vorkampf addiert. Gleichstand danach: sofort ein Stechschuss in 75 s; dann entscheidet der geringste Abstand zur Scheibenmitte."
+      abschnitt: "1.8.4, 1.8.5"
+disziplinen:
+  - kennziffer: "1.58.O"
+    name: "Ordonnanzgewehr offene Visierung"
+    waffe: "Repetiergewehr, bis 31.12.1963 als Ordonnanzwaffe geführt, originalgetreu; keine Einzellader, Unterhebelrepetierer, Halbautomaten; ein Magazin; Schaft wie Original, keine Handstütze"
+    munition: "Zentralfeuer 6–8 mm (Teil 1 S. 19; 0.21: bis 8 mm), dem Original entsprechend"
+    visierung: "offen, originalgetreu; keine Diopter- oder Scharfschützenvisierung"
+    anschlag: "liegend, stehend"
+    scheibe: "DSB-Scheibe Nr. 4 (100 m Gewehr)"
+    ablauf: "ordonnanz-40"
+    hinweis: "Abzugswiderstand mind. 1500 g; keine Flimmerbänder, keine Mündungsbremsen; TK-Anweisungen zu den Visieren beachten. Riemen (wie Original, beidseitig befestigt) nur liegend. Zentrumswertung (1.8.5). Schießjacke/-hose erlaubt. Ganzes Programm mit derselben Waffe."
+  - kennziffer: "1.58.G"
+    name: "Ordonnanzgewehr geschlossene Visierung"
+    waffe: "Repetiergewehr, bis 31.12.1963 als Ordonnanzwaffe geführt, originalgetreu; keine Einzellader, Unterhebelrepetierer, Halbautomaten; ein Magazin; Schaft wie Original, keine Handstütze"
+    munition: "Zentralfeuer 6–8 mm (Teil 1 S. 19; 0.21: bis 8 mm), dem Original entsprechend"
+    visierung: "geschlossen (originalgetreu); keine speziellen Diopter- oder Scharfschützenvisierungen"
+    anschlag: "liegend, stehend"
+    scheibe: "DSB-Scheibe Nr. 4 (100 m Gewehr)"
+    ablauf: "ordonnanz-40"
+    hinweis: "Abzugswiderstand mind. 1500 g; keine Flimmerbänder, keine Mündungsbremsen; TK-Anweisungen zu den Visieren beachten. Riemen (wie Original, beidseitig befestigt) nur liegend. Zentrumswertung (1.8.5). Schießjacke/-hose erlaubt. Ganzes Programm mit derselben Waffe."
+    pruefen: ["visierung"]

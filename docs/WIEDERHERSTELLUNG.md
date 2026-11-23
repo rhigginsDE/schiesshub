@@ -200,7 +200,7 @@ Gilt für beide Wege. Was nach der Sicherung geschah und nicht in der Mitschrift
   Erfassung öffnen und mit dem Startzettel abgleichen.
 - **„Die Wertung von … wurde nach der Sicherung geändert“:** die Änderung im Turnier wiederholen.
   Die Ergebnisse werden dann neu berechnet.
-- **Ohne Meldung verloren:** neue Personen, Anmeldungen, Startgeld, Durchgänge, Bahnen und
+- **Ohne Meldung verloren:** neue Personen, Anmeldungen, Startgeld, Durchgänge, Schützenstände und
   Aufrufe sowie Änderungen an Turnier, Anzeigen, Rollen und Geräten nach der Sicherung.
   Nachgetragene Korrekturen und Abbrüche bekommen im System-Protokoll den Zeitpunkt des
   Nachtragens. Am Ergebnis selbst stehen Zeit, Person und Gerät der ursprünglichen Eingabe.

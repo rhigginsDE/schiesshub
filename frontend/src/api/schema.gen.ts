@@ -21,6 +21,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Formelle Begriffe je Verband
+         * @description Wörter für formelle Ausgaben (Ausschreibung, Aushang, Start- und Ergebnisliste, Anzeige), z. B. `schuetzenstand` = „Schützenstand“, `ergebnisliste` = „Ergebnisliste“, `kennziffer` = „Kennziffer“ (BDS) bzw. „Kennzahl“ (DSB). `default` gilt ohne Verband (eigene Disziplin) und für Verbände ohne eigenen Satz; `federations` enthält je Verband (Schlüssel = `catalog_federation` in Kleinbuchstaben) den vollständigen Satz, Lücken schon mit `default` gefüllt. Die Bedienung der Stationen darf Alltagswörter behalten („Gleichstand“, „aufgegeben“). Lesbar für jedes gekoppelte Gerät; die Wörter ändern sich nur mit einer neuen Version des Servers.
+         */
+        get: operations["system_terms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/names": {
         parameters: {
             query?: never;
@@ -192,7 +212,7 @@ export interface paths {
         put?: never;
         /**
          * Turnier aus einer fertigen Vorlage anlegen
-         * @description Legt ein Turnier im Entwurf aus einer Vorlage von `GET /tournament-templates` an: Grundeinstellungen, Stände, Klassen und Wettbewerbe. Die Wettbewerbe entstehen frisch aus dem aktuellen Katalog (wie `POST …/competitions`). 422 bei unbekannter Vorlage, 409, wenn eine Kennziffer der Vorlage im Katalog fehlt (dann wird nichts angelegt). Antwort: das Turnier mit Ständen, Klassen und Wettbewerben.
+         * @description Legt ein Turnier im Entwurf aus einer Vorlage von `GET /tournament-templates` an: Grundeinstellungen, Schießstände, Klassen und Wettbewerbe. Die Wettbewerbe entstehen frisch aus dem aktuellen Katalog (wie `POST …/competitions`). 422 bei unbekannter Vorlage, 409, wenn eine Kennziffer der Vorlage im Katalog fehlt (dann wird nichts angelegt). Antwort: das Turnier mit Schießständen, Klassen und Wettbewerben.
          */
         post: operations["turnier_create_from_template"];
         delete?: never;
@@ -212,7 +232,7 @@ export interface paths {
         put?: never;
         /**
          * Übungsturnier mit Beispieldaten anlegen
-         * @description Legt das Übungsturnier an (`is_practice: true`, Status aktiv, heutiges Datum): zwei Stände, drei Wettbewerbe aus dem Katalog (Fallscheibe Flinte 15 m 4401 und 4403 nach Reihenfolge, Präzision 1001 nach Zeitplan mit Durchgängen um die aktuelle Uhrzeit), zwölf erfundene Personen in drei erfundenen Vereinen (Mitgliedsnummer `ÜBUNG-…`, kein Geburtsdatum) und Starts in allen Zuständen mit Ergebnissen, Korrektur und Abbruch – alles über die echten Abläufe, also mit Wertung, Ranglisten und Protokoll. Es gibt höchstens ein Übungsturnier: Ein zweiter Aufruf antwortet 409 mit `code` `practice_exists` und der `tournament_id` des bestehenden. Entfernen mit `DELETE /tournaments/{id}`.
+         * @description Legt das Übungsturnier an (`is_practice: true`, Status aktiv, heutiges Datum): zwei Schießstände, drei Wettbewerbe aus dem Katalog (Fallscheibe Flinte 15 m 4401 und 4403 nach Reihenfolge, Präzision 1001 nach Zeitplan mit Durchgängen um die aktuelle Uhrzeit), zwölf erfundene Personen in drei erfundenen Vereinen (Mitgliedsnummer `ÜBUNG-…`, kein Geburtsdatum) und Starts in allen Zuständen mit Ergebnissen, Korrektur und Abbruch – alles über die echten Abläufe, also mit Wertung, Ranglisten und Protokoll. Es gibt höchstens ein Übungsturnier: Ein zweiter Aufruf antwortet 409 mit `code` `practice_exists` und der `tournament_id` des bestehenden. Entfernen mit `DELETE /tournaments/{id}`.
          */
         post: operations["turnier_create_practice"];
         delete?: never;
@@ -274,7 +294,7 @@ export interface paths {
         put?: never;
         /**
          * Turnier kopieren („wie letztes Jahr“)
-         * @description Neues Turnier im Entwurf mit neuem Namen und Termin. Kopiert: Einstellungen, Ausschreibung, Stände, Klassen samt Zusammenlegung, Wettbewerbe mit ihrer Definition (auch bewusste Abweichungen vom Katalog), Startgeld und Mehrfachstart. Nicht kopiert: Anmeldungen, Starts, Durchgänge, Ergebnisse, Revisionen (jeder Wettbewerb beginnt mit Revision 1). Der Meldeschluss der Ausschreibung verschiebt sich um denselben Abstand wie der Beginn; ohne `date_to` dauert die Kopie so lange wie das Original, ohne `organizer` gilt der des Originals. Je Wettbewerb aus dem Katalog meldet `catalog_changed`, ob sich der Katalog seit dem Anlegen im Original geändert hat; die Kopie behält trotzdem die Definition des Originals (übernehmen: `POST …/competitions/{id}/reset-definition`). Die Kopie eines Übungsturniers ist ein normales Turnier ohne Teilnehmer.
+         * @description Neues Turnier im Entwurf mit neuem Namen und Termin. Kopiert: Einstellungen, Ausschreibung, Schießstände, Klassen samt Zusammenlegung, Wettbewerbe mit ihrer Definition (auch bewusste Abweichungen vom Katalog), Startgeld und Mehrfachstart. Nicht kopiert: Anmeldungen, Starts, Durchgänge, Ergebnisse, Revisionen (jeder Wettbewerb beginnt mit Revision 1). Der Meldeschluss der Ausschreibung verschiebt sich um denselben Abstand wie der Beginn; ohne `date_to` dauert die Kopie so lange wie das Original, ohne `organizer` gilt der des Originals. Je Wettbewerb aus dem Katalog meldet `catalog_changed`, ob sich der Katalog seit dem Anlegen im Original geändert hat; die Kopie behält trotzdem die Definition des Originals (übernehmen: `POST …/competitions/{id}/reset-definition`). Die Kopie eines Übungsturniers ist ein normales Turnier ohne Teilnehmer.
          */
         post: operations["turnier_copy_tournament"];
         delete?: never;
@@ -290,7 +310,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Turnier mit Ständen, Klassen und Wettbewerben */
+        /** Turnier mit Schießständen, Klassen und Wettbewerben */
         get: operations["turnier_get_overview"];
         put?: never;
         post?: never;
@@ -330,7 +350,7 @@ export interface paths {
         };
         /**
          * Ausschreibung zum Drucken
-         * @description Sichtbare Bausteine in ihrer Reihenfolge; automatische Bausteine bringen die aktuellen Turnierdaten mit. Enthält keine Teilnehmerdaten.
+         * @description Sichtbare Bausteine in ihrer Reihenfolge; automatische Bausteine bringen die aktuellen Turnierdaten mit. Enthält keine Teilnehmerdaten. Formelle Wörter (`terms`, siehe `GET /terms`): je Wettbewerb die seines Verbands, für turnierweite Teile die des gemeinsamen Verbands aller Katalog-Wettbewerbe, sonst der Standardsatz. Abweichungen vom Katalog nennt die Ausschreibung nicht (dafür `…/catalog-diff`).
          */
         get: operations["turnier_get_announcement_document"];
         put?: never;
@@ -348,10 +368,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Stände */
+        /** Schießstände */
         get: operations["turnier_list_ranges"];
         put?: never;
-        /** Stand anlegen */
+        /** Schießstand anlegen */
         post: operations["turnier_create_range"];
         delete?: never;
         options?: never;
@@ -367,7 +387,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Stände sortieren */
+        /** Schießstände sortieren */
         put: operations["turnier_reorder_ranges"];
         post?: never;
         delete?: never;
@@ -383,15 +403,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Stand */
+        /** Schießstand */
         get: operations["turnier_get_range"];
         put?: never;
         post?: never;
-        /** Stand löschen */
+        /** Schießstand löschen */
         delete: operations["turnier_delete_range"];
         options?: never;
         head?: never;
-        /** Stand ändern */
+        /** Schießstand ändern */
         patch: operations["turnier_update_range"];
         trace?: never;
     };
@@ -592,7 +612,7 @@ export interface paths {
         };
         /**
          * Abweichungen vom Katalog
-         * @description Vergleicht die aktuelle Definition mit der Katalog-Variante, aus der sie stammt (aktueller Katalogstand). `deviates` kennzeichnet „abweichend vom Katalog“. Ohne Katalogherkunft ist die Liste leer.
+         * @description Vergleicht die aktuelle Definition mit der Katalog-Variante, aus der sie stammt (aktueller Katalogstand). `deviates` kennzeichnet „abweichend vom Katalog“. Ohne Katalogherkunft ist die Liste leer. Nur für den Turnier-Editor; die Ausschreibung nennt keine Abweichungen.
          */
         get: operations["turnier_get_catalog_diff"];
         put?: never;
@@ -612,7 +632,7 @@ export interface paths {
         };
         /**
          * Fertige Turnier-Vorlagen
-         * @description Vorlagen aus dem Repository (`app/modules/turnier/templates/`) mit Name, einem Satz Beschreibung, Ständen und den enthaltenen Wettbewerben (Kennziffer und Name aus dem aktuellen Katalog). `available: false`: Die Kennziffer fehlt im Katalog; dann lässt sich die Vorlage nicht anlegen. Anlegen mit `POST /tournaments/from-template`.
+         * @description Vorlagen aus dem Repository (`app/modules/turnier/templates/`) mit Name, einem Satz Beschreibung, Schießständen und den enthaltenen Wettbewerben (Kennziffer und Name aus dem aktuellen Katalog). `available: false`: Die Kennziffer fehlt im Katalog; dann lässt sich die Vorlage nicht anlegen. Anlegen mit `POST /tournaments/from-template`.
          */
         get: operations["turnier_list_templates"];
         put?: never;
@@ -903,8 +923,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Reihenfolge eines Stands
-         * @description Wartende Starts in ihrer Reihenfolge und alle Bahnen. Belegt ist eine Bahn, solange ein Start auf ihr steht (aufgerufen oder erfasst, noch nicht freigegeben), mit Status und Erfassungsfortschritt (`progress`).
+         * Reihenfolge eines Schießstands
+         * @description Wartende Starts in ihrer Reihenfolge und alle Schützenstände. Belegt ist ein Schützenstand, solange ein Start darauf steht (aufgerufen oder erfasst, noch nicht freigegeben), mit Status und Erfassungsfortschritt (`progress`).
          */
         get: operations["starts_get_queue"];
         put?: never;
@@ -943,7 +963,7 @@ export interface paths {
         put?: never;
         /**
          * Start aufrufen
-         * @description Reihenfolge: auf `lane` oder die erste freie Bahn. Zeitplan: auf die Bahn des Durchgangs. Eine Bahn trägt nur einen Start (aufgerufen oder erfasst, bis sie frei wird), eine Person steht nur auf einer Bahn. Aus der Reihenfolge nicht ohne `confirm_heat_conflict` auf eine Bahn, die ein Durchgang innerhalb von `settings.heat_reserve_minutes` braucht (409 `heat_imminent`); ohne `lane` wird dann zuerst eine Bahn genommen, die keiner braucht.
+         * @description Reihenfolge: auf `lane` oder den ersten freien Schützenstand. Zeitplan: auf den Schützenstand des Durchgangs. Ein Schützenstand trägt nur einen Start (aufgerufen oder erfasst, bis er frei wird), eine Person steht nur auf einem Schützenstand. Aus der Reihenfolge nicht ohne `confirm_heat_conflict` auf einen Schützenstand, den ein Durchgang innerhalb von `settings.heat_reserve_minutes` braucht (409 `heat_imminent`); ohne `lane` wird dann zuerst einer genommen, den keiner braucht.
          */
         post: operations["starts_call_start"];
         delete?: never;
@@ -963,7 +983,7 @@ export interface paths {
         put?: never;
         /**
          * Aufgerufenen Start zurückstellen
-         * @description Die Bahn wird frei. Bei der Reihenfolge kommt der Start vorn (`front`) oder hinten (`back`) wieder in die Warteschlange; im Zeitplan behält er seinen Platz.
+         * @description Der Schützenstand wird frei. Bei der Reihenfolge kommt der Start vorn (`front`) oder hinten (`back`) wieder in die Warteschlange; im Zeitplan behält er seinen Platz.
          */
         post: operations["starts_return_start"];
         delete?: never;
@@ -982,8 +1002,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Bahn freigeben
-         * @description Nimmt einen erfassten Start von seiner Bahn, ohne den Status zu ändern (z. B. Schütze fertig, Ergebnis noch nicht abgeschlossen). Mit dem Abschließen oder Abbrechen wird die Bahn ohnehin frei. Ein nur aufgerufener Start wird zurückgestellt, nicht freigegeben.
+         * Schützenstand freigeben
+         * @description Nimmt einen erfassten Start von seinem Schützenstand, ohne den Status zu ändern (z. B. Schütze fertig, Ergebnis noch nicht abgeschlossen). Mit dem Abschließen oder Abbrechen wird der Schützenstand ohnehin frei. Ein nur aufgerufener Start wird zurückgestellt, nicht freigegeben.
          */
         post: operations["starts_release_lane"];
         delete?: never;
@@ -1003,7 +1023,7 @@ export interface paths {
         put?: never;
         /**
          * Nächste aufrufen
-         * @description Füllt alle freien Bahnen des Stands (mit `lane` nur diese: „Nächsten auf Bahn N“) der Reihe nach aus der Reihenfolge. Belegt bleibt eine Bahn auch mit einem erfassten Start, bis er abgeschlossen, abgebrochen oder die Bahn freigegeben ist. Wer gerade auf einer Bahn steht (auch an einem anderen Stand), wird übersprungen (`skipped`) und behält seinen Platz. Bahnen, die ein Durchgang innerhalb von `settings.heat_reserve_minutes` braucht, bleiben ohne `confirm_heat_conflict` frei (`held_lanes`); wäre nur auf ihnen jemand drangekommen, kommt 409 `heat_imminent`.
+         * @description Füllt alle freien Schützenstände des Schießstands (mit `lane` nur diesen: „Nächsten auf Schützenstand N“) der Reihe nach aus der Reihenfolge. Belegt bleibt ein Schützenstand auch mit einem erfassten Start, bis er abgeschlossen, abgebrochen oder der Schützenstand freigegeben ist. Wer gerade auf einem Schützenstand steht (auch an einem anderen Schießstand), wird übersprungen (`skipped`) und behält seinen Platz. Schützenstände, die ein Durchgang innerhalb von `settings.heat_reserve_minutes` braucht, bleiben ohne `confirm_heat_conflict` frei (`held_lanes`); wäre nur auf ihnen jemand drangekommen, kommt 409 `heat_imminent`.
          */
         post: operations["starts_call_next"];
         delete?: never;
@@ -1019,7 +1039,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Durchgänge eines Stands */
+        /** Durchgänge eines Schießstands */
         get: operations["starts_list_heats"];
         put?: never;
         /** Durchgang anlegen */
@@ -1079,7 +1099,7 @@ export interface paths {
         put?: never;
         /**
          * Durchgang aufrufen
-         * @description Ruft alle wartenden Starts des Durchgangs auf ihre Bahnen – alle oder keinen.
+         * @description Ruft alle wartenden Starts des Durchgangs auf ihre Schützenstände – alle oder keinen.
          */
         post: operations["starts_call_heat"];
         delete?: never;
@@ -1096,7 +1116,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Start einem Durchgang und einer Bahn zuweisen */
+        /** Start einem Durchgang und einem Schützenstand zuweisen */
         put: operations["starts_assign_slot"];
         post?: never;
         /** Start aus dem Durchgang nehmen */
@@ -1115,7 +1135,7 @@ export interface paths {
         };
         /**
          * Nächster freier Platz (Vorschlag)
-         * @description Frühester Durchgang ab `after` (Standard: jetzt) mit freier Bahn auf dem Stand des Wettbewerbs. Mit `entry_id` ohne Überschneidung mit den übrigen Durchgängen der Person. `null`, wenn es keinen freien Platz gibt.
+         * @description Frühester Durchgang ab `after` (Standard: jetzt) mit freiem Schützenstand auf dem Schießstand des Wettbewerbs. Mit `entry_id` ohne Überschneidung mit den übrigen Durchgängen der Person. `null`, wenn es keinen freien Platz gibt.
          */
         get: operations["starts_next_slot"];
         put?: never;
@@ -1135,7 +1155,7 @@ export interface paths {
         };
         /**
          * Startliste
-         * @description Alle Starts, wahlweise eines Wettbewerbs oder Stands. Namen nur nach der Anzeige-Einstellung der Person, der Verein nur mit `show_club`.
+         * @description Alle Starts, wahlweise eines Wettbewerbs oder Schießstands. Namen nur nach der Anzeige-Einstellung der Person, der Verein nur mit `show_club`.
          */
         get: operations["starts_get_startlist"];
         put?: never;
@@ -1154,8 +1174,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Am Stand und als Nächstes
-         * @description Belegte Bahnen (aufgerufen oder erfasst, mit Status und Erfassungsfortschritt `progress`), der nächste Durchgang mit seinen Starts und die nächsten Wartenden der Reihenfolge. Namen nur nach der Anzeige-Einstellung der Person.
+         * Am Schießstand und als Nächstes
+         * @description Belegte Schützenstände (aufgerufen oder erfasst, mit Status und Erfassungsfortschritt `progress`), der nächste Durchgang mit seinen Starts und die nächsten Wartenden der Reihenfolge. Namen nur nach der Anzeige-Einstellung der Person.
          */
         get: operations["starts_get_range_now"];
         put?: never;
@@ -1372,7 +1392,7 @@ export interface paths {
         };
         /**
          * Rangliste eines Wettbewerbs
-         * @description Platzierungen je Klasse (bei gemeinsamer Wertung eine Gruppe). `scope=live` nimmt laufende Zwischenstände auf (`status: running`). `merged=true` legt Klassen über `merge_into_id` zusammen. Namen nur nach Anzeige-Einstellung der Person. Abgebrochene Starts (nicht angetreten, aufgegeben, disqualifiziert) bekommen nie einen Platz: Sie stehen am Ende ihrer Gruppe ohne Platz (`group: unranked`, `abort_reason`); `include_aborted=false` lässt sie weg. In `scope=final` stehen auch unvollständige Ergebnisse ohne Platz da.
+         * @description Platzierungen je Klasse (bei gemeinsamer Wertung eine Gruppe). `scope=live` nimmt laufende Zwischenstände auf (`status: running`). `merged=true` legt Klassen über `merge_into_id` zusammen. Namen nur nach Anzeige-Einstellung der Person. Ein Abbruch nach dem Kommando „Feuer“ (aufgegeben mit erfassten Werten) wird nach dem bis dahin erzielten Ergebnis platziert (Sporthandbuch K 1.14 / L 1.12; nicht geschossene Serien nach der Regel der Wertung; `abort_label`: „Abbruch (AB)“). Ohne Platz bleiben nicht angetreten, disqualifiziert, Abbruch ohne Wertungswert und Abbrüche ohne vergleichbares Ergebnis (`abort_note`): Sie stehen am Ende ihrer Gruppe (`group: unranked`, `abort_reason`); `include_aborted=false` lässt sie weg. In `scope=final` stehen auch unvollständige Ergebnisse ohne Platz da.
          */
         get: operations["ergebnisse_get_ranking"];
         put?: never;
@@ -2227,7 +2247,7 @@ export interface paths {
         };
         /**
          * Startliste als PDF
-         * @description Alle Starts, wahlweise eines Wettbewerbs (`competition_id`) oder Stands (`range_id`). `sort`: `competition` (je Wettbewerb in der Reihenfolge am Stand), `start_number` oder `range` (je Stand nach Uhrzeit und Bahn).
+         * @description Alle Starts, wahlweise eines Wettbewerbs (`competition_id`) oder Schießstands (`range_id`). `sort`: `competition` (je Wettbewerb in der Reihenfolge am Schießstand), `start_number` oder `range` (je Schießstand nach Uhrzeit und Schützenstand).
          */
         get: operations["export_startlist_pdf"];
         put?: never;
@@ -2247,7 +2267,7 @@ export interface paths {
         };
         /**
          * Startliste als CSV
-         * @description Alle Starts, wahlweise eines Wettbewerbs (`competition_id`) oder Stands (`range_id`). `sort`: `competition` (je Wettbewerb in der Reihenfolge am Stand), `start_number` oder `range` (je Stand nach Uhrzeit und Bahn). UTF-8 mit BOM, Trennzeichen `;`.
+         * @description Alle Starts, wahlweise eines Wettbewerbs (`competition_id`) oder Schießstands (`range_id`). `sort`: `competition` (je Wettbewerb in der Reihenfolge am Schießstand), `start_number` oder `range` (je Schießstand nach Uhrzeit und Schützenstand). UTF-8 mit BOM, Trennzeichen `;`.
          */
         get: operations["export_startlist_csv"];
         put?: never;
@@ -2266,8 +2286,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Siegerliste als PDF
-         * @description Platzierungen aus der Rangliste (abgeschlossene Ergebnisse), je Wettbewerb und Klasse. Ohne `competition_id` alle Wettbewerbe mit Ergebnissen nacheinander. `top`: nur die ersten Plätze. `merged=true` legt Klassen zusammen. `include_provisional=false` lässt Ergebnisse in der Einspruchsfrist weg; sonst steht über dem Wettbewerb „vorläufig – Einspruchsfrist läuft bis …“. Abgebrochene Starts (nicht angetreten, aufgegeben, disqualifiziert) bekommen nie einen Platz; ohne `top` stehen sie am Ende ihrer Klasse mit dem Grund und ohne Ergebnis, `include_aborted=false` lässt sie weg.
+         * Ergebnisliste als PDF
+         * @description Platzierungen aus der Rangliste (abgeschlossene Ergebnisse), je Wettbewerb und Klasse. Ohne `competition_id` alle Wettbewerbe mit Ergebnissen nacheinander. `top`: nur die ersten Plätze. `merged=true` legt Klassen zusammen. `include_provisional=false` lässt Ergebnisse in der Einspruchsfrist weg; sonst steht über dem Wettbewerb „vorläufig – Einspruchsfrist läuft bis …“. Ein Abbruch nach dem Kommando „Feuer“ wird nach dem bis dahin erzielten Ergebnis platziert (Sporthandbuch K 1.14 / L 1.12) und als „Abbruch (AB)“ gekennzeichnet. Ohne Platz bleiben nicht angetreten, disqualifiziert und Abbruch ohne Wertungswert (AB); ohne `top` stehen sie am Ende ihrer Klasse mit dem Grund und ohne Ergebnis, `include_aborted=false` lässt sie weg.
          */
         get: operations["export_winners_pdf"];
         put?: never;
@@ -2286,8 +2306,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Siegerliste als CSV
-         * @description Platzierungen aus der Rangliste (abgeschlossene Ergebnisse), je Wettbewerb und Klasse. Ohne `competition_id` alle Wettbewerbe mit Ergebnissen nacheinander. `top`: nur die ersten Plätze. `merged=true` legt Klassen zusammen. `include_provisional=false` lässt Ergebnisse in der Einspruchsfrist weg; sonst steht über dem Wettbewerb „vorläufig – Einspruchsfrist läuft bis …“. Abgebrochene Starts (nicht angetreten, aufgegeben, disqualifiziert) bekommen nie einen Platz; ohne `top` stehen sie am Ende ihrer Klasse mit dem Grund und ohne Ergebnis, `include_aborted=false` lässt sie weg. UTF-8 mit BOM, Trennzeichen `;`.
+         * Ergebnisliste als CSV
+         * @description Platzierungen aus der Rangliste (abgeschlossene Ergebnisse), je Wettbewerb und Klasse. Ohne `competition_id` alle Wettbewerbe mit Ergebnissen nacheinander. `top`: nur die ersten Plätze. `merged=true` legt Klassen zusammen. `include_provisional=false` lässt Ergebnisse in der Einspruchsfrist weg; sonst steht über dem Wettbewerb „vorläufig – Einspruchsfrist läuft bis …“. Ein Abbruch nach dem Kommando „Feuer“ wird nach dem bis dahin erzielten Ergebnis platziert (Sporthandbuch K 1.14 / L 1.12) und als „Abbruch (AB)“ gekennzeichnet. Ohne Platz bleiben nicht angetreten, disqualifiziert und Abbruch ohne Wertungswert (AB); ohne `top` stehen sie am Ende ihrer Klasse mit dem Grund und ohne Ergebnis, `include_aborted=false` lässt sie weg. UTF-8 mit BOM, Trennzeichen `;`.
          */
         get: operations["export_winners_csv"];
         put?: never;
@@ -2490,6 +2510,7 @@ export interface components {
             facts: components["schemas"]["AnnouncementFacts"];
             /** Blocks */
             blocks: components["schemas"]["DocumentBlock"][];
+            terms: components["schemas"]["Begriffe"];
         };
         /**
          * AnnouncementFacts
@@ -2641,6 +2662,167 @@ export interface components {
             warn_all_stations: boolean;
             /** Warn On Display */
             warn_on_display: boolean;
+        };
+        /**
+         * Begriffe
+         * @description Ein vollständiger Begriffssatz. Feldname = Schlüssel, Wert = Wort für Menschen.
+         */
+        Begriffe: {
+            /**
+             * Ergebnisliste
+             * @description Liste mit Ergebnissen und Platzierungen
+             */
+            ergebnisliste: string;
+            /**
+             * Startliste
+             * @description Liste der Starts eines Turniers
+             */
+            startliste: string;
+            /**
+             * Startnummer
+             * @description Nummer des Schützen im Turnier
+             */
+            startnummer: string;
+            /**
+             * Startzeit
+             * @description Zeitpunkt, zu dem ein Schütze antreten soll
+             */
+            startzeit: string;
+            /**
+             * Schiessstand
+             * @description Die Anlage, z. B. „Schießstand 25 m“
+             */
+            schiessstand: string;
+            /**
+             * Schiessstaende
+             * @description Mehrzahl von `schiessstand`
+             */
+            schiessstaende: string;
+            /**
+             * Schuetzenstand
+             * @description Platz eines Schützen am Schießstand (nummeriert)
+             */
+            schuetzenstand: string;
+            /**
+             * Schuetzenstaende
+             * @description Mehrzahl von `schuetzenstand`
+             */
+            schuetzenstaende: string;
+            /**
+             * Durchgang
+             * @description Abgeschlossener Schießblock mit Uhrzeit
+             */
+            durchgang: string;
+            /**
+             * Durchgangszeit
+             * @description Gemessene Zeit eines Parcours-Durchgangs
+             */
+            durchgangszeit: string;
+            /**
+             * Wertungsserie
+             * @description Serie, die in die Wertung eingeht
+             */
+            wertungsserie: string;
+            /**
+             * Wertungsschuesse
+             * @description Schüsse, die in die Wertung eingehen
+             */
+            wertungsschuesse: string;
+            /**
+             * Trefferaufnahme
+             * @description Erfassen und Auswerten der Treffer
+             */
+            trefferaufnahme: string;
+            /**
+             * Ergebnisgleichheit
+             * @description Gleiches Ergebnis, allgemein (ohne Bezug auf ein Wertungsmodell)
+             */
+            ergebnisgleichheit: string;
+            /**
+             * Ringgleichheit
+             * @description Gleiches Ergebnis bei Ringwertung
+             */
+            ringgleichheit: string;
+            /**
+             * Treffergleichheit
+             * @description Gleiches Ergebnis bei Trefferwertung
+             */
+            treffergleichheit: string;
+            /**
+             * Abbruch
+             * @description Der Schütze bricht seinen Start ab (Bedienung: aufgegeben)
+             */
+            abbruch: string;
+            /**
+             * Abbruch Kurz
+             * @description Kurzform von `abbruch` in Listen
+             */
+            abbruch_kurz: string;
+            /**
+             * Nicht Angetreten
+             * @description Start trotz Aufruf nicht angetreten
+             */
+            nicht_angetreten: string;
+            /**
+             * Disqualifiziert
+             * @description Aus der Disziplin ausgeschlossen
+             */
+            disqualifiziert: string;
+            /**
+             * Disqualifikation
+             * @description Ausschluss aus der Disziplin (Hauptwort)
+             */
+            disqualifikation: string;
+            /**
+             * Einspruch
+             * @description Einwand gegen eine Entscheidung oder ein Ergebnis
+             */
+            einspruch: string;
+            /**
+             * Protest
+             * @description Schriftlicher Einwand an das Wettbewerbsgericht
+             */
+            protest: string;
+            /**
+             * Protestgebuehr
+             * @description Gebühr für einen Protest
+             */
+            protestgebuehr: string;
+            /**
+             * Gebuehr Einspruch
+             * @description Gebühr für einen Einspruch gegen das Ergebnis, wie sie die Ausschreibung nennt (BDS „Protestgebühr“, DSB „Einspruchsgebühr“)
+             */
+            gebuehr_einspruch: string;
+            /**
+             * Standaufsicht
+             * @description Verantwortliche Aufsichtsperson am Schießstand
+             */
+            standaufsicht: string;
+            /**
+             * Schiessleiter
+             * @description Leitet den Schießbetrieb auf dem Schießstand
+             */
+            schiessleiter: string;
+            /**
+             * Wettkampfleitung
+             * @description Leitung des Wettkampfs (nicht „Wettkampfleiter“)
+             */
+            wettkampfleitung: string;
+            /**
+             * Startgeld
+             * @description Teilnahmegebühr je Start
+             */
+            startgeld: string;
+            /**
+             * Klasse
+             * @description Einteilung nach Alter und Geschlecht
+             */
+            klasse: string;
+            /**
+             * Kennziffer
+             * @description Nummer einer Disziplin im Regelwerk des Verbands
+             */
+            kennziffer: string;
         };
         /**
          * BlockerOut
@@ -3439,10 +3621,7 @@ export interface components {
             multi_start_rule: "best" | "first" | "all";
             /** Multi Start Text */
             multi_start_text: string;
-            /** Deviates From Catalog */
-            deviates_from_catalog: boolean;
-            /** Deviations */
-            deviations: string[];
+            terms: components["schemas"]["Begriffe"];
         };
         /** DocumentDates */
         DocumentDates: {
@@ -3480,12 +3659,17 @@ export interface components {
             /** Items */
             items: components["schemas"]["DocumentFee"][];
         };
-        /** DocumentRange */
+        /**
+         * DocumentRange
+         * @description Ein Schießstand des Turniers.
+         */
         DocumentRange: {
             /** Name */
             name: string;
             /** Lane Count */
             lane_count: number;
+            /** Lanes Text */
+            lanes_text: string;
         };
         /**
          * DocumentSection
@@ -4039,6 +4223,10 @@ export interface components {
             needs_shootoff: boolean;
             /** Tie Note */
             tie_note?: string | null;
+            /** Abort Label */
+            abort_label?: string | null;
+            /** Abort Note */
+            abort_note?: string | null;
         };
         /** FeedRanking */
         FeedRanking: {
@@ -4593,10 +4781,11 @@ export interface components {
         };
         /**
          * HeatReservationOut
-         * @description Nächster Durchgang des Stands mit wartenden Starts und den Bahnen, die er braucht.
+         * @description Nächster Durchgang des Schießstands mit wartenden Starts und den Schützenständen, die er
+         *     braucht.
          *
-         *     Solange `active` ist, hält der Stand `lanes` für ihn frei: Aufrufe aus der Reihenfolge auf
-         *     diese Bahnen brauchen `confirm_heat_conflict: true`.
+         *     Solange `active` ist, hält der Schießstand `lanes` für ihn frei: Aufrufe aus der Reihenfolge
+         *     auf diese Schützenstände brauchen `confirm_heat_conflict: true`.
          */
         HeatReservationOut: {
             /**
@@ -4809,7 +4998,7 @@ export interface components {
         };
         /**
          * LaneProgressOut
-         * @description Erfassungsfortschritt eines Starts auf der Bahn (aus dem aktuellen Ergebnis-Stand).
+         * @description Erfassungsfortschritt eines Starts auf dem Schützenstand (aus dem aktuellen Ergebnis).
          */
         LaneProgressOut: {
             /** Section Id */
@@ -5263,7 +5452,7 @@ export interface components {
         };
         /**
          * RangeNowOut
-         * @description „Am Stand“ und „als Nächstes“ für Anzeige und Erfassung.
+         * @description „Am Schießstand“ und „als Nächstes“ für Anzeige und Erfassung.
          */
         RangeNowOut: {
             /**
@@ -5396,6 +5585,11 @@ export interface components {
             generated_at: string;
             /** Groups */
             groups: components["schemas"]["RankingGroup"][];
+            /**
+             * Tie Word
+             * @default gleiches Ergebnis
+             */
+            tie_word: string;
         };
         /** RankingRow */
         RankingRow: {
@@ -5467,6 +5661,10 @@ export interface components {
             abort_reason: ("dns" | "dnf" | "dsq") | null;
             /** Provisional Until */
             provisional_until: string | null;
+            /** Abort Label */
+            abort_label?: string | null;
+            /** Abort Note */
+            abort_note?: string | null;
         };
         /** RankingSummaryOut */
         RankingSummaryOut: {
@@ -6553,6 +6751,17 @@ export interface components {
             lane_count: number;
         };
         /**
+         * TermsOut
+         * @description Formelle Begriffe: Standardsatz und je Verband der vollständige Satz.
+         */
+        TermsOut: {
+            default: components["schemas"]["Begriffe"];
+            /** Federations */
+            federations: {
+                [key: string]: components["schemas"]["Begriffe"];
+            };
+        };
+        /**
          * TournamentCopy
          * @description Neues Turnier „wie letztes Jahr“: Name und Termin neu, alles andere vom Original.
          */
@@ -6843,7 +7052,7 @@ export interface components {
         };
         /**
          * TournamentTemplateOut
-         * @description Fertige Vorlage: Stände, Klassen und Wettbewerbe aus dem aktuellen Katalog.
+         * @description Fertige Vorlage: Schießstände, Klassen und Wettbewerbe aus dem aktuellen Katalog.
          */
         TournamentTemplateOut: {
             /** Id */
@@ -7048,7 +7257,8 @@ export interface components {
         };
         /**
          * WinnersScene
-         * @description Siegerliste: nur abgeschlossene Ergebnisse, die ersten `top` Plätze je Klasse.
+         * @description Ergebnisliste: nur abgeschlossene Ergebnisse (und Abbrüche mit Platz), die ersten `top`
+         *     Plätze je Klasse. Der Schlüssel `winners` bleibt.
          */
         WinnersScene: {
             /** Id */
@@ -7119,6 +7329,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthOut"];
+                };
+            };
+        };
+    };
+    system_terms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TermsOut"];
                 };
             };
         };
@@ -10005,7 +10235,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich (`detail`, bei Feldbezug `errors`). Mit `code: heat_imminent`: Der Aufruf aus der Reihenfolge würde eine Bahn belegen, die ein bald beginnender Durchgang braucht (Uhrzeit und Bahnen im Text); nach Rückfrage mit `confirm_heat_conflict: true` wiederholen. */
+            /** @description Im aktuellen Zustand nicht möglich (`detail`, bei Feldbezug `errors`). Mit `code: heat_imminent`: Der Aufruf aus der Reihenfolge würde einen Schützenstand belegen, den ein bald beginnender Durchgang braucht (Uhrzeit und Schützenstände im Text); nach Rückfrage mit `confirm_heat_conflict: true` wiederholen. */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -10157,7 +10387,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Im aktuellen Zustand nicht möglich (`detail`, bei Feldbezug `errors`). Mit `code: heat_imminent`: Der Aufruf aus der Reihenfolge würde eine Bahn belegen, die ein bald beginnender Durchgang braucht (Uhrzeit und Bahnen im Text); nach Rückfrage mit `confirm_heat_conflict: true` wiederholen. */
+            /** @description Im aktuellen Zustand nicht möglich (`detail`, bei Feldbezug `errors`). Mit `code: heat_imminent`: Der Aufruf aus der Reihenfolge würde einen Schützenstand belegen, den ein bald beginnender Durchgang braucht (Uhrzeit und Schützenstände im Text); nach Rückfrage mit `confirm_heat_conflict: true` wiederholen. */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -13230,7 +13460,7 @@ export interface operations {
                 include_provisional?: boolean;
                 /** @description `public` (Standard): nach Anzeige-Einstellung; `full`: voller Name. */
                 names?: "public" | "full";
-                /** @description Abgebrochene Starts ohne Platz am Ende aufführen (Standard: ja). */
+                /** @description Abgebrochene Starts ohne Platz am Ende aufführen (Standard: ja). Ein Abbruch nach dem Kommando „Feuer“ mit Platz steht immer in der Liste. */
                 include_aborted?: boolean;
             };
             header?: never;
@@ -13286,7 +13516,7 @@ export interface operations {
                 include_provisional?: boolean;
                 /** @description `public` (Standard): nach Anzeige-Einstellung; `full`: voller Name. */
                 names?: "public" | "full";
-                /** @description Abgebrochene Starts ohne Platz am Ende aufführen (Standard: ja). */
+                /** @description Abgebrochene Starts ohne Platz am Ende aufführen (Standard: ja). Ein Abbruch nach dem Kommando „Feuer“ mit Platz steht immer in der Liste. */
                 include_aborted?: boolean;
             };
             header?: never;

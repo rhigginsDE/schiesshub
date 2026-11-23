@@ -11,9 +11,9 @@ So hängt `starts` nicht von `ergebnisse` ab (Muster wie `app.modules.turnier.ho
   Ergebnisprotokoll, egal über welchen Endpunkt er kam. Ohne Handler wechselt `starts` nur den
   Status.
 
-- **Fortschritt-Lieferanten** (höchstens einer) bekommen die Start-IDs der belegten Bahnen und
-  liefern je Start den Erfassungsfortschritt (`LaneProgressOut`), soweit vorhanden. Die Sichten
-  „Reihenfolge“ und „am Stand“ zeigen ihn je Bahn.
+- **Fortschritt-Lieferanten** (höchstens einer) bekommen die Start-IDs der belegten
+  Schützenstände und liefern je Start den Erfassungsfortschritt (`LaneProgressOut`), soweit
+  vorhanden. Die Sichten „Reihenfolge“ und „am Schießstand“ zeigen ihn je Schützenstand.
 
 Alle melden sich üblicherweise im `on_startup` ihres Moduls an und im `on_shutdown` ab.
 """

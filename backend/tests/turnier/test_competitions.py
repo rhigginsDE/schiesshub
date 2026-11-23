@@ -250,7 +250,10 @@ async def test_range_and_classes_must_belong_to_the_tournament(api: Api) -> None
     )
 
     assert foreign_range.status_code == 422
-    assert foreign_range.json()["detail"] == "Der angegebene Stand gehört nicht zu diesem Turnier."
+    assert (
+        foreign_range.json()["detail"]
+        == "Der angegebene Schießstand gehört nicht zu diesem Turnier."
+    )
     assert unknown_range.status_code == 422
     assert foreign_class.status_code == 422
     assert foreign_class.json()["detail"] == (

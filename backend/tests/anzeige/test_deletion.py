@@ -23,7 +23,7 @@ async def test_range_competition_and_class_in_scenes_block_deletion(api: Api) ->
 
     blocked = await api.fail("DELETE", f"/tournaments/{tid}/ranges/{range_id}", 409)
     assert blocked["detail"] == (
-        "Der Stand wird auf der Anzeige „Stand-Bildschirm“ gezeigt. "
+        "Der Schießstand wird auf der Anzeige „Stand-Bildschirm“ gezeigt. "
         "Bitte die Szene dort zuerst anpassen."
     )
     blocked = await api.fail("DELETE", f"/tournaments/{tid}/ranges/{spare}", 409)

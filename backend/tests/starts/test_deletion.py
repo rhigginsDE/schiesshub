@@ -42,7 +42,7 @@ async def test_range_with_starts(api: Api, queue_setup: Setup) -> None:
         "DELETE", f"/tournaments/{queue_setup.tid}/ranges/{queue_setup.range_id}", 409
     )
 
-    assert detail == "Der Stand hat 1 Start und kann nicht gelöscht werden."
+    assert detail == "Der Schießstand hat 1 Start und kann nicht gelöscht werden."
 
 
 async def test_range_with_heats(api: Api) -> None:
@@ -62,7 +62,7 @@ async def test_range_with_heats(api: Api) -> None:
 
     detail = await api.fail("DELETE", f"/tournaments/{tid}/ranges/{range_id}", 409)
 
-    assert detail == "Der Stand hat 3 Durchgänge und kann nicht gelöscht werden."
+    assert detail == "Der Schießstand hat 3 Durchgänge und kann nicht gelöscht werden."
 
 
 async def test_tournament_with_entries(api: Api, queue_setup: Setup) -> None:

@@ -1,0 +1,371 @@
+# 25 m Pistole Kleinkaliber und Zentralfeuer – DSB-Disziplinen (2.30, 2.31, 2.40, 2.41, 2.45, 2.60)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22): Teil 2: 2.1, 2.3.1, 2.4.1, 2.5.1, 2.6,
+#   2.9 mit Tabelle Stech-/Probeserien (S. 11), 2.16 (Wettbewerb 2.30), 2.17 (2.31), 2.18 (2.40), 2.19 (2.41), 2.20 (2.45),
+#   2.22 (2.60), Pistolentabelle (S. 23), Schießzeitentabelle (S. 24–25); Teil 0: 0.12.1, 0.20 (Scheiben Nr. 4 und 10),
+#   0.21 (S. 81–82); Teil 15: 15.1.1.1, Finalabläufe 25 m Schnellfeuerpistole und 25 m Pistole (Teil 15 S. 23–29).
+#   Schusszahlen/Finalklassen DM: Schusszahlentabelle der DM-Ausschreibung (Stand 21.01.2026); Klassen: DM-Tabelle 2025–2028.
+# Änderungen 2026→2027 (Synopse): 2.3.1 Nachladen während der Wettkampfzeit ohne Genehmigung führt zur Disqualifikation;
+#   2.7.3 Munitionsversager berechtigt nicht zur "Auszeit"; 2.10.5 Kimme und Korn schwarz, keine Leuchtstäbchen.
+#   Keine Änderung an Schusszahlen oder Zeiten.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "pistole-25m"
+  name: "Pistole 25 m"
+  waffenart: "kurzwaffe"
+  distanz_m: 25
+  art: "kombi"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  zehntelwertung: false   # Schusszahlentabelle DM: keine Zehntel
+  # SpO 2.9: Plätze 1–3 ohne Finale per Stechen (Stechserie je Wettbewerb, siehe hinweis), außer bei Höchstringzahl;
+  # übrige Plätze nach 0.12.1.
+  gleichstand: ["stechen", "letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  stechen_bis_platz: 3
+  geprueft: false
+ablaeufe:
+  schnellfeuer-2x30:
+    beschreibung: "60 Schuss: 2 Durchgänge à 30 Schuss, je 2 Serien in 8 s, 2 in 6 s, 2 in 4 s; 5 Schuss auf 5 Scheiben"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "durchgang-1"
+            name: "1. Durchgang"
+            serien: 6
+            schuss_je_serie: 5
+            ziele_je_serie: 5
+            # Reihenfolge 8–6–4 nach der Ansage in SpO 2.16.3; Zeiten SpO 2.16.2.
+            zeiten_s: [8, 8, 6, 6, 4, 4]
+            ringwerte: [10, 9, 8, 7, 6, 5, 0]   # Scheibe Nr. 10, Ringe 5–10
+            vorbereitung_probe_s: 180   # Tabelle S. 24: 3 Min. Vorbereitungszeit
+            probeschuesse: 5            # eine Probeserie in 8 s vor jedem Durchgang, SpO 2.16.2
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 5, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 6, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+          - id: "durchgang-2"
+            name: "2. Durchgang"
+            serien: 6
+            schuss_je_serie: 5
+            ziele_je_serie: 5
+            zeiten_s: [8, 8, 6, 6, 4, 4]
+            ringwerte: [10, 9, 8, 7, 6, 5, 0]
+            vorbereitung_probe_s: 180
+            probeschuesse: 5
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 5, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 6, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+    finale:
+      teilnehmer: 6
+      abschnitt: "SpO 15.1.1.1; Teil 15 S. 23–26"
+      hinweis: "DM-Finalklassen Herren I und Junioren I m. Start bei null; 5-Schuss-Serien in 4 s, Wertung Treffer/Fehler (Treffer ab 9,7); Ausscheiden ab der 4. Serie, nach der 8. Serie Gold/Silber."
+  schnellfeuer-nachwuchs-2x30:
+    beschreibung: "60 Schuss: 2 Durchgänge à 30 Schuss, je 3 Serien in 8 s und 3 in 6 s"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "durchgang-1"
+            name: "1. Durchgang"
+            serien: 6
+            schuss_je_serie: 5
+            ziele_je_serie: 5
+            zeiten_s: [8, 8, 8, 6, 6, 6]   # Reihenfolge in SpO 2.17.2 nicht ausdrücklich geregelt
+            ringwerte: [10, 9, 8, 7, 6, 5, 0]
+            vorbereitung_probe_s: 180
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 5, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 6, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+          - id: "durchgang-2"
+            name: "2. Durchgang"
+            serien: 6
+            schuss_je_serie: 5
+            ziele_je_serie: 5
+            zeiten_s: [8, 8, 8, 6, 6, 6]
+            ringwerte: [10, 9, 8, 7, 6, 5, 0]
+            vorbereitung_probe_s: 180
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 5, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 6, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+  praezision-duell-30-30:
+    beschreibung: "60 Schuss: Präzision 6×5 in je 5 Min., Duell 6×5 (je Schuss 3 s Sicht, 7 s weggedreht)"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "praezision"
+            name: "Präzision"
+            serien: 6
+            schuss_je_serie: 5
+            zeit_je_serie_s: 300        # SpO 2.18.2 Tabelle
+            vorbereitung_probe_s: 180   # Tabelle S. 24: Präzisionsdurchgang 3 Min.
+            probeschuesse: 5            # eine Probeserie in 5 Min., SpO 2.18.3.1
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 5, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 6, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+          - id: "duell"
+            name: "Duell"
+            serien: 6
+            schuss_je_serie: 5
+            zeit_je_schuss_s: 3          # SpO 2.18.3.3
+            pause_zwischen_schuessen_s: 7
+            ringwerte: [10, 9, 8, 7, 6, 5, 0]   # Duellscheibe Nr. 10
+            vorbereitung_probe_s: 180   # Tabelle S. 24: Schnellfeuerdurchgang 3 Min.
+            probeschuesse: 5            # eine Probeserie im Duellmodus, SpO 2.18.3.1
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 5, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 6, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+    finale:
+      teilnehmer: 8
+      abschnitt: "SpO 15.1.1.1; Teil 15 S. 26–29"
+      hinweis: "DM-Finalklassen Damen I und Junioren I w. Start bei null; 5-Schuss-Serien im Schnellfeuermodus (3 s), Wertung Treffer/Fehler (Treffer ab 10,2); Ausscheiden ab der 4. Serie, nach der 10. Serie Gold/Silber."
+  zentralfeuer-30-30:
+    beschreibung: "60 Schuss (wie 2.40, ohne Finale): Präzision 6×5 in je 5 Min., Duell 6×5 (je Schuss 3 s Sicht, 7 s weggedreht)"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "praezision"
+            name: "Präzision"
+            serien: 6
+            schuss_je_serie: 5
+            zeit_je_serie_s: 300        # SpO 2.18.2 Tabelle
+            vorbereitung_probe_s: 180   # Tabelle S. 24: Präzisionsdurchgang 3 Min.
+            probeschuesse: 5            # eine Probeserie in 5 Min., SpO 2.18.3.1
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 5, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 6, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+          - id: "duell"
+            name: "Duell"
+            serien: 6
+            schuss_je_serie: 5
+            zeit_je_schuss_s: 3          # SpO 2.18.3.3
+            pause_zwischen_schuessen_s: 7
+            ringwerte: [10, 9, 8, 7, 6, 5, 0]   # Duellscheibe Nr. 10
+            vorbereitung_probe_s: 180   # Tabelle S. 24: Schnellfeuerdurchgang 3 Min.
+            probeschuesse: 5            # eine Probeserie im Duellmodus, SpO 2.18.3.1
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 5, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 6, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+  praezision-duell-20-20:
+    beschreibung: "40 Schuss: Präzision 4×5 in je 5 Min., Duell 4×5 (je Schuss 3 s Sicht, 7 s weggedreht)"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "praezision"
+            name: "Präzision"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_serie_s: 300
+            vorbereitung_probe_s: 180
+            probeschuesse: 5
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+          - id: "duell"
+            name: "Duell"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_schuss_s: 3
+            pause_zwischen_schuessen_s: 7
+            ringwerte: [10, 9, 8, 7, 6, 5, 0]
+            vorbereitung_probe_s: 180
+            probeschuesse: 5
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+  standardpistole-60:
+    beschreibung: "60 Schuss: je 4×5 in 150 s, 20 s und 10 s"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "150s"
+            name: "150 Sekunden"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_serie_s: 150
+            vorbereitung_probe_s: 180   # Tabelle S. 25: 3 Min. Vorbereitungszeit
+            probeschuesse: 5            # eine Probeserie à 5 Schuss in 150 s, SpO 2.22.3.1
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+          - id: "20s"
+            name: "20 Sekunden"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_serie_s: 20
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+          - id: "10s"
+            name: "10 Sekunden"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_serie_s: 10
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+      - id: "zwei-halbprogramme"
+        name: "In zwei Halbprogrammen"
+        # SpO 2.22.2: falls nötig zwei Halbprogramme, jedes je 2×5 in 150 s, 20 s und 10 s.
+        abschnitte:
+          - id: "h1-150s"
+            name: "1. Hälfte, 150 Sekunden"
+            serien: 2
+            schuss_je_serie: 5
+            zeit_je_serie_s: 150
+            vorbereitung_probe_s: 180
+            probeschuesse: 5
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+          - id: "h1-20s"
+            name: "1. Hälfte, 20 Sekunden"
+            serien: 2
+            schuss_je_serie: 5
+            zeit_je_serie_s: 20
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+          - id: "h1-10s"
+            name: "1. Hälfte, 10 Sekunden"
+            serien: 2
+            schuss_je_serie: 5
+            zeit_je_serie_s: 10
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+          - id: "h2-150s"
+            name: "2. Hälfte, 150 Sekunden"
+            serien: 2
+            schuss_je_serie: 5
+            zeit_je_serie_s: 150
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+          - id: "h2-20s"
+            name: "2. Hälfte, 20 Sekunden"
+            serien: 2
+            schuss_je_serie: 5
+            zeit_je_serie_s: 20
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+          - id: "h2-10s"
+            name: "2. Hälfte, 10 Sekunden"
+            serien: 2
+            schuss_je_serie: 5
+            zeit_je_serie_s: 10
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+disziplinen:
+  - kennziffer: "2.30"
+    name: "25 m Schnellfeuerpistole"
+    waffe: "selbstladende Pistole"
+    munition: "5,6 mm Randfeuer (.22 lfb); Geschoss mind. 2,53 g (39 grs), v0 mind. 250 m/s"
+    visierung: "offene Visierung (Kimme/Korn), schwarz; keine optischen Hilfen"
+    anschlag: "stehend frei, einhändig; jede Serie aus der Fertighaltung (SpO 2.6)"
+    scheibe: "DSB-Scheibe Nr. 10 (25 m Schnellfeuer/Duell)"
+    ablauf: "schnellfeuer-2x30"
+    # geprüft 2026-11-22: "keine Kompensatoren/Mündungsbremsen" um Gasentlastung ergänzt (Pistolentabelle Teil 2 S. 23,
+    #   gilt für alle 25-m-Wettbewerbe 2.30–2.60).
+    hinweis: "Gewicht ≤ 1400 g, Abzug ≥ 1000 g, Prüfkasten 300×150×50 mm, Lauf ≤ 153 mm, Visierlinie ≤ 220 mm; Gasentlastung, Kompensatoren und Mündungsbremsen nicht erlaubt. Je Scheibe und Serie 1 Schuss. Vorlaufzeit 7 s (SpO 2.5.1). Stechserie: 4-s-Serie."
+  - kennziffer: "2.31"
+    name: "25 m Schnellfeuerpistole – Nachwuchswettbewerb"
+    waffe: "selbstladende Pistole"
+    munition: "5,6 mm Randfeuer (.22 lfb)"
+    visierung: "offene Visierung (Kimme/Korn), schwarz; keine optischen Hilfen"
+    anschlag: "stehend frei, einhändig; jede Serie aus der Fertighaltung (SpO 2.6)"
+    scheibe: "DSB-Scheibe Nr. 10 (25 m Schnellfeuer/Duell)"
+    ablauf: "schnellfeuer-nachwuchs-2x30"
+    hinweis: "Waffe wie 2.30 (Pistolentabelle). Stechserie: 6-s-Serie (SpO 2.17.3). Nicht in der DM-Tabelle 2025–2028."
+    optional: true
+    pruefen: ["ablauf"]
+  - kennziffer: "2.40"
+    name: "25 m Pistole"
+    waffe: "Revolver oder selbstladende Pistole"
+    munition: "5,6 mm Randfeuer (.22 lfb)"
+    visierung: "offene Visierung (Kimme/Korn), schwarz; keine optischen Hilfen"
+    anschlag: "stehend frei, einhändig; Duell aus der Fertighaltung vor jedem Schuss (SpO 2.18.3.3)"
+    scheibe: "Präzision: DSB-Scheibe Nr. 4; Duell: DSB-Scheibe Nr. 10"
+    ablauf: "praezision-duell-30-30"
+    # geprüft 2026-11-22: Verbot Gasentlastung/Kompensatoren/Mündungsbremsen ergänzt (Pistolentabelle Teil 2 S. 23).
+    hinweis: "Auch Sportpistole genannt. Gewicht ≤ 1400 g, Abzug ≥ 1000 g, Prüfkasten 300×150×50 mm, Lauf ≤ 153 mm, Visierlinie ≤ 220 mm; Gasentlastung, Kompensatoren und Mündungsbremsen nicht erlaubt. Auf Papier max. 5 Schuss je Scheibe. Stechserie: Schnellfeuer-(Duell-)Serie."
+  - kennziffer: "2.41"
+    name: "25 m Pistole – Nachwuchswettbewerb"
+    waffe: "Revolver oder selbstladende Pistole"
+    munition: "5,6 mm Randfeuer (.22 lfb)"
+    visierung: "offene Visierung (Kimme/Korn), schwarz; keine optischen Hilfen"
+    anschlag: "stehend frei, einhändig; Duell aus der Fertighaltung vor jedem Schuss"
+    scheibe: "Präzision: DSB-Scheibe Nr. 4; Duell: DSB-Scheibe Nr. 10"
+    ablauf: "praezision-duell-20-20"
+    hinweis: "Waffe wie 2.40. Teil 2 (2.19.2 und Schießzeitentabelle) nennt 40 Schuss; die Wettbewerbstabelle 0.21 nennt 60. Eingetragen: 40 nach Teil 2. Nicht in der DM-Tabelle 2025–2028."
+    optional: true
+    pruefen: ["ablauf"]
+  - kennziffer: "2.45"
+    name: "25 m Zentralfeuerpistole"
+    waffe: "Revolver oder selbstladende Pistole"
+    munition: "7,62–9,65 mm (.30–.38); nur Blei- oder ähnlich weiche Geschosse, keine Mantelgeschosse, keine Magnum oder verstärkte Ladung"
+    visierung: "offene Visierung (Kimme/Korn), schwarz; keine optischen Hilfen"
+    anschlag: "stehend frei, einhändig; Duell aus der Fertighaltung vor jedem Schuss"
+    scheibe: "Präzision: DSB-Scheibe Nr. 4; Duell: DSB-Scheibe Nr. 10"
+    ablauf: "zentralfeuer-30-30"
+    # geprüft 2026-11-22: Verbot Gasentlastung/Kompensatoren/Mündungsbremsen ergänzt (Pistolentabelle Teil 2 S. 23).
+    hinweis: "Gewicht ≤ 1400 g, Abzug ≥ 1000 g, Prüfkasten 300×150×50 mm, Lauf ≤ 153 mm, Visierlinie ≤ 220 mm; Gasentlastung, Kompensatoren und Mündungsbremsen nicht erlaubt. Durchführung wie 2.40 (SpO 2.20.2); auf Papier max. 10 Schuss je Scheibe. Kein Finale. Stechserie: Schnellfeuer-(Duell-)Serie."
+  - kennziffer: "2.60"
+    name: "25 m Standardpistole"
+    waffe: "Revolver oder selbstladende Pistole"
+    munition: "5,6 mm Randfeuer (.22 lfb)"
+    visierung: "offene Visierung (Kimme/Korn), schwarz; keine optischen Hilfen"
+    anschlag: "stehend frei, einhändig; 20-s- und 10-s-Serien aus der Fertighaltung (SpO 2.6)"
+    scheibe: "DSB-Scheibe Nr. 4"
+    ablauf: "standardpistole-60"
+    # geprüft 2026-11-22: Verbot Gasentlastung/Kompensatoren/Mündungsbremsen ergänzt (Pistolentabelle Teil 2 S. 23).
+    hinweis: "Gewicht ≤ 1400 g, Abzug ≥ 1000 g, Prüfkasten 300×150×50 mm, Lauf ≤ 153 mm, Visierlinie ≤ 220 mm; Gasentlastung, Kompensatoren und Mündungsbremsen nicht erlaubt. Vorlaufzeit 7 s. Auf Papier max. 10 Schuss je Scheibe. Stechserie: 10-s-Serie."

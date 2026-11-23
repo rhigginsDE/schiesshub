@@ -19,8 +19,8 @@ Schiesshub ist bewusst sparsam gebaut.
 | Name der Teilnehmerin oder des Teilnehmers | Anmeldung, Startliste, Wertung | in der Datenbank verschlüsselt gespeichert (geplant) |
 | Verein | Wertung, Anzeige | Anzeige je Person abschaltbar (geplant) |
 | Klasse | Wertung | wird bei der Anmeldung gewählt |
-| Starts, Bahn, Durchgang, Startgeld-Betrag | Ablauf am Stand | |
-| Ergebnisse und Korrekturen | Wertung, Siegerliste, Einspruch | Korrekturen werden mit Person, Zeit und Grund protokolliert (geplant) |
+| Starts, Schützenstand, Durchgang, Startgeld-Betrag | Ablauf am Schießstand | |
+| Ergebnisse und Korrekturen | Wertung, Ergebnisliste, Einspruch | Korrekturen werden mit Person, Zeit und Grund protokolliert (geplant) |
 | Helferinnen und Helfer mit Rolle und PIN | Anmeldung an den Stationen, Nachvollziehbarkeit der Erfassung | PINs nicht im Klartext speichern |
 
 **Nicht** gespeichert werden: Geburtsdatum, Geburtsjahr, Anschrift, Telefonnummer, E-Mail, Waffen- oder WBK-Daten. Bitte tragt solche Angaben auch nicht in Freitextfelder ein. Angaben zu Gesundheit oder Behinderung (zum Beispiel „Auflage aus gesundheitlichen Gründen“) sind besonders geschützte Daten; bildet so etwas nur als neutrale Klasse ab.
@@ -51,7 +51,7 @@ Bis diese Funktion da ist: Fragt bei der Anmeldung nach und berücksichtigt Wün
 Teilnehmende haben unter anderem das Recht auf Auskunft (Art. 15), Berichtigung (Art. 16), Löschung (Art. 17) und Widerspruch (Art. 21 DSGVO). Eine Auskunft muss innerhalb eines Monats erfolgen.
 
 - **Geplant:** Export aller zu einer Person gespeicherten Daten sowie Löschen oder Anonymisieren einzelner Personen und ganzer Turniere.
-- **Geplant für Version 1:** Startliste und Siegerliste als PDF und CSV.
+- **Geplant für Version 1:** Startliste und Ergebnisliste als PDF und CSV.
 - Legt fest, wie lange ihr Ergebnisse mit Namen aufbewahrt. Es gibt keine gesetzliche Frist für Ergebnislisten; die Daten dürfen nur so lange gespeichert werden, wie ihr sie braucht, zum Beispiel für Einsprüche, Vereinsranglisten oder Meldungen an den Verband. Danach Namen löschen oder anonymisieren. Daten von Gästen anderer Vereine nach Abschluss und Einspruchsfrist besonders prüfen.
 
 ## Minderjährige
@@ -90,14 +90,14 @@ Andere Bundesländer können im Detail abweichen.
 
 **Welche Daten:** Name, Verein, Klasse, gebuchte Starts, Startgeld-Betrag und Ergebnisse. Wir erfassen kein Geburtsdatum und keine Anschrift.
 
-**Wozu:** Durchführung und Auswertung des Wettkampfs, Startliste, Siegerliste, Bearbeitung von Einsprüchen [, Meldung an den Verband: Name des Verbands].
+**Wozu:** Durchführung und Auswertung des Wettkampfs, Startliste, Ergebnisliste, Bearbeitung von Einsprüchen [, Meldung an den Verband: Name des Verbands].
 
 **Rechtsgrundlage:** Art. 6 Abs. 1 lit. b DSGVO (Teilnahme am Wettkampf) [; für Veröffentlichungen im Internet Art. 6 Abs. 1 lit. f DSGVO bzw. bei Minderjährigen Einwilligung der Sorgeberechtigten].
 
 **Wo erscheinen Ergebnisse:**
 
 - auf dem Bildschirm und am Aushang im Vereinsheim während der Veranstaltung
-- [in der Siegerliste, die an Teilnehmende ausgegeben wird]
+- [in der Ergebnisliste, die an Teilnehmende ausgegeben wird]
 - [auf der Website des Vereins bis [Zeitraum]]
 - [in der Vereinszeitung / Presse]
 

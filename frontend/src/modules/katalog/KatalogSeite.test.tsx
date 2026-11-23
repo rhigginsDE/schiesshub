@@ -155,7 +155,7 @@ describe("Katalogseite", () => {
     }
     expect(screen.getByText("Ringe minus Zeit")).toBeInTheDocument();
     expect(
-      screen.getByText("Das Regelwerk nennt für diese Wertung keine Regel bei Gleichstand."),
+      screen.getByText("Das Regelwerk nennt für diese Wertung keine Regel bei Ringgleichheit."),
     ).toBeInTheDocument();
   });
 

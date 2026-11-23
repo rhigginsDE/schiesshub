@@ -1,13 +1,15 @@
-"""HTTP-Schnittstelle des Moduls `system`: Health und Live-Ereignisse."""
+"""HTTP-Schnittstelle des Moduls `system`: Health, formelle Begriffe und Live-Ereignisse."""
 
-from fastapi import APIRouter, Request, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import StreamingResponse
 
 from app import __version__
+from app.core import begriffe
 from app.core.db import SessionDep
 from app.core.events import Event, EventHubDep
+from app.core.security import require_paired
 from app.modules.system import service
-from app.modules.system.schemas import HealthOut
+from app.modules.system.schemas import HealthOut, TermsOut
 
 router = APIRouter(tags=["system"])
 
@@ -22,6 +24,25 @@ async def health(session: SessionDep, response: Response) -> HealthOut:
     if result.db != "ok":
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return result
+
+
+@router.get(
+    "/terms",
+    summary="Formelle Begriffe je Verband",
+    description=(
+        "Wörter für formelle Ausgaben (Ausschreibung, Aushang, Start- und Ergebnisliste, "
+        "Anzeige), z. B. `schuetzenstand` = „Schützenstand“, `ergebnisliste` = „Ergebnisliste“, "
+        "`kennziffer` = „Kennziffer“ (BDS) bzw. „Kennzahl“ (DSB). `default` gilt ohne Verband "
+        "(eigene Disziplin) und für Verbände ohne eigenen Satz; `federations` enthält je Verband "
+        "(Schlüssel = `catalog_federation` in Kleinbuchstaben) den vollständigen Satz, Lücken "
+        "schon mit `default` gefüllt. Die Bedienung der Stationen darf Alltagswörter behalten "
+        "(„Gleichstand“, „aufgegeben“). Lesbar für jedes gekoppelte Gerät; die Wörter ändern "
+        "sich nur mit einer neuen Version des Servers."
+    ),
+    dependencies=[Depends(require_paired())],
+)
+async def terms() -> TermsOut:
+    return TermsOut(default=begriffe.standard(), federations=begriffe.verbaende())
 
 
 @router.get(

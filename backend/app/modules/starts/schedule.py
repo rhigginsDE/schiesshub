@@ -1,8 +1,10 @@
-"""Zeitplan: Durchgänge je Stand, Plätze (Durchgang + Bahn) und Aufruf eines Durchgangs.
+"""Zeitplan: Durchgänge je Schießstand, Plätze (Durchgang + Schützenstand) und Aufruf eines
+Durchgangs.
 
-Ein Durchgang gehört zum Stand, nicht zum Wettbewerb; Wettbewerbe auf demselben Stand teilen
-sich seine Bahnen. Die Kapazität eines Durchgangs ist die Bahnzahl des Stands. Durchgänge eines
-Stands überschneiden sich nicht, und eine Person steht nie in zwei Durchgängen zur selben Zeit.
+Ein Durchgang gehört zum Schießstand, nicht zum Wettbewerb; Wettbewerbe auf demselben Schießstand
+teilen sich seine Schützenstände. Die Kapazität eines Durchgangs ist die Zahl der Schützenstände.
+Durchgänge eines Schießstands überschneiden sich nicht, und eine Person steht nie in zwei
+Durchgängen zur selben Zeit.
 """
 
 import uuid
@@ -132,7 +134,7 @@ async def list_heats(
 async def _get_heat(session: AsyncSession, range_id: uuid.UUID, heat_id: uuid.UUID) -> Heat:
     heat = await session.get(Heat, heat_id)
     if heat is None or heat.range_id != range_id:
-        raise NotFoundError("Der Durchgang wurde auf diesem Stand nicht gefunden.")
+        raise NotFoundError("Der Durchgang wurde auf diesem Schießstand nicht gefunden.")
     return heat
 
 
@@ -151,7 +153,7 @@ def _check_no_overlap(
             if overlaps(heat.starts_at, heat.ends_at, starts_at, ends_at):
                 raise ConflictError(
                     f"Der Durchgang überschneidet sich mit Durchgang {heat.number} auf diesem "
-                    "Stand.",
+                    "Schießstand.",
                     field="starts_at",
                 )
 
@@ -159,7 +161,7 @@ def _check_no_overlap(
 def _check_number_free(existing: Sequence[Heat], number: int, own_id: uuid.UUID | None) -> None:
     if any(heat.number == number and heat.id != own_id for heat in existing):
         raise ConflictError(
-            f"Einen Durchgang {number} gibt es auf diesem Stand schon.", field="number"
+            f"Einen Durchgang {number} gibt es auf diesem Schießstand schon.", field="number"
         )
 
 
@@ -210,7 +212,7 @@ async def create_series(
         raise InputError.single("competition_id", "Der Wettbewerb gehört nicht zu diesem Turnier.")
     if competition.range_id != range_id:
         raise InputError.single(
-            "competition_id", "Der Wettbewerb findet nicht auf diesem Stand statt."
+            "competition_id", "Der Wettbewerb findet nicht auf diesem Schießstand statt."
         )
     if competition.planning != "schedule" or competition.heat_minutes is None:
         raise InputError.single(
@@ -366,7 +368,7 @@ async def place(
     heat_id: uuid.UUID,
     lane: int | None,
 ) -> None:
-    """Setzt einen wartenden Start auf einen Platz (Durchgang + Bahn). Committet nicht."""
+    """Setzt einen wartenden Start auf einen Platz (Durchgang + Schützenstand). Committet nicht."""
     if competition.planning != "schedule":
         raise InputError.single(
             "heat_id",
@@ -376,25 +378,27 @@ async def place(
     if start.status != "registered":
         raise ConflictError("Nur ein wartender Start lässt sich (um)planen.")
     if competition.range_id is None:
-        raise ConflictError("Der Wettbewerb ist noch keinem Stand zugeordnet.")
+        raise ConflictError("Der Wettbewerb ist noch keinem Schießstand zugeordnet.")
     range_ = await get_range(session, entry.tournament_id, competition.range_id, lock=True)
     heat = await session.get(Heat, heat_id)
     if heat is None or heat.range_id != range_.id:
         raise InputError.single(
-            "heat_id", "Der Durchgang gehört nicht zum Stand dieses Wettbewerbs."
+            "heat_id", "Der Durchgang gehört nicht zum Schießstand dieses Wettbewerbs."
         )
     taken = await _taken_lanes(session, heat.id, start.id)
     if lane is None:
         lane = first_free_lane(range_.lane_count, taken)
         if lane is None:
             raise ConflictError(
-                f"Der Durchgang {heat.number} ist voll ({range_.lane_count} Bahnen)."
+                f"Der Durchgang {heat.number} ist voll ({range_.lane_count} Schützenstände)."
             )
     elif lane > range_.lane_count:
-        raise InputError.single("lane", f"Der Stand hat nur {range_.lane_count} Bahnen.")
+        raise InputError.single(
+            "lane", f"Der Schießstand hat nur {range_.lane_count} Schützenstände."
+        )
     elif lane in taken:
         raise ConflictError(
-            f"Bahn {lane} im Durchgang {heat.number} ist schon belegt.", field="lane"
+            f"Schützenstand {lane} im Durchgang {heat.number} ist schon belegt.", field="lane"
         )
     await _check_person_free(
         session, entry.id, heat.starts_at, heat.ends_at, exclude_start=start.id
@@ -497,7 +501,7 @@ async def next_slot(
     entry_id: uuid.UUID | None,
     after: datetime,
 ) -> tuple[HeatOut, int] | None:
-    """Vorschlag: frühester Durchgang ab `after` mit freier Bahn (für die Person ohne
+    """Vorschlag: frühester Durchgang ab `after` mit freiem Schützenstand (für die Person ohne
     Überschneidung, wenn `entry_id` angegeben ist). None, wenn es keinen gibt."""
     await get_tournament(session, tournament_id)
     competition = await session.get(Competition, competition_id)
@@ -506,7 +510,7 @@ async def next_slot(
     if competition.planning != "schedule":
         raise ConflictError("Dieser Wettbewerb wird nach Reihenfolge geplant, nicht nach Zeitplan.")
     if competition.range_id is None:
-        raise ConflictError("Der Wettbewerb ist noch keinem Stand zugeordnet.")
+        raise ConflictError("Der Wettbewerb ist noch keinem Schießstand zugeordnet.")
     range_ = await get_range(session, tournament_id, competition.range_id)
 
     busy: list[tuple[datetime, datetime]] = []
@@ -546,11 +550,11 @@ HEAT_IMMINENT = "heat_imminent"
 
 @dataclass(frozen=True, slots=True)
 class Reservation:
-    """Was die Durchgänge eines Stands gerade von seinen Bahnen brauchen."""
+    """Was die Durchgänge eines Schießstands gerade von seinen Schützenständen brauchen."""
 
     # Nächster Durchgang mit wartenden Starts, der noch nicht vorbei ist (für die Sichten).
     upcoming: HeatReservationOut | None
-    # Bahnen, die gerade für einen Durchgang freigehalten werden, mit dem frühesten davon.
+    # Schützenstände, die gerade für einen Durchgang freigehalten werden, mit dem frühesten davon.
     held: dict[int, Heat]
     tz: ZoneInfo
 
@@ -578,10 +582,10 @@ class Reservation:
 async def heat_reservation(
     session: AsyncSession, tournament: Tournament, range_: Range, now: datetime
 ) -> Reservation:
-    """Nächster Durchgang des Stands und die Bahnen, die gerade freigehalten werden.
+    """Nächster Durchgang des Schießstands und die Schützenstände, die gerade freigehalten werden.
 
-    Ein Durchgang hält die gebuchten Bahnen seiner wartenden Starts frei, sobald er innerhalb
-    von `heat_reserve_minutes` (Turnier-Einstellung) beginnt, bis er vorbei ist.
+    Ein Durchgang hält die gebuchten Schützenstände seiner wartenden Starts frei, sobald er
+    innerhalb von `heat_reserve_minutes` (Turnier-Einstellung) beginnt, bis er vorbei ist.
     """
     minutes = heat_reserve_minutes(tournament.settings or {})
     tz = zone_of(tournament.settings)
@@ -629,7 +633,7 @@ async def call_heat(
     range_id: uuid.UUID,
     heat_id: uuid.UUID,
 ) -> list[Start]:
-    """Ruft alle wartenden Starts eines Durchgangs auf ihre Bahnen – alle oder keinen."""
+    """Ruft alle wartenden Starts eines Durchgangs auf ihre Schützenstände – alle oder keinen."""
     await writable_tournament(session, tournament_id)
     await get_range(session, tournament_id, range_id, lock=True)
     heat = await _get_heat(session, range_id, heat_id)
@@ -646,16 +650,16 @@ async def call_heat(
     occupied = await occupied_on_range(session, range_id)
     blocked = sorted(start.lane for start, _ in rows if start.lane in occupied)
     if blocked:
-        lanes = ", ".join(str(lane) for lane in blocked)
+        verb = "ist" if len(blocked) == 1 else "sind"
         raise ConflictError(
-            f"Bahn {lanes} ist noch belegt. Bitte die laufenden Starts erst abschließen, "
-            "die Bahn freigeben, zurückstellen oder abbrechen."
+            f"{lane_list(blocked)} {verb} noch belegt. Bitte die laufenden Starts erst "
+            "abschließen, den Schützenstand freigeben, zurückstellen oder abbrechen."
         )
     busy = await on_lane_entry_ids(session, tournament_id)
     doubled = sorted(number for start, number in rows if start.entry_id in busy)
     if doubled:
         numbers = ", ".join(str(number) for number in doubled)
-        raise ConflictError(f"Startnummer {numbers} steht gerade auf einer anderen Bahn.")
+        raise ConflictError(f"Startnummer {numbers} steht gerade auf einem anderen Schützenstand.")
     changes: list[StatusChange] = []
     for start, _ in rows:
         changes.append(await transition(session, start, "called", actor))

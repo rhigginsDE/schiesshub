@@ -196,7 +196,7 @@ def test_ties_order_and_aborted_at_end() -> None:
     report = tables.winners_report(META, [tables.winner_section(COMPETITION, "Ringe", result)])
     cells = [row.cells for row in report.sections[0].tables[0].rows]
     assert [c[0] for c in cells] == ["1.", "2.", "2.", "", "", ""]
-    assert cells[3][-1] == "aufgegeben"
+    assert cells[3][-1] == "Abbruch (AB)"
     assert "80" not in cells[3]  # kein Teilergebnis bei Abgebrochenen
     assert cells[4][-1] == "nicht angetreten"
     assert cells[5][-1] == "disqualifiziert"
@@ -410,7 +410,7 @@ def test_startlist_sorting() -> None:
         "1001 · Pistole bis 9 mm",
         "1002 · Pistole über 9 mm",
     ]
-    assert report.sections[0].subtitle == "Stand: Stand 1 · 2 Starts"
+    assert report.sections[0].subtitle == "Schießstand: Stand 1 · 2 Starts"
     # Mehrfachstart nur im zweiten Wettbewerb: dort die Spalte „Versuch“.
     assert "Versuch" not in [c.title for c in report.sections[0].tables[0].columns]
     assert "Versuch" in [c.title for c in report.sections[1].tables[0].columns]

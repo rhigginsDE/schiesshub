@@ -136,7 +136,7 @@ async def _check_references(
         for model, ids in _scene_refs(scene).items():
             wanted[model] |= set(ids)
     found = {model: await owners(model, ids) for model, ids in wanted.items()}
-    labels = {Competition: "Wettbewerb", Range: "Stand", TournamentClass: "Klasse"}
+    labels = {Competition: "Wettbewerb", Range: "Schießstand", TournamentClass: "Klasse"}
     for index, scene in enumerate(config.scenes):
         for model, ids in _scene_refs(scene).items():
             field = _REF_FIELDS[model]
@@ -184,10 +184,10 @@ async def _check_range_scenes(
         range_ = await session.get(Range, scene.range_id)
         path = f"{prefix}scenes[{index}].range_id"
         if range_ is None:
-            errors.append(FieldError(field=path, message="Stand nicht gefunden"))
+            errors.append(FieldError(field=path, message="Schießstand nicht gefunden"))
         elif tournament_id is not None and range_.tournament_id != tournament_id:
             errors.append(
-                FieldError(field=path, message="Stand gehört nicht zum Turnier der Anzeige")
+                FieldError(field=path, message="Schießstand gehört nicht zum Turnier der Anzeige")
             )
     return errors
 
@@ -465,7 +465,11 @@ async def turnier_deletion_check(
     used = [display for display in displays if _references(display, target, {item_id})]
     if not used:
         return None
-    what = {"range": "Der Stand", "competition": "Der Wettbewerb", "class": "Die Klasse"}[target]
+    what = {
+        "range": "Der Schießstand",
+        "competition": "Der Wettbewerb",
+        "class": "Die Klasse",
+    }[target]
     return f"{what} wird auf {_names(used)} gezeigt. Bitte die Szene dort zuerst anpassen."
 
 

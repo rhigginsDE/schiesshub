@@ -88,7 +88,12 @@ const STAMMDATEN = ["waffe", "munition", "visierung", "anschlag", "scheibe", "hi
 function Inhalt({ disziplin }: { disziplin: DisziplinDetailDaten }) {
   const { t, i18n } = useTranslation("katalog");
   const sprache = i18n.language;
-  const wertung = beschreibeWertung(disziplin.wertung, sprache);
+  const wertung = beschreibeWertung(
+    disziplin.wertung,
+    sprache,
+    disziplin.ablauf,
+    disziplin.verband,
+  );
   const unsicher = new Set(disziplin.pruefen ?? []);
   const ungeprueft = !disziplin.wertung.geprueft;
   const finale = (disziplin.ablauf as { finale?: Finale | null }).finale;
@@ -151,7 +156,7 @@ function Inhalt({ disziplin }: { disziplin: DisziplinDetailDaten }) {
           <p>{wertung.saetze.join(" ")}</p>
           {wertung.gleichstand ? (
             <div>
-              <p>{t("wertung.gleichstand.titel")}:</p>
+              <p>{t(`wertung.gleichstand.titel_${wertung.gleichheit}`)}:</p>
               <ol className={s.gleichstand}>
                 {wertung.gleichstand.map((kriterium) => (
                   <li key={kriterium}>{kriterium}</li>
@@ -159,7 +164,9 @@ function Inhalt({ disziplin }: { disziplin: DisziplinDetailDaten }) {
               </ol>
             </div>
           ) : (
-            <p className="gedaempft">{t("wertung.gleichstand.keine_regel")}</p>
+            <p className="gedaempft">
+              {t(`wertung.gleichstand.keine_regel_${wertung.gleichheit}`)}
+            </p>
           )}
         </div>
         {finale && (

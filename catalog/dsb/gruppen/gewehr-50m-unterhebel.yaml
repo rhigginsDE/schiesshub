@@ -1,0 +1,75 @@
+# Gewehr 50 m Unterhebelrepetierer – DSB-Disziplinen (ENTWURF)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22): Teil 1: 1.7 (Unterhebelgewehr,
+#   Wettbewerbsnummer 1.56) mit 1.7.1–1.7.8, 1.1.2–1.1.4, Wettbewerbstabelle (Teil 1 S. 19), Schusszahlen/Schießzeiten
+#   (Teil 1 S. 21: 40 Schuss, 45 Min., "siehe auch 1.7.5"); Teil 0: 0.21 (Teil 0 S. 78), Scheibe Nr. 4, 0.12.1 (über 1.7.7).
+#   DM: 40 Schuss, ganze Ringe (DSB-Schusszahlentabelle).
+# Ablauf (1.7.5/1.7.6): 5 Min. Probe stehend; 4×5 stehend und 4×5 kniend (ab Herren II/Damen II auch sitzend), je Serie
+#   50 s; Laden von 5 Patronen auf Kommando. Riemen verboten. Reihenfolge laut 1.7.5 und Tabelle: stehend, dann kniend.
+# Änderungen 2026→2027 (Synopse, 1.7.6): Laden der 5 Patronen innerhalb 1 Min.; NEU: nach jeder Probe- oder Wettkampfserie
+#   1 Min. Pause vor dem nächsten Kommando LADEN.
+# 1.57 (.45) steht nur in 0.21 ("entsprechend Ausschreibung"); Ablauf wie 1.56 angenommen – prüfen.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "gewehr-50m-unterhebel"
+  name: "Gewehr 50 m Unterhebelrepetierer"
+  waffenart: "langwaffe"
+  distanz_m: 50
+  art: "zeitserie"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  zehntelwertung: false
+  # 1.7.7 verweist auf 0.12.1 ("letzte Zehnerserie" – hier zwei 5er-Serien je Zehnerblock, siehe Notiz).
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  geprueft: false
+ablaeufe:
+  unterhebel-40:
+    beschreibung: "40 Schuss: 5 Min. Probe stehend; 4×5 stehend und 4×5 kniend (ab Herren II/Damen II auch sitzend), je Serie 50 s; zusammen 45 Min."
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        wettkampfzeit_gesamt_s: 2700   # Teil 1 S. 21 (Zuganlage und andere Systeme gleich)
+        abschnitte:
+          - id: "stehend"
+            name: "Stehend"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_serie_s: 50
+            vorbereitung_probe_s: 300   # 1.7.5: 5 Min. Probeschießen stehend
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend" }] }
+          - id: "kniend"
+            name: "Kniend"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_serie_s: 50
+            positionen:
+              - { nr: 5, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }
+              - { nr: 6, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }
+              - { nr: 7, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }
+              - { nr: 8, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }
+disziplinen:
+  - kennziffer: "1.56"
+    name: "KK-Unterhebelrepetierer"
+    waffe: "Unterhebelrepetierer mit Röhrenmagazin (mind. 5 Patronen), Gewicht und Schaft wie Original; keine Zusatzgewichte, kein Lochschaft, keine Handstütze, kein Riemen"
+    munition: ".22 l.r., Randfeuer"
+    visierung: "offen, typgemäß (V-/U-/Rechteckkimme, Perl-/Balkenkorn); typgemäße Lochkimme oder Vernierdiopter zulässig; keine Optik, keine Ringkorne"
+    anschlag: "stehend, kniend (ab Herren II/Damen II auch sitzend)"
+    scheibe: "DSB-Scheibe Nr. 4 (100 m Gewehr), auf 50 m"
+    ablauf: "unterhebel-40"
+    hinweis: "Abzugswiderstand mind. 1000 g. Alltagskleidung, keine Schießjacke/-hose/-schuhe/-handschuhe; Schießbrille erlaubt. Voranschlag erlaubt. Nicht abgegebene Schüsse sind verloren. Seit 2027: 1 Min. Pause nach jeder Serie vor dem nächsten LADEN."
+  - kennziffer: "1.57"
+    name: "Unterhebelrepetierer .45"
+    waffe: "Unterhebelrepetierer (Mehrlader), Lauflänge min. 40 cm"
+    munition: "bis 11,63 mm (.45)"
+    visierung: "offen"
+    anschlag: "stehend, kniend"
+    scheibe: "DSB-Scheibe Nr. 4 (100 m Gewehr), auf 50 m"
+    ablauf: "unterhebel-40"
+    hinweis: "Nur in 0.21 geregelt (40 Schuss, 45 Min.), Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."
+    pruefen: ["ablauf"]

@@ -1,4 +1,4 @@
-"""Modul `export`: Startliste und Siegerliste als PDF und CSV, Rohexport der Ergebnisse.
+"""Modul `export`: Startliste und Ergebnisliste als PDF und CSV, Rohexport der Ergebnisse.
 
 Aufbau: `service` holt die Daten über die Sichten der Module `starts` und `ergebnisse`,
 `tables` bereitet sie zu neutralen Tabellen auf (rein, ohne Datenbank), `csvout` und `pdfout`

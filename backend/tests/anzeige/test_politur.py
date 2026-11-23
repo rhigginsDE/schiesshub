@@ -31,7 +31,7 @@ async def test_patch_with_config_checks_scenes_against_new_tournament(
     assert error["errors"] == [
         {
             "field": "config.scenes[0].range_id",
-            "message": "Stand gehört nicht zum Turnier der Anzeige",
+            "message": "Schießstand gehört nicht zum Turnier der Anzeige",
         }
     ]
     # Nur `config`: geprüft gegen das gespeicherte Turnier.

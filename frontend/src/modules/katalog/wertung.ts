@@ -16,6 +16,33 @@ export interface WertungInKlartext {
   saetze: string[];
   /** Kriterien bei Gleichstand in ihrer Reihenfolge; `null`, wenn das Regelwerk keine nennt */
   gleichstand: string[] | null;
+  /** Formeller Begriff für den Gleichstand: Ringgleichheit oder Treffergleichheit (Entscheidung 23.11.) */
+  gleichheit: Gleichheit;
+}
+
+/** DSB: „Ergebnisgleichheit“ (SpO 0.12), BDS: Ring- oder Treffergleichheit (Entscheidung 23.11.) */
+export type Gleichheit = "ringe" | "treffer" | "ergebnis";
+
+/** Nur die Teile des Ablaufs, die über Ringe oder Treffer entscheiden. */
+interface AblaufRingwerte {
+  varianten: { abschnitte: { ringwerte?: number[] | null }[] }[];
+}
+
+/**
+ * Treffergleichheit, wenn nach Zeit und Zuschlägen gewertet wird (Fallscheibe) oder jede Wertung
+ * nur Treffer zählt (Ringwerte höchstens 1, z. B. Flinte); sonst Ringgleichheit.
+ */
+function gleichheitAus(
+  wertung: WertungOffen,
+  ablauf?: AblaufRingwerte,
+  verband?: string,
+): Gleichheit {
+  if (verband === "dsb") return "ergebnis";
+  if (wertung.modell === "zeit_plus_zuschlaege") return "treffer";
+  const ringwerte = (ablauf?.varianten ?? []).flatMap((variante) =>
+    variante.abschnitte.flatMap((abschnitt) => abschnitt.ringwerte ?? []),
+  );
+  return ringwerte.length > 0 && Math.max(...ringwerte) <= 1 ? "treffer" : "ringe";
 }
 
 function modellName(modell: string, sprache: string): string {
@@ -34,6 +61,8 @@ export function wertungModellName(modell: string, sprache: string = aktiveSprach
 export function beschreibeWertung(
   wertung: WertungOffen,
   sprache: string = aktiveSprache(),
+  ablauf?: AblaufRingwerte,
+  verband?: string,
 ): WertungInKlartext {
   const t = i18n.getFixedT(sprache, "katalog", "wertung");
   const bekannt = i18n.exists(`katalog:wertung.modell.${wertung.modell}.text`, { lng: sprache });
@@ -60,7 +89,11 @@ export function beschreibeWertung(
     saetze.push(t("zehntelwertung"));
   }
   if (typeof offen.stechen_bis_platz === "number") {
-    saetze.push(t("stechen_bis_platz", { wert: formatZahl(offen.stechen_bis_platz, {}, sprache) }));
+    saetze.push(
+      t(`stechen_bis_platz_${gleichheitAus(wertung, ablauf, verband)}`, {
+        wert: formatZahl(offen.stechen_bis_platz, {}, sprache),
+      }),
+    );
   }
   if (
     wertung.zeit_rundung &&
@@ -78,5 +111,10 @@ export function beschreibeWertung(
         )
       : null;
 
-  return { name: modellName(wertung.modell, sprache), saetze, gleichstand };
+  return {
+    name: modellName(wertung.modell, sprache),
+    saetze,
+    gleichstand,
+    gleichheit: gleichheitAus(wertung, ablauf, verband),
+  };
 }

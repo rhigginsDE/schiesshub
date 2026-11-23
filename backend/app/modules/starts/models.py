@@ -1,9 +1,10 @@
 """Tabellen des Moduls `starts`: Anmeldung, Start, Durchgang (siehe docs/DATENMODELL.md).
 
-Die Bahnbelegung gehört zum Stand: Eine Bahn ist belegt, solange ein Start mit `on_lane` auf ihr
-steht (Stand über `competition.range_id`). `on_lane` setzt der Aufruf; es bleibt beim Erfassen
-(`captured`) stehen und fällt bei `final`, `aborted`, beim Zurückstellen oder über „Bahn
-freigeben“. `lane` bleibt danach als Angabe erhalten, auf welcher Bahn geschossen wurde.
+Die Belegung der Schützenstände gehört zum Schießstand: Ein Schützenstand ist belegt, solange ein
+Start mit `on_lane` darauf steht (Schießstand über `competition.range_id`). `on_lane` setzt der
+Aufruf; es bleibt beim Erfassen (`captured`) stehen und fällt bei `final`, `aborted`, beim
+Zurückstellen oder über „Schützenstand freigeben“. `lane` bleibt danach als Angabe erhalten, auf
+welchem Schützenstand geschossen wurde.
 """
 
 import uuid
@@ -46,7 +47,8 @@ class Entry(UUIDPrimaryKey, Timestamps, Base):
 
 
 class Heat(UUIDPrimaryKey, Timestamps, Base):
-    """Durchgang: Zeitfenster auf einem Stand (nur bei Zeitplan). Kapazität = Bahnen des Stands."""
+    """Durchgang: Zeitfenster auf einem Schießstand (nur bei Zeitplan). Kapazität = Zahl der
+    Schützenstände."""
 
     __tablename__ = "heat"
     __table_args__ = (
@@ -64,7 +66,7 @@ class Heat(UUIDPrimaryKey, Timestamps, Base):
 
 
 class Start(UUIDPrimaryKey, Timestamps, Base):
-    """Ein gebuchter Start in einem Wettbewerb. Betrag und Bahn hängen am Start."""
+    """Ein gebuchter Start in einem Wettbewerb. Betrag und Schützenstand hängen am Start."""
 
     __tablename__ = "start"
     __table_args__ = (
@@ -93,7 +95,7 @@ class Start(UUIDPrimaryKey, Timestamps, Base):
             "NOT on_lane OR (lane IS NOT NULL AND status IN ('called', 'captured'))",
             name="on_lane",
         ),
-        # Ein Platz (Bahn) je Durchgang; abgebrochene Starts geben ihn frei.
+        # Ein Platz (Schützenstand) je Durchgang; abgebrochene Starts geben ihn frei.
         Index(
             "uq_start_heat_lane",
             "heat_id",
@@ -112,7 +114,7 @@ class Start(UUIDPrimaryKey, Timestamps, Base):
     fee_cents: Mapped[int] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(20))
     abort_reason: Mapped[str | None] = mapped_column(String(10))
-    # Platz in der Reihenfolge des Stands, nur solange der Start dort wartet (lückenlos ab 1).
+    # Platz in der Reihenfolge des Schießstands, nur solange der Start dort wartet (lückenlos ab 1).
     queue_position: Mapped[int | None] = mapped_column(Integer)
     heat_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("heat.id", ondelete="SET NULL"), index=True

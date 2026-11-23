@@ -188,23 +188,31 @@ async def test_aborted_in_own_list_without_fake_value(api: Api, setup: Setup) ->
     live, winners = (await api.feed(display_id))["scenes"]
     for scene in (live, winners):
         (group,) = scene["ranking"]["groups"]
-        assert [(row["start_id"], row["place"]) for row in group["rows"]] == [(done, 1)]
+        # Aufgegeben nach einer Serie: platziert (K 1.14 / L 1.12), fehlende Serie 0 Ringe.
+        assert [(row["start_id"], row["place"]) for row in group["rows"]] == [
+            (done, 1),
+            (gave_up, 2),
+        ]
+        placed = group["rows"][1]
+        assert placed["abort_reason"] == "dnf"
+        assert placed["abort_label"] == "Abbruch (AB)"
+        assert placed["score_text"] == "50 Ringe"
+        assert placed["display_name"] == "Karl Weiß"
         unplaced = {row["start_id"]: row for row in group["unplaced"]}
-        assert set(unplaced) == {gave_up, no_show, disqualified}, scene["kind"]
+        assert set(unplaced) == {no_show, disqualified}, scene["kind"]
         assert all(row["place"] is None and row["group"] == "unranked" for row in unplaced.values())
         assert unplaced[no_show]["abort_reason"] == "dns"
         assert unplaced[no_show]["score_text"] is None
         assert unplaced[no_show]["series"] == []
         assert unplaced[no_show]["display_name"] == "R. Fern"
-        assert unplaced[gave_up]["abort_reason"] == "dnf"
-        assert unplaced[gave_up]["score_text"] is None
-        assert unplaced[gave_up]["display_name"] == "Karl Weiß"
+        assert unplaced[no_show]["abort_label"] == "nicht angetreten"
         assert unplaced[disqualified]["abort_reason"] == "dsq"
+        assert unplaced[disqualified]["abort_label"] == "disqualifiziert"
         assert unplaced[disqualified]["score_text"] is not None
 
-    # Ohne show_aborted gibt es keine Abgebrochenen, auch nicht unter den Plätzen.
+    # Ohne show_aborted keine Abgebrochenen ohne Platz; der platzierte Abbruch bleibt.
     plain = await api.show({"id": "sieger", "kind": "winners"}, tid=tid)
     (scene,) = (await api.feed(plain))["scenes"]
     (group,) = scene["ranking"]["groups"]
-    assert [row["start_id"] for row in group["rows"]] == [done]
+    assert [row["start_id"] for row in group["rows"]] == [done, gave_up]
     assert group["unplaced"] == []

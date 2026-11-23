@@ -29,14 +29,14 @@ erDiagram
 | Deutsch | Tabelle | Bedeutung |
 |---|---|---|
 | Turnier | `tournament` | eine Veranstaltung |
-| Stand | `range` | Schießstand mit nummerierten Bahnen |
+| Schießstand | `range` | Anlage mit nummerierten Schützenständen (`lane_count`) |
 | Wettbewerb | `competition` | eine Disziplin innerhalb eines Turniers |
 | Klasse | `tournament_class` | Wettbewerbsklasse im Turnier |
 | Person | `person` | Teilnehmer-Stammdaten, turnierübergreifend |
 | Verein | `club` | Verein einer Person |
 | Anmeldung | `entry` | Person in einem Turnier, trägt die Startnummer |
 | Start | `start` | ein gebuchter Start in einem Wettbewerb |
-| Durchgang | `heat` | Zeitfenster auf einem Stand (nur bei Zeitplan) |
+| Durchgang | `heat` | Zeitfenster auf einem Schießstand (nur bei Zeitplan) |
 
 Alle Tabellen haben `id` (UUID), `created_at`, `updated_at`. Geld steht in Cent (`*_cents`, Integer). Zeiten von Schießleistungen stehen in Hundertstelsekunden (`*_cs`, Integer). Zeitstempel vergibt nur der Server (UTC).
 
@@ -46,7 +46,7 @@ Alle Tabellen haben `id` (UUID), `created_at`, `updated_at`. Geld steht in Cent 
 
 `is_practice` kennzeichnet das Übungsturnier mit Beispieldaten (`POST /tournaments/practice`, Beispieldaten in `backend/app/modules/turnier/practice.yaml`). Es gibt höchstens eines (eindeutiger Teilindex); die Kennzeichnung steht beim Anlegen fest, ein Trigger weist spätere Änderungen ab. Oberfläche und Exporte zeigen es als „Übung“. `practice_data` (nur beim Übungsturnier) nennt die Personen und Vereine, die es angelegt hat: `{"person_ids": […], "club_ids": […]}`. Die Übungspersonen tragen die Mitgliedsnummer `ÜBUNG-<n>`, haben wie alle Personen kein Geburtsdatum und gehören zu erkennbar erfundenen Vereinen. `DELETE /tournaments/{id}` entfernt das Übungsturnier in jedem Status samt Anmeldungen, Starts, Durchgängen, Ergebnissen (auch `result_event`, siehe dort), seinen Audit-Einträgen und den Übungspersonen und -vereinen; wer inzwischen in einem anderen Turnier gemeldet ist oder einem Verein mit echten Personen angehört, bleibt.
 
-**Kopie** (`POST /tournaments/{id}/copy`): übernimmt Einstellungen, Ausschreibung (Meldeschluss um denselben Abstand verschoben wie der Beginn), Stände, Klassen samt Zusammenlegung und Wettbewerbe mit `definition`, Startgeld und Mehrfachstart; jeder Wettbewerb beginnt mit Revision 1 (Grund „Kopiert aus dem Turnier …“). Anmeldungen, Starts, Durchgänge und Ergebnisse kommen nicht mit. **Vorlagen** (`GET /tournament-templates`, `POST /tournaments/from-template`) sind YAML-Dateien in `backend/app/modules/turnier/templates/` und verweisen nur über Verband und Kennziffer auf den Katalog; die Wettbewerbe entstehen beim Anlegen frisch aus dem aktuellen Katalog.
+**Kopie** (`POST /tournaments/{id}/copy`): übernimmt Einstellungen, Ausschreibung (Meldeschluss um denselben Abstand verschoben wie der Beginn), Schießstände, Klassen samt Zusammenlegung und Wettbewerbe mit `definition`, Startgeld und Mehrfachstart; jeder Wettbewerb beginnt mit Revision 1 (Grund „Kopiert aus dem Turnier …“). Anmeldungen, Starts, Durchgänge und Ergebnisse kommen nicht mit. **Vorlagen** (`GET /tournament-templates`, `POST /tournaments/from-template`) sind YAML-Dateien in `backend/app/modules/turnier/templates/` und verweisen nur über Verband und Kennziffer auf den Katalog; die Wettbewerbe entstehen beim Anlegen frisch aus dem aktuellen Katalog.
 
 `settings` enthält alles, was kein eigenes Feld braucht, zum Beispiel `protest_minutes` (Einspruchsfrist, `null` = aus), `protest_restart_on_correction` (beginnt die Einspruchsfrist mit einer Korrektur neu? Standard `true`; bei `false` läuft sie ab dem Abschluss weiter), `timezone` (Ortszeit für Uhrzeiten in Listen und auf der Anzeige, IANA-Name, Standard `Europe/Berlin`), `currency`, `first_start_number` (erste vergebene Startnummer, Standard 1), Voreinstellungen für die Anzeige. Fehlt ein Schlüssel (ältere Turniere), gilt der Standard.
 
@@ -98,8 +98,8 @@ Felder mit `_enc` sind verschlüsselt (BYTEA, AES-GCM, siehe `app/core/crypto.py
 | `fee_cents` | zu zahlender Betrag für diesen Start |
 | `status` | `registered`, `called`, `captured`, `final`, `aborted` |
 | `abort_reason` | `dns` (nicht angetreten), `dnf` (aufgegeben), `dsq` (disqualifiziert) |
-| `queue_position` | Platz in der Reihenfolge des Stands |
-| `heat_id`, `lane` | Durchgang (nur Zeitplan) und Bahn |
+| `queue_position` | Platz in der Reihenfolge des Schießstands |
+| `heat_id`, `lane` | Durchgang (nur Zeitplan) und Schützenstand |
 | `on_lane` | steht gerade auf `lane` und belegt sie (siehe unten) |
 | `called_at` | Zeitpunkt des letzten Aufrufs; leer, solange der Start wartet (auch nach dem Zurückstellen) |
 
@@ -113,13 +113,13 @@ Erlaubte Statuswechsel:
 | `final` | `captured` (Wiederöffnen, verlangt einen Grund) |
 | `aborted` | – |
 
-`aborted` verlangt `abort_reason`. Eine Bahn ist belegt, solange ein Start mit `on_lane` auf ihr steht (über alle Wettbewerbe des Stands). `on_lane` setzt der Aufruf (`→ called`); es bleibt beim Erfassen (`called → captured`) stehen und fällt bei `final`, `aborted`, beim Zurückstellen (`→ registered`) oder über „Bahn freigeben“ (`POST …/starts/{id}/release-lane`, nur `captured`, Status bleibt). Ein Wiederöffnen (`final → captured`) belegt die Bahn nicht wieder. `lane` bleibt danach als Angabe stehen, wo geschossen wurde. Ein Start, der ohne Aufruf erfasst wird (`registered → captured`), belegt keine Bahn: bei der Reihenfolge bleibt `lane` leer, beim Zeitplan steht die gebuchte Bahn nur als Angabe da. Eine Person steht höchstens auf einer Bahn. Ein Abbruch steht immer auch als Ereignis `aborted` im Ergebnisprotokoll, gleich über welchen Endpunkt er kam. Starts mit Ergebnis-Ereignissen lassen sich weder stornieren noch mit ihrer Anmeldung löschen.
+`aborted` verlangt `abort_reason`. Ein Schützenstand ist belegt, solange ein Start mit `on_lane` darauf steht (über alle Wettbewerbe des Schießstands). `on_lane` setzt der Aufruf (`→ called`); es bleibt beim Erfassen (`called → captured`) stehen und fällt bei `final`, `aborted`, beim Zurückstellen (`→ registered`) oder über „Schützenstand freigeben“ (`POST …/starts/{id}/release-lane`, nur `captured`, Status bleibt). Ein Wiederöffnen (`final → captured`) belegt den Schützenstand nicht wieder. `lane` bleibt danach als Angabe stehen, wo geschossen wurde. Ein Start, der ohne Aufruf erfasst wird (`registered → captured`), belegt keinen Schützenstand: bei der Reihenfolge bleibt `lane` leer, beim Zeitplan steht der gebuchte Schützenstand nur als Angabe da. Eine Person steht höchstens auf einem Schützenstand. Ein Abbruch steht immer auch als Ereignis `aborted` im Ergebnisprotokoll, gleich über welchen Endpunkt er kam. Starts mit Ergebnis-Ereignissen lassen sich weder stornieren noch mit ihrer Anmeldung löschen.
 
 **`heat`**: `range_id`, `number`, `starts_at`, `ends_at`.
 
-**Reihenfolge der Startliste** (`GET …/startlist`, Anzeige, Export „nach Wettbewerb“): je Wettbewerb nach Durchgang (Uhrzeit, darin die gebuchte Bahn), sonst nach Platz in der Reihenfolge, dann Startnummer, dann Versuch. Die Bahn eines Starts ohne Durchgang ist nur die zuletzt benutzte und zählt für die Sortierung nicht; so steht der 1. Versuch einer Person immer vor ihrem 2.
+**Reihenfolge der Startliste** (`GET …/startlist`, Anzeige, Export „nach Wettbewerb“): je Wettbewerb nach Durchgang (Uhrzeit, darin der gebuchte Schützenstand), sonst nach Platz in der Reihenfolge, dann Startnummer, dann Versuch. Der Schützenstand eines Starts ohne Durchgang ist nur der zuletzt benutzte und zählt für die Sortierung nicht; so steht der 1. Versuch einer Person immer vor ihrem 2.
 
-**Volle Namen am Stand:** `GET …/startlist`, `…/ranges/{id}/queue` und `…/ranges/{id}/now` liefern Namen nach Anzeige-Einstellung. Mit `names=full` (nur mit `start.call`, `result.capture` oder `entry.read`, sonst 403) kommen `full_name` und `full_club` dazu; die öffentlichen Felder bleiben unverändert.
+**Volle Namen am Schießstand:** `GET …/startlist`, `…/ranges/{id}/queue` und `…/ranges/{id}/now` liefern Namen nach Anzeige-Einstellung. Mit `names=full` (nur mit `start.call`, `result.capture` oder `entry.read`, sonst 403) kommen `full_name` und `full_club` dazu; die öffentlichen Felder bleiben unverändert.
 
 ## Ergebnisse
 
@@ -199,6 +199,6 @@ Berechtigungen sind Texte wie `tournament.edit`, `entry.edit`, `result.capture`,
 
 **`backup_run`**: `started_at`, `finished_at`, `kind` (`snapshot`, `journal`), `target` (`local`, `usb`), `file_name`, `size_bytes`, `sha256`, `ok`, `error`.
 
-**`audit_log`**: `at`, `user_id`, `device_id`, `action`, `entity`, `entity_id`, `details` (JSONB). Für Änderungen an Turnier-Einstellungen, Rollen, Anmeldungen und Starts. Ergebnisvorgänge stehen zusätzlich zum Ergebnisprotokoll hier, damit das System-Protokoll sie zeigt: `result.finalized`, `result.corrected`, `start.reopened`, `start.aborted`, `result.recomputed`; ebenso Änderungen am Ablauf am Stand: `start.moved`, `start.returned`, `start.lane_released`, `start.slot_assigned`, `start.slot_cleared`, `heat.created`, `heat.updated`, `heat.deleted`. `details` nennt Startnummer, Versuch, Kennziffer und Name des Wettbewerbs, Grund und Ergebnis, nie den Namen der Person.
+**`audit_log`**: `at`, `user_id`, `device_id`, `action`, `entity`, `entity_id`, `details` (JSONB). Für Änderungen an Turnier-Einstellungen, Rollen, Anmeldungen und Starts. Ergebnisvorgänge stehen zusätzlich zum Ergebnisprotokoll hier, damit das System-Protokoll sie zeigt: `result.finalized`, `result.corrected`, `start.reopened`, `start.aborted`, `result.recomputed`; ebenso Änderungen am Ablauf am Schießstand: `start.moved`, `start.returned`, `start.lane_released`, `start.slot_assigned`, `start.slot_cleared`, `heat.created`, `heat.updated`, `heat.deleted`. `details` nennt Startnummer, Versuch, Kennziffer und Name des Wettbewerbs, Grund und Ergebnis, nie den Namen der Person.
 
 Die Katalog-Tabellen (`catalog_*`) werden beim Start aus `catalog/` gefüllt und sind in der App nur lesbar.

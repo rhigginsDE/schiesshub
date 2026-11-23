@@ -47,7 +47,7 @@ async def test_health(client: httpx.AsyncClient, real_catalog_counts: dict[str, 
         "importiert_am",
         "fehler",
     }
-    assert katalog["verbaende"] == 1
+    assert katalog["verbaende"] == 2
     assert katalog["gruppen"] == real_catalog_counts["gruppen"]
     assert katalog["disziplinen"] == real_catalog_counts["disziplinen"]
     assert katalog["klassen"] == real_catalog_counts["klassen"]
@@ -139,10 +139,14 @@ async def test_cors_allows_the_vite_dev_server_only(client: httpx.AsyncClient) -
 # --- Katalog -----------------------------------------------------------------
 
 
-async def test_federations(client: httpx.AsyncClient, real_catalog_counts: dict[str, int]) -> None:
+async def test_federations(
+    client: httpx.AsyncClient, real_catalog_counts_by_federation: dict[str, dict[str, int]]
+) -> None:
     response = await client.get(f"{API}/katalog/verbaende")
 
     assert response.status_code == 200
+    bds = real_catalog_counts_by_federation["bds"]
+    dsb = real_catalog_counts_by_federation["dsb"]
     assert response.json() == [
         {
             "id": "bds",
@@ -153,19 +157,36 @@ async def test_federations(client: httpx.AsyncClient, real_catalog_counts: dict[
                 "stand": "2026-06-30",
             },
             "status": "entwurf",
-            "anzahl_gruppen": real_catalog_counts["gruppen"],
-            "anzahl_disziplinen": real_catalog_counts["disziplinen"],
-        }
+            "anzahl_gruppen": bds["gruppen"],
+            "anzahl_disziplinen": bds["disziplinen"],
+        },
+        {
+            "id": "dsb",
+            "kuerzel": "DSB",
+            "name": "Deutscher Schützenbund e.V.",
+            "regelwerk": {
+                "name": "Sportordnung des Deutschen Schützenbundes",
+                "stand": "2027-01-01",
+            },
+            "status": "entwurf",
+            "anzahl_gruppen": dsb["gruppen"],
+            "anzahl_disziplinen": dsb["disziplinen"],
+        },
     ]
 
 
-async def test_groups(client: httpx.AsyncClient, real_catalog_counts: dict[str, int]) -> None:
+async def test_groups(
+    client: httpx.AsyncClient, real_catalog_counts_by_federation: dict[str, dict[str, int]]
+) -> None:
     response = await client.get(f"{API}/katalog/gruppen", params={"verband": "bds"})
 
     assert response.status_code == 200
     groups = response.json()
-    assert len(groups) == real_catalog_counts["gruppen"]
-    assert sum(group["anzahl"] for group in groups) == real_catalog_counts["disziplinen"]
+    assert len(groups) == real_catalog_counts_by_federation["bds"]["gruppen"]
+    assert (
+        sum(group["anzahl"] for group in groups)
+        == real_catalog_counts_by_federation["bds"]["disziplinen"]
+    )
     by_id = {group["id"]: group for group in groups}
     assert by_id["flinte-15m-fallscheibe"] == {
         "verband": "bds",
@@ -214,12 +235,12 @@ async def test_disciplines_of_a_group(client: httpx.AsyncClient) -> None:
 
 
 async def test_all_disciplines(
-    client: httpx.AsyncClient, real_catalog_counts: dict[str, int]
+    client: httpx.AsyncClient, real_catalog_counts_by_federation: dict[str, dict[str, int]]
 ) -> None:
     response = await client.get(f"{API}/katalog/disziplinen", params={"verband": "bds"})
 
     disciplines = response.json()
-    assert len(disciplines) == real_catalog_counts["disziplinen"]
+    assert len(disciplines) == real_catalog_counts_by_federation["bds"]["disziplinen"]
     codes = [d["kennziffer"] for d in disciplines]
     assert codes == sorted(codes)
     assert len(set(codes)) == len(codes)
@@ -314,25 +335,27 @@ async def test_unknown_discipline_gives_german_404(client: httpx.AsyncClient) ->
 
 
 async def test_unknown_federation_gives_german_404(client: httpx.AsyncClient) -> None:
-    expected = {"detail": "Der Verband „dsb“ ist im Katalog nicht vorhanden."}
+    expected = {"detail": "Der Verband „xyz“ ist im Katalog nicht vorhanden."}
 
     for path in (
-        "/katalog/disziplinen/dsb/1001",
-        "/katalog/gruppen?verband=dsb",
-        "/katalog/disziplinen?verband=dsb",
-        "/katalog/klassen?verband=dsb",
+        "/katalog/disziplinen/xyz/1001",
+        "/katalog/gruppen?verband=xyz",
+        "/katalog/disziplinen?verband=xyz",
+        "/katalog/klassen?verband=xyz",
     ):
         response = await client.get(f"{API}{path}")
         assert response.status_code == 404, path
         assert response.json() == expected, path
 
 
-async def test_classes(client: httpx.AsyncClient, real_catalog_counts: dict[str, int]) -> None:
+async def test_classes(
+    client: httpx.AsyncClient, real_catalog_counts_by_federation: dict[str, dict[str, int]]
+) -> None:
     response = await client.get(f"{API}/katalog/klassen", params={"verband": "bds"})
 
     assert response.status_code == 200
     classes = response.json()
-    assert len(classes) == real_catalog_counts["klassen"]
+    assert len(classes) == real_catalog_counts_by_federation["bds"]["klassen"]
     # Reihenfolge wie in der Datei.
     assert classes[0]["id"] == "jugend-1"
     senioren = next(klasse for klasse in classes if klasse["id"] == "senioren")
@@ -367,7 +390,7 @@ async def test_second_start_creates_no_duplicates(
 
     assert first == second
     assert first == {
-        "catalog_federation": 1,
+        "catalog_federation": 2,
         "catalog_group": real_catalog_counts["gruppen"],
         "catalog_discipline": real_catalog_counts["disziplinen"],
         "catalog_class": real_catalog_counts["klassen"],
@@ -460,7 +483,9 @@ async def test_broken_catalog_keeps_old_state_and_shows_in_health(
         }
     ]
     assert health["katalog"]["disziplinen"] == real_catalog_counts["disziplinen"]
-    assert health["katalog"]["importiert_am"] == imported_at
+    # Der intakte Verband (dsb) wird neu eingelesen, daher rückt der Zeitstempel vor;
+    # bds behält seinen alten Stand (siehe detail).
+    assert health["katalog"]["importiert_am"] > imported_at
     assert detail["name"] == "Selbstladeflinte, offene Visierung"
 
 

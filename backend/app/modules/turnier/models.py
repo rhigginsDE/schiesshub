@@ -1,4 +1,4 @@
-"""Tabellen des Turniers: Turnier, Stand, Klasse, Wettbewerb und dessen Revisionen.
+"""Tabellen des Turniers: Turnier, Schießstand, Klasse, Wettbewerb und dessen Revisionen.
 
 Siehe docs/DATENMODELL.md.
 """
@@ -63,7 +63,7 @@ class Tournament(UUIDPrimaryKey, Timestamps, Base):
 
 
 class Range(UUIDPrimaryKey, Timestamps, Base):
-    """Schießstand mit nummerierten Bahnen."""
+    """Schießstand mit nummerierten Schützenständen (`lane_count`)."""
 
     __tablename__ = "range"
     __table_args__ = (CheckConstraint("lane_count >= 1", name="lane_count"),)

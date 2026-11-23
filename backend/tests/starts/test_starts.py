@@ -110,7 +110,9 @@ async def test_competition_of_other_tournament_and_lane_without_heat(
     detail = await api.fail(
         "POST", path, 422, json={"competition_id": queue_setup.competition_id, "lane": 1}
     )
-    assert detail.startswith("Eine Bahn lässt sich beim Buchen nur zusammen mit einem Durchgang")
+    assert detail.startswith(
+        "Ein Schützenstand lässt sich beim Buchen nur zusammen mit einem Durchgang"
+    )
 
 
 async def test_cancel_only_registered_and_attempts_close_up(api: Api, queue_setup: Setup) -> None:

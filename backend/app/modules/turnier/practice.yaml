@@ -6,7 +6,7 @@
 # von docs/DATENMODELL.md, „Rohwerte“.
 #
 # Zustände der Starts: registered (wartet), called (aufgerufen), captured (teils erfasst),
-# final (abgeschlossen), aborted (abgebrochen). Starts, die eine Bahn belegt lassen (called,
+# final (abgeschlossen), aborted (abgebrochen). Starts, die einen Schützenstand belegt lassen (called,
 # captured), werden zuletzt eingespielt.
 schema: 1
 id: "uebungsturnier"
@@ -20,8 +20,8 @@ settings:
   default_fee_repeat_cents: 500
 classes: { federation: "bds" }
 ranges:
-  - { key: "flinte", name: "Übungsstand Flinte 15 m", lane_count: 2 }
-  - { key: "kurzwaffe", name: "Übungsstand Kurzwaffe 25 m", lane_count: 4 }
+  - { key: "flinte", name: "Schießstand Flinte 15 m", lane_count: 2 }
+  - { key: "kurzwaffe", name: "Schießstand Kurzwaffe 25 m", lane_count: 4 }
 competitions:
   - { key: "fallscheibe", catalog_federation: "bds", catalog_code: "4401", range: "flinte" }
   - { key: "repetier", catalog_federation: "bds", catalog_code: "4403", range: "flinte" }

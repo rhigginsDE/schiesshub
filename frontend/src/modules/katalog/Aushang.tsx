@@ -188,7 +188,12 @@ interface BlattProps {
 function Blatt({ disziplin, variante, alleVarianten, nurZeiten, verband }: BlattProps) {
   const { t, i18n } = useTranslation("katalog");
   const sprache = i18n.language;
-  const wertung = beschreibeWertung(disziplin.wertung, sprache);
+  const wertung = beschreibeWertung(
+    disziplin.wertung,
+    sprache,
+    disziplin.ablauf,
+    disziplin.verband,
+  );
   const gesamt = schussGesamt(variante);
   const haende = verwendeteHaende(variante);
   const mehrereAbschnitte = variante.abschnitte.length > 1;
@@ -342,7 +347,7 @@ function Blatt({ disziplin, variante, alleVarianten, nurZeiten, verband }: Blatt
           <p>{wertung.saetze.join(" ")}</p>
           {wertung.gleichstand ? (
             <>
-              <p>{t("wertung.gleichstand.titel")}:</p>
+              <p>{t(`wertung.gleichstand.titel_${wertung.gleichheit}`)}:</p>
               <ol className={s.gleichstand}>
                 {wertung.gleichstand.map((kriterium) => (
                   <li key={kriterium}>{kriterium}</li>
@@ -350,7 +355,9 @@ function Blatt({ disziplin, variante, alleVarianten, nurZeiten, verband }: Blatt
               </ol>
             </>
           ) : (
-            <p className={s.gedaempft}>{t("wertung.gleichstand.keine_regel")}</p>
+            <p className={s.gedaempft}>
+              {t(`wertung.gleichstand.keine_regel_${wertung.gleichheit}`)}
+            </p>
           )}
         </section>
       </div>

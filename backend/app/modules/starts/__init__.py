@@ -1,4 +1,4 @@
-"""Modul `starts`: Anmeldung, Starts, Reihenfolge und Zeitplan am Stand.
+"""Modul `starts`: Anmeldung, Starts, Reihenfolge und Zeitplan am Schießstand.
 
 Öffentliche Schnittstelle für andere Module (z. B. `ergebnisse`) ist `lifecycle`:
 `load_start`, `transition`, `publish_status` (siehe dort). Über `hooks` melden sich Module an,

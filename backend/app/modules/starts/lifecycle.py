@@ -11,10 +11,10 @@ Ablauf für ein anderes Modul (z. B. `ergebnisse` beim Erfassen und Abschließen
 `transition` prüft die Übergangstabelle (`rules.TRANSITIONS`) und das Turnier (nicht
 abgeschlossen), committet aber nicht. `registered → captured` ist erlaubt (nachträgliche
 Erfassung ohne Aufrufen); bei der Reihenfolge bleibt `lane` dann leer, bei einem Durchgang
-bleibt die gebuchte Bahn als Angabe stehen – belegt wird sie in beiden Fällen nicht.
+bleibt der gebuchte Schützenstand als Angabe stehen – belegt wird er in beiden Fällen nicht.
 
-Bahnbelegung (`start.on_lane`): Der Aufruf (`→ called`) belegt die Bahn, das Erfassen
-(`called → captured`) lässt sie belegt – der Schütze schießt ja noch. Frei wird sie mit
+Belegung des Schützenstands (`start.on_lane`): Der Aufruf (`→ called`) belegt ihn, das Erfassen
+(`called → captured`) lässt ihn belegt – der Schütze schießt ja noch. Frei wird er mit
 `final`, `aborted`, beim Zurückstellen (`→ registered`) oder über `release_lane`. Ein
 Wiederöffnen (`final → captured`) belegt sie nicht wieder. `lane` bleibt als Angabe stehen, wo
 geschossen wurde. Ein Start der Reihenfolge, der aufgerufen,
@@ -51,7 +51,7 @@ from app.modules.turnier.models import Competition
 
 EVENT_STATUS_CHANGED = "start.status_changed"
 
-# Mit diesen Wechseln wird die Bahn frei (`on_lane`). `captured` lässt sie, wie sie ist.
+# Mit diesen Wechseln wird der Schützenstand frei (`on_lane`). `captured` lässt ihn, wie er ist.
 LANE_RELEASING: frozenset[StartStatus] = frozenset({"registered", "final", "aborted"})
 
 
@@ -108,7 +108,7 @@ async def transition(
     except RuleError as exc:
         raise ConflictError(str(exc)) from exc
     if to == "called" and start.lane is None:
-        raise ConflictError("Zum Aufrufen braucht der Start eine Bahn.")
+        raise ConflictError("Zum Aufrufen braucht der Start einen Schützenstand.")
 
     start.status = to
     start.abort_reason = abort_reason
@@ -122,7 +122,8 @@ async def transition(
     if to != "registered":
         start.queue_position = None
     elif start.heat_id is None:
-        # Zurückgestellt in die Reihenfolge: Die Bahn wird beim nächsten Aufruf neu vergeben.
+        # Zurückgestellt in die Reihenfolge: Der Schützenstand wird beim nächsten Aufruf neu
+        # vergeben.
         start.lane = None
     if competition.range_id is not None and competition.planning == "queue":
         await renumber_queue(session, competition.range_id)

@@ -19,7 +19,7 @@ Fachliche Konflikte (HTTP 409, „im aktuellen Zustand nicht möglich“) meldet
 Bezieht sich der Konflikt auf ein Eingabefeld (z. B. Startnummer schon vergeben), steht es wie
 bei 422 zusätzlich in `errors`:
 
-    {"detail": "Bahn 2 ist schon belegt.", "errors": [{"field": "lane", "message": "…"}]}
+    {"detail": "Schützenstand 2 ist schon belegt.", "errors": [{"field": "lane", "message": "…"}]}
 
 Ohne Feld bleibt die Antwort ein gewöhnliches 409 mit `detail`.
 
@@ -244,7 +244,7 @@ class ConflictOut(BaseModel):
 class ConflictError(HTTPException):
     """Fachlicher Konflikt (HTTP 409), wahlweise mit Bezug auf ein Eingabefeld.
 
-    `ConflictError("Bahn 2 ist schon belegt.", field="lane")` ergibt
+    `ConflictError("Schützenstand 2 ist schon belegt.", field="lane")` ergibt
     `{"detail": "…", "errors": [{"field": "lane", "message": "…"}]}`; ohne `field` nur `detail`.
     Als `HTTPException` bleibt es auch dort ein 409, wo der Handler nicht greift.
     """

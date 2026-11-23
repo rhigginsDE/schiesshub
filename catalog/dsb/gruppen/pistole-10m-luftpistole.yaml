@@ -1,0 +1,177 @@
+# 10 m Luftpistole – DSB-Disziplinen (Einzel 2.10, Mix Team 2.12)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog dsb.de/fileadmin/dsb/sportordnung/, abgerufen 2026-11-22):
+#   Teil 2: 2.1, 2.10, 2.11 (Regelabschnitt für Wettbewerb 2.10), Pistolentabelle (Teil 2 S. 23), Schießzeitentabelle
+#   (Teil 2 S. 24–25 mit Anmerkung *); Teil 0: 0.12.1, Scheibentabelle 0.20 (S. 62, 67), Wettbewerbstabelle 0.21 (S. 80);
+#   Teil 15: 15.1.1.1, 15.2 (Mix Team), Finalablauf 10 m (Teil 15 S. 15–17).
+#   Schusszahlen je Klasse: DSB-Ausschreibung Deutsche Meisterschaften, Schusszahlentabelle (dsb.de, Stand 21.01.2026).
+#   Klassen: Tabelle Wettbewerbe/Klassen DM 2025–2028 (Stand 21.02.2025).
+# Achtung Nummern: Die Wettbewerbskennzahl steht in Klammern hinter dem Regelabschnitt. Regelabschnitt 2.11 regelt den
+#   Wettbewerb 2.10, Regelabschnitt 2.12 den Wettbewerb 2.16 (Mehrschüssige LP). Die Kennzahl 2.12 (Mix Team) kommt
+#   in Teil 2 nicht vor; sie stammt aus der DM-Tabelle, die Regeln stehen in Teil 15.2.
+# Änderung 2026→2027: Mix Team Vorkampf 30 statt 40 Schuss je Sportler, 40 statt 50 Min. (SpO 15.2.2.5, Synopse 2027).
+# Klassen-IDs sind vorläufig und müssen zu dsb/klassen.yaml passen (Klassennummern: schueler-m 20, schueler-w 21,
+#   jugend-m 30, jugend-w 31, junioren-ii-m 42, junioren-ii-w 43, junioren-i-m 40, junioren-i-w 41, herren-i 10,
+#   damen-i 11, herren-ii 12, damen-ii 13, herren-iii 14, damen-iii 15, herren-iv 16, damen-iv 17, herren-v 18, damen-v 19).
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "pistole-10m-luftpistole"
+  name: "Pistole 10 m Luftpistole"
+  waffenart: "kurzwaffe"
+  distanz_m: 10
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # Volle Ringe: Die Schusszahlentabelle der DM-Ausschreibung sieht für 2.10 und 2.12 keine Zehntel vor;
+  # Mix Team Vorkampf ausdrücklich volle Ringe (SpO 15.2.2.6). Zehntel nur im Finale (Teil 15).
+  zehntelwertung: false
+  # SpO 0.12.1: letzte 10er-Serie und rückwärts, dann Zahl der 10er, 9er, 8er …, dann Innenzehner; sonst gleicher Rang.
+  # Wer das Höchstergebnis erreicht, wird ohne Finale nicht unterschieden.
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  geprueft: false
+ablaeufe:
+  luftpistole:
+    beschreibung: "60, 40 oder 20 Schuss je nach Klasse/Ebene; 15 Min. Vorbereitung mit unbegrenzter Probe"
+    # Schusszahl laut DM-Schusszahlentabelle: 60 Schuss auf der DM für Herren I–II, Damen I–II, Junioren I–II m/w
+    # (Meldeschusszahl LM für diese Klassen: 40); alle übrigen Klassen 40; Schüler 20.
+    # Schießzeiten (SpO Teil 2 S. 24): Zuganlagen 90/60/35 Min., andere Systeme (z. B. elektronisch) 75/50/30 Min.
+    # Aufteilung in 10er-Serien, weil SpO 0.12.1 nach 10-Schuss-Serien vergleicht.
+    varianten:
+      - id: "60-andere-systeme"
+        name: "60 Schuss, elektronische/andere Systeme"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf"
+            serien: 6
+            schuss_je_serie: 10
+            vorbereitung_probe_s: 900     # Anmerkung * zur Schießzeitentabelle Teil 2
+            probeschuesse: "unbegrenzt"   # nur vor der ersten Wettkampfserie, SpO 2.11.2
+            wettkampfzeit_s: 4500
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 5, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 6, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+      - id: "60-zuganlage"
+        name: "60 Schuss, Zuganlage"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf"
+            serien: 6
+            schuss_je_serie: 10
+            vorbereitung_probe_s: 900
+            probeschuesse: "unbegrenzt"
+            wettkampfzeit_s: 5400
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 5, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 6, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+      - id: "40-andere-systeme"
+        name: "40 Schuss, elektronische/andere Systeme"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf"
+            serien: 4
+            schuss_je_serie: 10
+            vorbereitung_probe_s: 900
+            probeschuesse: "unbegrenzt"
+            wettkampfzeit_s: 3000
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+      - id: "40-zuganlage"
+        name: "40 Schuss, Zuganlage"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf"
+            serien: 4
+            schuss_je_serie: 10
+            vorbereitung_probe_s: 900
+            probeschuesse: "unbegrenzt"
+            wettkampfzeit_s: 3600
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+      - id: "20-andere-systeme"
+        name: "20 Schuss (Schüler), elektronische/andere Systeme"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf"
+            serien: 2
+            schuss_je_serie: 10
+            vorbereitung_probe_s: 900
+            probeschuesse: "unbegrenzt"
+            wettkampfzeit_s: 1800
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+      - id: "20-zuganlage"
+        name: "20 Schuss (Schüler), Zuganlage"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf"
+            serien: 2
+            schuss_je_serie: 10
+            vorbereitung_probe_s: 900
+            probeschuesse: "unbegrenzt"
+            wettkampfzeit_s: 2100
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+    finale:
+      teilnehmer: 8
+      abschnitt: "SpO 15.1.1.1; Teil 15 S. 15–17"
+      hinweis: "Nur in den Finalklassen der DM (Herren I, Damen I, Junioren I m/w). Start bei null, Zehntelwertung; 2×5 Schuss in je 250 s, dann 14 Einzelschüsse in je 50 s; ab dem 12. Schuss scheidet nach jedem zweiten Schuss der Letzte aus."
+  mix-team-30:
+    beschreibung: "Mix Team: je Sportler 30 Schuss in 40 Min., Team = Summe beider (60 Schuss)"
+    varianten:
+      - id: "standard"
+        name: "Vorkampf"
+        abschnitte:
+          - id: "vorkampf"
+            name: "Vorkampf (je Sportler)"
+            serien: 3
+            schuss_je_serie: 10
+            # SpO 15.2.2.4: 10 Min. Vorbereitungs- und Probezeit. Die DM-Ausschreibung (4.6, Stand 21.01.2026) nennt 15 Min.
+            vorbereitung_probe_s: 600
+            wettkampfzeit_s: 2400        # SpO 15.2.2.5 (Fassung 2027)
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+    finale:
+      teilnehmer: 5
+      abschnitt: "SpO 15.2.2.7, 15.2.3"
+      hinweis: "Die 5 besten Teams. Start bei null, Zehntelwertung; 3 Serien à 5 Schuss je Sportler in je 300 s, dann Einzelschüsse (beide Sportler je 1 Schuss in 60 s) mit Ausscheiden des schwächsten Teams."
+disziplinen:
+  - kennziffer: "2.10"
+    name: "10 m Luftpistole"
+    # geprüft 2026-11-22: waffe "Luftpistole (Druckluft/CO2), Einzellader" → "jeder Art, einschüssig"; SpO 2.11 und
+    #   Pistolentabelle (Teil 2 S. 23) nennen keine Antriebsart; Gasentlastung/Kompensator laut Tabelle erlaubt.
+    waffe: "Luftpistole jeder Art, einschüssig; Mehrlader nur als Einzellader"
+    munition: "4,5 mm (.177); max. 7,5 Joule"
+    visierung: "offene Visierung (Kimme/Korn), schwarz; keine optischen Hilfen"
+    anschlag: "stehend frei, einhändig"
+    scheibe: "DSB-Scheibe Nr. 7 (10 m Pistole)"
+    ablauf: "luftpistole"
+    hinweis: "Gewicht ≤ 1500 g, Abzug ≥ 500 g, Prüfkasten 420×200×50 mm; Gasentlastung/Kompensator erlaubt. Auf Papier: DM 1 Schuss je Scheibe, sonst bis 5 (SpO Teil 2 S. 24)."
+  - kennziffer: "2.12"
+    name: "10 m Luftpistole Mix Team"
+    waffe: "Luftpistole wie 2.10"
+    munition: "4,5 mm (.177); max. 7,5 Joule"
+    visierung: "offene Visierung (Kimme/Korn), schwarz; keine optischen Hilfen"
+    anschlag: "stehend frei, einhändig"
+    scheibe: "DSB-Scheibe Nr. 7 (10 m Pistole)"
+    ablauf: "mix-team-30"
+    hinweis: "Team aus einer Frau und einem Mann desselben Vereins (SpO 15.2.1.1). DM: Team Junioren (Junioren I m + w) und Team Damen/Herren (Damen I + Herren I)."

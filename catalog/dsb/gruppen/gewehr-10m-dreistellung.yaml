@@ -1,0 +1,93 @@
+# Gewehr 10 m Dreistellung – DSB-Disziplinen (ENTWURF)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22): Teil 1: 1.1.1–1.1.3 (Anschläge),
+#   1.5.3 (Gewehr LG 3-Stellung), 1.6 (Reihenfolge kniend – liegend – stehend), Wettbewerbstabelle (Teil 1 S. 19),
+#   Schusszahlen/Schießzeiten (Teil 1 S. 21); Teil 0: 0.21 (Teil 0 S. 76), Scheibe Nr. 1, 0.12.1.
+#   DM-Schusszahl: DSB-Schusszahlentabelle (Ausschreibung DM, Stand 20.11.2025): 60 Schuss Schüler und Jugend, ganze Ringe.
+# Zeiten (Teil 1 S. 21): Einzelzeiten je Stellung EINSCHLIESSLICH Probe/Vorbereitung, für Zuganlagen und andere Systeme gleich.
+#   Für 1.20 gilt die Anmerkung * (15 Min. Vorbereitung zusätzlich) NICHT. Eine Wechselzeit zwischen den Stellungen nennt
+#   Teil 1 nicht (nur im 3-Stellungs-Finale, Teil 15).
+# Liegend: Die Para-Regel (Teil 10) erlaubt Boden, Pritsche oder Schießstuhl; für Nicht-Para gilt 1.1.1.
+# Änderungen 2026→2027: keine für 1.20 (Synopse 01.01.2027).
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "gewehr-10m-dreistellung"
+  name: "Gewehr 10 m Dreistellung"
+  waffenart: "langwaffe"
+  distanz_m: 10
+  art: "dreistellung"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  zehntelwertung: false
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  # geprüft 2026-11-22: alle Angaben gegen 0.21 (Teil 0 S. 76), Teil 1 S. 19 und S. 21, 1.5.3, 1.6 geprüft.
+  geprueft: true
+ablaeufe:
+  lg-dreistellung:
+    beschreibung: "3×20 (kniend 35, liegend 30, stehend 40 Min.) oder 3×10 (25/20/30 Min.), jeweils inkl. Probe und Vorbereitung"
+    varianten:
+      - id: "3x20"
+        name: "60 Schuss (3×20)"
+        abschnitte:
+          - id: "kniend"
+            name: "Kniend"
+            serien: 2
+            schuss_je_serie: 10
+            wettkampfzeit_s: 2100   # inkl. Probe/Vorbereitung
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }
+              - { nr: 2, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }
+          - id: "liegend"
+            name: "Liegend"
+            serien: 2
+            schuss_je_serie: 10
+            wettkampfzeit_s: 1800
+            positionen:
+              - { nr: 3, anschlaege: [{ haltung: "liegend" }] }
+              - { nr: 4, anschlaege: [{ haltung: "liegend" }] }
+          - id: "stehend"
+            name: "Stehend"
+            serien: 2
+            schuss_je_serie: 10
+            wettkampfzeit_s: 2400
+            positionen:
+              - { nr: 5, anschlaege: [{ haltung: "stehend" }] }
+              - { nr: 6, anschlaege: [{ haltung: "stehend" }] }
+      - id: "3x10"
+        name: "30 Schuss (3×10)"
+        abschnitte:
+          - id: "kniend"
+            name: "Kniend"
+            serien: 1
+            schuss_je_serie: 10
+            wettkampfzeit_s: 1500
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }
+          - id: "liegend"
+            name: "Liegend"
+            serien: 1
+            schuss_je_serie: 10
+            wettkampfzeit_s: 1200
+            positionen:
+              - { nr: 2, anschlaege: [{ haltung: "liegend" }] }
+          - id: "stehend"
+            name: "Stehend"
+            serien: 1
+            schuss_je_serie: 10
+            wettkampfzeit_s: 1800
+            positionen:
+              - { nr: 3, anschlaege: [{ haltung: "stehend" }] }
+# geprüft 2026-11-22: sitzend als Alternative zu kniend ergänzt (alt: nur kniend). SpO 1.6 gilt für alle
+#   Dreistellungswettbewerbe, also auch 1.20 (Teil 1 S. 19 verweist bei 1.20 auf 1.6). Bei der DM nur Schüler/Jugend.
+disziplinen:
+  - kennziffer: "1.20"
+    name: "Luftgewehr 3-Stellung"
+    waffe: "Luftgewehr, Einzellader (Mehrlader als Einzellader); max. 5500 g, Systemlänge max. 850 mm, Lauflänge 40–85 cm; dasselbe Gewehr für alle Stellungen"
+    munition: "4,5 mm (.177)"
+    visierung: "Diopter/Korn; kein Zielfernrohr"
+    anschlag: "kniend (ab Herren II/Damen II auch sitzend, 1.6) – liegend – stehend"
+    scheibe: "DSB-Scheibe Nr. 1 (10 m Gewehr)"
+    ablauf: "lg-dreistellung"
+    hinweis: "DM: 3×20 (Schüler, Jugend). Abzug frei, kein Stecher; Laufbeschwerung radial max. 30 mm. Zwischen den Stellungen dürfen Korn, Diopterscheibe, Handstopp, Schaftbacke, Vorderschafterhöhung und Schaftlänge verstellt werden (1.5.3). Auslösen der Treibladung ohne Geschoss zählt als Fehler."

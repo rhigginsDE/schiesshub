@@ -1,0 +1,78 @@
+# Katalog-Kopf für den Verband DSB (ENTWURF). Die Disziplinen selbst liegen in gruppen/*.yaml.
+# Grundlage: Sportordnung des DSB, Ausgabe Stand 01.01.2027 (beschlossen vom Gesamtvorstand am 14.03.2026,
+# Impressum), offizielles Gesamt-PDF DSB-Sportordnung_2027.pdf, 560 Seiten. Änderungen gegenüber der
+# Ausgabe 01.01.2026 laut Synopse sind in der Recherche-Notiz (intern) aufgelistet.
+schema: 1
+id: "dsb"
+verband:
+  kuerzel: "DSB"
+  name: "Deutscher Schützenbund e.V."
+regelwerk:
+  name: "Sportordnung des Deutschen Schützenbundes"
+  # Alle Teile tragen in der Fußzeile "Stand 01.01.2027". Einzelne Seiten in Teil 15 nennen zusätzlich
+  # ältere interne Stände (01.01.2023, 03.03.2019, 10.03.2019); maßgeblich ist die Ausgabe 01.01.2027.
+  # datei = Gesamt-PDF und dessen Seitenbereich (= Nummer im Blätterkatalog dsb.de/fileadmin/dsb/sportordnung/<n>/).
+  stand: "2027-01-01"
+  teile:
+    "0": { stand: "2027-01-01", datei: "DSB-Sportordnung_2027.pdf, S. 19-112 (Allgemein gültige Regeln für alle Disziplinen)" }
+    "1": { stand: "2027-01-01", datei: "DSB-Sportordnung_2027.pdf, S. 113-136 (Gewehr)" }
+    "2": { stand: "2027-01-01", datei: "DSB-Sportordnung_2027.pdf, S. 137-166 (Pistole und Revolver)" }
+    "3": { stand: "2027-01-01", datei: "DSB-Sportordnung_2027.pdf, S. 167-238 (Flintenschießen)" }
+    "4": { stand: "2027-01-01", datei: "DSB-Sportordnung_2027.pdf, S. 239-252 (Laufende Scheibe)" }
+    "5": { stand: "2027-01-01", datei: "DSB-Sportordnung_2027.pdf, S. 253-272 (Armbrust)" }
+    "6": { stand: "2027-01-01", datei: "DSB-Sportordnung_2027.pdf, S. 273-338 (Bogen)" }
+    "7": { stand: "2027-01-01", datei: "DSB-Sportordnung_2027.pdf, S. 339-354 (Vorderlader)" }
+    "8": { stand: "2027-01-01", datei: "DSB-Sportordnung_2027.pdf, S. 355-410 (Target Sprint und Sommerbiathlon)" }
+    "9": { stand: "2027-01-01", datei: "DSB-Sportordnung_2027.pdf, S. 411-420 (Auflageschießen)" }
+    "10": { stand: "2027-01-01", datei: "DSB-Sportordnung_2027.pdf, S. 421-438 (Para-Sportschießen)" }
+    "11": { stand: "2027-01-01", datei: "DSB-Sportordnung_2027.pdf, S. 439-442 (Lichtschießen)" }
+    "12": { stand: "2027-01-01", datei: "DSB-Sportordnung_2027.pdf, S. 443-454 (Blasrohrsport)" }
+    "13": { stand: "2027-01-01", datei: "DSB-Sportordnung_2027.pdf, S. 455-492 (Bogenlaufen, neu ab 2027)" }
+    "14": { stand: "2027-01-01", datei: "DSB-Sportordnung_2027.pdf, S. 493-524 (Mitteilungen der Technischen Kommission)" }
+    "15": { stand: "2027-01-01", datei: "DSB-Sportordnung_2027.pdf, S. 525-560 (Finalregeln und Endkampfregeln)" }
+  abgeglichen_am: "2026-11-22"
+status: "entwurf" # entwurf | geprueft – "geprueft" erst, wenn alle Gruppen geprueft: true haben
+hinweise:
+  # geprüft 2026-11-22: Wortlaut angepasst, da einzelne Gruppen inzwischen geprueft: true haben.
+  - "Entwurf: Nicht alle Gruppen sind geprüft (geprueft: false). Offene Punkte stehen bei den Disziplinen unter 'pruefen' und in den Kommentaren der Gruppendateien."
+  - "Startrecht je Klasse und Wettbewerb steht in startrecht.yaml (Tabellen 'Deutsche Meisterschaft 2025 bis 2028 – Wettbewerbe/Klassen' und Bogen 2026–2028)."
+  - "Stand der Daten: Sportordnung Ausgabe 01.01.2027. Sie gilt ab 01.01.2027; bis dahin gilt die Ausgabe 01.01.2026."
+  - "Vor einem Wettkampf mit der aktuellen Sportordnung und der Ausschreibung abgleichen. Eine förmlich bekannt gegebene Ausschreibung des DSB geht vor (SpO 0.18.1)."
+  - "Örtliche Abweichungen sind zulässig, wenn Stand oder Schießen es erfordern, besonders bei Entfernung, Scheibe, Anschlag, Position und Zahl der Probeschüsse (SpO 0.18.3). Nicht abweichen darf man von 0.18.5 bis 0.18.7 (kein kampfmäßiges Schießen, keine Scheiben mit Menschendarstellung, Sicherheitsregeln 0.2)."
+  # geprüft 2026-11-22: 0.11.3 regelt die Schusswertung, nicht "ganze Ringe" – Beleg entfernt; 9.4 auf die vier Wettbewerbe präzisiert.
+  - "Gewertet wird in ganzen Ringen; Zehntelwertung nur, wo die SpO sie vorschreibt: Auflage 10 m Luftgewehr, 10 m Luftpistole, 50 m und 100 m KK-Gewehr auf LM und DM (SpO 9.4), Mix Team Luftgewehr (SpO 15.2.2.6; Mix Team Luftpistole volle Ringe) und Finale Mix Team (SpO 15.2.3.3)."
+  - "Gleichstand im Einzel (SpO 0.12.1): letzte 10-Schuss-Serie und rückwärts, dann Anzahl 10er, 9er, 8er usw., dann Innenzehner, sonst gleicher Rang. Wer das Höchstergebnis erreicht, wird ohne Finale nicht getrennt (Ausnahmen Vorderlader, Mehrschüssige Luftpistole). Mannschaft: Summen aller Mitglieder, dann wie im Einzel (SpO 0.12.2). Abweichungen in Teil 2 (2.9), Teil 6, Teil 9 (9.4) und Teil 15."
+  - "Schießzeiten nennen die Fachteile meist als Gesamtzeit, getrennt nach Zuganlagen und anderen Systemen (z. B. Wettbewerbstabellen Teil 1 S. 21 und Teil 2 S. 24 f.). Gewehr und Pistole: 15 Minuten gemeinsame Vorbereitungs- und Probezeit mit beliebig vielen Probeschüssen, nicht in der Schießzeit enthalten."
+  - "Mannschaft: drei Schützen desselben Vereins und derselben Wettkampfklasse; nur vollständige Mannschaften werden gewertet (SpO 0.7.2.2, nicht Sommerbiathlon, Ligen nach Ligaordnung)."
+  - "Felder unter 'pruefen' einer Disziplin waren in der Quelle nicht eindeutig lesbar."
+nicht_enthalten:
+  - "Target Sprint und Sommerbiathlon (Teil 8): gewertet wird die Laufzeit; das Format bildet Lauf und Strafzeiten nicht ab"
+  - "Bogenlaufen (Teil 13, neu ab 2027): Wertung Zeit plus Strafen, ohne Kennzahlen"
+  - "Para-Sportschießen (Teil 10) als eigene Disziplinen; Startrecht der Para-Klassen steht in startrecht.yaml"
+  - "Armbrust Adler (5.34): Wertung nach Gewicht des abgeschossenen Holzes"
+  - "Feuerstutzen 1.37 und 1.38: Schusszahl in der SpO nicht festgelegt"
+  - "Ligawettkämpfe (Bundes- und Regionalligen, eigene Ligaordnung, SpO 0.9.2)"
+  - "Landesspezifische Wettbewerbe der 'Liste B' der Landesverbände"
+  - "Gesellschaftsschießen wie Königsschießen (Regeln des Veranstalters, SpO 0.18.2)"
+  - "Mitteilungen der Technischen Kommission (Teil 14), soweit sie keine Wettbewerbe festlegen"
+glossar:
+  SpO: "Sportordnung des Deutschen Schützenbundes. Abschnittsnummern wie 'SpO 0.12.1' beziehen sich auf die Ausgabe 01.01.2027."
+  Kennzahl: "DSB-Wettbewerbsnummer, z. B. 1.10 Luftgewehr, 2.10 Luftpistole (Verzeichnis SpO 0.21). Im Katalog als 'kennziffer'."
+  TK: "Technische Kommission des DSB; entscheidet über Zulassung von Waffen, Munition und Ausrüstung (SpO 0.5)."
+  Halbprogramm: "Halbe Schusszahl eines Wettbewerbs. Ein Wettkampf verlangt mindestens ein Halbprogramm (SpO 0.9.3.1)."
+  Zuganlagen: "Scheibenzuganlagen mit Papierscheiben. 'Andere Systeme' sind vor allem elektronische Anlagen; für sie gelten meist kürzere Schießzeiten."
+  Innenzehner: "Innerer Zehnerbereich; zählt bei Gleichstand. Größe je Scheibe im Scheibenverzeichnis (SpO 0.20)."
+  Zehntelwertung: "Schusswerte in Zehnteln (0 und 1,0 bis 10,9), nur mit elektronischer Auswertung."
+  Scheibe Nr.: "Scheibennummer laut Scheibenverzeichnis SpO 0.20, z. B. Nr. 1 Gewehr 10 m, Nr. 7 Pistole 10 m."
+  Signumscheibe: "Papierscheibe mit kleinem DSB-Adler; bei Meisterschaften, die zur DM qualifizieren, vorgeschrieben (SpO 0.4.1)."
+  Karten: "Gelb = Verwarnung, Grün = Abzug von zwei Ringen bzw. einem Treffer, Rot = Disqualifikation (SpO 0.9.8)."
+  Vorkampf: "Qualifikation vor einem Finale oder Endkampf."
+  Finale: "Entscheidung der besten acht (25 m Schnellfeuerpistole: sechs) nach dem Vorkampf; Wertung beginnt bei null (SpO 15.1.1)."
+  Endkampf: "Entscheidungsrunde mit eigenen Regeln, z. B. Endkampf Senioren (Teil 15) oder Endkampf mit Addition zum Vorkampf (z. B. SpO 1.8.4, 2.21.3)."
+  Sportjahr: "Entspricht dem Kalenderjahr (SpO 0.1.5)."
+offizielle_quellen:
+  - "https://www.dsb.de/der-verband/ueber-uns/statuten/sportordnung-national/"
+  - "https://www.dsb.de/fileadmin/DSB.DE/PDF/PDF_2026/DSB-Sportordnung_2027.pdf"
+  - "https://dsb.de/fileadmin/dsb/sportordnung/ (Blätterkatalog, Seitenzahl = PDF-Seite)"
+  - "https://www.dsb.de/der-verband/ueber-uns/statuten/sportordnung-national/aenderungen-spo (Synopsen der Änderungen)"
+  - "https://www.dsb.de/fileadmin/DSB.DE/PDF/PDF_2025/Tabelle_Wettbewerbe-Klassen_Sportschiessen.pdf"

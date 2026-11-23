@@ -1,8 +1,10 @@
-"""Reihenfolge am Stand: Verschieben, Aufrufen, Zurückstellen, „nächste aufrufen“, Bahn freigeben.
+"""Reihenfolge am Schießstand: Verschieben, Aufrufen, Zurückstellen, „nächste aufrufen“,
+Schützenstand freigeben.
 
-Die Reihenfolge gehört zum Stand: Alle wartenden Starts der Wettbewerbe mit Planung `queue` auf
-einem Stand stehen in einer Liste (`queue_position`, lückenlos ab 1). Die Bahnbelegung teilt sie
-mit den Durchgängen des Zeitplans. Alle Vorgänge sperren den Stand und laufen so nacheinander.
+Die Reihenfolge gehört zum Schießstand: Alle wartenden Starts der Wettbewerbe mit Planung `queue`
+auf einem Schießstand stehen in einer Liste (`queue_position`, lückenlos ab 1). Die Belegung der
+Schützenstände teilt sie mit den Durchgängen des Zeitplans. Alle Vorgänge sperren den Schießstand
+und laufen so nacheinander.
 """
 
 import uuid
@@ -51,7 +53,7 @@ async def _context_on_range(
     await writable_tournament(session, tournament_id)
     context = await get_start(session, tournament_id, start_id)
     if context.competition.range_id is None:
-        raise ConflictError("Der Wettbewerb ist noch keinem Stand zugeordnet.")
+        raise ConflictError("Der Wettbewerb ist noch keinem Schießstand zugeordnet.")
     range_ = await get_range(session, tournament_id, context.competition.range_id, lock=True)
     return context, range_
 
@@ -64,11 +66,11 @@ async def move(
     data: MoveRequest,
     actor: Actor | None = None,
 ) -> uuid.UUID:
-    """Verschiebt einen wartenden Start; liefert den Stand."""
+    """Verschiebt einen wartenden Start; liefert den Schießstand."""
     context, range_ = await _context_on_range(session, tournament_id, start_id)
     order = [start.id for start in await renumber_queue(session, range_.id)]
     if start_id not in order:
-        raise ConflictError("Der Start wartet nicht in der Reihenfolge dieses Stands.")
+        raise ConflictError("Der Start wartet nicht in der Reihenfolge dieses Schießstands.")
     if data.position is not None:
         target = data.position
     else:
@@ -110,8 +112,8 @@ async def move(
 async def _check_entry_free(session: AsyncSession, tournament_id: uuid.UUID, entry: Entry) -> None:
     if entry.id in await on_lane_entry_ids(session, tournament_id):
         raise ConflictError(
-            f"Startnummer {entry.start_number} steht gerade schon auf einer Bahn. Eine Person "
-            "kann nicht auf zwei Bahnen zugleich stehen."
+            f"Startnummer {entry.start_number} steht gerade schon auf einem Schützenstand. "
+            "Eine Person kann nicht auf zwei Schützenständen zugleich stehen."
         )
 
 
@@ -125,16 +127,16 @@ async def call(
     *,
     confirm_heat_conflict: bool = False,
 ) -> Start:
-    """Ruft einen Start auf eine Bahn: Reihenfolge auf `lane` (oder die erste freie),
-    Zeitplan auf die Bahn seines Durchgangs.
+    """Ruft einen Start auf einen Schützenstand: Reihenfolge auf `lane` (oder den ersten freien),
+    Zeitplan auf den Schützenstand seines Durchgangs.
 
-    Aus der Reihenfolge nie ohne Bestätigung auf eine Bahn, die ein bald beginnender Durchgang
-    braucht (409 `heat_imminent`); ohne Bahnangabe zuerst auf eine Bahn, die keiner braucht.
+    Aus der Reihenfolge nie ohne Bestätigung auf einen Schützenstand, den ein bald beginnender
+    Durchgang braucht (409 `heat_imminent`); ohne Angabe zuerst auf einen, den keiner braucht.
     """
     tournament = await writable_tournament(session, tournament_id)
     context = await get_start(session, tournament_id, start_id)
     if context.competition.range_id is None:
-        raise ConflictError("Der Wettbewerb ist noch keinem Stand zugeordnet.")
+        raise ConflictError("Der Wettbewerb ist noch keinem Schießstand zugeordnet.")
     range_ = await get_range(session, tournament_id, context.competition.range_id, lock=True)
     start = context.start
     if start.status != "registered":
@@ -151,8 +153,8 @@ async def call(
         if lane is not None and lane != start.lane:
             raise InputError.single(
                 "lane",
-                f"Der Start ist im Durchgang auf Bahn {start.lane} eingeplant; zum Wechsel der "
-                "Bahn bitte umplanen.",
+                f"Der Start ist im Durchgang auf Schützenstand {start.lane} eingeplant; zum "
+                "Wechsel des Schützenstands bitte umplanen.",
             )
         lane = start.lane
     else:
@@ -164,14 +166,16 @@ async def call(
             if lane is None:
                 free = [n for n in range(1, range_.lane_count + 1) if n not in occupied]
                 if not free:
-                    raise ConflictError("Alle Bahnen des Stands sind belegt.")
+                    raise ConflictError("Alle Schützenstände des Schießstands sind belegt.")
                 assert reservation is not None
                 raise reservation.conflict(free, now)
         elif lane > range_.lane_count:
-            raise InputError.single("lane", f"Der Stand hat nur {range_.lane_count} Bahnen.")
+            raise InputError.single(
+                "lane", f"Der Schießstand hat nur {range_.lane_count} Schützenstände."
+            )
     assert lane is not None
     if lane in occupied:
-        raise ConflictError(f"Bahn {lane} ist schon belegt.", field="lane")
+        raise ConflictError(f"Schützenstand {lane} ist schon belegt.", field="lane")
     if lane in held:
         assert reservation is not None
         raise reservation.conflict([lane], now)
@@ -229,11 +233,13 @@ class CallNextResult:
 
 def _skipped_text(numbers: list[int]) -> str:
     if len(numbers) == 1:
-        return f"Startnummer {numbers[0]} steht gerade auf einer Bahn und wurde übersprungen."
+        return (
+            f"Startnummer {numbers[0]} steht gerade auf einem Schützenstand und wurde übersprungen."
+        )
     listed = ", ".join(str(number) for number in numbers[:-1])
     return (
-        f"Startnummern {listed} und {numbers[-1]} stehen gerade auf einer Bahn und wurden "
-        "übersprungen."
+        f"Startnummern {listed} und {numbers[-1]} stehen gerade auf einem Schützenstand und "
+        "wurden übersprungen."
     )
 
 
@@ -256,20 +262,22 @@ async def call_next(
     *,
     confirm_heat_conflict: bool = False,
 ) -> CallNextResult:
-    """Füllt die freien Bahnen (oder nur `lane`) der Reihe nach aus der Reihenfolge.
+    """Füllt die freien Schützenstände (oder nur `lane`) der Reihe nach aus der Reihenfolge.
 
-    Wer gerade auf einer Bahn steht (auch an einem anderen Stand), wird übersprungen und behält
-    seinen Platz. Bahnen, die ein bald beginnender Durchgang braucht, bleiben ohne Bestätigung
-    frei; wäre nur auf ihnen jemand drangekommen, kommt 409 `heat_imminent`.
+    Wer gerade auf einem Schützenstand steht (auch an einem anderen Schießstand), wird übersprungen
+    und behält seinen Platz. Schützenstände, die ein bald beginnender Durchgang braucht, bleiben
+    ohne Bestätigung frei; wäre nur auf ihnen jemand drangekommen, kommt 409 `heat_imminent`.
     """
     tournament = await writable_tournament(session, tournament_id)
     range_ = await get_range(session, tournament_id, range_id, lock=True)
     occupied = await occupied_on_range(session, range_.id)
     if lane is not None:
         if lane > range_.lane_count:
-            raise InputError.single("lane", f"Der Stand hat nur {range_.lane_count} Bahnen.")
+            raise InputError.single(
+                "lane", f"Der Schießstand hat nur {range_.lane_count} Schützenstände."
+            )
         if lane in occupied:
-            raise ConflictError(f"Bahn {lane} ist schon belegt.", field="lane")
+            raise ConflictError(f"Schützenstand {lane} ist schon belegt.", field="lane")
         free = [lane]
     else:
         free = [number for number in range(1, range_.lane_count + 1) if number not in occupied]
@@ -282,7 +290,7 @@ async def call_next(
     candidates = [Waiting(start_id=start.id, entry_id=start.entry_id) for start in waiting]
     busy = await on_lane_entry_ids(session, tournament_id)
     distribution = distribute_lanes(usable, candidates, busy)
-    # Wer auf den freigehaltenen Bahnen noch drangekommen wäre („der Rest“).
+    # Wer auf den freigehaltenen Schützenständen noch drangekommen wäre („der Rest“).
     picked = {start_id for start_id, _ in distribution.picks}
     rest = distribute_lanes(
         held,
@@ -338,7 +346,7 @@ async def release_lane(
     tournament_id: uuid.UUID,
     start_id: uuid.UUID,
 ) -> Start:
-    """Gibt die Bahn eines erfassten Starts frei, ohne den Status zu ändern.
+    """Gibt den Schützenstand eines erfassten Starts frei, ohne den Status zu ändern.
 
     Für den Fall, dass der Schütze fertig ist, das Ergebnis aber noch nicht abgeschlossen wird
     (z. B. Trefferaufnahme dauert). Ein nur aufgerufener Start wird zurückgestellt, nicht
@@ -347,11 +355,11 @@ async def release_lane(
     context, range_ = await _context_on_range(session, tournament_id, start_id)
     start = context.start
     if not start.on_lane:
-        raise ConflictError("Der Start steht auf keiner Bahn.")
+        raise ConflictError("Der Start steht auf keinem Schützenstand.")
     if start.status == "called":
         raise ConflictError(
-            "Der Start ist nur aufgerufen und hat noch keine Eingabe. Um die Bahn frei zu "
-            "machen, bitte zurückstellen oder abbrechen."
+            "Der Start ist nur aufgerufen und hat noch keine Eingabe. Um den Schützenstand "
+            "frei zu machen, bitte zurückstellen oder abbrechen."
         )
     lane = start.lane
     start.on_lane = False

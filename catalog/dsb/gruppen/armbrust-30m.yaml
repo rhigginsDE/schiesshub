@@ -1,0 +1,62 @@
+# Armbrust 30 m international – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22), Teil 5: 5 (Allgemein), 5.1.2,
+#   5.2.1, 5.5.1, 5.6, 5.8 und Wettbewerbstabelle Armbrust (Teil 5 S. 17); Teil 0: 0.21 (S. 85), Scheibe Nr. 16
+#   (0.20, S. 71), 0.12.1. DM-Klassen: Tabelle Wettbewerbe/Klassen DM 2025–2028.
+# Änderungen 2026→2027 in Teil 5: keine.
+# Klassen-IDs sind vorläufig.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "armbrust-30m"
+  name: "Armbrust 30 m international"
+  waffenart: "armbrust"
+  distanz_m: 30
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # Keine eigene Regel in Teil 5 für 5.20, daher SpO 0.12.1. Scheibe Nr. 16 hat einen Innenzehner (Ø 2 mm).
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  geprueft: false
+ablaeufe:
+  armbrust-30m-2x30:
+    beschreibung: "30 Schuss stehend in 90 Min., 30 Min. Umbau, 30 Schuss kniend in 90 Min."
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "stehend"
+            name: "Stehend"
+            # Reihenfolge stehend → kniend wie in der Tabelle (stehend/kniend, 30/30, 90/90 Min.); nicht ausdrücklich
+            # als Reihenfolge vorgeschrieben (offen). Zehnerserien nur als Auswerteeinheit nach 0.12.1.
+            serien: 3
+            schuss_je_serie: 10
+            wettkampfzeit_s: 5400
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend" }] }
+          - id: "kniend"
+            name: "Kniend"
+            # Ab Herren II/Damen II darf kniend auch sitzend geschossen werden (Teil 5, Allgemeine Regeln).
+            serien: 3
+            schuss_je_serie: 10
+            wettkampfzeit_s: 5400
+            positionen:
+              - { nr: 4, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }
+              - { nr: 5, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }
+              - { nr: 6, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }
+disziplinen:
+  - kennziffer: "5.20"
+    name: "Armbrust 30 m international"
+    waffe: "30-m-Armbrust mit Bolzenführungsbahn und Schlitten, Schäftung beliebig mit Schaftkappe/Haken (1.4.6)"
+    munition: "Bolzen 6,0 mm (Toleranz +0/−0,05 mm)"
+    visierung: "beliebig aus zwei Zielmitteln, Korntunnel max. 50 mm, Visierlinie max. 760 mm, Wasserwaage erlaubt"
+    anschlag: "30 stehend (Handstütze erlaubt), 30 kniend (zwei Kissen oder Kissen und Kniendrolle)"
+    scheibe: "DSB-Scheibe Nr. 16 (Armbrust international 30 m)"
+    ablauf: "armbrust-30m-2x30"
+    # geprüft 2026-11-22: Tabellenangaben ergänzt (Visierhilfe ab Damen II/Herren II frei; Gewicht/Sehnenlänge "≤608 (+ 3 %)",
+    #   Bedeutung offen). Probe/Vorbereitung regelt Teil 5 nicht.
+    hinweis: "Umbauzeit zwischen den Anschlägen 30 Min. Kniend ab Herren II/Damen II auch sitzend erlaubt. Bis zu zwei Windbeobachtungsgeräte (5.6). Tabelle Teil 5 S. 17: Visierhilfe/optische Zielhilfsmittel ab Damen II/Herren II frei; Spalte Gewicht/Sehnenlänge „≤608 (+ 3 %)“."
+    pruefen: ["ablauf", "waffe"]

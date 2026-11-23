@@ -341,7 +341,7 @@ def _plain(value: object) -> object:
 
 
 async def _queue_ranges(session: AsyncSession, starts: Sequence[Start]) -> set[uuid.UUID]:
-    """Stände, deren Reihenfolge die Starts berühren."""
+    """Schießstände, deren Reihenfolge die Starts berühren."""
     if not starts:
         return set()
     rows = await session.scalars(
@@ -382,8 +382,8 @@ async def book_starts(
     if data.heat_id is None and data.lane is not None:
         raise InputError.single(
             "lane",
-            "Eine Bahn lässt sich beim Buchen nur zusammen mit einem Durchgang vergeben; bei "
-            "der Reihenfolge wird sie erst beim Aufrufen vergeben.",
+            "Ein Schützenstand lässt sich beim Buchen nur zusammen mit einem Durchgang "
+            "vergeben; bei der Reihenfolge wird er erst beim Aufrufen vergeben.",
         )
     if data.heat_id is not None and data.count != 1:
         raise InputError.single(
@@ -404,7 +404,7 @@ async def book_starts(
         raise ConflictError(str(exc), field="count") from exc
 
     in_queue = competition.planning == "queue" and competition.range_id is not None
-    # Neue Starts kommen ans Ende der Reihenfolge ihres Stands.
+    # Neue Starts kommen ans Ende der Reihenfolge ihres Schießstands.
     position = len(await renumber_queue(session, competition.range_id)) if in_queue else 0
     starts = [
         Start(
@@ -549,7 +549,7 @@ async def abort_start(
         assert start is not None
         return start
     if context.competition.range_id is not None:
-        # Wie alle Vorgänge an den Bahnen eines Stands nacheinander.
+        # Wie alle Vorgänge an den Schützenständen eines Schießstands nacheinander.
         await get_range(session, tournament_id, context.competition.range_id, lock=True)
     change = await transition(
         session, context.start, "aborted", actor, abort_reason=abort_reason, reason=note

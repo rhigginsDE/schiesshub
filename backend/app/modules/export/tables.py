@@ -7,13 +7,15 @@ Alles hier ist rein (keine Datenbank, keine Ausgabe) und deshalb direkt testbar.
 - `Sheet`: flach für die CSV-Datei (eine Kopfzeile, Zellen als Text, Zahl oder leer; die
   Zahlenschreibweise und den Schutz vor Formeln übernimmt `csvout.py`).
 
-Rangfolge, Gleichstand, Mehrfachstart, Klassen und Abbrüche kommen fertig aus der Rangliste des
-Moduls `ergebnisse` (`winner_tables` ordnet nur zu und kürzt auf `top`). Abgebrochene Starts
-haben dort nie einen Platz und stehen am Ende ihrer Gruppe; hier bekommen sie kein Ergebnis,
-nur den Grund.
+Rangfolge, Gleichheit, Mehrfachstart, Klassen und Abbrüche kommen fertig aus der Rangliste des
+Moduls `ergebnisse` (`winner_tables` ordnet nur zu und kürzt auf `top`). Ein Abbruch nach dem
+Kommando „Feuer“ hat dort einen Platz und ein Ergebnis wie jeder andere Start (Sporthandbuch
+K 1.14 / L 1.12), gekennzeichnet mit „Abbruch (AB)“. Abgebrochene ohne Platz stehen am Ende
+ihrer Gruppe; hier bekommen sie kein Ergebnis, nur den Grund.
 
 Interne Schlüssel (Status, Abbruchgrund, Ablauf einer Serie) erscheinen nie in einer Liste; die
-deutschen Texte kommen aus `formatting.py` (eine Übersetzungsstelle).
+deutschen Texte kommen aus `formatting.py`, die formellen Wörter (Ergebnisliste, Abbruch (AB),
+Schützenstand, Schießstand, Ringgleichheit) aus `app.modules.ergebnisse.begriffe`.
 """
 
 import uuid
@@ -24,6 +26,7 @@ from decimal import Decimal
 from typing import Literal
 from zoneinfo import ZoneInfo
 
+from app.modules.ergebnisse import begriffe
 from app.modules.ergebnisse.schemas import RankingOut, RankingRow
 from app.modules.export.formatting import (
     abort_text,
@@ -234,7 +237,7 @@ def _time_cells(score: TimeScore | None) -> tuple[Cell, ...]:
 TIME_HEADERS = ("Ringe vor Abzug", "Gesamtzeit", "Sollzeit", "Abzug")
 
 
-# --- Siegerliste: Zuordnung --------------------------------------------------------------
+# --- Ergebnisliste: Zuordnung ------------------------------------------------------------
 
 
 def _series(row: RankingRow) -> tuple[SeriesValue, ...]:
@@ -278,6 +281,8 @@ def _winner_row(
         abort_reason=row.abort_reason,
         provisional_until=row.provisional_until,
         time_score=time_score,
+        abort_label=row.abort_label,
+        abort_note=row.abort_note,
     )
 
 
@@ -289,7 +294,7 @@ def winner_tables(
     full_names: Mapping[uuid.UUID, PersonName] | None = None,
     time_scores: Mapping[uuid.UUID, TimeScore] | None = None,
 ) -> list[WinnerTable]:
-    """Tabellen der Siegerliste eines Wettbewerbs aus seiner Rangliste.
+    """Tabellen der Ergebnisliste eines Wettbewerbs aus seiner Rangliste.
 
     - Reihenfolge, Plätze, geteilte Plätze und Abbrüche bleiben, wie die Rangliste sie liefert
       (Abgebrochene ohne Platz am Ende, je Teilnehmer einmal; ob sie dabei sind, entscheidet
@@ -331,7 +336,11 @@ def winner_tables(
 
 
 def winner_section(
-    competition: CompetitionInfo, unit: str | None, tables: Sequence[WinnerTable]
+    competition: CompetitionInfo,
+    unit: str | None,
+    tables: Sequence[WinnerTable],
+    *,
+    tie_word: str = begriffe.NEUTRAL_TIE,
 ) -> WinnerSection:
     pending = [
         row.provisional_until
@@ -344,6 +353,7 @@ def winner_section(
         unit=unit,
         tables=tuple(tables),
         provisional_until=max(pending) if pending else None,
+        tie_word=tie_word,
     )
 
 
@@ -394,7 +404,7 @@ def series_headers(
     return headers, legend
 
 
-# --- Siegerliste: Tabellen -------------------------------------------------------------
+# --- Ergebnisliste: Tabellen -----------------------------------------------------------
 
 
 def _place_text(row: WinnerRow) -> str:
@@ -416,23 +426,28 @@ def _series_status_notes(
 
 
 def _row_notes(
-    row: WinnerRow, mark_provisional: bool, headers: Mapping[SeriesKey, str] | None = None
+    row: WinnerRow,
+    mark_provisional: bool,
+    headers: Mapping[SeriesKey, str] | None = None,
+    tie_word: str = begriffe.NEUTRAL_TIE,
 ) -> list[str]:
     notes = []
     if row.abort_reason is not None:
-        notes.append(abort_text(row.abort_reason) or "abgebrochen")
+        notes.append(row.abort_label or abort_text(row.abort_reason) or begriffe.ABORT_FALLBACK)
+        if row.abort_note:
+            notes.append(row.abort_note)
     elif row.status == "review":
         notes.append("prüfen")
     elif not row.complete:
         notes.append("unvollständig")
-    if row.abort_reason is None:
+    if row.scored:
         notes.extend(_series_status_notes(row.series, headers))
     if row.tie_unresolved:
-        # Stechen oder manuell zu entscheiden: der Hinweis der Rangliste; sonst wie bisher.
+        # Stechen oder manuell zu entscheiden: der Hinweis der Rangliste; sonst kurz.
         notes.append(
             row.tie_note
             if row.tie_reason in ("shootoff", "manual") and row.tie_note
-            else "Gleichstand nicht auflösbar"
+            else begriffe.tie_unresolved_text(tie_word)
         )
     if mark_provisional and row.status == "provisional":
         notes.append("vorläufig")
@@ -468,17 +483,19 @@ def winners_report(meta: Meta, sections: Sequence[WinnerSection]) -> Report:
         with_inner = competition.rings and any(row.inner_tens is not None for row in all_rows)
         # Rechenweg nur bei Wertung mit Zeit (andere Modelle behalten ihr Layout).
         with_time = competition.time_model and any(
-            row.time_score is not None and row.abort_reason is None for row in all_rows
+            row.time_score is not None and row.scored for row in all_rows
         )
         header_of = dict(zip(keys, headers, strict=True))
         result_title = f"Ergebnis ({section.unit})" if section.unit else "Ergebnis"
 
         def notes_of(
-            table: WinnerTable, header_of: dict[SeriesKey, str] = header_of
+            table: WinnerTable,
+            header_of: dict[SeriesKey, str] = header_of,
+            tie_word: str = section.tie_word,
         ) -> Callable[[WinnerRow], list[str]]:
             # „vorläufig“ je Zeile nur, wenn nicht ohnehin die ganze Tabelle vorläufig ist.
             mixed = len({row.status == "provisional" for row in table.rows}) > 1
-            return lambda row: _row_notes(row, mixed, header_of)
+            return lambda row: _row_notes(row, mixed, header_of, tie_word)
 
         with_notes = any(notes_of(t)(row) for t in section.tables for row in t.rows)
         columns = [Column("Platz", "right"), Column("Nr.", "right"), Column("Name", wrap=True)]
@@ -516,8 +533,9 @@ def winners_report(meta: Meta, sections: Sequence[WinnerSection]) -> Report:
                     cells.append(row.class_short)
                 if with_attempt:
                     cells.append(str(row.attempt))
-                # Abgebrochen: kein Ergebnis (ein Teilergebnis sähe wie eine Wertung aus).
-                shown = row.score if row.abort_reason is None else None
+                # Abgebrochen ohne Platz: kein Ergebnis (ein Teilergebnis sähe wie eine
+                # Wertung aus); ein Abbruch mit Platz zeigt sein gewertetes Ergebnis.
+                shown = row.score if row.scored else None
                 cells.append(number(shown, typographic=True) if shown is not None else "–")
                 if with_time:
                     cells.append(
@@ -532,7 +550,7 @@ def winners_report(meta: Meta, sections: Sequence[WinnerSection]) -> Report:
                 cells.extend(series_text(by_key[key]) if key in by_key else "" for key in keys)
                 if with_notes:
                     cells.append(", ".join(notes(row)))
-                rows.append(Row(tuple(cells), muted=row.abort_reason is not None))
+                rows.append(Row(tuple(cells), muted=not row.scored))
             tables.append(
                 Table(
                     title=table.title,
@@ -546,10 +564,14 @@ def winners_report(meta: Meta, sections: Sequence[WinnerSection]) -> Report:
             if section.provisional_until is not None
             else ()
         )
-        subtitle = f"Stand: {competition.range_name}" if competition.range_name else None
+        subtitle = (
+            f"{begriffe.SHOOTING_RANGE}: {competition.range_name}"
+            if competition.range_name
+            else None
+        )
         out.append(Section(competition.title, subtitle, notes_text, tuple(tables)))
     return Report(
-        title="Siegerliste",
+        title=begriffe.RESULT_LIST,
         meta=meta,
         sections=tuple(out),
         legend=tuple(legends),
@@ -559,7 +581,8 @@ def winners_report(meta: Meta, sections: Sequence[WinnerSection]) -> Report:
 
 def _status_cell(row: WinnerRow) -> str:
     if row.abort_reason is not None:
-        return abort_text(row.abort_reason) or "abgebrochen"
+        label = row.abort_label or abort_text(row.abort_reason) or begriffe.ABORT_FALLBACK
+        return f"{label} – {row.abort_note}" if row.abort_note else label
     return row_status_text(row.status)
 
 
@@ -569,10 +592,13 @@ def _series_status_cell(series: Sequence[SeriesValue]) -> str | None:
 
 
 def winners_sheet(sections: Sequence[WinnerSection], tz: ZoneInfo | None = None) -> Sheet:
-    """CSV der Siegerliste; Uhrzeiten in `tz` (Ortszeit des Turniers, Standard Europe/Berlin).
+    """CSV der Ergebnisliste; Uhrzeiten in `tz` (Ortszeit des Turniers, Standard Europe/Berlin).
 
-    „Zehner“ und „Innenzehner“ nur, wenn ein Wettbewerb der Datei Ringe wertet. Abgebrochene
-    Starts stehen ohne Platz und ohne Ergebnis da, mit dem Grund unter „Status“.
+    „Zehner“ und „Innenzehner“ nur, wenn ein Wettbewerb der Datei Ringe wertet. „Gleichheit“
+    nennt bei einem geteilten Platz das Wort des Wettbewerbs („Ringgleichheit“,
+    „Treffergleichheit“, „gleiches Ergebnis“). Ein Abbruch mit Platz hat sein gewertetes
+    Ergebnis und „Abbruch (AB)“ unter „Status“; Abgebrochene ohne Platz stehen ohne Ergebnis
+    da, mit dem Grund unter „Status“.
     """
     with_tens = any(section.competition.rings for section in sections)
     with_time = any(section.competition.time_model for section in sections)
@@ -582,7 +608,7 @@ def winners_sheet(sections: Sequence[WinnerSection], tz: ZoneInfo | None = None)
             "Wettbewerb",
             "Wertung",
             "Platz",
-            "Platz geteilt",
+            "Gleichheit",
             "Startnummer",
             "Name",
             "Verein",
@@ -609,7 +635,7 @@ def winners_sheet(sections: Sequence[WinnerSection], tz: ZoneInfo | None = None)
                 parts = [
                     series_text(by_key[key], typographic=False) for key in keys if key in by_key
                 ]
-                score = row.score if row.abort_reason is None else None
+                score = row.score if row.scored else None
                 tens: tuple[Cell, ...] = (
                     (row.tens, row.inner_tens) if competition.rings else (None, None)
                 )
@@ -621,7 +647,7 @@ def winners_sheet(sections: Sequence[WinnerSection], tz: ZoneInfo | None = None)
                         competition.name,
                         table.title,
                         row.place,
-                        "ja" if row.tied else "",
+                        section.tie_word if row.tied else "",
                         row.start_number,
                         name_text(row.person, row.start_number),
                         row.person.club,
@@ -652,7 +678,7 @@ def _when(record: StartRecord) -> float:
 
 
 def _heat_lane(record: StartRecord) -> int:
-    """Bahn als Sortierschlüssel nur bei einem Start im Durchgang."""
+    """Schützenstand als Sortierschlüssel nur bei einem Start im Durchgang."""
     if record.heat_starts_at is None or record.lane is None:
         return _LAST
     return record.lane
@@ -665,13 +691,14 @@ def _competition_key(record: StartRecord) -> tuple[object, ...]:
 def startlist_sort_key(sort: StartlistSort) -> Callable[[StartRecord], tuple[object, ...]]:
     """Reihenfolge der Startliste.
 
-    - `competition`: je Wettbewerb in der Reihenfolge am Stand (Durchgang mit Bahn bzw.
-      Reihenfolge), dann Startnummer und Versuch – wie die Startliste des Moduls `starts`.
+    - `competition`: je Wettbewerb in der Reihenfolge am Schießstand (Durchgang mit
+      Schützenstand bzw. Reihenfolge), dann Startnummer und Versuch – wie die Startliste des
+      Moduls `starts`.
     - `start_number`: nach Startnummer, dann Wettbewerb und Versuch.
-    - `range`: je Stand nach Uhrzeit, Bahn und Wettbewerb.
+    - `range`: je Schießstand nach Uhrzeit, Schützenstand und Wettbewerb.
 
-    Die Bahn zählt nur innerhalb eines Durchgangs (dort ist sie der gebuchte Platz); bei der
-    Reihenfolge ist sie nur die zuletzt benutzte und würde den 2. Versuch vor den 1. stellen.
+    Der Schützenstand zählt nur innerhalb eines Durchgangs (dort ist er der gebuchte Platz); bei
+    der Reihenfolge ist er nur der zuletzt benutzte und würde den 2. Versuch vor den 1. stellen.
     """
 
     def by_course(record: StartRecord) -> tuple[object, ...]:
@@ -727,7 +754,7 @@ def _startlist_table(
     if with_heat:
         columns.append(Column("Durchgang"))
     if with_lane:
-        columns.append(Column("Bahn", "right"))
+        columns.append(Column(begriffe.FIRING_POINT, "right"))
     columns += [Column("Nr.", "right"), Column("Name", wrap=True)]
     if with_club:
         columns.append(Column("Verein", wrap=True))
@@ -755,7 +782,7 @@ def _startlist_table(
             cells.append(str(record.attempt))
         if with_notes:
             cells.append(
-                abort_text(record.abort_reason) or "abgebrochen"
+                abort_text(record.abort_reason) or begriffe.ABORT_FALLBACK
                 if record.status == "aborted"
                 else ""
             )
@@ -779,10 +806,14 @@ def startlist_report(meta: Meta, records: Sequence[StartRecord], sort: Startlist
             competition = members[0].competition
             if sort == "competition":
                 title = competition.title
-                subtitle = f"Stand: {competition.range_name}" if competition.range_name else None
+                subtitle = (
+                    f"{begriffe.SHOOTING_RANGE}: {competition.range_name}"
+                    if competition.range_name
+                    else None
+                )
                 with_competition = False
             else:
-                title = competition.range_name or "Ohne Stand"
+                title = competition.range_name or begriffe.NO_SHOOTING_RANGE
                 subtitle = None
                 with_competition = True
             table = _startlist_table(meta, members, with_competition=with_competition)
@@ -805,11 +836,11 @@ def startlist_sheet(
             "Klassenname",
             "Kennziffer",
             "Wettbewerb",
-            "Stand",
+            begriffe.SHOOTING_RANGE,
             "Versuch",
             "Durchgang",
             "Beginn",
-            "Bahn",
+            begriffe.FIRING_POINT,
             "Reihenfolge",
             "Status",
             "Abbruchgrund",

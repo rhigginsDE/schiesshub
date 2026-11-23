@@ -4,6 +4,8 @@
 - `replay` faltet die Ereignisse eines Starts zum aktuellen Stand (Grundlage des Neuaufbaus).
 - `evaluate` rechnet einen Stand mit der Wertung und erkennt, was nach einer Änderung der
   Definition zu prüfen ist.
+- `evaluate_aborted` rechnet einen aufgegebenen Start für die Rangliste (Sporthandbuch K 1.14 /
+  L 1.12): vergleichbares Ergebnis mit Vergleichsschlüssel oder der Grund, warum es keines gibt.
 - `raw_changes` beschreibt den Unterschied zweier Rohwerte für den Verlauf.
 - `request_hash` erkennt die Wiederholung einer Anfrage (Idempotency-Key).
 """
@@ -22,6 +24,7 @@ from app.scoring import (
     InvalidRawError,
     Issue,
     compute,
+    compute_aborted,
     rank_key,
     validate_raw,
 )
@@ -146,6 +149,46 @@ def evaluate(
                 f"{issues_text(missing)}."
             )
     return Evaluation(computed, keys, reason)
+
+
+@dataclass(frozen=True, slots=True)
+class AbortedEvaluation:
+    """Aufgegebener Start in der Rangliste.
+
+    `placed`: Abbruch nach „Feuer“ mit vergleichbarem Ergebnis (`computed`, `rank_keys`) – wird
+    platziert. Sonst ohne Platz: ohne Wertungswert (Abbruch im Probeschießen, `has_values`
+    False) oder mit Grund `reason` (`no_rule`, `incomplete_series`, `missing_section_time`,
+    `invalid`) und den betroffenen Serien bzw. Abschnitten in `labels`."""
+
+    has_values: bool
+    computed: ComputedResult | None = None
+    rank_keys: list[int | None] | None = None
+    reason: str | None = None
+    labels: tuple[str, ...] = ()
+
+    @property
+    def placed(self) -> bool:
+        return self.rank_keys is not None
+
+
+def evaluate_aborted(
+    definition: Mapping[str, Any], capture_mode: str, raw: Mapping[str, Any] | None
+) -> AbortedEvaluation:
+    """Wie `evaluate`, aber für einen aufgegebenen Start (`app.scoring.compute_aborted`); wirft
+    nie."""
+    if not raw:
+        return AbortedEvaluation(has_values=False)
+    try:
+        outcome = compute_aborted(definition, capture_mode, raw)
+        keys = rank_key(definition, outcome.computed) if outcome.computed is not None else None
+    except DefinitionError, InvalidRawError:
+        return AbortedEvaluation(has_values=True, reason="invalid")
+    if not outcome.has_values:
+        return AbortedEvaluation(has_values=False)
+    if outcome.computed is None:
+        labels = outcome.unshot if outcome.reason == "no_rule" else outcome.incomplete
+        return AbortedEvaluation(has_values=True, reason=outcome.reason, labels=tuple(labels))
+    return AbortedEvaluation(has_values=True, computed=outcome.computed, rank_keys=keys)
 
 
 # --- Verlauf -------------------------------------------------------------------

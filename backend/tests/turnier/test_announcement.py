@@ -5,7 +5,11 @@ from typing import Any
 
 import pytest
 
+from app.core import begriffe
+from app.core.begriffe import begriffe_fuer
+from app.modules.turnier.announcement import document_terms, lanes_text
 from app.modules.turnier.announcement_outline import DEFAULT_OUTLINE
+from app.modules.turnier.models import Competition
 from tests.turnier.conftest import API, Api
 
 
@@ -146,7 +150,7 @@ async def test_invalid_facts(api: Api) -> None:
 
 async def test_document_contains_current_data(api: Api) -> None:
     tid, url = await tournament(api, settings={"currency": "CHF", "default_multi_start": True})
-    range_ = await api.create(tid, "ranges", name="Stand 1", lane_count=6)
+    range_ = await api.create(tid, "ranges", name="Schießstand 25 m", lane_count=6)
     await api.create(tid, "classes", code="offen", name="Offene Klasse", short="O")
     competition = await api.create(
         tid,
@@ -184,7 +188,7 @@ async def test_document_contains_current_data(api: Api) -> None:
         if item["id"] == "datenschutz":
             item["visible"] = False
     announcement["facts"]["registration_deadline"] = "2027-03-01"
-    announcement["blocks"].append({"id": "staende", "kind": "ranges", "heading": "Stände"})
+    announcement["blocks"].append({"id": "staende", "kind": "ranges", "heading": "Schießstände"})
     assert (await api.client.put(url, json=announcement)).status_code == 200
 
     document = (await api.client.get(f"{url}/document")).json()
@@ -210,7 +214,9 @@ async def test_document_contains_current_data(api: Api) -> None:
         "registration_deadline": "2027-03-01",
     }
     assert blocks["klassen"]["classes"] == [{"name": "Offene Klasse", "short": "O"}]
-    assert blocks["staende"]["ranges"] == [{"name": "Stand 1", "lane_count": 6}]
+    assert blocks["staende"]["ranges"] == [
+        {"name": "Schießstand 25 m", "lane_count": 6, "lanes_text": "6 Schützenstände"}
+    ]
     assert blocks["startgeld"]["fees"] == {
         "currency": "CHF",
         "items": [
@@ -231,7 +237,7 @@ async def test_document_contains_current_data(api: Api) -> None:
     catalog, custom = blocks["wettbewerbe"]["competitions"]
     assert catalog["catalog_code"] == "1001"
     assert catalog["group"] == "kw-25m-praezision"
-    assert catalog["range_name"] == "Stand 1"
+    assert catalog["range_name"] == "Schießstand 25 m"
     assert catalog["procedure"] == "20 Schuss: 2×10 in je 5 Min."
     assert catalog["sections"] == [
         {
@@ -243,11 +249,67 @@ async def test_document_contains_current_data(api: Api) -> None:
         }
     ]
     assert catalog["multi_start_text"] == "Bestes Ergebnis zählt (bis zu 3 Starts)"
-    assert catalog["deviates_from_catalog"] is True
-    assert catalog["deviations"] == ["Abschnitt Präzision: 1 von 2 Serien gewertet"]
+    # Abweichungen vom Katalog stehen nur im Turnier-Editor (Entscheidung 23.11.2026).
+    assert "deviates_from_catalog" not in catalog
+    assert "deviations" not in catalog
+    diff = await api.client.get(
+        f"{API}/tournaments/{tid}/competitions/{competition['id']}/catalog-diff"
+    )
+    assert diff.json()["deviates"] is True
+    # Formelle Wörter: je Wettbewerb die seines Verbands, eigene Disziplin → Standard.
+    assert catalog["terms"] == begriffe_fuer("bds").model_dump()
+    assert catalog["terms"]["protestgebuehr"] == "Protestgebühr"
+    assert custom["terms"] == begriffe.standard().model_dump()
+    assert document["terms"] == begriffe_fuer("bds").model_dump()
     assert custom["catalog_code"] is None
-    assert custom["deviates_from_catalog"] is False
     assert custom["multi_start_text"] == "Ein Start je Teilnehmer"
+
+
+async def test_document_fee_word_by_federation(api: Api) -> None:
+    """Ausschreibung: BDS-Wettbewerb „Protestgebühr“ (SHB A 10.04), DSB-Wettbewerb
+    „Einspruchsgebühr“ (SpO 0.13); gemischt gilt turnierweit der Standardsatz."""
+    tid, url = await tournament(api)
+    bds = await api.create(tid, "competitions", catalog_federation="bds", catalog_code="1001")
+    response = await api.client.post(
+        f"{API}/tournaments/{tid}/competitions",
+        json={"catalog_federation": "dsb", "catalog_code": "1.10"},
+    )
+    if response.status_code != 201:
+        pytest.skip(f"DSB-Katalog ohne 1.10 ({response.status_code})")
+    dsb = response.json()
+
+    document = (await api.client.get(f"{url}/document")).json()
+
+    block = next(b for b in document["blocks"] if b["kind"] == "competitions")
+    terms = {item["id"]: item["terms"] for item in block["competitions"]}
+    assert terms[bds["id"]]["gebuehr_einspruch"] == "Protestgebühr"
+    assert terms[dsb["id"]]["gebuehr_einspruch"] == "Einspruchsgebühr"
+    assert terms[dsb["id"]]["kennziffer"] == "Kennzahl"
+    assert terms[dsb["id"]]["ergebnisgleichheit"] == "Ergebnisgleichheit"
+    assert document["terms"] == begriffe.standard().model_dump()
+
+
+def _competition(federation: str | None) -> Competition:
+    return Competition(catalog_federation=federation)
+
+
+def test_document_terms_by_federation() -> None:
+    standard = begriffe.standard()
+    assert document_terms([]) == standard
+    assert document_terms([_competition(None)]) == standard
+    assert document_terms([_competition("BDS"), _competition(None)]) == begriffe_fuer("bds")
+    # Gemischte Verbände: Standardsatz.
+    assert document_terms([_competition("bds"), _competition("dsb")]) == standard
+    dsb = document_terms([_competition("dsb")])
+    assert dsb.kennziffer == "Kennzahl"
+    assert dsb.gebuehr_einspruch == "Einspruchsgebühr"
+    assert document_terms([_competition("bds")]).gebuehr_einspruch == "Protestgebühr"
+
+
+def test_lanes_text() -> None:
+    terms = begriffe.standard()
+    assert lanes_text(1, terms) == "1 Schützenstand"
+    assert lanes_text(6, terms) == "6 Schützenstände"
 
 
 async def test_active_is_editable_closed_is_locked(api: Api) -> None:

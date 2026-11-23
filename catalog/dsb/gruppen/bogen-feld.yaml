@@ -1,0 +1,78 @@
+# Feldbogen – DSB-Disziplinen (ENTWURF)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog dsb.de/fileadmin/dsb/sportordnung/, abgerufen 2026-11-22):
+#   Teil 6: 6.1.1.3 (Kennzahlen), 6.6.1.1 (Pflöcke je Klasse, Teil 6 S. 39), 6.6.1.2 (Entfernungen), 6.6.1.3 (Auflagen),
+#   6.6.2 (Meisterschaftsprogramm), 6.6.7.1 (stehen oder knien), 6.6.7.3 (3 Min. je Scheibe), 6.6.7.4 (Wertung),
+#   6.6.7.6 (Ergebnisgleichheit), 6.6.10 (Arrowhead); Teil 0 S. 88 (Übersicht 6.30/6.40/6.50).
+#   Klassen bei DM: Tabelle "Bogenwettbewerbe – Regelteil 6 (2026-2028)", Stand 04.11.2025.
+# Änderungen 2026→2027 (Synopse 01.01.2027): 6.6.1.2 neu: jede Entfernung der Tabelle "bekannte Entfernungen" muss im
+#   Parcours einmal vorkommen; 6.6.3 Anlagen am Sammelpunkt. Pfeilzahl, Zeit, Wertung unverändert.
+# Varianten = Pflockfarbe (6.6.1.1): gelb = Schüler A Recurve, Jugend Blank; blau = Jugend Recurve/Compound, alle anderen
+#   Blank; rot = alle anderen Recurve/Compound. Pflock für Schüler A Blankbogen nennt 6.6.1.1 nicht (offen).
+# Entfernungen je Scheibe sind NICHT als distanzen_m eingetragen: die Reihenfolge im Parcours ist frei (6.6.1.2/6.6.2).
+#   Bekannte Entfernungen (je Auflagengröße 3 Scheiben, Ø 20/40/60/80): gelb 5-10-15 / 10-15-20 / 20-25-30 / 30-35-40 m,
+#   blau 5-10-15 / 15-20-25 / 30-35-40 / 40-45-50 m, rot 10-15-20 / 20-25-30 / 35-40-45 / 50-55-60 m.
+#   Unbekannt (je Größe 2–4 Scheiben, min./max.): gelb 5–10 / 10–15 / 15–25 / 20–35 m, blau 5–10 / 10–20 / 15–30 / 30–45 m,
+#   rot 10–15 / 15–25 / 20–35 / 35–55 m. Formatbedarf "distanzen_menge_m" bzw. Bereich je Auflage (siehe Notiz).
+# Auflage: WA-Feldauflage mit 6er-Ring, Zonen 6–1 (6.6.1.3).
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "bogen-feld"
+  name: "Feldbogen"
+  waffenart: "bogen"
+  art: "feldbogen"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # 6.6.7.6: größere Anzahl 6er, dann 5er; sonst gleichrangig.
+  gleichstand: ["sechser", "fuenfer"]
+  geprueft: false # geprüft 2026-11-22: Pflöcke/Entfernungen 6.6.1.1–6.6.1.2, 72 Pfeile 6.6.2, 3 Min. 6.6.7.3, Gleichstand 6.6.7.6, Klassen ohne Befund; offen bleibt Pflock Schüler A Blankbogen (6.6.1.1 nennt ihn nicht)
+ablaeufe:
+  feld-72:
+    beschreibung: "72 Pfeile: 24 Scheiben zu je 3 Pfeilen, 12 auf unbekannte und 12 auf bekannte Entfernungen (beliebig angeordnet); 3 Min. je Scheibe; Auflagen Ø 20/40/60/80 cm, je Größe 2–4 Scheiben (unbekannt) bzw. 3 Scheiben (bekannt)"
+    varianten:
+      - id: "gelber-pflock"
+        name: "Gelber Pflock (Schüler A Recurve, Jugend Blank): unbekannt 5–35 m, bekannt 5–40 m"
+        abschnitte:
+          - { id: "unbekannt", name: "Unbekannte Entfernungen", serien: 12, schuss_je_serie: 3, zeit_je_serie_s: 180, probeschuesse: "unbegrenzt", ringwerte: [6, 5, 4, 3, 2, 1, 0] }
+          - { id: "bekannt", name: "Bekannte Entfernungen", serien: 12, schuss_je_serie: 3, zeit_je_serie_s: 180, ringwerte: [6, 5, 4, 3, 2, 1, 0] }
+      - id: "blauer-pflock"
+        name: "Blauer Pflock (Jugend Recurve/Compound, sonst Blank): unbekannt 5–45 m, bekannt 5–50 m"
+        abschnitte:
+          - { id: "unbekannt", name: "Unbekannte Entfernungen", serien: 12, schuss_je_serie: 3, zeit_je_serie_s: 180, probeschuesse: "unbegrenzt", ringwerte: [6, 5, 4, 3, 2, 1, 0] }
+          - { id: "bekannt", name: "Bekannte Entfernungen", serien: 12, schuss_je_serie: 3, zeit_je_serie_s: 180, ringwerte: [6, 5, 4, 3, 2, 1, 0] }
+      - id: "roter-pflock"
+        name: "Roter Pflock (Recurve/Compound ab Junioren, Herren/Damen, Master, Senioren): unbekannt 10–55 m, bekannt 10–60 m"
+        abschnitte:
+          - { id: "unbekannt", name: "Unbekannte Entfernungen", serien: 12, schuss_je_serie: 3, zeit_je_serie_s: 180, probeschuesse: "unbegrenzt", ringwerte: [6, 5, 4, 3, 2, 1, 0] }
+          - { id: "bekannt", name: "Bekannte Entfernungen", serien: 12, schuss_je_serie: 3, zeit_je_serie_s: 180, ringwerte: [6, 5, 4, 3, 2, 1, 0] }
+disziplinen:
+  - kennziffer: "6.30"
+    name: "Feldbogen Recurve"
+    waffe: "Recurvebogen"
+    munition: "Pfeile (6.2.3)"
+    visierung: "Visier (Diopter); auf unbekannten Entfernungen keine Veränderung als Entfernungsmesser (6.6.8.6)"
+    anschlag: "stehend oder kniend"
+    scheibe: "WA-Feldauflage (6er-Ring), Ø 20/40/60/80 cm"
+    ablauf: "feld-72"
+    hinweis: "Junioren m/w, Master w, Senioren m/w: mögliche Teilnahme in leistungsstärkerer Klasse (Tabelle 2026–2028)."
+  - kennziffer: "6.40"
+    name: "Feldbogen Blankbogen"
+    waffe: "Blankbogen"
+    munition: "Pfeile (6.2.3)"
+    visierung: "ohne Visier"
+    anschlag: "stehend oder kniend"
+    scheibe: "WA-Feldauflage (6er-Ring), Ø 20/40/60/80 cm"
+    ablauf: "feld-72"
+    hinweis: "Junioren m/w, Master w, Senioren m/w: mögliche Teilnahme in leistungsstärkerer Klasse."
+    pruefen: ["pflock-schueler-a"]
+  - kennziffer: "6.50"
+    name: "Feldbogen Compound"
+    waffe: "Compoundbogen"
+    munition: "Pfeile (6.2.3)"
+    visierung: "Scope, Peepsight; mehrere Zielpunkte/Peep-Eliminator nur auf bekannten Entfernungen (6.6.8.7)"
+    anschlag: "stehend oder kniend"
+    scheibe: "WA-Feldauflage (6er-Ring), Ø 20/40/60/80 cm"
+    ablauf: "feld-72"
+    hinweis: "Schüler nicht zugelassen; Jugend, Junioren, Master w, Senioren: mögliche Teilnahme in leistungsstärkerer Klasse."

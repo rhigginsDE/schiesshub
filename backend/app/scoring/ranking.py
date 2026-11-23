@@ -25,10 +25,15 @@ nach Wettkampfart vergeben: 1, 2, 2, 4.
 
 **Unvollständige und abgebrochene Starts** (`RankPolicy`):
 
-- Abgebrochene Starts (`dns` nicht angetreten, `dnf` aufgegeben, `dsq` disqualifiziert) bekommen
-  **nie** einen Platz und stehen nie vor gewerteten Ergebnissen – gleich, ob ihr Teilergebnis
-  nach der Wertungsrichtung besser wäre. `"unranked"` – am Ende ohne Platz aufgeführt (in der
-  Reihenfolge aufgegeben, nicht angetreten, disqualifiziert); `"exclude"` – nicht in der Liste.
+- Abbruch durch den Schützen nach dem Kommando „Feuer“ (`dnf` mit `abort_ranked`, Sporthandbuch
+  K 1.14 / L 1.12): platziert nach dem bis dahin erzielten Ergebnis wie ein reguläres Ergebnis.
+  Den Vergleichsschlüssel rechnet `compute_aborted` (nicht geschossene Serien nach der Regel
+  des Modells); ohne vergleichbares Ergebnis bleibt `abort_ranked` aus.
+- Alle anderen Abgebrochenen (`dns` nicht angetreten, `dsq` disqualifiziert, `dnf` ohne
+  Wertungswert bzw. ohne vergleichbares Ergebnis) bekommen **nie** einen Platz und stehen nie
+  vor gewerteten Ergebnissen – gleich, ob ihr Teilergebnis nach der Wertungsrichtung besser
+  wäre. `"unranked"` – am Ende ohne Platz aufgeführt (in der Reihenfolge aufgegeben, nicht
+  angetreten, disqualifiziert); `"exclude"` – nicht in der Liste.
 - `incomplete` (Rohwerte unvollständig, kein Abbruch, etwa ein laufender Start):
   `"normal"` – mit dem bisherigen Ergebnis regulär einsortiert;
   `"last"` – hinter allen regulären Starts, untereinander nach Ergebnis, Plätze laufen weiter;
@@ -71,10 +76,18 @@ class Contender(_Frozen):
     """`rank_key(...)`; darf nur bei DNS/DSQ fehlen."""
     complete: bool = True
     abort_reason: AbortReason | None = None
+    abort_ranked: bool = False
+    """Nur mit `abort_reason="dnf"`: Abbruch nach „Feuer“ mit vergleichbarem Ergebnis in `key`;
+    wird platziert wie ein reguläres Ergebnis (Sporthandbuch K 1.14 / L 1.12)."""
 
     @property
     def participant(self) -> str:
         return self.entry_id or self.id
+
+    @property
+    def scored(self) -> bool:
+        """Zählt als Ergebnis: nicht abgebrochen oder platzierbarer Abbruch."""
+        return self.abort_reason is None or (self.abort_reason == "dnf" and self.abort_ranked)
 
 
 AbortedSetting = Literal["unranked", "exclude"]
@@ -82,7 +95,8 @@ AbortedSetting = Literal["unranked", "exclude"]
 
 class RankPolicy(_Frozen):
     incomplete: Literal["normal", "last", "unranked", "exclude"] = "last"
-    # Abgebrochene: nie mit Platz (es gibt bewusst keine Einstellung dafür).
+    # Abgebrochene ohne vergleichbares Ergebnis: nie mit Platz (es gibt bewusst keine
+    # Einstellung dafür). Ein platzierbarer Abbruch (`abort_ranked`) gilt immer als regulär.
     dnf: AbortedSetting = "unranked"
     dns: AbortedSetting = "unranked"
     dsq: AbortedSetting = "unranked"
@@ -224,11 +238,13 @@ def best_of(
     """Wählt bei Mehrfachstart je Teilnehmer (`entry_id`) die Starts, die in die Wertung gehen.
 
     - `all`: jeder Start zählt für sich.
-    - `first`: der Start mit der kleinsten `attempt`-Nummer, der nicht abgebrochen ist; gibt es
-      nur abgebrochene, der erste davon, der angetreten ist (sonst der erste).
+    - `first`: der Start mit der kleinsten `attempt`-Nummer, der ein Ergebnis hat (nicht
+      abgebrochen oder platzierbarer Abbruch, `Contender.scored`); gibt es nur Abgebrochene
+      ohne Ergebnis, der erste davon, der angetreten ist (sonst der erste).
     - `best`: der Start, der nach `policy` am weitesten vorn stünde; bei Gleichheit der frühere.
 
-    Ein abgebrochener Versuch wird nie einem gewerteten (oder laufenden) vorgezogen.
+    Ein platzierbarer Abbruch zählt wie ein reguläres Ergebnis. Ein abgebrochener Versuch ohne
+    Ergebnis wird nie einem gewerteten (oder laufenden) vorgezogen.
     """
     if rule == "all":
         return list(contenders)
@@ -243,7 +259,7 @@ def best_of(
     for attempts in by_participant.values():
         ordered = sorted(attempts, key=lambda c: c.attempt)
         if rule == "first":
-            scored = [c for c in ordered if c.abort_reason is None]
+            scored = [c for c in ordered if c.scored]
             started = [c for c in ordered if c.abort_reason != "dns"]
             chosen.append((scored or started or ordered)[0])
         else:
@@ -267,7 +283,7 @@ def _group(contender: Contender, policy: RankPolicy) -> RankGroup | None:
         case "dsq":
             setting = policy.dsq
         case "dnf":
-            setting = policy.dnf
+            setting = "normal" if contender.abort_ranked else policy.dnf
         case None:
             setting = "normal" if contender.complete else policy.incomplete
     return GROUP_FOR_SETTING.get(setting)
@@ -342,7 +358,7 @@ def _compare(a: Contender, b: Contender, policy: RankPolicy) -> int:
     """< 0, wenn `a` vor `b` stünde (für `best_of`)."""
     # Abgebrochene stehen hinter allem, was gewertet wird oder noch läuft – auch wenn die
     # Regel sie ganz weglässt.
-    aborted_a, aborted_b = a.abort_reason is not None, b.abort_reason is not None
+    aborted_a, aborted_b = not a.scored, not b.scored
     if aborted_a != aborted_b:
         return 1 if aborted_a else -1
     group_a, group_b = GROUP_ORDER[_group(a, policy)], GROUP_ORDER[_group(b, policy)]

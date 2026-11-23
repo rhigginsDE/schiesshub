@@ -1,0 +1,48 @@
+# Armbrust national 30 m Scheibe – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22), Teil 5: 5.1.2, 5.2.1, 5.6,
+#   5.10 (Disziplin 5.31), 5.10.1, 5.10.2 und Wettbewerbstabelle Armbrust (Teil 5 S. 17); Teil 0: 0.21 (S. 85),
+#   Scheibe Nr. 17 (0.20, S. 71). DM (Deutsche Traditionsmeisterschaft): Tabelle Wettbewerbe/Klassen DM 2025–2028.
+# Änderungen 2026→2027 in Teil 5: keine.
+# Klassen-IDs sind vorläufig.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "armbrust-national-scheibe"
+  name: "Armbrust national 30 m Scheibe"
+  waffenart: "armbrust"
+  distanz_m: 30
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # SpO 5.10.1 (eigene Regel, nicht 0.12.1): wer mehr schlechte Schusswerte hat, wird nachgestellt; dann Schusswerte
+  #   vom Ende zum Anfang; dann Innensechser; dann Mouchen; dann Abstand des letzten Schusses vom Zentrum.
+  #   Neue Kriterien-IDs, Erklärung in der Notiz.
+  gleichstand: ["weniger_schlechte_schuesse", "schuesse_rueckwaerts", "innensechser", "mouchen", "abstand_letzter_schuss"]
+  geprueft: false
+ablaeufe:
+  national-scheibe-20:
+    beschreibung: "20 Schuss stehend in 50 Min. (Veranstalter kann auf 40 Min. kürzen); max. 10 Probeschüsse"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            # 20 Schuss, 1 Schuss je Scheibe (Tabelle S. 17). Zwei Zehnerserien nur als Auswerteeinheit.
+            serien: 2
+            schuss_je_serie: 10
+            ringwerte: [6, 5, 4, 3, 2, 1, 0]   # Scheibe Nr. 17: Ringe 6–1 (0.20)
+            wettkampfzeit_s: 3000               # 50 Min.; Kürzung um bis zu 10 Min. durch Veranstalter (5.10)
+            probeschuesse: 10                   # höchstens 10, jederzeit innerhalb der Wettkampfzeit (5.10)
+disziplinen:
+  - kennziffer: "5.31"
+    name: "Armbrust national Scheibe"
+    waffe: "30-m-Armbrust wie 5.20"
+    munition: "Bolzen 6,0 mm (Toleranz +0/−0,05 mm)"
+    visierung: "beliebig aus zwei Zielmitteln (Diopter/Korn), Korntunnel max. 50 mm, Wasserwaage erlaubt"   # geprüft 2026-11-22: Wasserwaage ergänzt (5.2.1 gilt für alle Scheibenwettbewerbe)
+    anschlag: "stehend frei (Regel 1.1.2)"
+    scheibe: "DSB-Scheibe Nr. 17 (Armbrust national 30 m, Ringe 6–1)"
+    ablauf: "national-scheibe-20"
+    hinweis: "Höchstergebnis 120. Schießzeit kann auf 40 Min. reduziert werden. Probeschüsse zählen zur Wettkampfzeit."

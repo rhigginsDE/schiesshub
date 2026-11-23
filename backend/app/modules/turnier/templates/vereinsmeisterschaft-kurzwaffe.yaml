@@ -3,11 +3,11 @@
 schema: 1
 id: "vereinsmeisterschaft-kurzwaffe"
 name: "Vereinsmeisterschaft Kurzwaffe"
-description: "Vereinsmeisterschaft auf dem 25-m-Stand mit fünf Präzisionsdisziplinen für Pistole, Revolver und Freie Klasse, ein Start je Schütze."
+description: "Vereinsmeisterschaft auf dem Schießstand Kurzwaffe 25 m mit fünf Präzisionsdisziplinen für Pistole, Revolver und Freie Klasse, ein Start je Schütze."
 template: "club_championship"
 classes: { federation: "bds" }
 ranges:
-  - { key: "kurzwaffe", name: "Kurzwaffenstand 25 m", lane_count: 5 }
+  - { key: "kurzwaffe", name: "Schießstand Kurzwaffe 25 m", lane_count: 5 }
 competitions:
   - { catalog_federation: "bds", catalog_code: "1001", range: "kurzwaffe" }
   - { catalog_federation: "bds", catalog_code: "1002", range: "kurzwaffe" }

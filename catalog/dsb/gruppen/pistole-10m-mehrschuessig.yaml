@@ -1,0 +1,164 @@
+# 10 m Mehrschüssige Luftpistole, LP Mehrkampf, LP Standard – DSB-Disziplinen (2.16, 2.17, 2.18)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22): Teil 2: 2.1, 2.6, 2.8.2–2.8.4,
+#   2.9 mit Tabelle Stech-/Probeserien (S. 11), 2.12 (Wettbewerb 2.16), 2.13 (Wettbewerb 2.17), 2.14 (Wettbewerb 2.18),
+#   Pistolentabelle (S. 23), Schießzeitentabelle (S. 24); Teil 0: 0.12.1, 0.20 (Scheiben Nr. 7, 8, 9), 0.21 (S. 80).
+#   Schusszahlen DM: Schusszahlentabelle der DM-Ausschreibung (Stand 21.01.2026); Klassen: DM-Tabelle 2025–2028.
+# Änderungen 2026→2027 in diesen Abschnitten: keine (Synopse 2027 betrifft nur 2.3.1, 2.7.3, 2.10.5 – Regeln, keine Fakten hier).
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "pistole-10m-mehrschuessig"
+  name: "Pistole 10 m mehrschüssig"
+  waffenart: "kurzwaffe"
+  distanz_m: 10
+  art: "kombi"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  zehntelwertung: false   # Schusszahlentabelle DM: keine Zehntel für 2.17/2.18
+  # SpO 2.9 (mit Tabelle S. 11, die 10 m Mehrschüssige LP, LP Mehrkampf und LP Standard nennt): Plätze 1–3 ohne Finale
+  # per Stechen (je eine Stechserie, wiederholt bis entschieden); übrige Plätze nach 0.12.1.
+  gleichstand: ["stechen", "letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  stechen_bis_platz: 3
+  geprueft: false
+ablaeufe:
+  mehrschuessig-10s:
+    beschreibung: "60 oder 30 Schuss: Serien à 5 Schuss auf 5 Klappscheiben in je 10 s; Wertung Treffer/Fehler"
+    # SpO 2.12.3: 60-Schuss-Durchgang 12 Serien, 30-Schuss-Durchgang 6 Serien, je 10 s. Vorher Einschießen auf stehende
+    # Scheibe in 150 s, eine Probeserie vor jedem Durchgang; Vorbereitungszeit 3 Min. (Tabelle S. 24).
+    varianten:
+      - id: "60"
+        name: "60 Schuss"
+        abschnitte:
+          - id: "durchgang"
+            name: "Durchgang"
+            serien: 12
+            schuss_je_serie: 5
+            ziele_je_serie: 5
+            zeit_je_serie_s: 10
+            ringwerte: [1, 0]          # Klappscheibe umgeklappt = Treffer (SpO 2.12.4 Wertung)
+            vorbereitung_probe_s: 180
+            probeschuesse: 5           # eine Probeserie (SpO 2.12.3)
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 5, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 6, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 7, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 8, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 9, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 10, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 11, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 12, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+      - id: "30"
+        name: "30 Schuss"
+        abschnitte:
+          - id: "durchgang"
+            name: "Durchgang"
+            serien: 6
+            schuss_je_serie: 5
+            ziele_je_serie: 5
+            zeit_je_serie_s: 10
+            ringwerte: [1, 0]
+            vorbereitung_probe_s: 180
+            probeschuesse: 5
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 5, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 6, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+  mehrkampf-20-20:
+    beschreibung: "40 Schuss: Präzision 4×5 in je 150 s, Schnellfeuer 4×5 (je Schuss 3 s Sicht, 7 s weggedreht)"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "praezision"
+            name: "Präzision"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_serie_s: 150        # SpO 2.13.3
+            vorbereitung_probe_s: 180   # Tabelle S. 24: Präzisionsdurchgang 3 Min.
+            probeschuesse: 5            # je eine Probeserie, SpO 2.13.2
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+          - id: "schnellfeuer"
+            name: "Schnellfeuer"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_schuss_s: 3          # Schnellfeuermodus 3/7, SpO 2.13.3 i. V. m. 2.18.3.3
+            pause_zwischen_schuessen_s: 7
+            ringwerte: [10, 9, 8, 7, 6, 5, 0]   # Scheibe Nr. 8, Ringe 5–10 (SpO 0.20)
+            vorbereitung_probe_s: 180
+            probeschuesse: 5
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+  standard-20-20:
+    beschreibung: "40 Schuss: Teil 1 4×5 in je 150 s, Teil 2 4×5 in je 20 s"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "teil-1"
+            name: "Teil 1 (150 s)"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_serie_s: 150        # SpO 2.14.3
+            vorbereitung_probe_s: 180   # Tabelle S. 24: 3 Min. Vorbereitungszeit
+            probeschuesse: 5            # eine Probeserie à 5 Schuss in 150 s vor dem Wettkampf, SpO 2.14.2
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+          - id: "teil-2"
+            name: "Teil 2 (20 s)"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_serie_s: 20
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+disziplinen:
+  - kennziffer: "2.16"
+    name: "10 m Mehrschüssige Luftpistole"
+    waffe: "mehrschüssige Luftpistole"
+    munition: "4,5 mm (.177); max. 7,5 Joule"
+    visierung: "offene Visierung (Kimme/Korn), schwarz; keine optischen Hilfen"
+    anschlag: "stehend frei, einhändig; Fertighaltung vor jeder Serie (SpO 2.6)"
+    scheibe: "DSB-Scheibe Nr. 9 (Klappscheibe; Nachwuchs Ø 59,5 mm, Erwachsene Ø 40,0 mm)"
+    ablauf: "mehrschuessig-10s"
+    hinweis: "Gewicht ≤ 1500 g, Abzug ≥ 500 g, Prüfkasten 420×200×50 mm (ohne Magazin). Stechserie: 10-s-Serie (SpO 2.9). Höchstergebnis wird hier ebenfalls unterschieden (Ausnahme in 0.12.1). Nicht in der DM-Tabelle 2025–2028."
+    optional: true
+    pruefen: ["wertung.gleichstand"]
+  - kennziffer: "2.17"
+    name: "10 m Luftpistole Mehrkampf"
+    waffe: "mehrschüssige Luftpistole"
+    munition: "4,5 mm (.177); max. 7,5 Joule"
+    visierung: "offene Visierung (Kimme/Korn), schwarz; keine optischen Hilfen"
+    anschlag: "stehend frei, einhändig; Schnellfeuerteil aus der Fertighaltung (SpO 2.6)"
+    scheibe: "Präzision: DSB-Scheibe Nr. 7 (10 m Pistole); Schnellfeuer: DSB-Scheibe Nr. 8 (10 m Schnellfeuerteil)"
+    ablauf: "mehrkampf-20-20"
+    hinweis: "Gewicht ≤ 1500 g, Abzug ≥ 500 g, Prüfkasten 420×200×50 mm (ohne Magazin). Durchführung wie 25 m Pistole (SpO 2.13.4). Stechserie: Schnellfeuerserie."
+  - kennziffer: "2.18"
+    name: "10 m Luftpistole Standard"
+    waffe: "mehrschüssige Luftpistole"
+    munition: "4,5 mm (.177); max. 7,5 Joule"
+    visierung: "offene Visierung (Kimme/Korn), schwarz; keine optischen Hilfen"
+    anschlag: "stehend frei, einhändig; 20-s-Serien aus der Fertighaltung (SpO 2.6)"
+    scheibe: "DSB-Scheibe Nr. 7 (10 m Pistole)"
+    ablauf: "standard-20-20"
+    hinweis: "Gewicht ≤ 1500 g, Abzug ≥ 500 g, Prüfkasten 420×200×50 mm (ohne Magazin). Durchführung wie 25 m Standardpistole (SpO 2.14.4). Stechserie: 20-s-Serie."

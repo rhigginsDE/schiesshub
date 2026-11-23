@@ -1,0 +1,46 @@
+# Formelle Begriffe: Standardsatz.
+#
+# Gilt für eigene Disziplinen (ohne Verband) und überall, wo ein Verbandssatz ein Wort nicht
+# nennt. Enthält jeden Schlüssel; `app/core/begriffe/__init__.py` lehnt fehlende oder unbekannte
+# Schlüssel beim Start ab.
+#
+# Entscheidung des Inhabers vom 23.11.2026: Der Standard sind die Wörter des BDS-Sporthandbuchs
+# („überall Schützenstand, Ergebnisliste“). Fundstellen stehen in `bds.yaml`.
+#
+# Nur Wörter für formelle Ausgaben (Ausschreibung, Aushang, Listen, Anzeige). Die Bedienung der
+# Stationen darf Alltagswörter behalten („Gleichstand“, „aufgegeben“).
+
+begriffe:
+  ergebnisliste: "Ergebnisliste"
+  startliste: "Startliste"
+  startnummer: "Startnummer"
+  startzeit: "Starttermin"
+  schiessstand: "Schießstand"
+  schiessstaende: "Schießstände"
+  schuetzenstand: "Schützenstand"
+  schuetzenstaende: "Schützenstände"
+  durchgang: "Durchgang"
+  durchgangszeit: "Durchgangszeit"
+  wertungsserie: "Wertungsserie"
+  wertungsschuesse: "Wertungsschüsse"
+  trefferaufnahme: "Trefferaufnahme"
+  ergebnisgleichheit: "Ringgleichheit"
+  ringgleichheit: "Ringgleichheit"
+  treffergleichheit: "Treffergleichheit"
+  abbruch: "Abbruch"
+  abbruch_kurz: "AB"
+  nicht_angetreten: "nicht angetreten"
+  disqualifiziert: "disqualifiziert"
+  disqualifikation: "Disqualifikation"
+  einspruch: "Einspruch"
+  protest: "Protest"
+  protestgebuehr: "Protestgebühr"
+  gebuehr_einspruch: "Protestgebühr"
+  standaufsicht: "Standaufsicht"
+  schiessleiter: "Schießleiter"
+  wettkampfleitung: "Wettkampfleitung"
+  startgeld: "Startgeld"
+  klasse: "Wettbewerbsklasse"
+  # Nicht aus dem Sporthandbuch belegt (bds-begriffe.md); Wort der App für die Nummer einer
+  # Disziplin im Katalog.
+  kennziffer: "Kennziffer"

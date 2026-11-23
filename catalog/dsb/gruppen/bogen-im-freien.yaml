@@ -1,0 +1,120 @@
+# Bogen im Freien (WA im Freien, früher FITA) – DSB-Disziplinen (ENTWURF)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog dsb.de/fileadmin/dsb/sportordnung/, abgerufen 2026-11-22):
+#   Teil 6: 6.1.1.1 (Kennzahlen), 6.1.2 (Klassen), 6.3.3 (Einschießen), 6.3.6.1.2 (X), 6.5.1.1 (Tabelle Klasse/Pfeile/
+#   Entfernung/Auflage, Teil 6 S. 30), 6.5.1.2 (Auflagen), 6.5.3.1 (Qualifikationsrunde), 6.5.3.1.1 (Ergebnisgleichheit),
+#   6.5.3.2/6.5.3.3 (Finalrunden Einzel, Teams, Mixed Teams), 6.5.4 (sonstige Turniere: 1440-, 70 m-, 900er-Runde);
+#   Teil 0 S. 87 (Übersicht 6.10/6.15/6.16). Klassen bei DM: Tabelle "Bogenwettbewerbe – Regelteil 6 (2026-2028)", Stand 04.11.2025.
+# Änderungen 2026→2027 (Synopse 01.01.2027): 6.5.3.1.1 Ergebnisgleichheit neu zuerst Innen-10er (X), dann 10er inkl. X
+#   (bis 2026: zuerst 10er inkl. Innen-10er, dann Innen-10er). Schusszahl, Zeit, Entfernungen unverändert.
+# Eingetragen ist die Meisterschafts-Qualifikationsrunde (72 Pfeile, 6.5.3.1). Die 1440-Runde (144 Pfeile, 30–90 m,
+#   Teil 0 S. 87, 6.5.4.1) ist nicht abgebildet: Entfernungen je Klasse stehen nicht in der SpO (WA-Regeln, offen).
+# Varianten = Entfernung/Auflage je Klassengruppe (Tabelle 6.5.1.1); Klassen im Variantennamen (Formatbedarf Variante.klassen).
+# X (Innen-10) zählt 10 und wird als X notiert (6.3.6.1.2) – im Format nur über gleichstand "innenzehner" erfasst.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "bogen-im-freien"
+  name: "Bogen im Freien (WA)"
+  waffenart: "bogen"
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # 6.5.3.1.1 (Fassung 2027): größere Anzahl Innen-10er (X), dann größere Anzahl 10er inkl. X; sonst gleichwertig.
+  #   Letzter Finalplatz: Stechen (1 Pfeil, 40 s, näher am Zentrum); Setzliste: Los.
+  gleichstand: ["innenzehner", "zehner"]
+  geprueft: false # geprüft 2026-11-22: Tabelle 6.5.1.1, 6.5.3.1, Gleichstand 6.5.3.1.1 (Fassung 2027, Synopse S. 33), Finale 6.5.3.2–6.5.3.3, Klassen ohne Befund; offen: Wertungszonen 80 cm-Spots Schüler A Compound, Entfernung Schüler B bei der Deutschen Schülermeisterschaft, Finale Blankbogen
+ablaeufe:
+  freien-recurve:
+    beschreibung: "72 Pfeile in 12 Passen zu 6 Pfeilen in je 4 Min. (10 s Vorlaufzeit), Entfernung je Klasse 70/60/50/40 m auf 122 cm-Auflage; vorher 20–45 Min. Einschießen"
+    varianten:
+      - id: "70m"
+        name: "70 m, 122 cm (Herren, Damen, Junioren)"
+        abschnitte:
+          - { id: "qualifikation", name: "Qualifikation", serien: 12, schuss_je_serie: 6, zeit_je_serie_s: 240, distanzen_m: [70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70], probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0] }
+      - id: "60m"
+        name: "60 m, 122 cm (Jugend, Master)"
+        abschnitte:
+          - { id: "qualifikation", name: "Qualifikation", serien: 12, schuss_je_serie: 6, zeit_je_serie_s: 240, distanzen_m: [60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60], probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0] }
+      - id: "50m"
+        name: "50 m, 122 cm (Senioren)"
+        abschnitte:
+          - { id: "qualifikation", name: "Qualifikation", serien: 12, schuss_je_serie: 6, zeit_je_serie_s: 240, distanzen_m: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50], probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0] }
+      - id: "40m-schueler-a"
+        name: "40 m, 122 cm (Schüler A)"
+        abschnitte:
+          - { id: "qualifikation", name: "Qualifikation", serien: 12, schuss_je_serie: 6, zeit_je_serie_s: 240, distanzen_m: [40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40], probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0] }
+      - id: "25m-schueler-b"
+        name: "Empfehlung: 25 m, 80 cm (Schüler B, nur Landesebene)"
+        abschnitte:
+          - { id: "qualifikation", name: "Qualifikation", serien: 12, schuss_je_serie: 6, zeit_je_serie_s: 240, distanzen_m: [25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25], probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0] }
+      - id: "15m-schueler-c"
+        name: "Empfehlung: 36 Pfeile, 15 m, 80 cm (Schüler C, nur Landesebene)"
+        abschnitte:
+          # 6.5.1.1 nennt nur 36 Pfeile gesamt; Passengröße 6 Pfeile/4 Min. aus 6.5.3.1 übernommen (pruefen).
+          - { id: "qualifikation", name: "Qualifikation", serien: 6, schuss_je_serie: 6, zeit_je_serie_s: 240, distanzen_m: [15, 15, 15, 15, 15, 15], probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0] }
+    finale:
+      teilnehmer: 16
+      hinweis: "K.-o.-Matches ab Achtelfinale (unterhalb der DM auch ab Viertelfinale) auf 70 m; Satzsystem: max. 5 Sätze zu 3 Pfeilen in 2 Min., Satzsieg 2 Punkte, Gleichstand 1, Sieg mit 6 Satzpunkten; bei 5:5 Stechen 1 Pfeil (40 s). Teams (3) und Mixed Teams (2): max. 4 Sätze zu 6 bzw. 4 Pfeilen, Sieg mit 5 Satzpunkten, 20 s je Pfeil (Senioren 30 s). Auf Landesebene freigestellt."
+      abschnitt: "6.5.3.2.1–6.5.3.2.5.1; 6.5.3.3"
+  freien-compound:
+    beschreibung: "72 Pfeile in 12 Passen zu 6 Pfeilen in je 4 Min. (10 s Vorlaufzeit) auf 50 m, 80 cm 6-Ring-Auflage (Schüler A: 40 m, 80 cm-Spots)"
+    varianten:
+      - id: "50m"
+        name: "50 m, 80 cm 6-Ring (alle Klassen außer Schüler A)"
+        abschnitte:
+          - { id: "qualifikation", name: "Qualifikation", serien: 12, schuss_je_serie: 6, zeit_je_serie_s: 240, distanzen_m: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50], probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 5, 0] }
+      - id: "40m-schueler-a"
+        name: "40 m, 80 cm-Spots (Schüler A)"
+        abschnitte:
+          # Wertungszonen der "80 cm-Spots" nennt 6.5.1.1 nicht (vermutlich 6-Ring 10–5) – ringwerte offen.
+          - { id: "qualifikation", name: "Qualifikation", serien: 12, schuss_je_serie: 6, zeit_je_serie_s: 240, distanzen_m: [40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40], probeschuesse: "unbegrenzt" }
+    finale:
+      teilnehmer: 16
+      hinweis: "K.-o.-Matches ab Achtelfinale (unterhalb der DM auch ab Viertelfinale) auf 50 m; kumulativ: 5 Passen zu 3 Pfeilen in je 2 Min.; bei Gleichstand Stechen 1 Pfeil (40 s). Teams/Mixed Teams: 4 Passen zu 6 bzw. 4 Pfeilen kumulativ, 20 s je Pfeil (Senioren 30 s). Auf Landesebene freigestellt."
+      abschnitt: "6.5.3.2.1–6.5.3.2.6.1; 6.5.3.3"
+  freien-blankbogen:
+    beschreibung: "72 Pfeile in 12 Passen zu 6 Pfeilen in je 4 Min. (oder 3 Pfeile in 2 Min.) auf 50 m, 122 cm-Auflage (Schüler A: 30 m)"
+    varianten:
+      - id: "50m"
+        name: "50 m, 122 cm (alle Klassen außer Schüler A)"
+        abschnitte:
+          # Teil 0 S. 87 erlaubt für 6.16 auch Passen zu 3 Pfeilen in 2 Min. (dann 24 Passen) – Regelfall 6er-Passen eingetragen.
+          - { id: "qualifikation", name: "Qualifikation", serien: 12, schuss_je_serie: 6, zeit_je_serie_s: 240, distanzen_m: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50], probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0] }
+      - id: "30m-schueler-a"
+        name: "30 m, 122 cm (Schüler A)"
+        abschnitte:
+          - { id: "qualifikation", name: "Qualifikation", serien: 12, schuss_je_serie: 6, zeit_je_serie_s: 240, distanzen_m: [30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30], probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0] }
+    # Kein finale: 6.5.3.1–6.5.3.3 nennen nur Recurve und Compound (offen, siehe Notiz).
+disziplinen:
+  - kennziffer: "6.10"
+    name: "Bogen WA im Freien Recurve"
+    waffe: "Recurvebogen"
+    munition: "Pfeile (6.2.3)"
+    visierung: "Visier (Diopter)"
+    anschlag: "stehend"
+    scheibe: "122 cm-Auflage (Schüler B/C: 80 cm)"
+    ablauf: "freien-recurve"
+    hinweis: "Senioren w neu bei der DM. Schüler A/B starten auf der Deutschen Schülermeisterschaft (Schüler B dort neu; Tabelle 2026–2028), nicht auf der DM. Schüler C nur Landesebene."
+    pruefen: ["schueler-b-dsm-entfernung"]
+  - kennziffer: "6.15"
+    name: "Bogen WA im Freien Compound"
+    waffe: "Compoundbogen"
+    munition: "Pfeile (6.2.3)"
+    visierung: "Scope, Peepsight"
+    anschlag: "stehend"
+    scheibe: "80 cm 6-Ring-Auflage (Schüler A: 80 cm-Spots)"
+    ablauf: "freien-compound"
+    hinweis: "Master w neu bei der DM; Junioren m/w und Senioren w neu (Start bei Herren/Damen bzw. Master w). Schüler A/B auf der Deutschen Schülermeisterschaft."
+    pruefen: ["schueler-a-ringwerte", "schueler-b-dsm-entfernung"]
+  - kennziffer: "6.16"
+    name: "Bogen WA im Freien Blankbogen"
+    waffe: "Blankbogen"
+    munition: "Pfeile (6.2.3)"
+    visierung: "ohne Visier"
+    anschlag: "stehend"
+    scheibe: "122 cm-Auflage"
+    ablauf: "freien-blankbogen"
+    hinweis: "Master w und Senioren m neu bei der DM. Junioren m/w und Senioren w: mögliche Teilnahme in leistungsstärkerer Klasse. Schüler A/B auf der Deutschen Schülermeisterschaft."
+    pruefen: ["finale", "schueler-b-dsm-entfernung"]

@@ -1,0 +1,64 @@
+# Gewehr 300 m Liegendkampf – DSB-Disziplinen (ENTWURF)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22): Teil 1: 1.1.1, Wettbewerbstabelle
+#   (Teil 1 S. 20), Schusszahlen/Schießzeiten (Teil 1 S. 21); Teil 0: 0.21 (Teil 0 S. 79), Scheibe Nr. 5, 0.12.1.
+#   DM: 1.90 mit 60 Schuss, ganze Ringe (DSB-Schusszahlentabelle "300m GK-Liegendkampf").
+# 1.95 nur in 0.21 ("entsprechend Ausschreibung"), nicht in der DM-Tabelle; Vorbereitungszeit dort nicht geregelt.
+# Änderungen 2026→2027: keine.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "gewehr-300m"
+  name: "Gewehr 300 m"
+  waffenart: "langwaffe"
+  distanz_m: 300
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  zehntelwertung: false
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  # geprüft 2026-11-22: 1.90 gegen Teil 1 S. 20/21 und 0.21 (Teil 0 S. 79), 1.95 gegen 0.21 geprüft; DM 60 Schuss ohne Zehntel (Schusszahlentabelle).
+  geprueft: true
+ablaeufe:
+  gk-liegend-60:
+    beschreibung: "60 Schuss liegend in 75 Min. (Zuganlage) bzw. 60 Min. (andere Systeme); vorher 15 Min. Vorbereitung mit beliebig vielen Probeschüssen"
+    varianten:
+      - id: "andere-systeme"
+        name: "Andere Systeme (z. B. elektronisch)"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 3600, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+      - id: "zuganlage"
+        name: "Zuganlage"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 4500, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+  gk-liegend-mehrlader-60:
+    beschreibung: "60 Schuss liegend in 60 Min. (Zuganlage) bzw. 45 Min. (elektronisch) laut 0.21"
+    varianten:
+      - id: "elektronisch"
+        name: "Elektronische Anlage"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 2700 }
+      - id: "zuganlage"
+        name: "Zuganlage"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 3600 }
+disziplinen:
+  - kennziffer: "1.90"
+    name: "GK-Liegendkampf 300 m"
+    waffe: "GK-Gewehr, Einzellader (Mehrlader als Einzellader); max. 8000 g, Lauflänge min. 40 cm; Hakenkappe erlaubt"
+    munition: "bis 8 mm, Zentralfeuer"
+    visierung: "Diopter/Korn; Wasserwaage erlaubt; kein Zielfernrohr"
+    anschlag: "liegend"
+    scheibe: "DSB-Scheibe Nr. 5 (Gewehr 300 m)"
+    ablauf: "gk-liegend-60"
+    hinweis: "DM: 60 Schuss, ganze Ringe. Abzug frei, Laufbeschwerung beliebig, Flimmerband max. 60 mm."
+  - kennziffer: "1.95"
+    name: "GK-Liegendkampf Mehrlader 300 m"
+    waffe: "GK-Gewehr, Mehrlader (Einzellader zulässig); Lauflänge min. 40 cm"
+    munition: "bis 8 mm"
+    visierung: "Diopter/Korn"
+    anschlag: "liegend"
+    scheibe: "DSB-Scheibe Nr. 5 (Gewehr 300 m)"
+    ablauf: "gk-liegend-mehrlader-60"
+    hinweis: "Nur in 0.21 geregelt, Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."

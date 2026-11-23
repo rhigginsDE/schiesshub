@@ -1,0 +1,46 @@
+# Gewehr 50 m KK-Liegendkampf – DSB-Disziplinen (ENTWURF)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22): Teil 1: 1.1.1 (liegend),
+#   Wettbewerbstabelle (Teil 1 S. 20), Schusszahlen/Schießzeiten (Teil 1 S. 21); Teil 0: 0.21 (Teil 0 S. 79), Scheibe Nr. 3,
+#   0.12.1; Teil 15: Finale 50 m Gewehr liegend (Teil 15 S. 15–17).
+#   Zehntelwertung auf LM und DM: DSB-Schusszahlentabelle (Ausschreibung DM, Stand 20.11.2025); die SpO selbst schreibt
+#   für 1.80 keine Zehntel vor. Die Tabelle nennt für 1.80 keine Finalklassen; das Finale nach Teil 15 ist deshalb
+#   nicht als Regelfall eingetragen (siehe Notiz).
+# Teil 10 (Para, 10.10): "Im Nicht-Para-Bereich vom Boden oder Pritsche" (Anmerkung zu 1.80).
+# Änderungen 2026→2027: keine an Schusszahl/Zeit (Synopse betrifft nur die Para-Tabelle Teil 10).
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "gewehr-50m-kk-liegend"
+  name: "Gewehr 50 m KK-Liegendkampf"
+  waffenart: "langwaffe"
+  distanz_m: 50
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  zehntelwertung: true
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  geprueft: false
+ablaeufe:
+  liegend-60:
+    beschreibung: "60 Schuss liegend in 60 Min. (Zuganlage) bzw. 50 Min. (andere Systeme); vorher 15 Min. Vorbereitung mit beliebig vielen Probeschüssen"
+    varianten:
+      - id: "andere-systeme"
+        name: "Andere Systeme (z. B. elektronisch)"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 3000, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+      - id: "zuganlage"
+        name: "Zuganlage"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 3600, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+disziplinen:
+  - kennziffer: "1.80"
+    name: "KK-Liegendkampf"
+    waffe: "KK-Gewehr, Einzellader (Mehrlader als Einzellader); max. 8000 g, Lauflänge min. 40 cm; Hakenkappe erlaubt"
+    munition: ".22 l.r. (5,6 mm)"
+    visierung: "Diopter/Korn; Wasserwaage erlaubt; kein Zielfernrohr"
+    anschlag: "liegend"
+    scheibe: "DSB-Scheibe Nr. 3 (50 m Gewehr)"
+    ablauf: "liegend-60"
+    hinweis: "DM: 60 Schuss, Zehntel auf LM/DM laut DSB-Schusszahlentabelle. Abzug frei, Laufbeschwerung beliebig. Finale nach Teil 15 (8 Teilnehmer, 2×5 Schuss in je 150 s, 14 Einzelschüsse in je 30 s) nur, wenn ausgeschrieben."

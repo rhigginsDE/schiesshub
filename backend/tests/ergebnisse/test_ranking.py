@@ -184,9 +184,10 @@ async def test_scope_status_and_aborts(api: Api) -> None:
     await api.ok("POST", f"/tournaments/{tid}/starts/{dsq}/abort", json={"abort_reason": "dsq"})
 
     rows = rows_of(await api.ranking(tid, cid))
+    # Aufgegeben nach einer Serie (K 1.14 / L 1.12): platziert, fehlende Serie 0 Ringe.
     assert [(r["start_id"], r["place"], r["status"], r["group"]) for r in rows] == [
         (final, 1, "provisional", "ranked"),
-        (dnf, None, "aborted", "unranked"),
+        (dnf, 2, "aborted", "ranked"),
         (dns, None, "aborted", "unranked"),
         (dsq, None, "aborted", "unranked"),
     ]
@@ -195,7 +196,7 @@ async def test_scope_status_and_aborts(api: Api) -> None:
     assert [(r["start_id"], r["place"], r["status"]) for r in live] == [
         (running, 1, "running"),
         (final, 2, "provisional"),
-        (dnf, None, "aborted"),
+        (dnf, 3, "aborted"),
         (dns, None, "aborted"),
         (dsq, None, "aborted"),
     ]

@@ -1,6 +1,6 @@
 """Turnier kopieren („wie letztes Jahr“).
 
-Kopiert werden Einstellungen, Ausschreibung, Stände, Klassen (samt Zusammenlegung) und
+Kopiert werden Einstellungen, Ausschreibung, Schießstände, Klassen (samt Zusammenlegung) und
 Wettbewerbe mit ihrer Definition, also auch bewusste Abweichungen vom Katalog, Startgeld und
 Mehrfachstart. Nicht kopiert werden Anmeldungen, Starts, Durchgänge, Ergebnisse und die
 Revisionsgeschichte: Jeder Wettbewerb beginnt mit Revision 1. Die Kopie ist ein Entwurf und nie

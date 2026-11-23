@@ -2,7 +2,7 @@
 
 So hängt `turnier` nicht von Modulen ab, die auf ihm aufbauen (`starts`, `ergebnisse`):
 
-- **Löschprüfer** werden gefragt, bevor ein Turnier, Stand, eine Klasse oder ein Wettbewerb
+- **Löschprüfer** werden gefragt, bevor ein Turnier, Schießstand, eine Klasse oder ein Wettbewerb
   gelöscht wird. Ein Prüfer liefert einen deutschen Satz, warum es nicht geht, oder None.
 - **Definitionsänderung**: Nach jeder neuen Revision der wertungsrelevanten Felder werden die
   Callbacks in derselben Transaktion aufgerufen (die Revision ist dann schon geschrieben, aber

@@ -120,5 +120,5 @@ async def test_tenths_full_path(api: Api) -> None:
     assert (fourth["place"], fifth["place"]) == (4, 4)
     assert fourth["tie_reason"] == "manual"
     assert fourth["tie_criterion"] == "mouchen"
-    assert fourth["tie_note"].startswith("Gleichstand nach Sportordnung manuell entscheiden")
+    assert fourth["tie_note"].startswith("Ringgleichheit: nach Sportordnung manuell entscheiden")
     assert not fourth["needs_shootoff"]

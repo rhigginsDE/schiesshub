@@ -72,7 +72,7 @@ class StartOut(BaseModel):
     lane: int | None
     # Steht gerade auf `lane` und belegt sie (aufgerufen oder erfasst, noch nicht freigegeben).
     on_lane: bool
-    # Zeitpunkt des Aufrufs auf die Bahn („seit hh:mm“); leer, solange der Start wartet.
+    # Zeitpunkt des Aufrufs auf den Schützenstand („seit hh:mm“); leer, solange der Start wartet.
     called_at: datetime | None
     created_at: datetime
     updated_at: datetime
@@ -97,7 +97,7 @@ class EntryOut(BaseModel):
 class StartBooking(StrictModel):
     competition_id: Id
     count: Annotated[int, Field(ge=1, le=99)] = 1
-    # Nur bei Zeitplan: gleich einen Platz buchen. Ohne `lane` die erste freie Bahn.
+    # Nur bei Zeitplan: gleich einen Platz buchen. Ohne `lane` der erste freie Schützenstand.
     heat_id: Id | None = None
     lane: PositiveInt | None = None
 
@@ -109,10 +109,10 @@ class AbortRequest(StrictModel):
 
 
 class CallRequest(StrictModel):
-    # Reihenfolge: ohne Angabe die erste freie Bahn. Zeitplan: die Bahn des Durchgangs.
+    # Reihenfolge: ohne Angabe der erste freie Schützenstand. Zeitplan: der des Durchgangs.
     lane: PositiveInt | None = None
-    # Reihenfolge: auch auf eine Bahn, die ein bald beginnender Durchgang braucht (sonst 409
-    # mit `code: heat_imminent`). Ohne Bahnangabe wird zuerst eine Bahn genommen, die kein
+    # Reihenfolge: auch auf einen Schützenstand, den ein bald beginnender Durchgang braucht
+    # (sonst 409 mit `code: heat_imminent`). Ohne `lane` wird zuerst einer genommen, den kein
     # Durchgang braucht.
     confirm_heat_conflict: bool = False
 
@@ -126,10 +126,10 @@ class CallConflictOut(BaseModel):
 
 
 class CallNextRequest(StrictModel):
-    # Nur diese Bahn füllen („Nächsten auf Bahn N“); ohne Angabe alle freien Bahnen.
+    # Nur diesen Schützenstand füllen („Nächsten auf Schützenstand N“); sonst alle freien.
     lane: PositiveInt | None = None
-    # Auch Bahnen füllen, die ein bald beginnender Durchgang braucht. Ohne Bestätigung bleiben
-    # sie frei (Antwort: `held_lanes`); ist sonst keine Bahn frei, kommt 409 `heat_imminent`.
+    # Auch Schützenstände füllen, die ein bald beginnender Durchgang braucht. Ohne Bestätigung
+    # bleiben sie frei (Antwort: `held_lanes`); ist sonst keiner frei, kommt 409 `heat_imminent`.
     confirm_heat_conflict: bool = False
 
 
@@ -153,7 +153,7 @@ class MoveRequest(StrictModel):
 
 class SlotRequest(StrictModel):
     heat_id: Id
-    # Ohne Angabe die erste freie Bahn des Durchgangs.
+    # Ohne Angabe der erste freie Schützenstand des Durchgangs.
     lane: PositiveInt | None = None
 
 
@@ -163,7 +163,7 @@ class SlotRequest(StrictModel):
 class HeatCreate(StrictModel):
     starts_at: Instant
     ends_at: Instant
-    # Ohne Angabe: die nächste Nummer auf dem Stand.
+    # Ohne Angabe: die nächste Nummer auf dem Schießstand.
     number: PositiveInt | None = None
 
 
@@ -187,7 +187,7 @@ class HeatOut(BaseModel):
     number: int
     starts_at: datetime
     ends_at: datetime
-    # Belegte Plätze (ohne abgebrochene Starts) und Kapazität (= Bahnen des Stands).
+    # Belegte Plätze (ohne abgebrochene Starts) und Kapazität (= Zahl der Schützenstände).
     booked: int
     capacity: int
 
@@ -210,7 +210,7 @@ class StationStartOut(BaseModel):
     display_name: str | None
     # Nur wenn die Person `show_club` gewählt hat.
     club: str | None
-    # Nur mit `names=full` (Personal am Stand, Berechtigung nötig): voller Name und Verein,
+    # Nur mit `names=full` (Personal am Schießstand, Berechtigung nötig): voller Name und Verein,
     # unabhängig von der Anzeige-Einstellung. Sonst immer null.
     full_name: str | None = None
     full_club: str | None = None
@@ -228,7 +228,7 @@ class StationStartOut(BaseModel):
     lane: int | None
     # Steht gerade auf `lane` und belegt sie (aufgerufen oder erfasst, noch nicht freigegeben).
     on_lane: bool = False
-    # Zeitpunkt des Aufrufs auf die Bahn; leer, solange der Start wartet.
+    # Zeitpunkt des Aufrufs auf den Schützenstand; leer, solange der Start wartet.
     called_at: datetime | None
     heat_id: UUID | None
     heat_number: int | None
@@ -236,7 +236,7 @@ class StationStartOut(BaseModel):
 
 
 class LaneProgressOut(BaseModel):
-    """Erfassungsfortschritt eines Starts auf der Bahn (aus dem aktuellen Ergebnis-Stand)."""
+    """Erfassungsfortschritt eines Starts auf dem Schützenstand (aus dem aktuellen Ergebnis)."""
 
     # Abschnitt, in dem gerade geschossen wird: der erste unvollständige, sonst der letzte.
     section_id: str | None
@@ -256,30 +256,33 @@ class LaneProgressOut(BaseModel):
 
 class LaneOut(BaseModel):
     lane: int
-    # Der Start auf dieser Bahn (aufgerufen oder erfasst, noch nicht freigegeben), null wenn frei.
+    # Der Start auf diesem Schützenstand (aufgerufen oder erfasst, noch nicht freigegeben); null,
+    # wenn frei.
     start: StationStartOut | None
     # Erfassungsfortschritt des Starts; null ohne Start oder solange nichts erfasst ist.
     progress: LaneProgressOut | None = None
 
 
 class HeatReservationOut(BaseModel):
-    """Nächster Durchgang des Stands mit wartenden Starts und den Bahnen, die er braucht.
+    """Nächster Durchgang des Schießstands mit wartenden Starts und den Schützenständen, die er
+    braucht.
 
-    Solange `active` ist, hält der Stand `lanes` für ihn frei: Aufrufe aus der Reihenfolge auf
-    diese Bahnen brauchen `confirm_heat_conflict: true`.
+    Solange `active` ist, hält der Schießstand `lanes` für ihn frei: Aufrufe aus der Reihenfolge
+    auf diese Schützenstände brauchen `confirm_heat_conflict: true`.
     """
 
     heat_id: UUID
     number: int
     starts_at: datetime
     ends_at: datetime
-    # Gebuchte Bahnen der wartenden Starts dieses Durchgangs.
+    # Gebuchte Schützenstände der wartenden Starts dieses Durchgangs.
     lanes: list[int]
     # Einstellung `heat_reserve_minutes` des Turniers; 0 = aus.
     reserve_minutes: int
-    # Ab hier hält der Stand die Bahnen frei (`starts_at` − `reserve_minutes`); null bei 0.
+    # Ab hier hält der Schießstand die Schützenstände frei (`starts_at` − `reserve_minutes`);
+    # null bei 0.
     reserved_from: datetime | None
-    # Hält die Bahnen gerade frei.
+    # Hält die Schützenstände gerade frei.
     active: bool
 
 
@@ -289,7 +292,8 @@ class QueueOut(BaseModel):
     # Wartende Starts der Reihenfolge, nach `queue_position`.
     waiting: list[StationStartOut]
     lanes: list[LaneOut]
-    # Nächster Durchgang des Stands (Zeitplan), damit die Oberfläche vor dem Aufruf warnen kann.
+    # Nächster Durchgang des Schießstands (Zeitplan), damit die Oberfläche vor dem Aufruf warnen
+    # kann.
     upcoming_heat: HeatReservationOut | None = None
 
 
@@ -301,26 +305,26 @@ class SkippedStartOut(BaseModel):
     start_number: int
     competition_id: UUID
     queue_position: int | None
-    # on_lane: Die Person steht gerade auf einer Bahn (hier oder an einem anderen Stand) oder
-    # hat in diesem Aufruf eine bekommen.
+    # on_lane: Die Person steht gerade auf einem Schützenstand (hier oder an einem anderen
+    # Schießstand) oder hat in diesem Aufruf einen bekommen.
     reason: Literal["on_lane"]
 
 
 class CallNextOut(BaseModel):
-    # Die aufgerufenen Starts, in der Reihenfolge der Bahnen.
+    # Die aufgerufenen Starts, in der Reihenfolge der Schützenstände.
     called: list[StartOut]
     # Übersprungene Starts; sie behalten ihren Platz in der Reihenfolge.
     skipped: list[SkippedStartOut]
-    # Freie Bahnen, die für den bald beginnenden Durchgang frei bleiben (ohne Bestätigung).
+    # Freie Schützenstände, die für den bald beginnenden Durchgang frei bleiben (ohne Bestätigung).
     held_lanes: list[int]
-    # Der Durchgang, für den Bahnen freigehalten werden (wie in der Reihenfolge-Ansicht).
+    # Der Durchgang, für den Schützenstände freigehalten werden (wie in der Reihenfolge-Ansicht).
     upcoming_heat: HeatReservationOut | None
     # Hinweis für die Oberfläche (übersprungen, freigehalten); null, wenn es nichts zu sagen gibt.
     message: str | None
 
 
 class RangeNowOut(BaseModel):
-    """„Am Stand“ und „als Nächstes“ für Anzeige und Erfassung."""
+    """„Am Schießstand“ und „als Nächstes“ für Anzeige und Erfassung."""
 
     range_id: UUID
     lane_count: int
@@ -328,7 +332,7 @@ class RangeNowOut(BaseModel):
     # Nächster Durchgang mit wartenden Starts (Zeitplan), mit seinen Starts.
     next_heat: HeatOut | None
     next_heat_starts: list[StationStartOut]
-    # Die nächsten Wartenden der Reihenfolge (höchstens so viele wie Bahnen).
+    # Die nächsten Wartenden der Reihenfolge (höchstens so viele wie Schützenstände).
     next_queue: list[StationStartOut]
     # Wie in `QueueOut`.
     upcoming_heat: HeatReservationOut | None = None

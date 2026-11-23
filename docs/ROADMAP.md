@@ -10,13 +10,13 @@ Ziel ist ein internes Testturnier mit BDS-Fallscheibe.
 - Turnier anlegen: Wettbewerbe aus dem Katalog, Klassen, Mehrfachstart, Startgeld als Betrag
 - Ablauf je Turnier frei änderbar, auch nach dem Start (gewertete Serien, Trefferaufnahmen)
 - Turnierausschreibung mit Freitexten und automatisch eingefügten Wettbewerben, Terminen und Startgeld, als PDF über die Druckansicht
-- Aushang je Disziplin für den Stand
+- Aushang je Disziplin für den Schießstand
 - Anmeldung: Teilnehmer erfassen, Starts buchen, zu zahlenden Betrag anzeigen
-- Ablauf am Stand je Wettbewerb einstellbar: Reihenfolge ohne feste Zeiten oder Zeitplan mit Durchgängen
+- Ablauf am Schießstand je Wettbewerb einstellbar: Reihenfolge ohne feste Zeiten oder Zeitplan mit Durchgängen
 - Erfassungsterminal: Einzelschuss oder Seriensumme, Zeit und Zuschläge
 - Wertung, Ranglisten je Wettbewerb und Klasse
-- Anzeige am Bildschirm: Startliste, Live-Wertung, Siegerliste
-- Export: Startliste und Siegerliste als PDF und CSV
+- Anzeige am Bildschirm: Startliste, Live-Wertung, Ergebnisliste
+- Export: Startliste und Ergebnisliste als PDF und CSV
 - Rollen und Geräte-Kopplung
 - Verschlüsselte Sicherung auf USB-Stick mit Warnung, wenn der Stick fehlt
 - Helles und dunkles Design, Oberfläche auf Deutsch

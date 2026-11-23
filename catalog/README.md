@@ -17,6 +17,7 @@ catalog/
 Aktuell enthalten:
 
 - `bds/` mit 191 Disziplinen in 25 Gruppen (Sporthandbuch Teil K und L, Fassung des BVA-Genehmigungsbescheids vom 30.06.2026).
+- `dsb/` mit 119 Disziplinen in 46 Gruppen, 77 Klassen und 98 Startrechtszeilen (Sportordnung des DSB, Ausgabe Stand 01.01.2027; Startrecht laut Tabelle zur Deutschen Meisterschaft). Status Entwurf, 7 Gruppen geprüft.
 
 ## Eine Gruppendatei
 

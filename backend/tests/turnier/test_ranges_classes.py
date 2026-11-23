@@ -70,7 +70,7 @@ async def test_range_of_another_tournament_is_not_found(api: Api) -> None:
     response = await api.client.get(f"{API}/tournaments/{second['id']}/ranges/{range_['id']}")
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "Der Stand wurde in diesem Turnier nicht gefunden."}
+    assert response.json() == {"detail": "Der Schießstand wurde in diesem Turnier nicht gefunden."}
 
 
 async def test_reorder_ranges(api: Api) -> None:

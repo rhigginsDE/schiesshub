@@ -222,7 +222,7 @@ async def test_references_must_exist_and_fit_the_tournament(api: Api, setup: Set
     )
     assert body["errors"] == [
         {"field": "scenes[0].competition_ids[1]", "message": "Wettbewerb nicht gefunden"},
-        {"field": "scenes[1].range_id", "message": "Stand nicht gefunden"},
+        {"field": "scenes[1].range_id", "message": "Schießstand nicht gefunden"},
     ]
 
     # Automatisch: Ein Stand eines anderen Turniers ist erlaubt (wird ggf. übersprungen).
@@ -235,7 +235,7 @@ async def test_references_must_exist_and_fit_the_tournament(api: Api, setup: Set
     assert pinned["errors"] == [
         {
             "field": "config.scenes[0].range_id",
-            "message": "Stand gehört nicht zum Turnier der Anzeige",
+            "message": "Schießstand gehört nicht zum Turnier der Anzeige",
         }
     ]
     unknown = await api.fail(
@@ -248,7 +248,7 @@ async def test_references_must_exist_and_fit_the_tournament(api: Api, setup: Set
         422,
         json={"name": "Neu", "tournament_id": setup.tid, "config": auto},
     )
-    assert created["errors"][0]["message"] == "Stand gehört nicht zum Turnier der Anzeige"
+    assert created["errors"][0]["message"] == ("Schießstand gehört nicht zum Turnier der Anzeige")
 
 
 async def test_unknown_device_and_display(api: Api) -> None:

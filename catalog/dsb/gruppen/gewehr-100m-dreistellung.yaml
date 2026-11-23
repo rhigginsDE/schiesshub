@@ -1,0 +1,78 @@
+# Gewehr 100 m Dreistellung (Großkaliber) – DSB-Disziplinen (ENTWURF)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22): Teil 0: 0.21 (Teil 0 S. 78, 79),
+#   Scheibe Nr. 4 (100 m Gewehr), 0.12.1; Teil 1: 1.1.1–1.1.4, 1.6 (Reihenfolge, sitzend ab Herren II/Damen II).
+# Alle drei Disziplinen stehen nur in 0.21 ("Beschreibung entsprechend Ausschreibung"), nicht in Teil 1 S. 19–21 und nicht
+#   in der DM-Tabelle 2025–2028. Vorbereitungszeit nicht geregelt. Gesamtzeit im vorgeschlagenen Feld wettkampfzeit_gesamt_s.
+# Änderungen 2026→2027: keine.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "gewehr-100m-dreistellung"
+  name: "Gewehr 100 m Dreistellung"
+  waffenart: "langwaffe"
+  distanz_m: 100
+  art: "dreistellung"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  zehntelwertung: false
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  geprueft: false
+ablaeufe:
+  gk-3x20-150:
+    beschreibung: "3×20 kniend – liegend – stehend, zusammen 150 Min. (Zuganlage) bzw. 135 Min. (elektronisch) laut 0.21"
+    varianten:
+      - id: "elektronisch"
+        name: "Elektronische Anlage"
+        wettkampfzeit_gesamt_s: 8100
+        abschnitte:
+          - { id: "kniend", name: "Kniend", serien: 2, schuss_je_serie: 10, positionen: [{ nr: 1, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }, { nr: 2, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }] }
+          - { id: "liegend", name: "Liegend", serien: 2, schuss_je_serie: 10, positionen: [{ nr: 3, anschlaege: [{ haltung: "liegend" }] }, { nr: 4, anschlaege: [{ haltung: "liegend" }] }] }
+          - { id: "stehend", name: "Stehend", serien: 2, schuss_je_serie: 10, positionen: [{ nr: 5, anschlaege: [{ haltung: "stehend" }] }, { nr: 6, anschlaege: [{ haltung: "stehend" }] }] }
+      - id: "zuganlage"
+        name: "Zuganlage"
+        wettkampfzeit_gesamt_s: 9000
+        abschnitte:
+          - { id: "kniend", name: "Kniend", serien: 2, schuss_je_serie: 10, positionen: [{ nr: 1, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }, { nr: 2, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }] }
+          - { id: "liegend", name: "Liegend", serien: 2, schuss_je_serie: 10, positionen: [{ nr: 3, anschlaege: [{ haltung: "liegend" }] }, { nr: 4, anschlaege: [{ haltung: "liegend" }] }] }
+          - { id: "stehend", name: "Stehend", serien: 2, schuss_je_serie: 10, positionen: [{ nr: 5, anschlaege: [{ haltung: "stehend" }] }, { nr: 6, anschlaege: [{ haltung: "stehend" }] }] }
+  gk-3x40:
+    # 0.21: Einzelzeiten "75-105-90" bzw. "45-75-60*" Min. ohne Zuordnung zur Stellung (siehe gewehr-50m-dreistellung, 1.71).
+    beschreibung: "3×40 kniend – liegend – stehend; Einzelzeiten laut 0.21: 75/105/90 Min. (Zuganlage) bzw. 45/75/60 Min. (elektronisch), Zuordnung zur Stellung offen"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - { id: "kniend", name: "Kniend", serien: 4, schuss_je_serie: 10, positionen: [{ nr: 1, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }, { nr: 2, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }, { nr: 3, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }, { nr: 4, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }] }
+          - { id: "liegend", name: "Liegend", serien: 4, schuss_je_serie: 10, positionen: [{ nr: 5, anschlaege: [{ haltung: "liegend" }] }, { nr: 6, anschlaege: [{ haltung: "liegend" }] }, { nr: 7, anschlaege: [{ haltung: "liegend" }] }, { nr: 8, anschlaege: [{ haltung: "liegend" }] }] }
+          - { id: "stehend", name: "Stehend", serien: 4, schuss_je_serie: 10, positionen: [{ nr: 9, anschlaege: [{ haltung: "stehend" }] }, { nr: 10, anschlaege: [{ haltung: "stehend" }] }, { nr: 11, anschlaege: [{ haltung: "stehend" }] }, { nr: 12, anschlaege: [{ haltung: "stehend" }] }] }
+disziplinen:
+  - kennziffer: "1.52"
+    name: "GK-Standardgewehr 100 m"
+    waffe: "GK-Standardgewehr, Einzellader (Mehrlader als Einzellader); Lauflänge 40–76,2 cm"
+    munition: "bis 8 mm"
+    visierung: "Diopter/Korn"
+    anschlag: "kniend (ab Herren II/Damen II auch sitzend, 1.6) – liegend – stehend"
+    scheibe: "DSB-Scheibe Nr. 4 (100 m Gewehr)"
+    ablauf: "gk-3x20-150"
+    hinweis: "Nur in 0.21 geregelt (60 Schuss), Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."
+  - kennziffer: "1.55"
+    name: "GK-Standardgewehr Mehrlader 100 m"
+    waffe: "GK-Standardgewehr, Mehrlader (Einzellader zulässig); Lauflänge 40–76,2 cm"
+    munition: "bis 8 mm"
+    visierung: "Diopter/Korn"
+    anschlag: "kniend (ab Herren II/Damen II auch sitzend, 1.6) – liegend – stehend"
+    scheibe: "DSB-Scheibe Nr. 4 (100 m Gewehr)"
+    ablauf: "gk-3x20-150"
+    hinweis: "Nur in 0.21 geregelt (60 Schuss), Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."
+  - kennziffer: "1.72"
+    name: "GK-Freigewehr 100 m 120 Schuss"
+    waffe: "GK-Gewehr, Einzellader (Mehrlader als Einzellader); Lauflänge min. 40 cm"
+    munition: "bis 8 mm"
+    visierung: "Diopter/Korn"
+    anschlag: "kniend (ab Herren II/Damen II auch sitzend, 1.6) – liegend – stehend"
+    scheibe: "DSB-Scheibe Nr. 4 (100 m Gewehr)"
+    ablauf: "gk-3x40"
+    hinweis: "Nur in 0.21 geregelt, Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."
+    pruefen: ["ablauf"]

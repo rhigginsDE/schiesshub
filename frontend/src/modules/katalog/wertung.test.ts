@@ -14,6 +14,7 @@ describe("beschreibeWertung", () => {
       "Das niedrigere Ergebnis gewinnt.",
     ]);
     expect(klartext.gleichstand).toBeNull();
+    expect(klartext.gleichheit).toBe("treffer");
   });
 
   it("nennt Abzug, Untergrenze und Gleichstandskriterien bei Mehrdistanz", () => {
@@ -29,7 +30,7 @@ describe("beschreibeWertung", () => {
     expect(klartext.saetze).toContain("Ein Teilergebnis kann nicht unter 0 fallen.");
     expect(klartext.gleichstand).toEqual([
       "die höhere Zahl der Zehner",
-      "die niedrigere Parcourszeit",
+      "die niedrigere Durchgangszeit",
     ]);
   });
 
@@ -64,5 +65,18 @@ describe("beschreibeWertung", () => {
       "das bessere Ergebnis der letzten Zehnerserie, dann der vorletzten und so weiter",
       "das höhere Ergebnis in Zehnteln",
     ]);
+  });
+
+  it("spricht bei reinen Treffern von Treffergleichheit, sonst von Ringgleichheit", () => {
+    const wertung: WertungOffen = { modell: "ringe", rangfolge: "absteigend", geprueft: true };
+    const ablauf = (ringwerte: number[] | null) => ({
+      varianten: [{ abschnitte: [{ ringwerte }, { ringwerte: null }] }],
+    });
+
+    expect(beschreibeWertung(wertung, "de", ablauf([1, 0])).gleichheit).toBe("treffer");
+    expect(beschreibeWertung(wertung, "de", ablauf([10, 9, 8])).gleichheit).toBe("ringe");
+    expect(beschreibeWertung(wertung, "de", ablauf(null)).gleichheit).toBe("ringe");
+    expect(beschreibeWertung(wertung, "de").gleichheit).toBe("ringe");
+    expect(beschreibeWertung(wertung, "de", ablauf([1, 0]), "dsb").gleichheit).toBe("ergebnis");
   });
 });

@@ -1,4 +1,4 @@
-"""Turniere mit Ständen, Klassen und Wettbewerben.
+"""Turniere mit Schießständen, Klassen und Wettbewerben.
 
 Nach jeder Änderung geht ein Ereignis an die Clients (`<bereich>.<was>`, Nutzlast: betroffene IDs),
 damit sie die Daten neu laden. Ein abgeschlossenes Turnier lässt sich erst nach dem Wiederöffnen
@@ -307,14 +307,14 @@ async def delete_tournament(
             f"„{STATUS_LABELS[tournament.status]}“."
         )
     await _check_deletable(session, "tournament", tournament_id)
-    # Stände, Klassen und Wettbewerbe löscht die Datenbank mit (ON DELETE CASCADE).
+    # Schießstände, Klassen und Wettbewerbe löscht die Datenbank mit (ON DELETE CASCADE).
     await _delete(session, tournament, "Das Turnier")
     events.publish("tournament.deleted", _ids(tournament_id=tournament_id))
 
 
-# --- Stand -------------------------------------------------------------------
+# --- Schießstand -------------------------------------------------------------
 
-RANGE = "Der Stand"
+RANGE = "Der Schießstand"
 
 
 async def list_ranges(session: AsyncSession, tournament_id: uuid.UUID) -> list[Range]:
@@ -362,7 +362,7 @@ async def delete_range(
     await editable_tournament(session, tournament_id)
     item = await get_range(session, tournament_id, range_id)
     await _check_deletable(session, "range", range_id)
-    # Wettbewerbe auf diesem Stand verlieren die Zuordnung (ON DELETE SET NULL).
+    # Wettbewerbe auf diesem Schießstand verlieren die Zuordnung (ON DELETE SET NULL).
     await _delete(session, item, RANGE)
     events.publish("range.deleted", _ids(tournament_id=tournament_id, range_id=range_id))
 
@@ -620,7 +620,7 @@ async def _check_competition(
     if item.range_id is not None:
         owner = await session.scalar(select(Range.tournament_id).where(Range.id == item.range_id))
         if owner != tournament_id:
-            raise InvalidError("Der angegebene Stand gehört nicht zu diesem Turnier.")
+            raise InvalidError("Der angegebene Schießstand gehört nicht zu diesem Turnier.")
     if item.class_ids:
         found = await session.scalar(
             select(func.count())
@@ -863,7 +863,7 @@ async def update_competition(
             )
         item.definition = _store(definition)
 
-    # Erst prüfen, dann schreiben: ein unbekannter Stand soll eine Meldung ergeben, keinen
+    # Erst prüfen, dann schreiben: ein unbekannter Schießstand soll eine Meldung ergeben, keinen
     # Fehler der Datenbank.
     with session.no_autoflush:
         await _check_competition(session, tournament_id, item)

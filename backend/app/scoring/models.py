@@ -14,13 +14,17 @@ from app.scoring.numbers import (
 )
 from app.scoring.plan import SectionPlan
 from app.scoring.registry import (
+    UNSHOT_RINGS,
     Evaluation,
     ScoringModel,
     SectionInput,
     SectionScore,
+    UnshotRule,
     register_model,
 )
+from app.scoring.results import SeriesResult
 from app.scoring.spec import ScoringSpec
+from app.scoring.status import ABORTED_BY_SHOOTER
 
 RING_TIE_BREAKERS = frozenset({"zehner", "innenzehner", "neuner_abwaerts"})
 # Weitere Kriterien, die nur das reine Ringmodell rechnet (Bedeutung: `ranking.py`).
@@ -72,6 +76,12 @@ class Rings(ScoringModel):
             score = to_tenths(score)
         steps.append(_result_step(sections, scores, score, self.unit))
         return Evaluation(sections=scores, score=score, steps=steps)
+
+    def unshot_series(self, plan: SectionPlan) -> UnshotRule | None:
+        return UNSHOT_RINGS
+
+    def partial_series_counts(self, plan: SectionPlan, series: SeriesResult) -> bool:
+        return True
 
 
 @register_model
@@ -131,6 +141,14 @@ class RingsMinusTime(ScoringModel):
             f"{format_number(score)} {self.unit}"
         )
         return Evaluation(sections=scores, score=score, steps=steps)
+
+    # Nicht geschossene Serie: keine Regel. `unbeendete_serie` wertet die Zeit des letzten
+    # Schusses – ohne Schuss gibt es sie nicht, und eine Serie mit 0 Ringen und 0 s stünde
+    # besser da als eine schwache, aber geschossene Serie (Ringe minus Zeit kann negativ sein).
+
+    def partial_series_counts(self, plan: SectionPlan, series: SeriesResult) -> bool:
+        # Mit Zeit: fehlende Schüsse zählen 0 Ringe (A 9.08); ohne Zeit fehlt der Abzug.
+        return series.time_cs is not None
 
 
 @register_model
@@ -223,6 +241,20 @@ class RingsWithOvertimeDeduction(ScoringModel):
         steps.append(_result_step(sections, scores, score, self.unit))
         return Evaluation(sections=scores, score=score, steps=steps)
 
+    def unshot_series(self, plan: SectionPlan) -> UnshotRule | None:
+        return UNSHOT_RINGS
+
+    def partial_series_counts(self, plan: SectionPlan, series: SeriesResult) -> bool:
+        return True
+
+    def missing_section_time_counts(
+        self, scoring: ScoringSpec, plan: SectionPlan, rings: Decimal | int
+    ) -> bool:
+        # Ohne Gesamtzeit ist der Abzug offen; das Teilergebnis steht nur fest, wenn schon die
+        # Ringe nicht über `min_teilergebnis` liegen (dann gilt die Untergrenze).
+        floor = scoring.min_teilergebnis
+        return floor is not None and Decimal(rings) <= floor
+
 
 @register_model
 class TimePlusPenalties(ScoringModel):
@@ -266,6 +298,23 @@ class TimePlusPenalties(ScoringModel):
             parts = [format_cs(s.total_cs) for s in sections[0].series if s.total_cs is not None]
             steps.append(_sum_text("Ergebnis", parts, f"{format_number(score)} s"))
         return Evaluation(sections=scores, score=score, steps=steps)
+
+    def unshot_series(self, plan: SectionPlan) -> UnshotRule | None:
+        """Nicht geschossene Serie = Abbruch durch den Schützen (`zeit_bei_abbruch_s`, z. B.
+        K 5.09 / L 8.09): feste Serienzeit plus Zuschlag für jede Scheibe – es steht ja jede."""
+        if plan.abort_time_cs is None or plan.spec.zeit_bei_abbruch_s is None:
+            return None
+        raw: dict[str, object] = {"status": ABORTED_BY_SHOOTER}
+        text = f"je {format_seconds_value(plan.spec.zeit_bei_abbruch_s)} s"
+        if plan.standing:
+            targets = plan.targets or 0
+            raw["standing"] = targets
+            per_target = plan.spec.zuschlag_je_stehender_scheibe_s or Decimal(0)
+            text += (
+                f" + {plural(targets, 'stehende Scheibe', 'stehende Scheiben')} × "
+                f"{format_seconds_value(per_target)} s"
+            )
+        return UnshotRule(raw=raw, text=f"gewertet als Abbruch durch den Schützen ({text})")
 
 
 # --- Prüfhilfen -------------------------------------------------------------

@@ -114,10 +114,11 @@ async def create_tournament(
     summary="Turnier aus einer fertigen Vorlage anlegen",
     description=(
         "Legt ein Turnier im Entwurf aus einer Vorlage von `GET /tournament-templates` an: "
-        "Grundeinstellungen, Stände, Klassen und Wettbewerbe. Die Wettbewerbe entstehen frisch "
+        "Grundeinstellungen, Schießstände, Klassen und Wettbewerbe. Die Wettbewerbe entstehen "
+        "frisch "
         "aus dem aktuellen Katalog (wie `POST …/competitions`). 422 bei unbekannter Vorlage, "
         "409, wenn eine Kennziffer der Vorlage im Katalog fehlt (dann wird nichts angelegt). "
-        "Antwort: das Turnier mit Ständen, Klassen und Wettbewerben."
+        "Antwort: das Turnier mit Schießständen, Klassen und Wettbewerben."
     ),
     status_code=status.HTTP_201_CREATED,
     responses=CONFLICT,
@@ -135,8 +136,8 @@ async def create_from_template(
     summary="Übungsturnier mit Beispieldaten anlegen",
     description=(
         "Legt das Übungsturnier an (`is_practice: true`, Status aktiv, heutiges Datum): zwei "
-        "Stände, drei Wettbewerbe aus dem Katalog (Fallscheibe Flinte 15 m 4401 und 4403 nach "
-        "Reihenfolge, Präzision 1001 nach Zeitplan mit Durchgängen um die aktuelle Uhrzeit), "
+        "Schießstände, drei Wettbewerbe aus dem Katalog (Fallscheibe Flinte 15 m 4401 und 4403 "
+        "nach Reihenfolge, Präzision 1001 nach Zeitplan mit Durchgängen um die aktuelle Uhrzeit), "
         "zwölf erfundene Personen in drei erfundenen Vereinen (Mitgliedsnummer `ÜBUNG-…`, kein "
         "Geburtsdatum) und Starts in allen Zuständen mit Ergebnissen, Korrektur und Abbruch – "
         "alles über die echten Abläufe, also mit Wertung, Ranglisten und Protokoll. Es gibt "
@@ -239,7 +240,8 @@ async def delete_tournament(
     summary="Turnier kopieren („wie letztes Jahr“)",
     description=(
         "Neues Turnier im Entwurf mit neuem Namen und Termin. Kopiert: Einstellungen, "
-        "Ausschreibung, Stände, Klassen samt Zusammenlegung, Wettbewerbe mit ihrer Definition "
+        "Ausschreibung, Schießstände, Klassen samt Zusammenlegung, Wettbewerbe mit ihrer "
+        "Definition "
         "(auch bewusste Abweichungen vom Katalog), Startgeld und Mehrfachstart. Nicht kopiert: "
         "Anmeldungen, Starts, Durchgänge, Ergebnisse, Revisionen (jeder Wettbewerb beginnt mit "
         "Revision 1). Der Meldeschluss der Ausschreibung verschiebt sich um denselben Abstand "
@@ -283,7 +285,7 @@ async def copy_tournament(
 
 @router.get(
     f"{TOURNAMENT}/overview",
-    summary="Turnier mit Ständen, Klassen und Wettbewerben",
+    summary="Turnier mit Schießständen, Klassen und Wettbewerben",
     responses=NOT_FOUND,
     **COMPETITION_RESPONSE,
 )
@@ -323,7 +325,10 @@ async def put_announcement(
     summary="Ausschreibung zum Drucken",
     description=(
         "Sichtbare Bausteine in ihrer Reihenfolge; automatische Bausteine bringen die aktuellen "
-        "Turnierdaten mit. Enthält keine Teilnehmerdaten."
+        "Turnierdaten mit. Enthält keine Teilnehmerdaten. Formelle Wörter (`terms`, siehe "
+        "`GET /terms`): je Wettbewerb die seines Verbands, für turnierweite Teile die des "
+        "gemeinsamen Verbands aller Katalog-Wettbewerbe, sonst der Standardsatz. Abweichungen "
+        "vom Katalog nennt die Ausschreibung nicht (dafür `…/catalog-diff`)."
     ),
     responses=NOT_FOUND,
 )
@@ -333,15 +338,20 @@ async def get_announcement_document(
     return await announcement.build_document(session, tournament_id)
 
 
-# --- Stand -------------------------------------------------------------------
+# --- Schießstand -------------------------------------------------------------
 
 
-@router.get(RANGES, summary="Stände", responses=NOT_FOUND)
+@router.get(RANGES, summary="Schießstände", responses=NOT_FOUND)
 async def list_ranges(tournament_id: UUID, session: SessionDep, _: Reader) -> list[RangeOut]:
     return [RangeOut.model_validate(r) for r in await service.list_ranges(session, tournament_id)]
 
 
-@router.post(RANGES, summary="Stand anlegen", status_code=status.HTTP_201_CREATED, responses=WRITE)
+@router.post(
+    RANGES,
+    summary="Schießstand anlegen",
+    status_code=status.HTTP_201_CREATED,
+    responses=WRITE,
+)
 async def create_range(
     tournament_id: UUID,
     data: RangeCreate,
@@ -352,7 +362,7 @@ async def create_range(
     return RangeOut.model_validate(await service.create_range(session, events, tournament_id, data))
 
 
-@router.put(f"{RANGES}/order", summary="Stände sortieren", responses=WRITE)
+@router.put(f"{RANGES}/order", summary="Schießstände sortieren", responses=WRITE)
 async def reorder_ranges(
     tournament_id: UUID, data: Order, session: SessionDep, events: EventHubDep, _: Editor
 ) -> list[RangeOut]:
@@ -360,14 +370,14 @@ async def reorder_ranges(
     return [RangeOut.model_validate(item) for item in items]
 
 
-@router.get(f"{RANGES}/{{range_id}}", summary="Stand", responses=NOT_FOUND)
+@router.get(f"{RANGES}/{{range_id}}", summary="Schießstand", responses=NOT_FOUND)
 async def get_range(
     tournament_id: UUID, range_id: UUID, session: SessionDep, _: Reader
 ) -> RangeOut:
     return RangeOut.model_validate(await service.get_range(session, tournament_id, range_id))
 
 
-@router.patch(f"{RANGES}/{{range_id}}", summary="Stand ändern", responses=WRITE)
+@router.patch(f"{RANGES}/{{range_id}}", summary="Schießstand ändern", responses=WRITE)
 async def update_range(
     tournament_id: UUID,
     range_id: UUID,
@@ -383,7 +393,7 @@ async def update_range(
 
 @router.delete(
     f"{RANGES}/{{range_id}}",
-    summary="Stand löschen",
+    summary="Schießstand löschen",
     status_code=status.HTTP_204_NO_CONTENT,
     responses=WRITE,
 )
@@ -625,7 +635,8 @@ async def get_revision(
     description=(
         "Vergleicht die aktuelle Definition mit der Katalog-Variante, aus der sie stammt "
         "(aktueller Katalogstand). `deviates` kennzeichnet „abweichend vom Katalog“. "
-        "Ohne Katalogherkunft ist die Liste leer."
+        "Ohne Katalogherkunft ist die Liste leer. Nur für den Turnier-Editor; die "
+        "Ausschreibung nennt keine Abweichungen."
     ),
     responses=NOT_FOUND,
 )
@@ -662,7 +673,7 @@ templates_router = APIRouter(prefix="/tournament-templates", tags=["turnier"])
     summary="Fertige Turnier-Vorlagen",
     description=(
         "Vorlagen aus dem Repository (`app/modules/turnier/templates/`) mit Name, einem Satz "
-        "Beschreibung, Ständen und den enthaltenen Wettbewerben (Kennziffer und Name aus dem "
+        "Beschreibung, Schießständen und den enthaltenen Wettbewerben (Kennziffer und Name aus dem "
         "aktuellen Katalog). `available: false`: Die Kennziffer fehlt im Katalog; dann lässt "
         "sich die Vorlage nicht anlegen. Anlegen mit `POST /tournaments/from-template`."
     ),

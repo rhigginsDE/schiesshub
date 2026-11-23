@@ -1,8 +1,9 @@
 """Vergleich einer Wettbewerbs-Definition mit der Katalog-Variante, aus der sie stammt.
 
 Der Katalog liefert nur Vorgaben; Vereine ändern Serienzahl, gewertete Serien, Trefferaufnahmen
-und mehr je Turnier. Aushang und Anzeige kennzeichnen solche Wettbewerbe als „abweichend vom
-Katalog“ und nennen die Abweichungen mit den Texten von hier.
+und mehr je Turnier. Der Turnier-Editor kennzeichnet solche Wettbewerbe als „abweichend vom
+Katalog“ und nennt die Abweichungen mit den Texten von hier. Ausschreibung, Aushang und Anzeige
+zeigen das nicht (Entscheidungen vom 22. und 23.11.2026).
 
 Verglichen werden die Regeln, nicht die Beschriftung: Namen von Variante und Abschnitten, die
 Ablauf-Beschreibung, `source` und `scoring.geprueft` (Stand der Katalogpflege) zählen nicht.

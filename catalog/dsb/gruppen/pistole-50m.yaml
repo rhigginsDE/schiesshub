@@ -1,0 +1,99 @@
+# 50 m Pistole (Freie Pistole) – DSB-Disziplin 2.20
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22): Teil 2: 2.1, 2.15 (Wettbewerb 2.20),
+#   Pistolentabelle (S. 23), Schießzeitentabelle mit Anmerkung * (S. 24–25); Teil 0: 0.12.1, 0.20 (Scheibe Nr. 4), 0.21 (S. 80).
+#   Schusszahl DM: Schusszahlentabelle der DM-Ausschreibung (Stand 21.01.2026): alle Klassen 60, LM-Meldeschusszahl 60.
+#   Klassen: DM-Tabelle 2025–2028.
+# Änderungen 2026→2027 in 2.15: keine laut Synopse 2027.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "pistole-50m"
+  name: "Pistole 50 m"
+  waffenart: "kurzwaffe"
+  distanz_m: 50
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  zehntelwertung: false
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]   # SpO 0.12.1
+  # geprüft 2026-11-22: alle Angaben gegen SpO 2027 (Teil 2 S. 15, 23–25; Teil 0 S. 43, 65, 80) bestätigt, keine Korrektur.
+  #   Nicht abbildbar: Höchstergebnis (600) wird ohne Finale nicht unterschieden (0.12.1).
+  geprueft: true
+ablaeufe:
+  pistole-50m:
+    beschreibung: "60 Schuss (Zuganlage 105 Min., andere Systeme 90 Min.) bzw. 30 Schuss (empfohlen 65/55 Min.); 15 Min. Vorbereitung mit unbegrenzter Probe"
+    varianten:
+      - id: "60-andere-systeme"
+        name: "60 Schuss, elektronische/andere Systeme"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf"
+            serien: 6
+            schuss_je_serie: 10
+            vorbereitung_probe_s: 900     # Anmerkung * Teil 2 S. 25
+            probeschuesse: "unbegrenzt"   # SpO 2.15.2
+            wettkampfzeit_s: 5400
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 5, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 6, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+      - id: "60-zuganlage"
+        name: "60 Schuss, Zuganlage"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf"
+            serien: 6
+            schuss_je_serie: 10
+            vorbereitung_probe_s: 900
+            probeschuesse: "unbegrenzt"
+            wettkampfzeit_s: 6300
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 5, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 6, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+      - id: "30-andere-systeme"
+        name: "30 Schuss, elektronische/andere Systeme"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf"
+            serien: 3
+            schuss_je_serie: 10
+            vorbereitung_probe_s: 900
+            probeschuesse: "unbegrenzt"
+            wettkampfzeit_s: 3300         # SpO-Tabelle: "empfohlen 55 Min."
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+      - id: "30-zuganlage"
+        name: "30 Schuss, Zuganlage"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf"
+            serien: 3
+            schuss_je_serie: 10
+            vorbereitung_probe_s: 900
+            probeschuesse: "unbegrenzt"
+            wettkampfzeit_s: 3900         # SpO-Tabelle: "empfohlen 65 Min."
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
+disziplinen:
+  - kennziffer: "2.20"
+    name: "50 m Pistole"
+    waffe: "Pistole, Einzellader; Mehrlader nur als Einzellader"
+    munition: "5,6 mm Randfeuer (.22 lfb)"
+    visierung: "offene Visierung (Kimme/Korn), schwarz; keine optischen Hilfen"
+    anschlag: "stehend frei, einhändig"
+    scheibe: "DSB-Scheibe Nr. 4 (u. a. 50 m Pistole)"
+    ablauf: "pistole-50m"
+    hinweis: "Gewicht, Abzug, Lauflänge, Visierlinie frei; Formgriff/Handschuhgriff erlaubt, Handgelenk frei (SpO 2.15, Pistolentabelle). Auf Papier max. 10 Schuss je Scheibe. DM: 60 Schuss, kein Finale."

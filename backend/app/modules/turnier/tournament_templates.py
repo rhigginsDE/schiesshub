@@ -1,8 +1,8 @@
 """Fertige Turnier-Vorlagen: YAML-Dateien in `templates/`, eine Datei je Vorlage.
 
-Eine Vorlage nennt Stände, den Verband für die Klassen und die Wettbewerbe nur über Verband und
-Kennziffer. Regeln (Ablauf, Wertung) stehen ausschließlich im Katalog: Beim Anlegen entsteht jeder
-Wettbewerb frisch aus dem aktuellen Katalog, genau wie `POST …/competitions`. Startgeld,
+Eine Vorlage nennt Schießstände, den Verband für die Klassen und die Wettbewerbe nur über Verband
+und Kennziffer. Regeln (Ablauf, Wertung) stehen ausschließlich im Katalog: Beim Anlegen entsteht
+jeder Wettbewerb frisch aus dem aktuellen Katalog, genau wie `POST …/competitions`. Startgeld,
 Mehrfachstart und Planung kommen aus den Einstellungen der Vorlage, sofern ein Wettbewerb sie
 nicht selbst setzt.
 
@@ -51,7 +51,7 @@ class _FileModel(BaseModel):
 
 
 class TemplateRange(_FileModel):
-    # Kurzname, über den Wettbewerbe auf den Stand verweisen.
+    # Kurzname, über den Wettbewerbe auf den Schießstand verweisen.
     key: Key
     name: Name
     lane_count: PositiveInt
@@ -71,7 +71,7 @@ class TemplateCompetition(_FileModel):
     catalog_code: Annotated[str, Field(min_length=1, max_length=40)]
     variant_id: Annotated[str, Field(min_length=1)] | None = None
     name: Name | None = None
-    # `key` eines Stands der Vorlage.
+    # `key` eines Schießstands der Vorlage.
     range: Key | None = None
     capture_mode: CaptureMode | None = None
     multi_start: bool | None = None
@@ -106,13 +106,15 @@ class TournamentTemplate(_FileModel):
     def _check_references(self) -> Self:
         range_keys = [item.key for item in self.ranges]
         if len(range_keys) != len(set(range_keys)):
-            raise ValueError("Ein Stand-Kurzname (key) ist mehrfach vergeben.")
+            raise ValueError("Ein Schießstand-Kurzname (key) ist mehrfach vergeben.")
         keys = [item.key for item in self.competitions if item.key is not None]
         if len(keys) != len(set(keys)):
             raise ValueError("Ein Wettbewerbs-Kurzname (key) ist mehrfach vergeben.")
         for item in self.competitions:
             if item.range is not None and item.range not in range_keys:
-                raise ValueError(f"Der Stand „{item.range}“ ist in der Vorlage nicht angelegt.")
+                raise ValueError(
+                    f"Der Schießstand „{item.range}“ ist in der Vorlage nicht angelegt."
+                )
         return self
 
 
@@ -219,9 +221,10 @@ async def build_from_template(
     *,
     is_practice: bool = False,
 ) -> tuple[Tournament, dict[str, Range], dict[str, Competition]]:
-    """Legt Turnier, Stände, Klassen und Wettbewerbe an; die Wettbewerbe frisch aus dem Katalog.
+    """Legt Turnier, Schießstände, Klassen und Wettbewerbe an; die Wettbewerbe frisch aus dem
+    Katalog.
 
-    Liefert Stände und Wettbewerbe nach ihrem `key`. Scheitert ein Schritt, wird das halb
+    Liefert Schießstände und Wettbewerbe nach ihrem `key`. Scheitert ein Schritt, wird das halb
     angelegte Turnier wieder gelöscht.
     """
     if missing := await missing_in_catalog(session, template):

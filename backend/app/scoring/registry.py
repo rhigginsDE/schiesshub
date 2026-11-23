@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from app.scoring.errors import DefinitionError
 from app.scoring.plan import SectionPlan
@@ -52,6 +52,23 @@ class Evaluation:
     sections: list[SectionScore]
     score: Decimal
     steps: list[str]
+
+
+@dataclass(frozen=True)
+class UnshotRule:
+    """Wertung einer nicht geschossenen Serie nach einem Abbruch durch den Schützen.
+
+    `raw`: Rohwerte, mit denen die Serie gerechnet wird (None: sie bleibt leer und zählt 0);
+    `text`: Rechenweg-Hinweis („nicht abgegebene Schüsse zählen 0 Ringe“)."""
+
+    raw: dict[str, Any] | None
+    text: str
+
+
+# Abbruch durch den Schützen bei Ringwertung (Sporthandbuch K 1.14 / L 1.12, A 9.08): gewertet
+# wird das bis dahin erzielte Ergebnis; nicht abgegebene Schüsse werden nicht nachgeholt und
+# zählen deshalb 0 Ringe.
+UNSHOT_RINGS = UnshotRule(raw=None, text="nicht abgegebene Schüsse zählen 0 Ringe")
 
 
 class ScoringModel(ABC):
@@ -110,6 +127,24 @@ class ScoringModel(ABC):
     @abstractmethod
     def evaluate(self, scoring: ScoringSpec, sections: Sequence[SectionInput]) -> Evaluation:
         """Teilergebnisse, Endergebnis und Rechenweg (ohne die Schritte je Serie)."""
+
+    # --- Abbruch durch den Schützen (`aborted.py`) ------------------------------------
+    # Ohne eigene Regel ist ein abgebrochener Start mit nicht geschossenen Serien nicht
+    # vergleichbar; ein Modell legt hier nur fest, was Definition und Regelwerk hergeben.
+
+    def unshot_series(self, plan: SectionPlan) -> UnshotRule | None:
+        """Wie eine nicht geschossene Serie nach einem Abbruch zählt; None: Regel fehlt."""
+        return None
+
+    def partial_series_counts(self, plan: SectionPlan, series: SeriesResult) -> bool:
+        """Zählt eine teilweise erfasste Serie nach einem Abbruch, wie sie ist?"""
+        return False
+
+    def missing_section_time_counts(
+        self, scoring: ScoringSpec, plan: SectionPlan, rings: Decimal | int
+    ) -> bool:
+        """Steht das Teilergebnis eines Abschnitts mit Gesamtzeit auch ohne die Zeit fest?"""
+        return False
 
 
 _MODELS: dict[str, ScoringModel] = {}

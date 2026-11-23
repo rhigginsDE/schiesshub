@@ -11,6 +11,7 @@ from uuid import UUID
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
+from app.core.begriffe import Begriffe
 from app.core.localtime import DEFAULT_TIMEZONE, check_timezone
 from app.modules.katalog.fileformat import Variante, Wertung
 
@@ -71,9 +72,9 @@ class TournamentSettings(StrictModel):
     default_capture_mode: CaptureMode = "series"
     # Erste Startnummer, die das Modul `starts` bei der Anmeldung vergibt.
     first_start_number: PositiveInt = 1
-    # Zeitplan und Reihenfolge auf einem Stand: So viele Minuten vor Beginn eines Durchgangs
-    # hält das Modul `starts` dessen gebuchte Bahnen frei; ein Aufruf aus der Reihenfolge auf
-    # diese Bahnen braucht dann eine Bestätigung. 0 = aus.
+    # Zeitplan und Reihenfolge auf einem Schießstand: So viele Minuten vor Beginn eines
+    # Durchgangs hält das Modul `starts` dessen gebuchte Schützenstände frei; ein Aufruf aus der
+    # Reihenfolge auf diese Schützenstände braucht dann eine Bestätigung. 0 = aus.
     heat_reserve_minutes: NonNegativeInt = 10
     # Voreinstellungen für die Anzeige; Inhalt bestimmt das Modul `anzeige`.
     display: dict[str, Any] = {}
@@ -147,7 +148,7 @@ class TournamentOut(BaseModel):
     updated_at: datetime
 
 
-# --- Stand -------------------------------------------------------------------
+# --- Schießstand -------------------------------------------------------------
 
 
 class RangeCreate(StrictModel):
@@ -461,7 +462,7 @@ class TemplateCompetitionOut(BaseModel):
 
 
 class TournamentTemplateOut(BaseModel):
-    """Fertige Vorlage: Stände, Klassen und Wettbewerbe aus dem aktuellen Katalog."""
+    """Fertige Vorlage: Schießstände, Klassen und Wettbewerbe aus dem aktuellen Katalog."""
 
     id: str
     name: str
@@ -591,8 +592,10 @@ class DocumentCompetition(BaseModel):
     multi_start_rule: MultiStartRule
     # „Bestes Ergebnis zählt (bis zu 3 Starts)“
     multi_start_text: str
-    deviates_from_catalog: bool
-    deviations: list[str]
+    # Formelle Wörter des Verbands dieses Wettbewerbs (`catalog_federation`); eigene Disziplin:
+    # Standardsatz. Abweichungen vom Katalog stehen bewusst nicht in der Ausschreibung (nur im
+    # Turnier-Editor, `GET …/catalog-diff`).
+    terms: Begriffe
 
 
 class DocumentClass(BaseModel):
@@ -620,8 +623,12 @@ class DocumentDates(BaseModel):
 
 
 class DocumentRange(BaseModel):
+    """Ein Schießstand des Turniers."""
+
     name: str
     lane_count: int
+    # „6 Schützenstände“, „1 Schützenstand“ (Wörter aus `AnnouncementDocument.terms`).
+    lanes_text: str
 
 
 class DocumentBlock(BaseModel):
@@ -645,3 +652,7 @@ class AnnouncementDocument(BaseModel):
     tournament: DocumentTournament
     facts: AnnouncementFacts
     blocks: list[DocumentBlock]
+    # Formelle Wörter für alles, was nicht zu einem Wettbewerb gehört (Schießstände, Einsprüche,
+    # Startgeld): der Satz des Verbands, wenn alle Katalog-Wettbewerbe aus einem Verband sind,
+    # sonst der Standardsatz. Jeder Wettbewerb trägt zusätzlich seinen eigenen (`terms`).
+    terms: Begriffe

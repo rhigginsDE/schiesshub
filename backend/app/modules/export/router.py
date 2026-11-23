@@ -1,4 +1,7 @@
-"""HTTP-Schnittstelle des Moduls `export`: Startliste, Siegerliste und Ergebnisse als Datei.
+"""HTTP-Schnittstelle des Moduls `export`: Startliste, Ergebnisliste und Ergebnisse als Datei.
+
+Die Pfade der Ergebnisliste heißen aus Kompatibilität weiter `winners.pdf`/`winners.csv`; der
+Dateiname im Download lautet „…_Ergebnisliste_….pdf“.
 
 Alle Endpunkte brauchen `export.read`. `names=full` (voller Name und Verein für den internen
 Gebrauch, unabhängig von der Anzeige-Einstellung) braucht zusätzlich `export.full_names`.
@@ -14,6 +17,7 @@ from pydantic import BeforeValidator, Field
 
 from app.core.db import SessionDep
 from app.core.security import Actor, require
+from app.modules.ergebnisse import begriffe
 from app.modules.export import service, tables
 from app.modules.export.csvout import write_csv
 from app.modules.export.formatting import file_name
@@ -44,7 +48,10 @@ Top = Annotated[
 
 IncludeAborted = Annotated[
     bool,
-    Query(description="Abgebrochene Starts ohne Platz am Ende aufführen (Standard: ja)."),
+    Query(
+        description="Abgebrochene Starts ohne Platz am Ende aufführen (Standard: ja). Ein "
+        "Abbruch nach dem Kommando „Feuer“ mit Platz steht immer in der Liste."
+    ),
 ]
 
 router = APIRouter(prefix="/tournaments/{tournament_id}/export", tags=["export"])
@@ -110,9 +117,9 @@ def _csv(sheet: tables.Sheet, meta: Meta, kind: str) -> Response:
 # --- Startliste ----------------------------------------------------------------------------
 
 STARTLIST_DESCRIPTION = (
-    "Alle Starts, wahlweise eines Wettbewerbs (`competition_id`) oder Stands (`range_id`). "
-    "`sort`: `competition` (je Wettbewerb in der Reihenfolge am Stand), `start_number` oder "
-    "`range` (je Stand nach Uhrzeit und Bahn)."
+    "Alle Starts, wahlweise eines Wettbewerbs (`competition_id`) oder Schießstands "
+    "(`range_id`). `sort`: `competition` (je Wettbewerb in der Reihenfolge am Schießstand), "
+    "`start_number` oder `range` (je Schießstand nach Uhrzeit und Schützenstand)."
 )
 
 
@@ -177,16 +184,18 @@ async def startlist_csv(
     return _csv(tables.startlist_sheet(records, sort, meta.tz), meta, "Startliste")
 
 
-# --- Siegerliste ---------------------------------------------------------------------------
+# --- Ergebnisliste -------------------------------------------------------------------------
 
 WINNERS_DESCRIPTION = (
     "Platzierungen aus der Rangliste (abgeschlossene Ergebnisse), je Wettbewerb und Klasse. "
     "Ohne `competition_id` alle Wettbewerbe mit Ergebnissen nacheinander. `top`: nur die "
     "ersten Plätze. `merged=true` legt Klassen zusammen. `include_provisional=false` lässt "
     "Ergebnisse in der Einspruchsfrist weg; sonst steht über dem Wettbewerb „vorläufig – "
-    "Einspruchsfrist läuft bis …“. Abgebrochene Starts (nicht angetreten, aufgegeben, "
-    "disqualifiziert) bekommen nie einen Platz; ohne `top` stehen sie am Ende ihrer Klasse mit "
-    "dem Grund und ohne Ergebnis, `include_aborted=false` lässt sie weg."
+    "Einspruchsfrist läuft bis …“. Ein Abbruch nach dem Kommando „Feuer“ wird nach dem bis "
+    "dahin erzielten Ergebnis platziert (Sporthandbuch K 1.14 / L 1.12) und als „Abbruch (AB)“ "
+    "gekennzeichnet. Ohne Platz bleiben nicht angetreten, disqualifiziert und Abbruch ohne "
+    "Wertungswert (AB); ohne `top` stehen sie am Ende ihrer Klasse mit dem Grund und ohne "
+    "Ergebnis, `include_aborted=false` lässt sie weg."
 )
 
 
@@ -220,7 +229,7 @@ async def _winners(
 
 @router.get(
     "/winners.pdf",
-    summary="Siegerliste als PDF",
+    summary="Ergebnisliste als PDF",
     description=WINNERS_DESCRIPTION,
     response_class=Response,
     responses=PDF,
@@ -250,12 +259,12 @@ async def winners_pdf(
         names=names,
         include_aborted=include_aborted,
     )
-    return _pdf(tables.winners_report(meta, sections), meta, "Siegerliste")
+    return _pdf(tables.winners_report(meta, sections), meta, begriffe.RESULT_LIST_FILE)
 
 
 @router.get(
     "/winners.csv",
-    summary="Siegerliste als CSV",
+    summary="Ergebnisliste als CSV",
     description=WINNERS_DESCRIPTION + " UTF-8 mit BOM, Trennzeichen `;`.",
     response_class=Response,
     responses=CSV,
@@ -285,7 +294,7 @@ async def winners_csv(
         names=names,
         include_aborted=include_aborted,
     )
-    return _csv(tables.winners_sheet(sections, meta.tz), meta, "Siegerliste")
+    return _csv(tables.winners_sheet(sections, meta.tz), meta, begriffe.RESULT_LIST_FILE)
 
 
 # --- Ergebnisse (Rohexport) ----------------------------------------------------------------

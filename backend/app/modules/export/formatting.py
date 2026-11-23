@@ -13,17 +13,16 @@ from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from app.core.localtime import DEFAULT_TIMEZONE, zone
+from app.modules.ergebnisse import begriffe
 from app.scoring.numbers import cs_to_seconds
 from app.scoring.status import STATUS_LABELS
 
 # Standard-Ortszeit, wenn das Turnier keine eigene Zeitzone hat.
 LOCAL_TZ: ZoneInfo = zone(DEFAULT_TIMEZONE)
 
-ABORT_LABELS: dict[str, str] = {
-    "dns": "nicht angetreten",
-    "dnf": "aufgegeben",
-    "dsq": "disqualifiziert",
-}
+# Formelle Wörter (Ergebnisliste, Abbruch (AB), Schützenstand, Schießstand, Ringgleichheit)
+# stehen an einer Stelle: `app.modules.ergebnisse.begriffe`.
+ABORT_LABELS: dict[str, str] = begriffe.ABORT_LABELS
 
 START_STATUS_LABELS: dict[str, str] = {
     "registered": "angemeldet",
@@ -49,10 +48,8 @@ SERIES_STATUS_LABELS: dict[str, str] = dict(STATUS_LABELS)
 
 
 def abort_text(reason: str | None) -> str | None:
-    """„dnf“ → „aufgegeben“; unbekannte Schlüssel als „abgebrochen“."""
-    if reason is None:
-        return None
-    return ABORT_LABELS.get(reason, "abgebrochen")
+    """„dnf“ → „Abbruch (AB)“; unbekannte Schlüssel als „abgebrochen“."""
+    return begriffe.abort_label(reason)
 
 
 def start_status_text(status: str) -> str:
@@ -126,6 +123,6 @@ def safe_file_part(text: str, *, max_length: int = 60) -> str:
 
 
 def file_name(tournament_name: str, kind: str, day: date, extension: str) -> str:
-    """„Vereinspokal-2027_Siegerliste_2027-03-06.pdf“."""
+    """„Vereinspokal-2027_Ergebnisliste_2027-03-06.pdf“."""
     parts = [safe_file_part(tournament_name) or "Turnier", safe_file_part(kind), day.isoformat()]
     return "_".join(part for part in parts if part) + f".{extension}"

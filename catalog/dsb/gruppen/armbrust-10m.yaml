@@ -1,0 +1,53 @@
+# Armbrust 10 m – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog dsb.de/fileadmin/dsb/sportordnung/, abgerufen 2026-11-22),
+#   Teil 5: 5 (Allgemein), 5.1.1, 5.2, 5.2.1, 5.3, 5.4, 5.7 und Wettbewerbstabelle Armbrust (Teil 5 S. 17);
+#   Teil 0: Wettbewerbstabelle 0.21 (Teil 0 S. 85), Scheibe Nr. 1 (0.20, S. 63), Ergebnisgleichheit 0.12.1.
+#   DM-Klassen: Tabelle Wettbewerbe/Klassen DM 2025–2028 (dsb.de, PDF_2025).
+# Änderungen 2026→2027 in Teil 5: keine (Synopse 01.01.2027 ohne Teil-5-Eintrag; Vorwort 2027 nennt Teil 5 nicht).
+# 5.11 Armbrust 10 m Auflage gehört zu Teil 9 und steht in auflage-10m-armbrust.yaml.
+# Klassen-IDs (herren-i … damen-iv) sind vorläufig und müssen zu dsb/klassen.yaml passen.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "armbrust-10m"
+  name: "Armbrust 10 m"
+  waffenart: "armbrust"         # Formatbedarf: neuer Wert (siehe Notiz)
+  distanz_m: 10
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # Teil 5 hat für 5.10 keine eigene Regel, daher SpO 0.12.1: letzte Zehnerserie rückwärts, 10er/9er/8er …,
+  #   Innenzehner, dann gleicher Rang. Volle Ringe; Zehntel sind in Teil 5 nicht vorgeschrieben.
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  geprueft: false
+ablaeufe:
+  armbrust-40:
+    beschreibung: "40 Schuss stehend in 90 Min."
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            # 40 Schuss, 1 Schuss je Scheibe, 90 Min. (Teil 5 Tabelle S. 17; 0.21). Einteilung in 4 Zehnerserien
+            # entspricht der Auswertung nach 0.12.1; Teil 5 nennt keine Serien.
+            serien: 4
+            schuss_je_serie: 10
+            wettkampfzeit_s: 5400
+            # Probeschüsse/Vorbereitungszeit regelt Teil 5 für 5.10 nicht ausdrücklich (siehe Notiz, offen).
+disziplinen:
+  - kennziffer: "5.10"
+    name: "Armbrust 10 m"
+    waffe: "10-m-Armbrust mit Bolzenführungsbahn und Schlitten, max. 6750 g inkl. Visierung"
+    munition: "Bolzen 4,5 mm (Toleranz +0/−0,05 mm)"
+    visierung: "beliebig aus zwei Zielmitteln (Diopter/Korn), Korntunnel max. 50 mm, Visierlinie max. 760 mm, Wasserwaage erlaubt"
+    anschlag: "stehend frei (Regel 1.1.2)"
+    scheibe: "DSB-Scheibe Nr. 1 (10 m Gewehr / 10 m Armbrust)"
+    ablauf: "armbrust-40"
+    # geprüft 2026-11-22: Tabellenwert Gewicht/Sehnenlänge "≤608 (+ 3 %)" ergänzt (ohne Einheit, Bedeutung offen);
+    #   pruefen von "visierung" auf "waffe" und "ablauf" umgestellt: Visierung entspricht 5.2.1 und Tabelle S. 17;
+    #   offen sind der Wert ≤608 und Probe/Vorbereitung (Teil 5 und Tabelle regeln sie nicht).
+    hinweis: "Lochschaft, Handballen-/Daumenauflage, Schafterhöhung erlaubt (5.7). Tabelle Teil 5 S. 17: Visierhilfe/optische Zielhilfsmittel ab Damen II/Herren II frei; Spalte Gewicht/Sehnenlänge zusätzlich „≤608 (+ 3 %)“."
+    pruefen: ["waffe", "ablauf"]

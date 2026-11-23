@@ -33,7 +33,7 @@ from app.modules.export.records import (
 )
 from app.modules.starts import views
 from app.modules.starts.common import NotFoundError, get_range, get_tournament
-from app.modules.starts.models import Entry
+from app.modules.starts.models import Entry, Start
 from app.modules.starts.schemas import StationStartOut
 from app.modules.teilnehmer.models import Club, Person
 from app.modules.teilnehmer.names import clean_text
@@ -234,9 +234,9 @@ async def winners(
     names: NamesMode,
     include_aborted: bool = True,
 ) -> list[WinnerSection]:
-    """Siegerliste aus der Rangliste (`ergebnisse`); Plätze, Abbrüche und Mehrfachstart
+    """Ergebnisliste aus der Rangliste (`ergebnisse`); Plätze, Abbrüche und Mehrfachstart
     entscheidet allein sie (`RankPolicy`). `include_aborted`: Abgebrochene ohne Platz am Ende
-    der Gruppe aufführen (Standard) oder weglassen."""
+    der Gruppe aufführen (Standard) oder weglassen; Abbrüche mit Platz stehen immer da."""
     await get_tournament(session, tournament_id)
     if competition_id is not None:
         await competition_of(session, tournament_id, competition_id)
@@ -275,24 +275,33 @@ async def winners(
         if competition_id is None and not any(table.rows for table in found):
             # Über alle Wettbewerbe: solche ohne jedes Ergebnis weglassen.
             continue
-        sections.append(tables.winner_section(competition, result.unit, found))
+        sections.append(
+            tables.winner_section(competition, result.unit, found, tie_word=result.tie_word)
+        )
     return sections
 
 
 async def _time_scores(
     session: AsyncSession, competition: CompetitionInfo, start_ids: Sequence[uuid.UUID]
 ) -> dict[uuid.UUID, TimeScore]:
-    """Rechenweg (Zeit, Sollzeit, Abzug) je Start aus der gespeicherten Wertung; die Rangliste
-    hat sie schon nachgezogen (`ensure_current`)."""
+    """Rechenweg (Zeit, Sollzeit, Abzug) je Start aus derselben Wertung wie die Rangliste
+    (`ranking.list_result`: gespeichert, bei einem platzierten Abbruch nach K 1.14 / L 1.12);
+    die Rangliste hat die Stände schon nachgezogen (`ensure_current`)."""
     if not start_ids:
         return {}
+    model = await session.get(Competition, competition.id)
+    if model is None:
+        return {}
     result = {}
-    for current in await session.scalars(
-        select(ResultCurrent).where(ResultCurrent.start_id.in_(start_ids))
+    for current, abort_reason in await session.execute(
+        select(ResultCurrent, Start.abort_reason)
+        .join(Start, Start.id == ResultCurrent.start_id)
+        .where(ResultCurrent.start_id.in_(start_ids))
     ):
-        if current.computed is None:
+        computed = ranking.list_result(model, abort_reason, current)
+        if computed is None:
             continue
-        score = tables.time_score_of(ComputedResult.model_validate(current.computed), competition)
+        score = tables.time_score_of(computed, competition)
         if score is not None:
             result[current.start_id] = score
     return result

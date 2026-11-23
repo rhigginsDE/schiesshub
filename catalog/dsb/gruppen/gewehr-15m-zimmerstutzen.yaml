@@ -1,0 +1,54 @@
+# Gewehr 15 m Zimmerstutzen – DSB-Disziplinen (ENTWURF)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22): Teil 1: 1.1.2, 1.4.6 (Hinweis zur
+#   Schaftkappe), Wettbewerbstabelle (Teil 1 S. 19), Schusszahlen/Schießzeiten (Teil 1 S. 21); Teil 0: 0.21 (Teil 0 S. 76),
+#   Scheibe Nr. 2 (15 m Gewehr, Teil 0 S. 64), 0.12.1. DM-Schusszahl 30, ganze Ringe (DSB-Schusszahlentabelle).
+# 0.21 nennt "Zimmerstutzen 15/10 m" mit "30/15" Schuss und Distanz "15/10". Ob 15 Schuss bzw. 10 m eine eigene Form ist,
+#   steht nicht da (offen). Teil 1 S. 21 nennt für 15 Schuss 30 Min. (Zuganlage) und 25 Min. (andere Systeme, als Empfehlung).
+# Änderungen 2026→2027: 1.4.6 Hinweis jetzt "nicht für Zimmerstutzen, KK-100 m und Auflage" (Ausrüstung, kein Ablauf).
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "gewehr-15m-zimmerstutzen"
+  name: "Gewehr 15 m Zimmerstutzen"
+  waffenart: "langwaffe"
+  distanz_m: 15
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  zehntelwertung: false
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  geprueft: false
+ablaeufe:
+  zimmerstutzen:
+    beschreibung: "30 Schuss stehend in 45 Min. (Zuganlage) bzw. 40 Min. (andere Systeme); 15 Schuss in 30 bzw. 25 Min. (Empfehlung); vorher 15 Min. Vorbereitung mit beliebig vielen Probeschüssen"
+    varianten:
+      - id: "30-andere-systeme"
+        name: "30 Schuss, andere Systeme (z. B. elektronisch)"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 3, schuss_je_serie: 10, wettkampfzeit_s: 2400, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+      - id: "30-zuganlage"
+        name: "30 Schuss, Zuganlage"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 3, schuss_je_serie: 10, wettkampfzeit_s: 2700, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+      # 15 Schuss: Serieneinteilung nennt die SpO nicht; als eine Serie zu 15 eingetragen (prüfen).
+      - id: "15-andere-systeme"
+        name: "15 Schuss, andere Systeme (Zeit als Empfehlung)"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 1, schuss_je_serie: 15, wettkampfzeit_s: 1500, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+      - id: "15-zuganlage"
+        name: "15 Schuss, Zuganlage"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 1, schuss_je_serie: 15, wettkampfzeit_s: 1800, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+disziplinen:
+  - kennziffer: "1.30"
+    name: "Zimmerstutzen"
+    waffe: "Zimmerstutzen, Einzellader; max. 7500 g, Lauflänge min. 40 cm; Hakenkappe erlaubt, keine Handstütze"
+    munition: "bis 4,65 mm, Randzünder"
+    visierung: "Diopter/Korn; Korntunnel max. 25 mm Ø, max. 50 mm lang; kein Zielfernrohr"
+    anschlag: "stehend"
+    scheibe: "DSB-Scheibe Nr. 2 (15 m Gewehr)"
+    ablauf: "zimmerstutzen"
+    hinweis: "DM: 30 Schuss. Stecher erlaubt; Laufbeschwerung bis 60 mm unter der Laufachse, nicht über die sichtbare Mündung. Laut 0.21 auch 10 m möglich."
+    pruefen: ["ablauf"]

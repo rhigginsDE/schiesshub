@@ -55,7 +55,7 @@ async def test_series_from_competition_minutes(api: Api, plan: Setup) -> None:
         409,
         json={"competition_id": plan.competition_id, "starts_at": NINE, "count": 1},
     )
-    assert detail == "Der Durchgang überschneidet sich mit Durchgang 1 auf diesem Stand."
+    assert detail == "Der Durchgang überschneidet sich mit Durchgang 1 auf diesem Schießstand."
     listed = await api.ok("GET", f"/tournaments/{plan.tid}/ranges/{plan.range_id}/heats")
     assert [h["number"] for h in listed] == [1, 2, 3, 4]
 
@@ -109,15 +109,15 @@ async def test_capacity_and_lanes(api: Api, plan: Setup) -> None:
     path = f"/tournaments/{plan.tid}/entries/{entries[1]['id']}/starts"
     body = {"competition_id": plan.competition_id, "heat_id": heat["id"]}
     detail = await api.fail("POST", path, 409, json={**body, "lane": 1})
-    assert detail == "Bahn 1 im Durchgang 1 ist schon belegt."
+    assert detail == "Schützenstand 1 im Durchgang 1 ist schon belegt."
     detail = await api.fail("POST", path, 422, json={**body, "lane": 3})
-    assert detail == "Der Stand hat nur 2 Bahnen."
+    assert detail == "Der Schießstand hat nur 2 Schützenstände."
     await api.book(plan.tid, entries[1]["id"], plan.competition_id, heat_id=heat["id"], lane=2)
 
     detail = await api.fail(
         "POST", f"/tournaments/{plan.tid}/entries/{entries[2]['id']}/starts", 409, json=body
     )
-    assert detail == "Der Durchgang 1 ist voll (2 Bahnen)."
+    assert detail == "Der Durchgang 1 ist voll (2 Schützenstände)."
     heats = await api.ok("GET", f"/tournaments/{plan.tid}/ranges/{plan.range_id}/heats")
     assert heats[0]["booked"] == 2
 
@@ -232,7 +232,7 @@ async def test_call_heat_shares_lanes_with_queue(api: Api, plan: Setup) -> None:
 
     call_path = f"/tournaments/{plan.tid}/ranges/{plan.range_id}/heats/{heat['id']}/call"
     detail = await api.fail("POST", call_path, 409)
-    assert detail.startswith("Bahn 2 ist noch belegt.")
+    assert detail.startswith("Schützenstand 2 ist noch belegt.")
     # Ein einzelner Start des Durchgangs lässt sich auf seine Bahn aufrufen, nicht auf eine andere.
     await api.fail(
         "POST", f"/tournaments/{plan.tid}/starts/{start_a['id']}/call", 422, json={"lane": 2}

@@ -1,0 +1,112 @@
+# Vorderlader Kurzwaffe 25 m – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027, Teil 7: 7.1–7.7, Vorderladertabelle (Teil 7 S. 12–13);
+#   Teil 0: 0.21 (S. 89), 0.20 (S. 62, 65), 0.4.3.2, 0.12.1; Teil 9 Auflagetabelle (S. 8) für 7.51.
+#   DM-Klassen: Tabelle Wettbewerbe/Klassen DM 2025–2028.
+# Änderungen 2026→2027 in Teil 7: keine. Klassen-IDs vorläufig (müssen zu dsb/klassen.yaml passen).
+# geprüft 2026-11-22: Lauflänge min. 10 cm bei allen Disziplinen ergänzt (0.21, Teil 0 S. 89).
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "vorderlader-kurzwaffe"
+  name: "Vorderlader Kurzwaffe 25 m"
+  waffenart: "kurzwaffe"
+  distanz_m: 25
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  gleichstand: ["zehner", "neuner_abwaerts", "geringste_abweichung_aeusserster_schuss"]   # SpO 7.7.5.1
+  geprueft: false
+ablaeufe:
+  kugel-15:
+    beschreibung: "15 Schuss in 40 Min.; vorher 10 Min. Vorbereitung mit unbegrenzter Probe"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            # 15 Wertungsschüsse, alle zählen (SpO 7.7.5; 0.21); 3×5 nach SpO 0.4.3.2 (5er-Serien bei Vorderlader).
+            serien: 3
+            schuss_je_serie: 5
+            vorbereitung_probe_s: 600     # SpO 7.7.1
+            probeschuesse: "unbegrenzt"   # SpO 7.7.1
+            wettkampfzeit_s: 2400         # SpO 7.7.3
+  auflage-15:
+    beschreibung: "15 Schuss aufgelegt; 55 Min. inkl. Probe (Zuganlage) bzw. 45 Min. inkl. Probe (andere Systeme)"
+    varianten:
+      - id: "zuganlage"
+        name: "Zuganlage"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            serien: 3
+            schuss_je_serie: 5
+            wettkampfzeit_s: 3300         # Teil 9 Auflagetabelle, inkl. Probe
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig", aufgelegt: true }, { haltung: "sitzend", hand: "einhaendig", aufgelegt: true }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig", aufgelegt: true }, { haltung: "sitzend", hand: "einhaendig", aufgelegt: true }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig", aufgelegt: true }, { haltung: "sitzend", hand: "einhaendig", aufgelegt: true }] }
+      - id: "andere-systeme"
+        name: "Andere Systeme (z. B. elektronisch)"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            serien: 3
+            schuss_je_serie: 5
+            wettkampfzeit_s: 2700         # Teil 9 Auflagetabelle, inkl. Probe
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig", aufgelegt: true }, { haltung: "sitzend", hand: "einhaendig", aufgelegt: true }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig", aufgelegt: true }, { haltung: "sitzend", hand: "einhaendig", aufgelegt: true }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig", aufgelegt: true }, { haltung: "sitzend", hand: "einhaendig", aufgelegt: true }] }
+disziplinen:
+  - kennziffer: "7.40"
+    name: "Perkussionsrevolver"
+    waffe: "Perkussionsrevolver (Original oder Replika); Lauflänge min. 10 cm"
+    munition: "Kaliber beliebig; Schwarzpulver nach Richtsatz (0,1 g je mm Laufinnendurchmesser) mit Abdichtmittel; Geschoss beliebig (Blei)"
+    visierung: "Kimme wie Original; Korn wie Original, fest (nur mit Werkzeug verstellbar)"   # geprüft 2026-11-22: "fest" gilt laut Vorderladertabelle nur für das Korn (Kimme: "wie Original"), 7.4.2.2.1
+    anschlag: "stehend frei, einhändig (SpO 7.1.4 i. V. m. 2.1)"
+    scheibe: "DSB-Scheibe Nr. 4 (25 m Präzision / Vorderlader)"
+    ablauf: "kugel-15"
+    hinweis: "Schäftung nur glatt; kein Stecher; max. 7 Züge, kein Polygonlauf; Laden in drei Ladevorgängen (SpO 7.7.4.3). Ab 18 Jahren."
+  - kennziffer: "7.50"
+    name: "Perkussionspistole"
+    waffe: "Perkussionspistole (Original oder Replika); Lauflänge min. 10 cm"
+    munition: "Kaliber beliebig; Schwarzpulver nach Richtsatz (0,1 g je mm Laufinnendurchmesser); Rundkugel"
+    visierung: "Kimme V/U, höhenverstellbar; Korn (Dach/Perl/Blatt/Buckel) fest, höchstens 5 mm hoch"
+    anschlag: "stehend frei, einhändig (SpO 7.1.4 i. V. m. 2.1)"
+    scheibe: "DSB-Scheibe Nr. 4 (25 m Präzision / Vorderlader)"
+    ablauf: "kugel-15"
+    hinweis: "Stecher erlaubt. Ab 18 Jahren."
+  - kennziffer: "7.51"
+    name: "Perkussionspistole – Auflage"
+    waffe: "Perkussionspistole (Original oder Replika); Lauflänge min. 10 cm"
+    munition: "Kaliber beliebig; Schwarzpulver; Rundkugel"
+    # geprüft 2026-11-22: visierung korrigiert ("dem Original entsprechend" ist die Spalte Schäftung der Auflagetabelle,
+    #   Teil 9 S. 8; Visierhilfe/opt. Zielhilfsmittel: "keine"). Zeit offen: 0.21 40 Min., Auflagetabelle 55/45 Min. inkl. Probe.
+    #   Gleichstand offen: 7.7.5.1 oder 9.4.1. Spalte "Max. Schusszahl pro Scheibe" = "7/8", Bedeutung unklar.
+    visierung: "wie Original (7.4.2.2); keine Visierhilfe, kein optisches Zielhilfsmittel"
+    anschlag: "stehend aufgelegt (Kl. 70–73) bzw. auch sitzend aufgelegt (Kl. 74–81)"
+    scheibe: "DSB-Scheibe Nr. 4 (25 m Präzision / Vorderlader)"
+    ablauf: "auflage-15"
+    hinweis: "Regeln nach Teil 9 (Auflage). Schäftung dem Original entsprechend, Laufbeschwerung nicht erlaubt (Teil 9 S. 8). Kennzahl seit 01.01.2026 mit Zusatz „Auflage“. Nicht in der DM-Tabelle 2025–2028."
+    pruefen: ["ablauf", "anschlag", "gleichstand"]
+  - kennziffer: "7.60"
+    name: "Steinschlosspistole"
+    waffe: "Steinschlosspistole (Original oder Replika); Lauflänge min. 10 cm"
+    munition: "Kaliber beliebig; Schwarzpulver nach Richtsatz; Rundkugel"
+    visierung: "Kimme V/U, fest; Korn (Dach/Perl/Blatt/Buckel) fest, höchstens 5 mm hoch"
+    anschlag: "stehend frei, einhändig (SpO 7.1.4 i. V. m. 2.1)"
+    scheibe: "DSB-Scheibe Nr. 4 (25 m Präzision / Vorderlader)"
+    ablauf: "kugel-15"
+    hinweis: "Stecher erlaubt; undurchlässige Seitenblenden Pflicht (SpO 7.3). Ab 18 Jahren."
+  - kennziffer: "7.61"
+    name: "Luntenschlosspistole"
+    waffe: "Luntenschlosspistole mit glattem Lauf (Original oder Replika); Lauflänge min. 10 cm"
+    munition: "mind. 8,6 mm; Schwarzpulver; Rundkugel"
+    visierung: "Kimme und Korn wie Original, fest (japanische Visierungen)"
+    anschlag: "stehend frei, einhändig (SpO 7.1.4 i. V. m. 2.1)"
+    scheibe: "DSB-Scheibe Nr. 4 (25 m Präzision / Vorderlader)"
+    ablauf: "kugel-15"
+    hinweis: "Nicht in der DM-Tabelle 2025–2028."

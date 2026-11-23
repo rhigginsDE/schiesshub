@@ -23,7 +23,7 @@ flowchart LR
 ## Grundsätze
 
 1. **Nichts fest verdrahten.** Disziplinen, Klassen, Startgeld, Mehrfachstart, Rollen, Anzeige und Sicherung sind Daten oder Einstellungen.
-2. **Der Start ist die zentrale Einheit.** Ein Teilnehmer bucht Starts in Wettbewerben. Ergebnis, Betrag und Bahn hängen am Start.
+2. **Der Start ist die zentrale Einheit.** Ein Teilnehmer bucht Starts in Wettbewerben. Ergebnis, Betrag und Schützenstand hängen am Start.
 3. **Die Wertung rechnet nur der Server.** Das Erfassungsterminal schickt Rohwerte und zeigt die Summen, die zurückkommen. So gibt es jede Formel genau einmal.
 4. **Ergebnisse werden nie überschrieben.** Jede Eingabe und jede Korrektur ist ein Ereignis mit Benutzer, Zeit und Grund.
 5. **Offline zuerst.** Keine Cloud, kein CDN, keine Telemetrie.
@@ -53,12 +53,12 @@ Kernmodule der ersten Version:
 | `katalog` | YAML-Katalog einlesen und bereitstellen |
 | `turnier` | Turnier, Wettbewerbe, Klassen, Einstellungen |
 | `teilnehmer` | Personen, Vereine, Import und Export |
-| `starts` | Anmeldung, Starts, Reihenfolge am Stand |
+| `starts` | Anmeldung, Starts, Reihenfolge am Schießstand |
 | `ergebnisse` | Erfassung, Ereignisprotokoll, Wertung, Ranglisten |
 | `anzeige` | Inhalt und Einstellungen der öffentlichen Anzeige |
-| `export` | Startliste und Siegerliste als PDF und CSV |
+| `export` | Startliste und Ergebnisliste als PDF und CSV |
 | `auth` | Geräte, Personen, Rollen, Berechtigungen |
-| `system` | Sicherung, Zertifikat, Status |
+| `system` | Sicherung, Zertifikat, Status, formelle Begriffe je Verband (`GET /api/v1/terms`) |
 
 ## Frontend
 
@@ -80,36 +80,49 @@ Der Katalog beschreibt je Disziplin den Ablauf (Abschnitte, Serien, Schusszahlen
 
 Zeiten werden in Hundertstelsekunden gespeichert. Im Turnier kann jeder Katalogwert überschrieben werden; gespeichert wird dann eine Kopie am Wettbewerb.
 
-## Ablauf am Stand
+### Abbruch durch den Schützen
+
+Wie Sporthandbuch K 1.14 / L 1.12: Wer nach dem Kommando „Feuer“ abbricht (Abbruchgrund „aufgegeben“, mindestens ein Wertungswert erfasst), wird nach dem bis dahin erzielten Ergebnis platziert – in der normalen Rangfolge, gekennzeichnet mit „Abbruch (AB)“. Nicht geschossene Serien zählen nach der Regel des Wertungsmodells (`app.scoring.compute_aborted`):
+
+| Modell | Nicht geschossene Serie | Teilweise erfasste Serie |
+|---|---|---|
+| `ringe` | 0 Ringe (kein Nachholen, A 9.08) | fehlende Schüsse 0 Ringe |
+| `ringe_mit_zeitabzug` | 0 Ringe; fehlt die Gesamtzeit eines Abschnitts mit Sollzeit, zählt er nur, wenn seine Ringe nicht über `min_teilergebnis` liegen | fehlende Schüsse 0 Ringe |
+| `zeit_plus_zuschlaege` | wie Abbruch durch den Schützen: `zeit_bei_abbruch_s` plus Zuschlag für jede Scheibe (alle stehen); ohne `zeit_bei_abbruch_s` fehlt die Regel | nicht wertbar (Status der Serie erfassen) |
+| `ringe_minus_zeit` | Regel fehlt (keine Zeit des letzten Schusses) | zählt, wenn die Zeit erfasst ist |
+
+Fehlt eine Regel oder ist eine Serie nicht wertbar, bleibt der Start ohne Platz mit dem Hinweis „Ergebnis nicht vergleichbar: …“. Ohne Platz bleiben außerdem nicht angetreten, disqualifiziert und ein Abbruch ohne Wertungswert (Abbruch im Probeschießen, „AB“). Das gewertete Ergebnis rechnet die Rangliste beim Lesen aus Rohwerten und aktueller Definition; gespeichert bleibt der Zwischenstand der Erfassung. Rangliste, Anzeige und Export nutzen dieselbe Funktion (`ergebnisse.ranking`). Bei Mehrfachstart zählt ein platzierter Abbruch wie ein reguläres Ergebnis. Formelle Wörter der Listen (Ergebnisliste, Abbruch (AB), Ringgleichheit, Schützenstand, Schießstand) stehen in `app/modules/ergebnisse/begriffe.py`.
+
+## Ablauf am Schießstand
 
 Wie geplant wird, ist **je Wettbewerb einstellbar**:
 
 | Planung | Wann sinnvoll | Was die App tut |
 |---|---|---|
 | Reihenfolge | Dauer nicht vorhersehbar, zum Beispiel Fallscheibe: ein Durchgang dauert Sekunden oder Minuten | Wartende Starts stehen in einer Reihenfolge, die Standaufsicht ruft den nächsten auf |
-| Zeitplan | Disziplinen mit fester Schießzeit, zum Beispiel Präzision mit 2×10 Schuss in je 5 Minuten | Durchgänge mit Uhrzeit und Bahn, die Anmeldung bucht einen freien Platz |
+| Zeitplan | Disziplinen mit fester Schießzeit, zum Beispiel Präzision mit 2×10 Schuss in je 5 Minuten | Durchgänge mit Uhrzeit und Schützenstand, die Anmeldung bucht einen freien Platz |
 
 Die Voreinstellung leitet der Server aus dem Katalog ab: Haben alle Abschnitte eines Ablaufs eine feste Zeit je Serie, ist der Wettbewerb planbar. Die Durchgangsdauer ergibt sich dann aus den Serienzeiten plus einer einstellbaren Wechselzeit (Scheibenwechsel, Trefferaufnahme). Sonst gilt die Reihenfolge. Beides lässt sich im Turnier überschreiben, auch die berechnete Dauer.
 
-Teilen sich mehrere Wettbewerbe einen Stand, können beide Planungsarten nebeneinander vorkommen; die Bahnbelegung gehört zum Stand, nicht zum Wettbewerb.
+Teilen sich mehrere Wettbewerbe einen Schießstand, können beide Planungsarten nebeneinander vorkommen; die Belegung der Schützenstände gehört zum Schießstand, nicht zum Wettbewerb.
 
 In beiden Fällen durchläuft ein Start dieselben Zustände:
 
 | Status eines Starts | Bedeutung |
 |---|---|
 | angemeldet | gebucht, wartet |
-| aufgerufen | einer Bahn zugeteilt, noch keine Eingabe |
+| aufgerufen | einem Schützenstand zugeteilt, noch keine Eingabe |
 | erfasst | Rohwerte (auch teilweise) eingegeben |
 | abgeschlossen | Ergebnis bestätigt, erscheint in der Wertung |
 | abgebrochen | nicht angetreten, aufgegeben oder disqualifiziert |
 
-Eine Bahn ist belegt, solange ein aufgerufener Start auf ihr steht – auch noch, wenn schon erfasst wird, denn der Schütze schießt ja noch. Frei wird sie, wenn das Ergebnis abgeschlossen oder der Start abgebrochen oder zurückgestellt wird, oder ausdrücklich über „Bahn freigeben“ (etwa wenn der Schütze fertig ist, das Ergebnis aber noch nicht abgeschlossen wird). Ein Start, der ohne Aufruf nachträglich erfasst wird, belegt keine Bahn.
+Ein Schützenstand ist belegt, solange ein aufgerufener Start darauf steht – auch noch, wenn schon erfasst wird, denn der Schütze schießt ja noch. Frei wird er, wenn das Ergebnis abgeschlossen oder der Start abgebrochen oder zurückgestellt wird, oder ausdrücklich über „Schützenstand freigeben“ (etwa wenn der Schütze fertig ist, das Ergebnis aber noch nicht abgeschlossen wird). Ein Start, der ohne Aufruf nachträglich erfasst wird, belegt keinen Schützenstand.
 
-Die Standaufsicht ruft die nächsten Starts auf die freien Bahnen („Nächste aufrufen“ oder „Nächsten auf Bahn N“, beides `POST …/ranges/{id}/call-next`, das zweite mit `lane`). Eine Person steht nie auf zwei Bahnen zugleich: Wer gerade irgendwo auf einer Bahn steht, auch an einem anderen Stand, wird übersprungen, behält seinen Platz in der Reihenfolge und wird in der Antwort genannt. Reihenfolge und „am Stand“ zeigen je belegter Bahn den Status und, sobald erfasst wird, den Fortschritt (Abschnitt x von y, erfasste Serien im Abschnitt und über alle Abschnitte); die Standanzeige hebt damit die laufende Serie im Ablauf hervor.
+Die Standaufsicht ruft die nächsten Starts auf die freien Schützenstände („Nächste aufrufen“ oder „Nächsten auf Schützenstand N“, beides `POST …/ranges/{id}/call-next`, das zweite mit `lane`). Eine Person steht nie auf zwei Schützenständen zugleich: Wer gerade irgendwo auf einem Schützenstand steht, auch an einem anderen Schießstand, wird übersprungen, behält seinen Platz in der Reihenfolge und wird in der Antwort genannt. Reihenfolge und „am Schießstand“ zeigen je belegtem Schützenstand den Status und, sobald erfasst wird, den Fortschritt (Abschnitt x von y, erfasste Serien im Abschnitt und über alle Abschnitte); die Standanzeige hebt damit die laufende Serie im Ablauf hervor.
 
-Teilen sich Zeitplan und Reihenfolge einen Stand, hält ein Durchgang die gebuchten Bahnen seiner wartenden Starts frei, sobald er innerhalb einer einstellbaren Frist beginnt (Turnier-Einstellung `heat_reserve_minutes`, Standard 10 Minuten, 0 = aus), bis er vorbei ist. Ein Aufruf aus der Reihenfolge belegt ohne Rückfrage nur Bahnen, die der Durchgang nicht braucht; „Nächste aufrufen“ lässt die übrigen frei und meldet sie. Wäre nur auf freigehaltenen Bahnen jemand drangekommen, lehnt der Server mit 409 und `code: heat_imminent` ab (Uhrzeit und Bahnen im Text); mit `confirm_heat_conflict: true` wird trotzdem aufgerufen. Reihenfolge und „am Stand“ nennen den nächsten Durchgang mit seinen Bahnen (`upcoming_heat`), damit die Oberfläche vorab warnen kann.
+Teilen sich Zeitplan und Reihenfolge einen Schießstand, hält ein Durchgang die gebuchten Schützenstände seiner wartenden Starts frei, sobald er innerhalb einer einstellbaren Frist beginnt (Turnier-Einstellung `heat_reserve_minutes`, Standard 10 Minuten, 0 = aus), bis er vorbei ist. Ein Aufruf aus der Reihenfolge belegt ohne Rückfrage nur Schützenstände, die der Durchgang nicht braucht; „Nächste aufrufen“ lässt die übrigen frei und meldet sie. Wäre nur auf freigehaltenen Schützenständen jemand drangekommen, lehnt der Server mit 409 und `code: heat_imminent` ab (Uhrzeit und Schützenstände im Text); mit `confirm_heat_conflict: true` wird trotzdem aufgerufen. Reihenfolge und „am Schießstand“ nennen den nächsten Durchgang mit seinen Schützenständen (`upcoming_heat`), damit die Oberfläche vorab warnen kann.
 
-Die Standanzeige zeigt „am Stand“ und „als Nächstes“ je Wettbewerb getrennt: beim Zeitplan nur die Starts des nächsten Durchgangs mit Durchgangsnummer, Uhrzeit (Ortszeit des Turniers, Einstellung `timezone`) und Bahn, bei der Reihenfolge den Platz in der Reihenfolge. Wer gerade auf einer Bahn steht, bleibt dort sichtbar und wird gekennzeichnet. Wettbewerbe erscheinen in allen Stand-Sichten und auf der Anzeige mit der Kennziffer der Disziplin (`competition_code`), damit gleichnamige Wettbewerbe unterscheidbar sind.
+Die Standanzeige zeigt „am Schießstand“ und „als Nächstes“ je Wettbewerb getrennt: beim Zeitplan nur die Starts des nächsten Durchgangs mit Durchgangsnummer, Uhrzeit (Ortszeit des Turniers, Einstellung `timezone`) und Schützenstand, bei der Reihenfolge den Platz in der Reihenfolge. Wer gerade auf einem Schützenstand steht, bleibt dort sichtbar und wird gekennzeichnet. Wettbewerbe erscheinen in allen Stand-Sichten und auf der Anzeige mit der Kennziffer der Disziplin (`competition_code`), damit gleichnamige Wettbewerbe unterscheidbar sind.
 
 Einen Start abbrechen (nicht angetreten, aufgegeben, disqualifiziert) ist ein eigenes Recht (`start.abort`), getrennt vom Aufrufen (`start.call`).
 

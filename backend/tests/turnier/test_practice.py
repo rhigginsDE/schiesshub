@@ -100,7 +100,8 @@ async def test_practice_tournament_has_sample_data_in_all_states(data_api: Api) 
     rows = [row for group in ranking["groups"] for row in group["rows"]]
     ranked = [row for row in rows if row["group"] == "ranked"]
     assert len(ranked) >= 4
-    assert any(row["abort_reason"] == "dnf" and row["place"] is None for row in rows)
+    # Abbruch nach „Feuer“ wird nach dem erzielten Ergebnis platziert (SHB K 1.14 / L 1.12).
+    assert any(row["abort_reason"] == "dnf" and row["place"] is not None for row in rows)
 
     # Durchgänge des Zeitplans um die aktuelle Uhrzeit.
     kurzwaffe = next(r for r in created["ranges"] if "Kurzwaffe" in r["name"])

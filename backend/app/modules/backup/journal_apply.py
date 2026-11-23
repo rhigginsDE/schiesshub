@@ -3,7 +3,7 @@
 Die Mitschrift (`.shbj` auf dem Stick, `.ndjson` auf dem Server) enthält jedes Ergebnis-Ereignis
 mit seiner Kennung, Start, Anmeldung, Wettbewerb, laufender Nummer, Art, Rohwerten, Grund,
 Person/Gerät und Zeitpunkt (`app.modules.ergebnisse.journal.event_record`). Nicht darin stehen
-Personen, Anmeldungen, Starts, Durchgänge, Bahnen, Aufrufe und Änderungen an Turnier oder
+Personen, Anmeldungen, Starts, Durchgänge, Schützenstände, Aufrufe und Änderungen an Turnier oder
 Wertung. Daraus folgt, was sich sicher nachtragen lässt:
 
 - Ereignisse zu Starts, die es in der wiederhergestellten Datenbank gibt, in lückenloser Folge

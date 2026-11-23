@@ -1,0 +1,83 @@
+# Laufende Scheibe 50 m – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027, Teil 4: 4.1–4.9 (Teil 4 S. 1–8, Tabelle S. 8);
+#   Teil 0 Wettbewerbstabelle (Teil 0 S. 84), Scheibe Nr. 13 (Teil 0 S. 70). DM-Klassen: Tabelle DM 2025–2028.
+# Änderungen 2026→2027: Synopse nennt für Teil 4 keine Änderungen.
+# FORMAT: gruppe.art "laufende-scheibe" neu (siehe Notiz). Laufrichtung nicht abbildbar.
+#   Serieneinteilung 10er ist ABGELEITET; Teil 4 nennt keine Seriengröße. Medaillenmatch gibt es nur für 10 m (4.10.1).
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "laufende-scheibe-50m"
+  name: "Laufende Scheibe 50 m"
+  waffenart: "langwaffe"
+  distanz_m: 50
+  art: "laufende-scheibe"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # SpO 4.6.1: Platz 1–3 Stechen (Schnelllauf). Schlechtere Plätze 50 m (4.6.1.1): höheres Ergebnis im Schnelllauf
+  #   bzw. im 2. Durchgang (Mix), dann niedrigste Schusswerte vergleichen (wer den niedrigsten hat, verliert),
+  #   dann mehr Innenzehner, sonst gleicher Rang. Ganze Ringe.
+  gleichstand: ["stechen", "ergebnis_zweite_haelfte", "niedrigste_schusswerte", "innenzehner"]
+  stechen_bis_platz: 3   # geprüft 2026-11-22: ergänzt, SpO 4.6.1
+  geprueft: false
+ablaeufe:
+  langsam-schnell:
+    beschreibung: "60 Schuss: 30 im Langsamlauf (5 s je Lauf), dann 30 im Schnelllauf (2,5 s)"
+    varianten:
+      - id: "standard"
+        name: "Standard (60 Schuss)"
+        abschnitte:
+          - id: "langsamlauf"
+            name: "Langsamlauf"
+            serien: 3                 # 30 Schuss (Tabelle Teil 4 S. 8); 10er-Einteilung abgeleitet
+            schuss_je_serie: 10
+            zeit_je_schuss_s: 5       # Plustoleranz 0,2 s (4.3.1)
+            probeschuesse: 4          # 2 links, 2 rechts (4.3.1.1)
+            vorbereitung_probe_s: 120 # 4.4.3
+          - id: "schnelllauf"
+            name: "Schnelllauf"
+            serien: 3
+            schuss_je_serie: 10
+            zeit_je_schuss_s: 2.5     # Plustoleranz 0,1 s (4.3.1)
+            probeschuesse: 4
+  mix:
+    # geprüft 2026-11-22: Aufteilung korrigiert (4.3.2.2: 10 Langsam- und 10 Schnellläufe von jeder Seite je Wettbewerb, nicht je Durchgang).
+    beschreibung: "Mix: 40 Schuss in 2 Durchgängen zu je 20 gemischten Läufen; insgesamt von jeder Seite 10 Langsam- und 10 Schnellläufe"
+    varianten:
+      - id: "standard"
+        name: "Standard (40 Schuss)"
+        abschnitte:
+          - id: "durchgang-1"
+            name: "1. Durchgang"
+            serien: 2
+            schuss_je_serie: 10
+            probeschuesse: 4          # 2 Probeserien zu 2 Schuss (4.3.2.1)
+            vorbereitung_probe_s: 120
+          - id: "durchgang-2"
+            name: "2. Durchgang"
+            serien: 2
+            schuss_je_serie: 10
+            probeschuesse: 4
+disziplinen:
+  - kennziffer: "4.20"
+    name: "Laufende Scheibe 50 m"
+    waffe: "Kleinkalibergewehr, Einzellader (Mehrlader als Einzellader); max. 5500 g inkl. Zielfernrohr; Lauflänge 40–100 cm"
+    munition: "5,6 mm (.22 lfB)"
+    visierung: "offene Visierung oder Zielfernrohr"
+    anschlag: "stehend frei; Fertighaltung mit Kappe auf/unter der Markierung bis die Scheibe erscheint (4.1.2)"
+    scheibe: "Scheibe Nr. 13"
+    ablauf: "langsam-schnell"
+    hinweis: "Abzug mind. 500 g, kein Stecher. Schneise 10 m (4.2.1). Max. 18 s zwischen zwei Läufen (4.5.1.2)."
+    pruefen: ["serieneinteilung"]
+  - kennziffer: "4.25"
+    name: "Laufende Scheibe 50 m Mix"
+    waffe: "wie 4.20"
+    munition: "5,6 mm (.22 lfB)"
+    visierung: "offene Visierung oder Zielfernrohr"
+    anschlag: "stehend frei (4.1)"
+    scheibe: "Scheibe Nr. 13"
+    ablauf: "mix"
+    hinweis: "Langsam- und Schnellläufe gemischt, höchstens 5 gleiche Geschwindigkeiten hintereinander (4.3.2.3)."
+    pruefen: ["serieneinteilung"]

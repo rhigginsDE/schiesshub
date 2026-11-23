@@ -27,7 +27,7 @@ async def client() -> AsyncIterator[httpx.AsyncClient]:
 
     @app.post("/with-field")
     async def with_field() -> None:
-        raise ConflictError("Bahn 2 ist schon belegt.", field="lane")
+        raise ConflictError("Schützenstand 2 ist schon belegt.", field="lane")
 
     @app.post("/without-field")
     async def without_field() -> None:
@@ -42,8 +42,8 @@ async def test_conflict_with_field_has_errors(client: httpx.AsyncClient) -> None
     response = await client.post("/with-field")
     assert response.status_code == 409
     assert response.json() == {
-        "detail": "Bahn 2 ist schon belegt.",
-        "errors": [{"field": "lane", "message": "Bahn 2 ist schon belegt."}],
+        "detail": "Schützenstand 2 ist schon belegt.",
+        "errors": [{"field": "lane", "message": "Schützenstand 2 ist schon belegt."}],
     }
 
 

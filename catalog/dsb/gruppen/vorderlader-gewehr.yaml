@@ -1,0 +1,179 @@
+# Vorderlader Gewehr (Kugel) – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog/Gesamt-PDF), Teil 7: 7.1–7.7 und Vorderladertabelle
+#   (Teil 7 S. 12); Teil 0: Wettbewerbstabelle 0.21 (Teil 0 S. 88–89), Scheibentabelle 0.20 (S. 62, 65), 0.2, 0.4.3.2,
+#   0.11.3, 0.12.1; Teil 9 Auflagetabelle (S. 8) für 7.11. DM-Klassen: Tabelle Wettbewerbe/Klassen DM 2025–2028.
+# Änderungen 2026→2027 in Teil 7: keine (Synopse 01.01.2027 enthält keinen Teil-7-Eintrag; Vorwort 2027 nennt Teil 7 nicht).
+# Klassen-IDs (herren-i … damen-v) sind vorläufig und müssen zu dsb/klassen.yaml passen.
+# geprüft 2026-11-22: Lauflänge min. 40 cm bei allen Disziplinen ergänzt (0.21, Teil 0 S. 88–89).
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "vorderlader-gewehr"
+  name: "Vorderlader Gewehr"
+  waffenart: "langwaffe"
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # SpO 7.7.5.1: zuerst Anzahl 10er, 9er, 8er usw.; dann geringste Abweichung des am weitesten vom Zentrum
+  # liegenden Schusses. Höchstergebnisse werden ebenfalls unterschieden (Ausnahme in 0.12.1).
+  gleichstand: ["zehner", "neuner_abwaerts", "geringste_abweichung_aeusserster_schuss"]
+  geprueft: false
+ablaeufe:
+  kugel-15:
+    beschreibung: "15 Schuss in 40 Min.; vorher 10 Min. Vorbereitung mit unbegrenzter Probe"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            # 15 Wertungsschüsse, alle zählen (SpO 7.7.5; 0.21). Aufteilung 3×5 nach den 5er-Serien, die der
+            # Ergebnisausdruck elektronischer Scheiben bei Vorderlader ausweist (SpO 0.4.3.2).
+            serien: 3
+            schuss_je_serie: 5
+            vorbereitung_probe_s: 600     # SpO 7.7.1
+            probeschuesse: "unbegrenzt"   # nur in der Vorbereitungszeit, SpO 7.7.1
+            wettkampfzeit_s: 2400         # SpO 7.7.3
+  kugel-15-muskete:
+    beschreibung: "15 Schuss in 40 Min. auf Musketenscheibe (Ringe 5–10)"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            serien: 3
+            schuss_je_serie: 5
+            ringwerte: [10, 9, 8, 7, 6, 5, 0]   # Scheibe Nr. 6, Ringe 5–10 (SpO 0.20)
+            vorbereitung_probe_s: 600
+            probeschuesse: "unbegrenzt"
+            wettkampfzeit_s: 2400
+  auflage-15:
+    beschreibung: "15 Schuss aufgelegt; 55 Min. inkl. Probe (Zuganlage) bzw. 45 Min. inkl. Probe (andere Systeme)"
+    varianten:
+      - id: "zuganlage"
+        name: "Zuganlage"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            serien: 3
+            schuss_je_serie: 5
+            wettkampfzeit_s: 3300         # Teil 9 Auflagetabelle, inkl. Probe
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+      - id: "andere-systeme"
+        name: "Andere Systeme (z. B. elektronisch)"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            serien: 3
+            schuss_je_serie: 5
+            wettkampfzeit_s: 2700         # Teil 9 Auflagetabelle, inkl. Probe
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+disziplinen:
+  - kennziffer: "7.10"
+    name: "Perkussionsgewehr"
+    waffe: "Perkussions-Scheiben- oder Jagdgewehr (Original oder Replika); Lauflänge min. 40 cm"
+    munition: "Kaliber beliebig; Schwarzpulver nach Richtsatz (0,25 g je mm Laufinnendurchmesser); Geschoss beliebig (Blei)"
+    visierung: "Kimme (V/U, höhenverstellbar) und Korn (Dach/Perl/Blatt/Buckel, verstellbar) oder originalgetreuer Diopter"
+    anschlag: "stehend frei"
+    scheibe: "DSB-Scheibe Nr. 4 (Gewehr 100 m / Vorderlader)"
+    ablauf: "kugel-15"
+    hinweis: "50 m; Stecher erlaubt; Handstütze bis 200 mm; Wasserwaage/Pendel nicht funktionsfähig (SpO 7.4.2.2.3). Ab 18 Jahren."
+  - kennziffer: "7.11"
+    name: "Perkussionsgewehr – Auflage"
+    waffe: "Perkussionsgewehr (Original oder Replika); Lauflänge min. 40 cm"
+    munition: "Kaliber beliebig; Schwarzpulver; Geschoss zur Waffe gehörend"
+    # geprüft 2026-11-22: visierung korrigiert. "dem Original entsprechend" ist in der Auflagetabelle (Teil 9 S. 8) die Spalte
+    #   Schäftung; Spalte Visierhilfe/opt. Zielhilfsmittel: "keine". Form der Visierung nach 7.4.2.2.
+    #   Zeit offen: 0.21 nennt 40 Min., Auflagetabelle 55/45 Min. inkl. Probe, 9.3 für 50 m dagegen 55/50 Min. inkl. Probe.
+    #   Gleichstand offen: 7.7.5.1 (Vorderlader) oder 9.4.1 (Auflage, Plätze 1–6) – die SpO sagt nicht, was Vorrang hat.
+    #   Spalte "Max. Schusszahl pro Scheibe" zeigt "7/8" (andere Zeilen "1"), Bedeutung unklar.
+    visierung: "wie Original (7.4.2.2); keine Visierhilfe, kein optisches Zielhilfsmittel"
+    anschlag: "stehend aufgelegt (Kl. 70–73) bzw. auch sitzend aufgelegt (Kl. 74–81)"
+    scheibe: "DSB-Scheibe Nr. 4 (Gewehr 100 m / Vorderlader)"
+    ablauf: "auflage-15"
+    hinweis: "50 m; Regeln nach Teil 9 (Auflage). Schäftung dem Original entsprechend, Auflagepunkt max. 550 mm von der Systemeinbettung, Laufbeschwerung nicht erlaubt (Teil 9 S. 8). Kennzahl seit 01.01.2026 mit Zusatz „Auflage“. Nicht in der DM-Tabelle 2025–2028."
+    pruefen: ["ablauf", "anschlag", "gleichstand"]
+  - kennziffer: "7.15"
+    name: "Perkussionsfreigewehr 100 m"
+    waffe: "Perkussions-Scheiben- oder Jagdgewehr (Original oder Replika); Lauflänge min. 40 cm"
+    munition: "Kaliber beliebig; Schwarzpulver nach Richtsatz; Geschoss beliebig (Blei)"
+    visierung: "Korn original oder Korntunnel/Ring-/Balkenkorn, verstellbar; Kimme wie Original oder originalgetreuer Diopter"
+    anschlag: "liegend"
+    scheibe: "DSB-Scheibe Nr. 4 (Gewehr 100 m / Vorderlader)"
+    ablauf: "kugel-15"
+    hinweis: "100 m; Stecher erlaubt; Wasserwaage oder Pendel erlaubt; Riemen erlaubt (SpO 7.4.2.1). Ab 18 Jahren."
+  - kennziffer: "7.16"
+    name: "Perkussionsfreigewehr 300 m"
+    waffe: "Perkussions-Scheiben- oder Jagdgewehr (Original oder Replika); Lauflänge min. 40 cm"
+    munition: "Kaliber beliebig; Schwarzpulver nach Richtsatz; Geschoss beliebig (Blei)"
+    visierung: "wie 7.15"
+    anschlag: "liegend"
+    scheibe: "DSB-Scheibe Nr. 5 (Gewehr 300 m / Vorderladerfreigewehr 300 m)"
+    ablauf: "kugel-15"
+    hinweis: "300 m; Stecher erlaubt; Wasserwaage oder Pendel erlaubt; Riemen erlaubt (SpO 7.4.2.1). Nicht in der DM-Tabelle 2025–2028."   # geprüft 2026-11-22: Stecher/Riemen ergänzt (Vorderladertabelle, 7.4.2.1)
+  - kennziffer: "7.20"
+    name: "Perkussionsdienstgewehr 100 m"
+    waffe: "Perkussions-Dienstgewehr (Original oder Replika); Lauflänge min. 40 cm"
+    munition: "mind. 13,5 mm; Schwarzpulver; zur Waffe gehörendes Geschoss (z. B. Minié)"
+    visierung: "Kimme und Korn wie Original; Korn fest (nur mit Werkzeug verstellbar), Kimme höhenverstellbar; kein Diopter"
+    anschlag: "liegend"
+    scheibe: "DSB-Scheibe Nr. 4 (Gewehr 100 m / Vorderlader)"
+    ablauf: "kugel-15"
+    hinweis: "100 m; kein Stecher; Laderohr nur als Trichter bis 100 mm Gesamthöhe (SpO 7.7.4); Riemen erlaubt. Ab 18 Jahren."
+  - kennziffer: "7.21"
+    name: "Perkussionsdienstgewehr 50 m"
+    waffe: "Perkussions-Dienstgewehr (Original oder Replika); Lauflänge min. 40 cm"
+    munition: "mind. 13,5 mm; Schwarzpulver; zur Waffe gehörendes Geschoss (z. B. Minié)"
+    visierung: "Kimme und Korn wie Original; Korn fest, Kimme höhenverstellbar; kein Diopter"
+    anschlag: "stehend frei"
+    scheibe: "DSB-Scheibe Nr. 4 (Gewehr 100 m / Vorderlader)"
+    ablauf: "kugel-15"
+    hinweis: "50 m; kein Stecher; Laderohr nur als Trichter bis 100 mm. DM: nur Einzel, eine offene Klasse. Ab 18 Jahren."
+  - kennziffer: "7.30"
+    name: "Steinschlossgewehr"
+    waffe: "Steinschlossgewehr (Original oder Replika); Lauflänge min. 40 cm"
+    munition: "Kaliber beliebig; Schwarzpulver nach Richtsatz; Rundkugel"
+    visierung: "Kimme wie Original, höhenverstellbar; Korn (Dach/Perl/Blatt/Buckel) fest, Korntunnel laufbündig erlaubt; originalgetreuer Diopter"
+    anschlag: "stehend frei"
+    scheibe: "DSB-Scheibe Nr. 4 (Gewehr 100 m / Vorderlader)"
+    ablauf: "kugel-15"
+    hinweis: "50 m; Stecher erlaubt; undurchlässige Seitenblenden Pflicht (SpO 7.3). Ab 18 Jahren."
+  - kennziffer: "7.31"
+    name: "Steinschlossgewehr liegend 100 m"
+    waffe: "Steinschlossgewehr (Original oder Replika); Lauflänge min. 40 cm"
+    munition: "Kaliber beliebig; Schwarzpulver nach Richtsatz; Rundkugel"
+    visierung: "Kimme wie Original, verstellbar; Korn fest; originalgetreuer Diopter"
+    anschlag: "liegend"
+    scheibe: "DSB-Scheibe Nr. 4 (Gewehr 100 m / Vorderlader)"
+    ablauf: "kugel-15"
+    hinweis: "100 m; Stecher erlaubt; Riemen erlaubt. DM: nur Einzel, eine offene Klasse. Ab 18 Jahren."
+  - kennziffer: "7.32"
+    name: "Luntenschlossgewehr"
+    waffe: "Luntenschlossgewehr mit glattem Lauf (Original oder Replika); Lauflänge min. 40 cm"
+    munition: "Kaliber beliebig; Schwarzpulver; Rundkugel"
+    visierung: "Kimme und Korn originalgetreu, fest (japanische Visierungen, u. a. Lochkimme); kein Diopter"
+    anschlag: "stehend frei"
+    scheibe: "laut 0.21 Scheibe Nr. 4; laut 0.20 gilt Nr. 4 aber nicht für Luntenschlossgewehr"
+    ablauf: "kugel-15"
+    hinweis: "50 m. Nicht in der DM-Tabelle 2025–2028."
+    pruefen: ["scheibe"]
+  - kennziffer: "7.35"
+    name: "Muskete"
+    waffe: "militärische Steinschlossmuskete mit glattem Lauf (Original oder Replika); Lauflänge min. 40 cm"
+    munition: "mind. 16,5 mm; Schwarzpulver; Rundkugel"
+    visierung: "nur Korn wie Original, fest; keine Kimme"
+    anschlag: "stehend frei"
+    scheibe: "DSB-Scheibe Nr. 6 (Muskete 50 m, Ringe 5–10)"
+    ablauf: "kugel-15-muskete"
+    # geprüft 2026-11-22: "Ab 18 Jahren" entfernt. Muskete ist eine Einzellader-Langwaffe mit glattem Lauf; ob 0.2 Nr. 2 (ab 14)
+    #   oder Nr. 3 (ab 18) greift, regelt die SpO nicht eindeutig (siehe Notiz teil-7, Mindestalter).
+    hinweis: "50 m; kein Stecher; Riemen erlaubt; Laderohr nur als Trichter bis 100 mm. DM: nur Einzel, eine offene Klasse."

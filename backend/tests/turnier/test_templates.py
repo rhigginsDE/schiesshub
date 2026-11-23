@@ -87,7 +87,7 @@ def test_invalid_template_file_names_the_file(tmp_path: Path) -> None:
         'competitions: [{catalog_federation: "bds", catalog_code: "1001", range: "fehlt"}]\n',
         encoding="utf-8",
     )
-    with pytest.raises(TemplateFileError, match="Stand „fehlt“"):
+    with pytest.raises(TemplateFileError, match="Schießstand „fehlt“"):
         load_templates.__wrapped__(tmp_path)
 
 
@@ -105,7 +105,7 @@ async def test_list_resolves_every_template_against_the_real_catalog(api: Api) -
     fallscheibe = listed["fallscheibe-flinte-15m"]
     assert fallscheibe["template"] == "custom"
     assert fallscheibe["classes_federation"] == "bds"
-    assert fallscheibe["ranges"] == [{"name": "Flintenstand 15 m", "lane_count": 2}]
+    assert fallscheibe["ranges"] == [{"name": "Schießstand Flinte 15 m", "lane_count": 2}]
     assert fallscheibe["competitions"][0] == {
         "catalog_federation": "bds",
         "catalog_code": "4401",

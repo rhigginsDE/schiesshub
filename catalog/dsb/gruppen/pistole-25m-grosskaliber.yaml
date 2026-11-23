@@ -1,0 +1,188 @@
+# 25 m Pistole/Revolver Großkaliber – DSB-Disziplinen (2.53, 2.55, 2.58, 2.59; dazu 2.51, 2.52, 2.54, 2.56, 2.57)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22): Teil 2: 2.1.1 (Anschlag 2.50–2.59),
+#   2.5.1, 2.5.2, 2.9 mit Tabelle Stech-/Probeserien (S. 11), 2.10.5, 2.21 (Wettbewerbe 2.53/2.59/2.55/2.58) inkl.
+#   MIP-Tabelle und Durchgangstabelle (S. 20–22), Pistolentabelle (S. 23), Schießzeitentabelle (S. 25), S. 26
+#   (Revolver: Patronenzuführung auf 12 Uhr); Teil 0: 0.12.1, 0.20 (Scheiben Nr. 4 und 10), 0.21 (S. 81–82).
+#   Schusszahlen/Endkampf DM: Schusszahlentabelle der DM-Ausschreibung (Stand 21.01.2026); Klassen: DM-Tabelle 2025–2028.
+# 2.51, 2.52, 2.54, 2.56, 2.57 stehen nur in der Wettbewerbstabelle 0.21 ("entsprechend Ausschreibung"), nicht in Teil 2
+#   und nicht in der DM-Tabelle. Ablauf dort aus 0.21 (40 Schuss, 150 s / 20 s), Details nach Ausschreibung.
+# Änderungen 2026→2027 (Synopse): 2.10.5 Kimme und Korn schwarz, bei GK (2.5x) weiße Punkte zulässig; keine
+#   Leuchtstäbchen. 2.3.1/2.7.3 wie bei den übrigen 25-m-Wettbewerben. Keine Änderung an Schusszahlen oder Zeiten.
+# geprüft 2026-11-22: Namen 2.53/2.55/2.58/2.59 auf die Schreibweise der Wettbewerbstabelle 0.21 gebracht; in den
+#   Hinweisen 2.53–2.59 Verbot von Gasentlastung/Kompensatoren/Mündungsbremsen ergänzt (Pistolentabelle Teil 2 S. 23).
+#   Zeiten, Schusszahlen, Scheiben, MIP-Werte (2.21.1), Endkampf (2.21.3–2.21.5) bestätigt.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "pistole-25m-grosskaliber"
+  name: "Pistole/Revolver 25 m Großkaliber"
+  waffenart: "kurzwaffe"
+  distanz_m: 25
+  art: "kombi"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  zehntelwertung: false
+  # SpO 2.9 (Stechserie 20 s) für Plätze 1–3 ohne Endkampf, sonst 0.12.1. Nach dem Endkampf: Stechen nach 2.9 ohne
+  # weitere Probe (SpO 2.21.4).
+  gleichstand: ["stechen", "letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  stechen_bis_platz: 3
+  geprueft: false
+ablaeufe:
+  gk-150-20:
+    beschreibung: "40 Schuss: 4×5 in je 150 s (Präzisionsscheibe), 4×5 in je 20 s (Duellscheibe); Endkampf der besten 6: 2×5 in je 20 s"
+    varianten:
+      - id: "standard"
+        name: "Vorkampf"
+        abschnitte:
+          - id: "150s"
+            name: "150 Sekunden (Präzisionsscheibe)"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_serie_s: 150        # SpO 2.21 Durchgangstabelle
+            vorbereitung_probe_s: 180   # Tabelle S. 25: 3 Min. Vorbereitungszeit
+            probeschuesse: 5            # eine Probeserie à 5 Schuss in 150 s, SpO 2.21.2
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }, { haltung: "stehend", hand: "beidhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }, { haltung: "stehend", hand: "beidhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }, { haltung: "stehend", hand: "beidhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }, { haltung: "stehend", hand: "beidhaendig" }] }
+          - id: "20s"
+            name: "20 Sekunden (Duellscheibe)"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_serie_s: 20
+            ringwerte: [10, 9, 8, 7, 6, 5, 0]   # Duellscheibe Nr. 10, Ringe 5–10
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }, { haltung: "stehend", hand: "beidhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }, { haltung: "stehend", hand: "beidhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }, { haltung: "stehend", hand: "beidhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }, { haltung: "stehend", hand: "beidhaendig" }] }
+    finale:
+      teilnehmer: 6
+      abschnitt: "SpO 2.21.3–2.21.5"
+      hinweis: "Endkampf (kein Finale bei null): die 6 Besten des Vorkampfs, Probeserie in 20 s, 3 Min. Vorbereitung, dann 2×5 Schuss in je 20 s auf die Duellscheibe; Ergebnis wird zum Vorkampf addiert. DM: Endkampf nur Herren I."
+  gk-ausschreibung:
+    # Nur aus Wettbewerbstabelle 0.21; Probe, Vorbereitung und Endkampf regelt die Ausschreibung.
+    beschreibung: "40 Schuss: 5 Schuss in 150 s, 5 Schuss in 20 s (laut 0.21; Aufteilung 4+4 Serien angenommen, Einzelheiten nach Ausschreibung)"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "150s"
+            name: "150 Sekunden"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_serie_s: 150
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }, { haltung: "stehend", hand: "beidhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }, { haltung: "stehend", hand: "beidhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }, { haltung: "stehend", hand: "beidhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }, { haltung: "stehend", hand: "beidhaendig" }] }
+          - id: "20s"
+            name: "20 Sekunden"
+            serien: 4
+            schuss_je_serie: 5
+            zeit_je_serie_s: 20
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }, { haltung: "stehend", hand: "beidhaendig" }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }, { haltung: "stehend", hand: "beidhaendig" }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }, { haltung: "stehend", hand: "beidhaendig" }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }, { haltung: "stehend", hand: "beidhaendig" }] }
+disziplinen:
+  - kennziffer: "2.53"
+    # geprüft 2026-11-22: name "25 m Pistole 9 mm Luger" → "25 m Pistole 9 mm" (Wettbewerbstabelle 0.21, Teil 0 S. 82).
+    name: "25 m Pistole 9 mm"
+    waffe: "Pistole"
+    munition: "9 mm Luger (9×19), Patrone ohne Rand; Mindestimpuls 250"
+    visierung: "offene Visierung (Kimme/Korn), schwarz, weiße Punkte zulässig; keine optischen Hilfen"
+    anschlag: "stehend frei, ein- oder beidhändig, Voranschlag erlaubt (SpO 2.1.1)"
+    scheibe: "150 s: DSB-Scheibe Nr. 4; 20 s: DSB-Scheibe Nr. 10"
+    ablauf: "gk-150-20"
+    hinweis: "Gewicht ≤ 1500 g, Abzug ≥ 1000 g, Lauf ≤ 153 mm, Visierlinie ≤ 220 mm; Gasentlastung, Kompensatoren und Mündungsbremsen nicht erlaubt (Pistolentabelle); Griffschalen original oder originalähnlich, keine Handballen-/Handgelenkauflage (SpO 2.21). MIP = 0,1 × Geschossgewicht (g) × v0 (m/s). Auf Papier max. 5 Schuss je Scheibe."
+  - kennziffer: "2.55"
+    # geprüft 2026-11-22: name "… .357 Magnum" → "… .357 Magn." (Wettbewerbstabelle 0.21, Teil 0 S. 82).
+    name: "25 m Revolver .357 Magn."
+    waffe: "Revolver"
+    munition: ".357 Magnum, Patrone mit Rand; Mindestimpuls 350"
+    visierung: "offene Visierung (Kimme/Korn), schwarz, weiße Punkte zulässig; keine optischen Hilfen"
+    anschlag: "stehend frei, ein- oder beidhändig, Voranschlag erlaubt (SpO 2.1.1)"
+    scheibe: "150 s: DSB-Scheibe Nr. 4; 20 s: DSB-Scheibe Nr. 10"
+    ablauf: "gk-150-20"
+    hinweis: "Gewicht ≤ 1500 g, Abzug ≥ 1000 g, Lauf ≤ 153 mm (ohne Trommel), Visierlinie ≤ 220 mm; Gasentlastung, Kompensatoren und Mündungsbremsen nicht erlaubt. Patronenzuführung auf 12 Uhr (SpO Teil 2 S. 26)."
+  - kennziffer: "2.58"
+    # geprüft 2026-11-22: name "… .44 Magnum" → "… .44 Magn." (Wettbewerbstabelle 0.21, Teil 0 S. 82).
+    name: "25 m Revolver .44 Magn."
+    waffe: "Revolver"
+    munition: ".44 Magnum, Patrone mit Rand; Mindestimpuls 450"
+    visierung: "offene Visierung (Kimme/Korn), schwarz, weiße Punkte zulässig; keine optischen Hilfen"
+    anschlag: "stehend frei, ein- oder beidhändig, Voranschlag erlaubt (SpO 2.1.1)"
+    scheibe: "150 s: DSB-Scheibe Nr. 4; 20 s: DSB-Scheibe Nr. 10"
+    ablauf: "gk-150-20"
+    hinweis: "Gewicht ≤ 1550 g, Lauf ≤ 166 mm (Sonderwerte .44 Magnum laut Pistolentabelle), Abzug ≥ 1000 g, Visierlinie ≤ 220 mm; Gasentlastung, Kompensatoren und Mündungsbremsen nicht erlaubt. Patronenzuführung auf 12 Uhr."
+  - kennziffer: "2.59"
+    # geprüft 2026-11-22: name "25 m Pistole .45 ACP" → "25 m Pistole .45" (Wettbewerbstabelle 0.21, Teil 0 S. 82).
+    name: "25 m Pistole .45"
+    waffe: "Pistole"
+    munition: ".45 ACP, Patrone ohne Rand; Mindestimpuls 300"
+    visierung: "offene Visierung (Kimme/Korn), schwarz, weiße Punkte zulässig; keine optischen Hilfen"
+    anschlag: "stehend frei, ein- oder beidhändig, Voranschlag erlaubt (SpO 2.1.1)"
+    scheibe: "150 s: DSB-Scheibe Nr. 4; 20 s: DSB-Scheibe Nr. 10"
+    ablauf: "gk-150-20"
+    hinweis: "Gewicht ≤ 1500 g, Abzug ≥ 1000 g, Lauf ≤ 153 mm, Visierlinie ≤ 220 mm; Gasentlastung, Kompensatoren und Mündungsbremsen nicht erlaubt."
+  - kennziffer: "2.51"
+    name: "Großkaliberpistole .30"
+    waffe: "Pistole (Kurzwaffe, Mehrlader)"
+    munition: "7,62–7,63 mm (.30)"
+    visierung: "Kimme/Korn"
+    anschlag: "stehend frei, ein- oder beidhändig (SpO 2.1.1 gilt für 2.50–2.59)"
+    scheibe: "DSB-Scheibe Nr. 4 und Nr. 10"
+    ablauf: "gk-ausschreibung"
+    hinweis: "Nur in Wettbewerbstabelle 0.21: Lauf 10–15,3 cm, 40 Schuss, 5 Schuss in 150 s und 5 Schuss in 20 s, Regeln entsprechend Ausschreibung. Nicht auf der DM."
+    optional: true
+    pruefen: ["ablauf", "visierung"]
+  - kennziffer: "2.52"
+    name: "Großkaliberpistole .32"
+    waffe: "Pistole (Kurzwaffe, Mehrlader)"
+    munition: "7,65 mm (.32)"
+    visierung: "Kimme/Korn"
+    anschlag: "stehend frei, ein- oder beidhändig (SpO 2.1.1 gilt für 2.50–2.59)"
+    scheibe: "DSB-Scheibe Nr. 4 und Nr. 10"
+    ablauf: "gk-ausschreibung"
+    hinweis: "Nur in Wettbewerbstabelle 0.21: Lauf 10–15,3 cm, 40 Schuss, 5 Schuss in 150 s und 5 Schuss in 20 s, Regeln entsprechend Ausschreibung. Nicht auf der DM."
+    optional: true
+    pruefen: ["ablauf", "visierung"]
+  - kennziffer: "2.54"
+    name: "Großkaliberpistole .38"
+    waffe: "Pistole (Kurzwaffe, Mehrlader)"
+    munition: ".38"
+    visierung: "Kimme/Korn"
+    anschlag: "stehend frei, ein- oder beidhändig (SpO 2.1.1 gilt für 2.50–2.59)"
+    scheibe: "DSB-Scheibe Nr. 4 und Nr. 10"
+    ablauf: "gk-ausschreibung"
+    hinweis: "Nur in Wettbewerbstabelle 0.21 (Verweis \"Pistolenteil\", dort aber nicht geregelt): Lauf 10–15,3 cm, 40 Schuss, 5 Schuss in 150 s und 5 Schuss in 20 s. Nicht auf der DM."
+    optional: true
+    pruefen: ["ablauf", "visierung", "munition"]
+  - kennziffer: "2.56"
+    name: "Großkaliberpistole 10 mm"
+    waffe: "Pistole (Kurzwaffe, Mehrlader)"
+    munition: "10 mm"
+    visierung: "Kimme/Korn"
+    anschlag: "stehend frei, ein- oder beidhändig (SpO 2.1.1 gilt für 2.50–2.59)"
+    scheibe: "DSB-Scheibe Nr. 4 und Nr. 10"
+    ablauf: "gk-ausschreibung"
+    hinweis: "Nur in Wettbewerbstabelle 0.21: Lauf 10–15,3 cm, 40 Schuss, 5 Schuss in 150 s und 5 Schuss in 20 s, Regeln entsprechend Ausschreibung. Nicht auf der DM."
+    optional: true
+    pruefen: ["ablauf", "visierung"]
+  - kennziffer: "2.57"
+    name: "Großkaliberrevolver .41"
+    waffe: "Revolver (Kurzwaffe)"
+    munition: ".41"
+    visierung: "Kimme/Korn"
+    anschlag: "stehend frei, ein- oder beidhändig (SpO 2.1.1 gilt für 2.50–2.59)"
+    scheibe: "DSB-Scheibe Nr. 4 und Nr. 10"
+    ablauf: "gk-ausschreibung"
+    hinweis: "Nur in Wettbewerbstabelle 0.21: Lauf 10–15,3 cm, 40 Schuss, 5 Schuss in 150 s und 5 Schuss in 20 s, Regeln entsprechend Ausschreibung. Nicht auf der DM."
+    optional: true
+    pruefen: ["ablauf", "visierung"]

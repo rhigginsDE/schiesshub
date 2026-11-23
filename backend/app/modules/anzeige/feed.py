@@ -66,6 +66,7 @@ from app.modules.anzeige.schemas import (
     WinnersScene,
 )
 from app.modules.anzeige.service import config_of
+from app.modules.ergebnisse import begriffe
 from app.modules.ergebnisse.ranking import competition_ranking
 from app.modules.ergebnisse.schemas import RankingOut, RankingRow
 from app.modules.ergebnisse.service import server_now
@@ -78,7 +79,7 @@ OPEN_STATUSES = frozenset({"registered", "called"})
 DEFAULT_TITLES: dict[str, str] = {
     "live_ranking": "Live-Wertung",
     "startlist": "Startliste",
-    "winners": "Siegerliste",
+    "winners": begriffe.RESULT_LIST,
 }
 
 
@@ -228,12 +229,13 @@ def _selected(
 def _aborted_score(row: RankingRow) -> tuple[str | None, list[Any]]:
     """Ergebnistext und Serien eines Starts für den Bildschirm.
 
+    Abbruch mit Platz (Sporthandbuch K 1.14 / L 1.12): das gewertete Ergebnis wie bei allen.
     Nicht angetreten (dns): kein Wert, keine Serien – „0,00“ sähe aus wie ein Ergebnis.
-    Aufgegeben oder disqualifiziert: die erfassten Serien bleiben, ein Gesamtwert nur, wenn alle
-    Rohwerte erfasst sind; ein Teilergebnis wäre irreführend (bei „niedrigster Wert gewinnt“
-    sogar scheinbar das beste).
+    Sonst ohne Platz (Abbruch, disqualifiziert): die erfassten Serien bleiben, ein Gesamtwert
+    nur, wenn alle Rohwerte erfasst sind; ein Teilergebnis wäre irreführend (bei „niedrigster
+    Wert gewinnt“ sogar scheinbar das beste).
     """
-    if row.abort_reason is None:
+    if row.abort_reason is None or row.place is not None:
         return row.score_text, list(row.series)
     if row.abort_reason == "dns":
         return None, []
@@ -264,6 +266,8 @@ def _rank_row(context: Context, row: RankingRow) -> FeedRankRow:
         abort_reason=row.abort_reason,
         needs_shootoff=row.needs_shootoff,
         tie_note=row.tie_note,
+        abort_label=row.abort_label,
+        abort_note=row.abort_note,
     )
 
 
@@ -278,10 +282,11 @@ def _ranking(
 ) -> FeedRanking:
     """Zeilen der Rangliste (`ergebnisse.ranking.competition_ranking`) für den Bildschirm.
 
-    Plätze und Abbrüche entscheidet allein die Rangliste; hier wird nur gekürzt: Siegerliste
-    bis Platz `limit`, Live-Wertung höchstens `limit` Zeilen. Abgebrochene (ohne Platz) kommen
-    nur mit `show_aborted` aus der Rangliste, stehen in einer eigenen Liste `unplaced` (nie unter
-    den Plätzen) und zählen nicht zu `limit`; andere Zeilen ohne Platz (prüfen) erscheinen nie.
+    Plätze und Abbrüche entscheidet allein die Rangliste; hier wird nur gekürzt: Ergebnisliste
+    bis Platz `limit`, Live-Wertung höchstens `limit` Zeilen. Ein Abbruch mit Platz steht wie
+    jedes Ergebnis in `rows`. Abgebrochene ohne Platz kommen nur mit `show_aborted` aus der
+    Rangliste, stehen in einer eigenen Liste `unplaced` (nie unter den Plätzen) und zählen nicht
+    zu `limit`; andere Zeilen ohne Platz (prüfen) erscheinen nie.
     """
     wanted = set(class_ids)
     groups = []
@@ -292,20 +297,23 @@ def _ranking(
                 rows = [row for row in rows if row.class_id in wanted]
             elif not wanted & set(group.class_ids):
                 continue
-        aborted = [row for row in rows if row.abort_reason is not None] if show_aborted else []
+        aborted = (
+            [row for row in rows if row.abort_reason is not None and row.place is None]
+            if show_aborted
+            else []
+        )
         if winners:
             shown = [
                 row
                 for row in rows
-                if row.abort_reason is None
-                and row.place is not None
+                if row.place is not None
                 and row.place <= limit
-                and row.status in ("final", "provisional")
+                and (row.status in ("final", "provisional") or row.abort_reason is not None)
             ]
             more = 0
         else:
             # Ohne Platz und ohne Abbruchgrund (zu prüfen) gehört nicht auf die Anzeige.
-            listed = [row for row in rows if row.group != "unranked" and row.abort_reason is None]
+            listed = [row for row in rows if row.group != "unranked"]
             shown = listed[:limit]
             more = max(len(listed) - limit, 0)
         if not shown and not aborted:
@@ -422,7 +430,7 @@ async def _startlist(context: Context, scene: StartlistScene, pages: Pages) -> N
     competitions = _selected(context, scene.competition_ids, pages, scene.id, scene.kind)
     if scene.range_ids:
         if any(item not in context.ranges for item in scene.range_ids):
-            pages.skip(scene.id, scene.kind, "Ein Stand gehört nicht zum gezeigten Turnier.")
+            pages.skip(scene.id, scene.kind, "Ein Schießstand gehört nicht zum gezeigten Turnier.")
         ranges = set(scene.range_ids)
         competitions = [c for c in competitions if c.range_id in ranges]
     by_competition: dict[uuid.UUID, list[StationStartOut]] = {}
@@ -604,7 +612,7 @@ async def _range(context: Context, scene: RangeScene, pages: Pages) -> None:
     assert context.tournament is not None
     range_ = context.ranges.get(scene.range_id)
     if range_ is None:
-        pages.skip(scene.id, scene.kind, "Der Stand gehört nicht zum gezeigten Turnier.")
+        pages.skip(scene.id, scene.kind, "Der Schießstand gehört nicht zum gezeigten Turnier.")
         return
     now = await range_now(context.session, context.tournament.id, range_.id)
     upcoming = list(now.next_heat_starts)

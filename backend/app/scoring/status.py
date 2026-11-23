@@ -21,6 +21,7 @@ SeriesStatus = Literal[
 NORMAL: SeriesStatus = "normal"
 UNFINISHED: SeriesStatus = "unfinished"
 MALFUNCTION: SeriesStatus = "malfunction_before_first_shot"
+ABORTED_BY_SHOOTER: SeriesStatus = "aborted_by_shooter"
 ABORTED: tuple[SeriesStatus, ...] = ("time_limit", "aborted_by_shooter")
 FIXED_TIME: tuple[SeriesStatus, ...] = (*ABORTED, MALFUNCTION)
 """Status, bei denen statt der gemessenen Zeit `zeit_bei_abbruch_s` zählt."""

@@ -1,0 +1,117 @@
+# Bogen in der Halle (WA Halle, 18 m) – DSB-Disziplinen (ENTWURF)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog dsb.de/fileadmin/dsb/sportordnung/, abgerufen 2026-11-22):
+#   Teil 6: 6.1.1.2 (Kennzahlen), 6.1.2 (Klassen), 6.3.3 (Einschießen), 6.3.6 (Wertung), 6.4.1.1 (Tabelle Klasse/Pfeile/
+#   Entfernung/Auflage, Teil 6 S. 24), 6.4.1.2 (Auflagen), 6.4.1.3 (Sonderwertung Compound), 6.4.3.1 (Qualifikationsrunde),
+#   6.4.3.1.1 (Ergebnisgleichheit), 6.4.3.2 (Finalrunde); Teil 0 S. 87 (Übersicht 6.20/6.25/6.26).
+#   Klassen bei DM: Tabelle "Bogenwettbewerbe – Regelteil 6 (Sportjahr 2026-2028)", Stand 04.11.2025.
+# Änderungen 2026→2027 (Synopse 01.01.2027): Tabelle 6.4.1.1 Schüler A Compound jetzt "60 cm Spot-Auflage
+#   (Wertungszonen 6-10), X zählt 10" statt "60 cm-Auflage"; 6.4.1.2.1 ergänzt Las-Vegas-Auflage. Schusszahl/Zeit unverändert.
+# Varianten = Auflage/Entfernung je Klassengruppe (Tabelle 6.4.1.1). Welche Variante zu welcher Klasse gehört,
+#   steht im Variantennamen (Formatbedarf Variante.klassen, siehe Notiz teil-6-bogen.md).
+# ringwerte: Dreifach- und Spot-Auflagen haben nur die Zonen 10–6; außerhalb = M (6.3.6.3.2). Einfachauflagen 10–1.
+# NEUE FELDER (Vorschlag, noch nicht im Format): waffenart "bogen", munition entfällt (hier "Pfeile"), Disziplin.klassen,
+#   Disziplin.startet_in, Ablauf.finale, Abschnitt.probeschuesse, wertung.gleichstand-IDs "neuner".
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "bogen-halle"
+  name: "Bogen Halle 18 m"
+  waffenart: "bogen"
+  distanz_m: 18
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # 6.4.3.1.1: größere Anzahl 10er (bei Compound Innen-10er, da nur der innere 10er-Ring als 10 zählt, 6.4.1.3),
+  #   dann größere Anzahl 9er; sonst gleichwertig. Geht es um den letzten Finalplatz: Stechen (1 Pfeil, 40 s, näher am Zentrum).
+  gleichstand: ["zehner", "neuner"]
+  geprueft: false # geprüft 2026-11-22: Tabelle 6.4.1.1, 6.4.1.3, 6.4.3.1, Gleichstand 6.4.3.1.1, Finale 6.4.3.2, Klassen ohne Befund; offen: Schüler A Compound/Blank nur "Empfehlung: 60", Finale Blankbogen
+ablaeufe:
+  halle-recurve:
+    beschreibung: "60 Pfeile auf 18 m in 20 Passen zu 3 Pfeilen in je 2 Min. (10 s Vorlaufzeit); vorher 20–45 Min. Einschießen mit beliebig vielen Pfeilen"
+    varianten:
+      - id: "dreifach"
+        name: "Vertikale Dreifachauflage (Herren, Damen, Junioren, Master)"
+        abschnitte:
+          - { id: "qualifikation", name: "Qualifikation", serien: 20, schuss_je_serie: 3, zeit_je_serie_s: 120, probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 0] }
+      - id: "40cm-oder-las-vegas"
+        name: "40 cm-Auflage oder Las-Vegas-Dreifachauflage nach Wahl (Jugend, Senioren)"
+        abschnitte:
+          # Ringwerte hängen von der gewählten Auflage ab (40 cm: 10–1; Las Vegas: 10–6) – daher hier nicht gesetzt.
+          - { id: "qualifikation", name: "Qualifikation", serien: 20, schuss_je_serie: 3, zeit_je_serie_s: 120, probeschuesse: "unbegrenzt" }
+      - id: "schueler-a-60cm"
+        name: "60 cm-Auflage (Schüler A)"
+        abschnitte:
+          - { id: "qualifikation", name: "Qualifikation", serien: 20, schuss_je_serie: 3, zeit_je_serie_s: 120, probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0] }
+      - id: "schueler-b-80cm"
+        name: "Empfehlung: 80 cm-Auflage (Schüler B, nur bis Landesebene)"
+        abschnitte:
+          - { id: "qualifikation", name: "Qualifikation", serien: 20, schuss_je_serie: 3, zeit_je_serie_s: 120, probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0] }
+      - id: "schueler-c-10m"
+        name: "Empfehlung: 30 Pfeile, 10 m, 80 cm-Auflage (Schüler C, nur unterhalb der nationalen Ebene)"
+        abschnitte:
+          # 6.4.1.1 nennt nur 30 Pfeile gesamt; Passengröße 3 Pfeile/2 Min. aus 6.4.3.1 übernommen (pruefen).
+          - { id: "qualifikation", name: "Qualifikation", serien: 10, schuss_je_serie: 3, zeit_je_serie_s: 120, distanzen_m: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10], probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0] }
+    finale:
+      teilnehmer: 16
+      hinweis: "K.-o.-Matches ab Achtelfinale (unterhalb der DM auch ab Viertelfinale); Satzsystem: max. 5 Sätze zu 3 Pfeilen in 2 Min., Satzsieg 2 Punkte, Gleichstand 1 Punkt, Sieg mit 6 Satzpunkten; bei 5:5 Stechen mit 1 Pfeil (40 s), näher am Zentrum gewinnt. Auf Landesebene freigestellt."
+      abschnitt: "6.4.3.2.1–6.4.3.2.5.1"
+  halle-compound:
+    beschreibung: "60 Pfeile auf 18 m in 20 Passen zu 3 Pfeilen in je 2 Min. (10 s Vorlaufzeit); nur der innere 10er-Ring zählt 10, der äußere 9"
+    varianten:
+      - id: "dreifach"
+        name: "Vertikale Dreifachauflage (alle Klassen außer Schüler A)"
+        abschnitte:
+          - { id: "qualifikation", name: "Qualifikation", serien: 20, schuss_je_serie: 3, zeit_je_serie_s: 120, probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 0] }
+      - id: "schueler-a-spot"
+        name: "60 cm Spot-Auflage, Zonen 10–6 (Schüler A)"
+        abschnitte:
+          # 6.4.1.1 (2027): X zählt als 10. Ob bei Schüler A Compound auch 6.4.1.3 (Innen-10 = 10, Außen-10 = 9) gilt: pruefen.
+          - { id: "qualifikation", name: "Qualifikation", serien: 20, schuss_je_serie: 3, zeit_je_serie_s: 120, probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 0] }
+    finale:
+      teilnehmer: 16
+      hinweis: "K.-o.-Matches ab Achtelfinale (unterhalb der DM auch ab Viertelfinale); kumulativ: 5 Passen zu 3 Pfeilen in je 2 Min., höchste Ringzahl gewinnt; bei Gleichstand Stechen mit 1 Pfeil (40 s), näher am Zentrum gewinnt. Auf Landesebene freigestellt."
+      abschnitt: "6.4.3.2.1–6.4.3.2.6.1"
+  halle-blankbogen:
+    beschreibung: "60 Pfeile auf 18 m in 20 Passen zu 3 Pfeilen in je 2 Min. (10 s Vorlaufzeit) auf Einfachauflage"
+    varianten:
+      - id: "40cm"
+        name: "40 cm-Auflage (alle Klassen außer Schüler A)"
+        abschnitte:
+          - { id: "qualifikation", name: "Qualifikation", serien: 20, schuss_je_serie: 3, zeit_je_serie_s: 120, probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0] }
+      - id: "schueler-a-60cm"
+        name: "60 cm-Auflage (Schüler A)"
+        abschnitte:
+          - { id: "qualifikation", name: "Qualifikation", serien: 20, schuss_je_serie: 3, zeit_je_serie_s: 120, probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0] }
+    # Kein finale: 6.4.3.2 regelt Matches nur für Recurve und Compound (offen, siehe Notiz).
+disziplinen:
+  - kennziffer: "6.20"
+    name: "Bogen WA Halle Recurve"
+    waffe: "Recurvebogen"
+    munition: "Pfeile (6.2.3)"
+    visierung: "Visier (Diopter)"
+    anschlag: "stehend"
+    scheibe: "Vertikale Dreifachauflage bzw. 40 cm/Las Vegas, Schüler 60/80 cm (6.4.1.1)"
+    ablauf: "halle-recurve"
+    hinweis: "Senioren w neu bei der DM (Tabelle 2026–2028). Schüler B nur bis LM, Schüler C nur unterhalb der nationalen Ebene (6.1.2.1). Recurve und Blankbogen: innerer und äußerer 10er-Ring zählen 10 (6.4.1.3)."
+  - kennziffer: "6.25"
+    name: "Bogen WA Halle Compound"
+    waffe: "Compoundbogen"
+    munition: "Pfeile (6.2.3)"
+    visierung: "Scope, Peepsight"
+    anschlag: "stehend"
+    scheibe: "Vertikale Dreifachauflage, Schüler A 60 cm Spot (6.4.1.1)"
+    ablauf: "halle-compound"
+    hinweis: "Innerer 10er-Ring = 10, äußerer = 9 (6.4.1.3). Junioren m/w neu bei der DM (Start bei Herren/Damen). Senioren w: mögliche Teilnahme in leistungsstärkerer Klasse."
+    pruefen: ["schueler-a-empfehlung"]
+  - kennziffer: "6.26"
+    name: "Blankbogen Halle"
+    waffe: "Blankbogen"
+    munition: "Pfeile (6.2.3)"
+    visierung: "ohne Visier"
+    anschlag: "stehend"
+    scheibe: "40 cm-Auflage, Schüler A 60 cm (6.4.1.1)"
+    ablauf: "halle-blankbogen"
+    hinweis: "Schüler A w und Senioren m neu bei der DM. Junioren m/w und Senioren w: mögliche Teilnahme in leistungsstärkerer Klasse."
+    pruefen: ["schueler-a-empfehlung", "finale"]

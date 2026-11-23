@@ -104,3 +104,54 @@ def test_person_with_only_aborted_attempts_stands_at_the_end() -> None:
     assert places(rank(chosen)) == [("anna-1", 1, "ranked"), ("ben-1", None, "unranked")]
     left_out = RankPolicy.for_list(final=True, include_aborted=False)
     assert places(rank(best_of(starts, "best", left_out), left_out)) == [("anna-1", 1, "ranked")]
+
+
+# --- Abbruch nach „Feuer“ (Sporthandbuch K 1.14 / L 1.12) ---------------------------------
+
+
+def test_abort_with_comparable_result_is_placed_normally() -> None:
+    # Zeitwertung: 250 s (Abbruch, nicht geschossene Serien nach Regel) gegen 159 s.
+    contenders = [
+        c("aufgegeben", -25000, abort_reason="dnf", abort_ranked=True, complete=False),
+        c("regulaer", -15900),
+        c("langsam", -30000),
+    ]
+    assert places(rank(contenders, RankPolicy.for_list(final=True))) == [
+        ("regulaer", 1, "ranked"),
+        ("aufgegeben", 2, "ranked"),
+        ("langsam", 3, "ranked"),
+    ]
+
+
+def test_placed_abort_stays_when_aborted_are_left_out() -> None:
+    contenders = [
+        c("aufgegeben", 90, abort_reason="dnf", abort_ranked=True),
+        c("probe", 0, abort_reason="dnf"),
+        Contender(id="nicht_da", abort_reason="dns"),
+        c("fertig", 80),
+    ]
+    policy = RankPolicy.for_list(final=True, include_aborted=False)
+    assert places(rank(contenders, policy)) == [
+        ("aufgegeben", 1, "ranked"),
+        ("fertig", 2, "ranked"),
+    ]
+
+
+def test_abort_ranked_only_for_dnf() -> None:
+    contenders = [c("disq", 99, abort_reason="dsq", abort_ranked=True), c("fertig", 10)]
+    assert places(rank(contenders)) == [("fertig", 1, "ranked"), ("disq", None, "unranked")]
+
+
+def test_best_of_treats_placed_abort_like_a_result() -> None:
+    attempts = [
+        c("dieter-1", 95, entry_id="dieter", attempt=1, abort_reason="dnf", abort_ranked=True),
+        c("dieter-2", 90, entry_id="dieter", attempt=2),
+    ]
+    assert [s.id for s in best_of(attempts, "best")] == ["dieter-1"]
+    assert [s.id for s in best_of(attempts, "first")] == ["dieter-1"]
+    worse = [
+        c("eva-1", 80, entry_id="eva", attempt=1, abort_reason="dnf", abort_ranked=True),
+        c("eva-2", 90, entry_id="eva", attempt=2),
+    ]
+    assert [s.id for s in best_of(worse, "best")] == ["eva-2"]
+    assert [s.id for s in best_of(worse, "first")] == ["eva-1"]

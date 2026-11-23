@@ -17,7 +17,7 @@ Ein kleiner Linux-Rechner steht im Schützenhaus und ist der Server. Laptops, Ta
 | Anmeldung | Teilnehmer erfassen, Starts buchen |
 | Turnier | Wettbewerbe aus dem Disziplin-Katalog zusammenstellen, Regeln einstellen |
 | Erfassung | Ergebnisse je Start eingeben |
-| Anzeige | Startliste, Live-Wertung und Siegerliste am Bildschirm des Servers |
+| Anzeige | Startliste, Live-Wertung und Ergebnisliste am Bildschirm des Servers |
 | System | Sicherung auf USB-Stick, Geräte, Rollen |
 
 Alles ist einstellbar. Disziplinen liegen als Dateien im [Disziplin-Katalog](catalog/README.md) und werden beim Start eingelesen. Den Anfang machen die Disziplinen des BDS.

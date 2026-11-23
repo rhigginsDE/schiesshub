@@ -1,4 +1,4 @@
-"""Modul `turnier`: Turnier, Stände, Klassen, Wettbewerbe und ihre Einstellungen."""
+"""Modul `turnier`: Turnier, Schießstände, Klassen, Wettbewerbe und ihre Einstellungen."""
 
 from app.core.module import ModuleManifest
 from app.modules.turnier import models  # noqa: F401  (registriert die Tabellen)

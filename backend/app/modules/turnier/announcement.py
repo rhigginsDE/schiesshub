@@ -2,6 +2,11 @@
 
 Das PDF entsteht im Frontend als Druckansicht. Das Backend hält die Texte und setzt daraus mit den
 aktuellen Turnierdaten ein Dokument zusammen. Teilnehmerdaten kommen darin nicht vor.
+
+Formelle Wörter („Schützenstand“, „Protestgebühr“ …) kommen aus dem Begriffssatz des Verbands
+(`app.core.begriffe`): je Wettbewerb der seines Verbands, für turnierweite Teile siehe
+`document_terms`. Ob ein Wettbewerb vom Katalog abweicht, steht nicht in der Ausschreibung
+(Entscheidung 23.11.2026), nur im Turnier-Editor.
 """
 
 import uuid
@@ -9,6 +14,7 @@ from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.begriffe import Begriffe, begriffe_fuer
 from app.core.events import EventHub
 from app.modules.turnier import service
 from app.modules.turnier.announcement_outline import default_announcement
@@ -120,13 +126,26 @@ def _multi_start_text(item: Competition) -> str:
     return f"{MULTI_START_RULES[item.multi_start_rule]} (bis zu {item.max_starts} Starts)"
 
 
-async def _competitions(
-    session: AsyncSession, competitions: list[Competition], range_names: dict[uuid.UUID, str]
+def document_terms(competitions: list[Competition]) -> Begriffe:
+    """Wörter für turnierweite Teile: der Satz des Verbands, wenn alle Katalog-Wettbewerbe aus
+    einem Verband stammen; sonst (gemischt oder nur eigene Disziplinen) der Standardsatz."""
+    federations = {
+        item.catalog_federation.strip().lower() for item in competitions if item.catalog_federation
+    }
+    return begriffe_fuer(federations.pop() if len(federations) == 1 else None)
+
+
+def lanes_text(count: int, terms: Begriffe) -> str:
+    """„6 Schützenstände“, „1 Schützenstand“."""
+    return f"{count} {terms.schuetzenstand if count == 1 else terms.schuetzenstaende}"
+
+
+def _competitions(
+    competitions: list[Competition], range_names: dict[uuid.UUID, str]
 ) -> list[DocumentCompetition]:
     result = []
     for item in competitions:
         definition = CompetitionDefinition.model_validate(item.definition)
-        diff = await service.catalog_diff_of(session, item)
         result.append(
             DocumentCompetition(
                 id=item.id,
@@ -141,8 +160,7 @@ async def _competitions(
                 max_starts=item.max_starts,
                 multi_start_rule=item.multi_start_rule,  # type: ignore[arg-type]
                 multi_start_text=_multi_start_text(item),
-                deviates_from_catalog=diff.deviates,
-                deviations=[entry.text for entry in diff.differences],
+                terms=begriffe_fuer(item.catalog_federation),
             )
         )
     return result
@@ -153,6 +171,7 @@ async def build_document(session: AsyncSession, tournament_id: uuid.UUID) -> Ann
     announcement = stored_announcement(tournament)
     currency = TournamentSettings.model_validate(tournament.settings).currency
     range_names = {item.id: item.name for item in ranges}
+    terms = document_terms(competitions)
 
     blocks: list[DocumentBlock] = []
     for block in announcement.blocks:
@@ -161,7 +180,7 @@ async def build_document(session: AsyncSession, tournament_id: uuid.UUID) -> Ann
         entry = DocumentBlock(id=block.id, kind=block.kind, heading=block.heading, body=block.body)
         match block.kind:
             case "competitions":
-                entry.competitions = await _competitions(session, competitions, range_names)
+                entry.competitions = _competitions(competitions, range_names)
             case "classes":
                 entry.classes = [DocumentClass(name=c.name, short=c.short) for c in classes]
             case "fees":
@@ -185,7 +204,12 @@ async def build_document(session: AsyncSession, tournament_id: uuid.UUID) -> Ann
                 )
             case "ranges":
                 entry.ranges = [
-                    DocumentRange(name=item.name, lane_count=item.lane_count) for item in ranges
+                    DocumentRange(
+                        name=item.name,
+                        lane_count=item.lane_count,
+                        lanes_text=lanes_text(item.lane_count, terms),
+                    )
+                    for item in ranges
                 ]
         blocks.append(entry)
 
@@ -202,4 +226,5 @@ async def build_document(session: AsyncSession, tournament_id: uuid.UUID) -> Ann
         ),
         facts=announcement.facts,
         blocks=blocks,
+        terms=terms,
     )

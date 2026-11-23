@@ -1,0 +1,52 @@
+# Armbrust national kombiniert (Scheibe + Stern) – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22), Teil 5: 5.12 mit 5.12.1,
+#   5.12.1.1, 5.12.1.2; Teil 0: 0.21 (S. 86). DM: Tabelle Wettbewerbe/Klassen DM 2025–2028.
+# Änderungen 2026→2027 in Teil 5: keine.
+# Abbildung: Die Kombination wird aus den Ergebnissen von 5.31 und 5.32 gebildet (kein eigenes Schießen).
+#   Ein Plattl zählt 6 Punkte, dazu die Ringe der Scheibe. Mit ringwerte [6, 0] im Stern-Abschnitt ergibt die
+#   Ringsumme genau 6 × Plattl + Scheibenringe (max. 120 + 90 = 210). Übernahme aus 5.31/5.32: siehe Formatbedarf.
+# Klassen-IDs sind vorläufig.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "armbrust-national-kombi"
+  name: "Armbrust national kombiniert"
+  waffenart: "armbrust"
+  art: "kombi"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # SpO 5.12.1.1: zuerst das bessere Scheibenergebnis, danach Regel 5.31 Einzelwertung (= 5.10.1).
+  gleichstand: ["besseres_teilergebnis_scheibe", "weniger_schlechte_schuesse", "schuesse_rueckwaerts", "innensechser", "mouchen", "abstand_letzter_schuss"]
+  geprueft: false
+ablaeufe:
+  kombi-scheibe-stern:
+    beschreibung: "Ergebnis 5.31 (20 Schuss, Ringe 6–1) + 6 × Plattl aus 5.32 (15 Schuss)"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "scheibe"
+            name: "Scheibe (aus 5.31)"
+            serien: 2
+            schuss_je_serie: 10
+            ringwerte: [6, 5, 4, 3, 2, 1, 0]
+            wettkampfzeit_s: 3000
+            probeschuesse: 10
+          - id: "stern"
+            name: "Stern (aus 5.32)"
+            serien: 15
+            schuss_je_serie: 1
+            ringwerte: [6, 0]       # Plattl = 6 Punkte (5.12.1)
+            probeschuesse: 2
+disziplinen:
+  - kennziffer: "5.33"
+    name: "Armbrust national kombiniert"
+    waffe: "30-m-Armbrust (Scheibe) und Vogel-/Hocharmbrust (Stern)"
+    munition: "Scheibe: Bolzen 6,0 mm; Stern: Bolzenkopf rund max. 26,8 mm oder eckig max. 24,3 mm"
+    visierung: "Scheibe wie 5.31; Stern nur Diopter, Korn auf dem Bolzen"
+    anschlag: "stehend"
+    scheibe: "DSB-Scheibe Nr. 17 und Stern am Vogelbaum"
+    ablauf: "kombi-scheibe-stern"
+    hinweis: "Wertung aus den Teilnahmen an 5.31 und 5.32: Plattl × 6 plus Ringe der Scheibe (5.12.1). Die Kombinationswertung kann angeboten werden, sie ist nicht Pflicht (5.12)."

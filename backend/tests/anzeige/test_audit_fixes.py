@@ -69,8 +69,12 @@ async def test_aborted_hidden_on_screen_unless_wanted(api: Api, setup: Setup) ->
         {"id": "live", "kind": "live_ranking"}, {"id": "sieger", "kind": "winners"}, tid=setup.tid
     )
     live, winners = (await api.feed(default))["scenes"]
-    assert [(r["start_id"], r["place"]) for r in rows(live)] == [(done, 1)]
-    assert [(r["start_id"], r["place"]) for r in rows(winners)] == [(done, 1)]
+    # Abbruch nach „Feuer“ (K 1.14): platziert, fehlende Serie zählt 0 Ringe – immer sichtbar.
+    assert [(r["start_id"], r["place"]) for r in rows(live)] == [(done, 1), (gave_up, 2)]
+    assert [(r["start_id"], r["place"]) for r in rows(winners)] == [(done, 1), (gave_up, 2)]
+    placed = rows(winners)[1]
+    assert (placed["abort_reason"], placed["abort_label"]) == ("dnf", "Abbruch (AB)")
+    assert placed["score_text"] == "50 Ringe"
 
     listed = await api.show(
         {"id": "live", "kind": "live_ranking", "show_aborted": True},
@@ -79,13 +83,12 @@ async def test_aborted_hidden_on_screen_unless_wanted(api: Api, setup: Setup) ->
     )
     live, winners = (await api.feed(listed))["scenes"]
     for scene in (live, winners):
-        # Abgebrochene stehen nie unter den Plätzen, sondern in `unplaced`.
-        assert [(r["start_id"], r["place"]) for r in rows(scene)] == [(done, 1)]
+        # Abgebrochene ohne Platz stehen nie unter den Plätzen, sondern in `unplaced`.
+        assert [(r["start_id"], r["place"]) for r in rows(scene)] == [(done, 1), (gave_up, 2)]
         unplaced = [row for group in scene["ranking"]["groups"] for row in group["unplaced"]]
-        assert [(r["start_id"], r["place"], r["abort_reason"]) for r in unplaced] == [
-            (gave_up, None, "dnf"),
-            (nothing, None, "dnf"),
-        ]
+        assert [
+            (r["start_id"], r["place"], r["abort_reason"], r["abort_label"]) for r in unplaced
+        ] == [(nothing, None, "dnf", "Abbruch (AB)")]
 
 
 async def test_competition_code_and_abort_reason(api: Api, setup: Setup) -> None:

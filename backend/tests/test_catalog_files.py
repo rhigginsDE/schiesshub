@@ -15,21 +15,32 @@ def errors_of(root: Path) -> list[CatalogError]:
     return result.errors
 
 
-def test_real_catalog_is_valid(real_catalog_counts: dict[str, int]) -> None:
+def test_real_catalog_is_valid(
+    real_catalog_counts_by_federation: dict[str, dict[str, int]],
+) -> None:
     result = load_catalog(REAL_CATALOG_DIR)
 
     assert [str(error) for error in result.errors] == []
-    assert [federation.key for federation in result.federations] == ["bds"]
-    bds = result.federations[0]
-    assert len(bds.groups) == real_catalog_counts["gruppen"]
-    assert bds.discipline_count == real_catalog_counts["disziplinen"]
-    assert bds.classes is not None
-    assert len(bds.classes.klassen) == real_catalog_counts["klassen"]
+    assert [federation.key for federation in result.federations] == ["bds", "dsb"]
+    for federation in result.federations:
+        counts = real_catalog_counts_by_federation[federation.key]
+        assert len(federation.groups) == counts["gruppen"]
+        assert federation.discipline_count == counts["disziplinen"]
+        assert federation.classes is not None
+        assert len(federation.classes.klassen) == counts["klassen"]
+    dsb = result.federations[1]
+    assert dsb.start_rights is not None
+    assert len(dsb.start_rights.startrecht) == 98
 
 
-def test_real_catalog_has_expected_size(real_catalog_counts: dict[str, int]) -> None:
+def test_real_catalog_has_expected_size(
+    real_catalog_counts_by_federation: dict[str, dict[str, int]],
+) -> None:
     """Stand laut catalog/README.md. Ändert sich der Katalog, hier bewusst nachziehen."""
-    assert real_catalog_counts == {"gruppen": 25, "disziplinen": 191, "klassen": 9}
+    assert real_catalog_counts_by_federation == {
+        "bds": {"gruppen": 25, "disziplinen": 191, "klassen": 9},
+        "dsb": {"gruppen": 46, "disziplinen": 119, "klassen": 77},
+    }
 
 
 def test_minimal_catalog_is_valid(minimal_catalog: Path) -> None:

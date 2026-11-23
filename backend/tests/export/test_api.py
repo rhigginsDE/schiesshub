@@ -68,7 +68,7 @@ async def test_startlist_csv_public_names(api: Api) -> None:
         ("3", "Startnummer 3", "SV Ost"),
     ]
     assert rows[0]["Kennziffer"] == "4401"
-    assert rows[0]["Stand"] == "Stand 1"
+    assert rows[0]["Schießstand"] == "Stand 1"
     assert rows[0]["Status"] == "angemeldet"
     assert list(rows[0]) == [
         "Startnummer",
@@ -78,11 +78,11 @@ async def test_startlist_csv_public_names(api: Api) -> None:
         "Klassenname",
         "Kennziffer",
         "Wettbewerb",
-        "Stand",
+        "Schießstand",
         "Versuch",
         "Durchgang",
         "Beginn",
-        "Bahn",
+        "Schützenstand",
         "Reihenfolge",
         "Status",
         "Abbruchgrund",
@@ -203,24 +203,31 @@ async def test_winners_ties_aborted_and_columns(api: Api) -> None:
     await api.abort(setup.tid, f, "dnf")
 
     rows = as_dicts(read_csv((await api.get(export(setup, "winners.csv"))).content))
-    assert [(r["Platz"], r["Platz geteilt"], r["Name"], r["Status"]) for r in rows] == [
+    assert [(r["Platz"], r["Gleichheit"], r["Name"], r["Status"]) for r in rows] == [
         ("1", "", "Anna Beispiel", "endgültig"),
-        ("2", "ja", "Bernd Beispiel", "endgültig"),
-        ("2", "ja", "Clara Beispiel", "endgültig"),
-        # Abgebrochene: nie mit Platz, am Ende (aufgegeben, nicht angetreten, disqualifiziert).
-        ("", "", "Frida Beispiel", "aufgegeben"),
+        ("2", "Ringgleichheit", "Bernd Beispiel", "endgültig"),
+        ("2", "Ringgleichheit", "Clara Beispiel", "endgültig"),
+        # Abbruch nach „Feuer“ (K 1.14): platziert, fehlende Serie zählt 0 Ringe.
+        ("4", "", "Frida Beispiel", "Abbruch (AB)"),
+        # Ohne Platz am Ende: nicht angetreten, disqualifiziert.
         ("", "", "Dora Beispiel", "nicht angetreten"),
         ("", "", "Emil Beispiel", "disqualifiziert"),
     ]
+    assert rows[3]["Ergebnis"] == "40"
     assert rows[0]["Ergebnis"] == "95"
     assert rows[0]["Einheit"] == "Ringe"
     assert rows[0]["Zehner"] == "5"
     assert rows[0]["Teilwerte"] == "50; 45"
     assert rows[0]["Wertung"] == "Klasse offen"
 
-    pdf = read_pdf((await api.get(export(setup, "winners.pdf"))).content)
+    response = await api.get(export(setup, "winners.pdf"))
+    assert response.headers["content-disposition"].endswith('_Ergebnisliste_2027-03-06.pdf"')
+    csv_response = await api.get(export(setup, "winners.csv"))
+    assert csv_response.headers["content-disposition"].endswith('_Ergebnisliste_2027-03-06.csv"')
+    pdf = read_pdf(response.content)
     text = pdf.text
-    assert "Siegerliste" in text
+    assert "Ergebnisliste" in text
+    assert "Siegerliste" not in text
     assert "Klasse offen" in text
     lines = text.splitlines()
     assert (
@@ -228,7 +235,8 @@ async def test_winners_ties_aborted_and_columns(api: Api) -> None:
     )
     assert "nicht angetreten" in text
     assert "disqualifiziert" in text
-    assert "aufgegeben" in text
+    assert "Abbruch (AB)" in text
+    assert "aufgegeben" not in text
     for header in ("Platz", "Nr.", "Name", "Verein", "Ergebnis (Ringe)", "S1", "S2"):
         assert header in lines
 

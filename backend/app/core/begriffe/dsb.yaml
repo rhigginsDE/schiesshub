@@ -1,0 +1,78 @@
+# Formelle Begriffe des DSB (Deutscher Schützenbund).
+#
+# Quelle: Sportordnung des DSB, Stand 01.01.2027 (beschlossen am 14.03.2026). Ausgewertet in
+# `schiesshub-intern/Business/Recherche/dsb-begriffe.md` (Stand der Recherche 23.11.2026).
+# Fundstellen: Regelnummer, dahinter Teil und gedruckte Seite des Teils. Teil 0 gilt für alle
+# Fachbereiche, soweit die Fachteile nichts Eigenes regeln (0.1.1).
+#
+# Was die SpO nicht belegt, ist unten als „offen“ markiert; dann gilt `standard.yaml`
+# (= BDS-Wörter) bzw. ein neutrales Wort.
+
+begriffe:
+  # 0.15 (Teil 0 S. 45): „Ergebnislisten“, „Ergebnisliste“. „Siegerliste“ kommt nicht vor.
+  ergebnisliste: "Ergebnisliste"
+  # 0.6.1.2 Nr. 2 (Teil 0 S. 17), 0.6.2.2 (Teil 0 S. 19)
+  startliste: "Startliste"
+  # 0.15 (Teil 0 S. 45), 0.7.5.1 (Teil 0 S. 25)
+  startnummer: "Startnummer"
+  # 0.7.5.2 (Teil 0 S. 26), 0.9.5 (Teil 0 S. 34): „Startzeit“ (BDS: „Starttermin“)
+  startzeit: "Startzeit"
+  # 0.3 Überschrift (Teil 0 S. 6): „Schießstände“, „Schießstand“
+  schiessstand: "Schießstand"
+  schiessstaende: "Schießstände"
+  # 0.3.7 (Teil 0 S. 9): „Schützenstand“, „Schützenstände“
+  schuetzenstand: "Schützenstand"
+  schuetzenstaende: "Schützenstände"
+  # 0.7.3 (Teil 0 S. 23), 0.8.1.1 (Teil 0 S. 27)
+  durchgang: "Durchgang"
+  # 0.9.8.2 (Teil 0 S. 36), 0.11.3 (Teil 0 S. 39): „Wettkampfserie“ (nicht „Wertungsserie“)
+  wertungsserie: "Wettkampfserie"
+  # 0.21 Spaltenkopf (Teil 0 S. 76), 0.9.8.3 (Teil 0 S. 36): „Wettkampfschüsse“
+  wertungsschuesse: "Wettkampfschüsse"
+  # 0.11 (Teil 0 S. 38): „Auswertung“. „Trefferaufnahme“ steht in Teil 0 nur einmal (Bogen).
+  trefferaufnahme: "Auswertung"
+  # 0.12, 0.12.1, 0.12.2 (Teil 0 S. 43): „Ergebnisgleichheit“ (Hauptwort der SpO)
+  ergebnisgleichheit: "Ergebnisgleichheit"
+  # 9.4.1 (Teil 9 S. 2), 4.10.1.9 (Teil 4 S. 11), 6.4.3.2.5 (Teil 6 S. 29): nur Teil 4, 6, 9
+  ringgleichheit: "Ringgleichheit"
+  # 3.45.6 (Teil 3 S. 65), 7.8.3.5 (Teil 7 S. 11): nur Flinte
+  treffergleichheit: "Treffergleichheit"
+  # Offen: Teil 0 regelt keine Aufgabe durch den Schützen; nur 7.7.6.1 (Teil 7 S. 8) „den
+  # Wettkampf abbrechen“ mit Genehmigung. Die SpO kennt keine Kurzform (kein „AB“, DNF nur
+  # sinngemäß in Teil 8). Deshalb neutral „aufgegeben“, auch als Kurzform.
+  abbruch: "aufgegeben"
+  abbruch_kurz: "aufgegeben"
+  # 0.15 (Teil 0 S. 45), 15.1.1.4 (Teil 15 S. 5): „nicht angetreten“ (einziger vorgegebener
+  # Listenvermerk)
+  nicht_angetreten: "nicht angetreten"
+  # 0.9.8 Nr. 3 (Teil 0 S. 35), 0.9.8.1 (Teil 0 S. 35): „Disqualifikation“, „disqualifiziert“
+  disqualifiziert: "disqualifiziert"
+  disqualifikation: "Disqualifikation"
+  # 0.13 (Teil 0 S. 43/44): „Einspruch“, „Einsprüche und ihre Behandlung“
+  einspruch: "Einspruch"
+  # 0.8.5.2 (Teil 0 S. 29): „Proteste (mündlich) gegen die Wertung“ – nur gegen die
+  # Schusswertung, nicht gegen das Ergebnis
+  protest: "Protest"
+  # 0.8.5.2 (Teil 0 S. 29): „Protestgebühr“ (für den mündlichen Protest)
+  protestgebuehr: "Protestgebühr"
+  # Gebühr für einen Einspruch gegen das Ergebnis, wie sie die Ausschreibung nennt:
+  # 0.13 (Teil 0 S. 43) „Einspruchsgebühr“; 0.7.6.1 (Teil 0 S. 26) Pflichtangabe der Ausschreibung
+  gebuehr_einspruch: "Einspruchsgebühr"
+  # 0.2 (Teil 0 S. 4), 0.9.8 Nr. 3 (Teil 0 S. 35)
+  standaufsicht: "Standaufsicht"
+  # 0.6.1, 0.6.1.1 (Teil 0 S. 16)
+  schiessleiter: "Schießleiter"
+  # 0.6.2.2 (Teil 0 S. 19), 0.4.3.2 (Teil 0 S. 12) – nur nebenbei
+  wettkampfleitung: "Wettkampfleitung"
+  # 0.7.6.1 Nr. 5 (Teil 0 S. 26), 0.9.8.1 (Teil 0 S. 35)
+  startgeld: "Startgeld"
+  # 0.7.1 (Teil 0 S. 20), 0.14.1 (Teil 0 S. 44): „Wettkampfklasse“
+  klasse: "Wettkampfklasse"
+  # 0.9.1 Tabellenkopf (Teil 0 S. 31), 0.21 Spaltenkopf (Teil 0 S. 76 ff.): „Kennzahl“
+  # (Teil 1/2: „Wettbewerbsnummer“, Teil 8: „Kennziffer“)
+  kennziffer: "Kennzahl"
+
+# Nicht belegt (Rückfall auf standard.yaml):
+#   durchgangszeit – die SpO kennt „Durchgangszeiten“ (0.6.2.2) nur als Zeitplan, nicht als
+#                    gemessene Parcourszeit
+# Offen: abbruch, abbruch_kurz (siehe oben, neutral „aufgegeben“).

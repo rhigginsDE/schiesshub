@@ -16,8 +16,9 @@ from app.core.localtime import DEFAULT_TIMEZONE, zone
 
 NamesMode = Literal["public", "full"]
 StartlistSort = Literal["start_number", "competition", "range"]
-# Wie eine Zeile der Siegerliste gewertet ist (wie die Rangliste): regulär, hinten
-# (unvollständig, nur live) oder ohne Platz (abgebrochen, unvollständig, prüfen).
+# Wie eine Zeile der Ergebnisliste gewertet ist (wie die Rangliste): regulär (auch ein Abbruch
+# mit Platz), hinten (unvollständig, nur live) oder ohne Platz (abgebrochen, unvollständig,
+# prüfen).
 # „aborted“ gibt es nicht mehr; der Wert bleibt für ältere Aufrufer erlaubt.
 WinnerGroup = Literal["ranked", "last", "unranked", "aborted"]
 # Wertungsmodelle, die Zeit von den Ringen abziehen: Listen zeigen dafür den Rechenweg.
@@ -168,6 +169,15 @@ class WinnerRow:
     # und der Hinweis dazu („Ringgleichheit auf Platz 2: Stechen“).
     tie_reason: str | None = None
     tie_note: str | None = None
+    # Wie die Rangliste: „Abbruch (AB)“, „nicht angetreten“, „disqualifiziert“; dazu, warum ein
+    # Abbruch mit Werten ohne Platz bleibt.
+    abort_label: str | None = None
+    abort_note: str | None = None
+
+    @property
+    def scored(self) -> bool:
+        """Mit Ergebnis in der Liste: nicht abgebrochen oder Abbruch mit Platz."""
+        return self.abort_reason is None or self.place is not None
 
 
 @dataclass(frozen=True, slots=True)
@@ -188,6 +198,8 @@ class WinnerSection:
     tables: tuple[WinnerTable, ...]
     # Spätestes Ende der Einspruchsfrist unter den vorläufigen Zeilen; None ohne vorläufige.
     provisional_until: datetime | None
+    # Wort für gleiche Ergebnisse („Ringgleichheit“, „Treffergleichheit“, „gleiches Ergebnis“).
+    tie_word: str = "gleiches Ergebnis"
 
 
 @dataclass(frozen=True, slots=True)

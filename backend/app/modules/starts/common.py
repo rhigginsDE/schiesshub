@@ -1,7 +1,8 @@
-"""Gemeinsame Datenbank-Bausteine des Moduls `starts`: Nachschlagen, Sperren, Bahnbelegung.
+"""Gemeinsame Datenbank-Bausteine des Moduls `starts`: Nachschlagen, Sperren, Belegung der
+Schützenstände.
 
 `ConflictError` ist der gemeinsame Baustein aus `app.core.errors` (409, wahlweise mit Feld:
-`ConflictError("Bahn 2 ist schon belegt.", field="lane")`).
+`ConflictError("Schützenstand 2 ist schon belegt.", field="lane")`).
 """
 
 import uuid
@@ -67,13 +68,14 @@ async def writable_tournament(
 async def get_range(
     session: AsyncSession, tournament_id: uuid.UUID, range_id: uuid.UUID, *, lock: bool = False
 ) -> Range:
-    """Stand des Turniers. Mit `lock` laufen alle Vorgänge an seinen Bahnen nacheinander."""
+    """Schießstand des Turniers. Mit `lock` laufen alle Vorgänge an seinen Schützenständen
+    nacheinander."""
     query = select(Range).where(Range.id == range_id)
     if lock:
         query = query.with_for_update()
     item = await session.scalar(query)
     if item is None or item.tournament_id != tournament_id:
-        raise NotFoundError("Der Stand wurde in diesem Turnier nicht gefunden.")
+        raise NotFoundError("Der Schießstand wurde in diesem Turnier nicht gefunden.")
     return item
 
 
@@ -120,14 +122,14 @@ async def get_start(
     return StartContext(*row)
 
 
-# --- Reihenfolge und Bahnbelegung --------------------------------------------
+# --- Reihenfolge und Belegung der Schützenstände -----------------------------
 
 
 async def waiting_starts(session: AsyncSession, range_id: uuid.UUID) -> list[Start]:
-    """Wartende Starts der Reihenfolge eines Stands, in ihrer Reihenfolge.
+    """Wartende Starts der Reihenfolge eines Schießstands, in ihrer Reihenfolge.
 
-    Starts ohne Platz (z. B. weil der Wettbewerb erst nachträglich einen Stand bekam) stehen
-    hinten, nach Buchungszeit.
+    Starts ohne Platz (z. B. weil der Wettbewerb erst nachträglich einen Schießstand bekam)
+    stehen hinten, nach Buchungszeit.
     """
     rows = await session.scalars(
         select(Start)
@@ -158,8 +160,8 @@ async def renumber_queue(session: AsyncSession, range_id: uuid.UUID) -> list[Sta
 
 
 async def occupied_on_range(session: AsyncSession, range_id: uuid.UUID) -> dict[int, Start]:
-    """Belegte Bahnen eines Stands: Bahn → Start auf ihr (aufgerufen oder erfasst, noch nicht
-    freigegeben), über alle Wettbewerbe des Stands."""
+    """Belegte Schützenstände eines Schießstands: Nummer → Start darauf (aufgerufen oder erfasst,
+    noch nicht freigegeben), über alle Wettbewerbe des Schießstands."""
     rows = await session.scalars(
         select(Start)
         .join(Competition, Competition.id == Start.competition_id)
@@ -169,7 +171,7 @@ async def occupied_on_range(session: AsyncSession, range_id: uuid.UUID) -> dict[
 
 
 async def on_lane_entry_ids(session: AsyncSession, tournament_id: uuid.UUID) -> set[uuid.UUID]:
-    """Anmeldungen (also Personen), die im Turnier gerade auf einer Bahn stehen."""
+    """Anmeldungen (also Personen), die im Turnier gerade auf einem Schützenstand stehen."""
     rows = await session.scalars(
         select(Start.entry_id)
         .join(Entry, Entry.id == Start.entry_id)

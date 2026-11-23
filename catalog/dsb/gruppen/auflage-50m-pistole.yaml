@@ -1,0 +1,65 @@
+# Auflage 50 m Pistole – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog dsb.de/fileadmin/dsb/sportordnung/, abgerufen 2026-11-22),
+#   Teil 9: 9.1–9.8 und Wettbewerbstabelle Auflagewettbewerbe (Teil 9 S. 8); Teil 0: Wettbewerbstabelle 0.21
+#   (Teil 0 S. 81), Scheiben 0.20, Ergebnisgleichheit 0.12, Mannschaft 0.7.2.2.
+# Anschlag: Kl. 70–73 (Senioren I–II) nur stehend aufgelegt; Kl. 74–81 (Senioren III–VI) stehend oder sitzend
+#   aufgelegt auf Hocker ohne Lehne (9.7.6.1). Ganzer Wettkampf im gleichen Anschlag (9.7.6 Nr. 9).
+#   Sitzend auch für Para-Sportschützen mit Hilfsmittelausweis bzw. Eintrag G/aG im Schwerbehindertenausweis (9.7.7).
+# Änderungen 2026→2027 in Teil 9 (Synopse 01.01.2027): nur Ausrüstung (9.7.2 Schaftkappe, 9.7.3 Visierlinien-
+#   rückverlagerung) und 9.8.3.1 (nichtzielender Arm keine Stütze); Schusszahl, Zeiten, Wertung unverändert.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "auflage-50m-pistole"
+  name: "Auflage 50 m Pistole"
+  waffenart: "kurzwaffe"
+  distanz_m: 50
+  art: "auflage"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # SpO 9.4.1 (volle Ringwertung, Plätze 1–6): Zehnerserien von hinten, Anzahl 10er/9er/8er …, Innenzehner,
+  #   Gesamtergebnis in Zehnteln; dann gleicher Rang. Bei 300 Ringen Stechen nach 9.4.3 (siehe Notiz).
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner", "zehntel_gesamt"]
+  geprueft: false
+ablaeufe:
+  auflage-30-50m:
+    beschreibung: "30 Schuss aufgelegt; 55 Min. (Zuganlage) bzw. 50 Min. (andere Systeme) inkl. Probe"
+    varianten:
+      - id: "zuganlage"
+        name: "Zuganlage"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            serien: 3
+            schuss_je_serie: 10
+            probeschuesse: "unbegrenzt"   # SpO 9.2, nur vor dem ersten Wertungsschuss
+            wettkampfzeit_s: 3300   # inkl. Probe (SpO 9.3)
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+      - id: "andere-systeme"
+        name: "Andere Systeme (z. B. elektronische Scheiben)"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            serien: 3
+            schuss_je_serie: 10
+            probeschuesse: "unbegrenzt"   # SpO 9.2, nur vor dem ersten Wertungsschuss
+            wettkampfzeit_s: 3000   # inkl. Probe (SpO 9.3)
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+disziplinen:
+  - kennziffer: "2.21"
+    name: "50 m Pistole Auflage"
+    waffe: "Freie Pistole (Einzellader oder Mehrlader als Einzellader)"
+    munition: "5,6 mm (.22 l.r./.22 lfb) Randzünder"
+    visierung: "offen (Kimme/Korn), kein Zielhilfsmittel"
+    anschlag: "stehend aufgelegt (Kl. 70–73); stehend oder sitzend aufgelegt (Kl. 74–81)"
+    scheibe: "DSB-Scheibe Nr. 4 (50 m Pistole)"
+    ablauf: "auflage-30-50m"
+    hinweis: "Gewicht und Abzug frei; Auflagefläche unterhalb des Griffes, Breite max. 50 mm; Zusatzgewichte/Anbauteile nach 9.8.5; max. 1 Schuss je Scheibe. 9.4 nennt keine Zehntelwertung."

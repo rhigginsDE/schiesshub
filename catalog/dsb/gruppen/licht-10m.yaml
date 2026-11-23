@@ -1,0 +1,107 @@
+# Lichtschießen 10 m, wettkampforientiert (WO) – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22), Teil 11: 11 (Allgemein),
+#   11.1 (Klassen, Entfernung), 11.2, 11.3.1, 11.4.1, 11.5 und Tabelle Lichtschießen (Teil 11 S. 3).
+#   Deutsche Lichtmeisterschaft (wettkampforientiert): Tabelle Wettbewerbe/Klassen DM 2025–2028.
+# Änderungen 2026→2027 in Teil 11 (Synopse): nur 11.3.1 Kleidung (Nierengurt statt Schießjacke erlaubt, nicht beides);
+#   Schusszahlen, Zeiten und Wertung unverändert.
+# Teil 11 nennt weder Scheibe noch Wertung (ganze Ringe/Zehntel) noch eine Gleichstandsregel. Laut Teil 11 (Allgemein)
+#   entspricht das Programm den Kugelwettbewerben für Schüler; deshalb hier vorläufig 0.12.1. Offen, siehe Notiz.
+# Klassen-IDs (schueler-ii-m … schueler-iii-w = Kl. 22–25) sind vorläufig.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "licht-10m"
+  name: "Lichtschießen 10 m"
+  waffenart: "licht"            # Formatbedarf: neuer Wert (kein Geschoss, waffenrechtlich keine Waffe)
+  distanz_m: 10
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # geprüft 2026-11-22: Teil 11 hat keine eigene Regel; 0.12.1 gilt als allgemeine Regel für alle Disziplinen (Teil 0).
+  #   Offen bleibt, ob die Lichtscheibe einen Innenzehner hat (Scheibe in Teil 11 nicht genannt).
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  geprueft: false
+ablaeufe:
+  licht-20:
+    beschreibung: "20 Schuss stehend in 30 Min.; vorher 15 Min. Vorbereitung mit unbegrenzter Probe"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            serien: 2
+            schuss_je_serie: 10
+            wettkampfzeit_s: 1800         # Tabelle Lichtschießen
+            vorbereitung_probe_s: 900     # Fußnote * zur Tabelle: gemeinsame Vorbereitungszeit 15 Min.
+            probeschuesse: "unbegrenzt"   # in der Vorbereitungszeit
+  licht-3x10:
+    beschreibung: "3×10 Schuss kniend – liegend – stehend; 75 Min. (25 – 20 – 30)"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          # Tabelle: 75 Min. gesamt, Einzelzeiten kniend 25, liegend 20, stehend 30 Min., jeweils inkl. Probe/Vorbereitung.
+          # Fußnote nennt zusätzlich 15 Min. Vorbereitung/Probe vor kniend; Verhältnis zu den 25 Min. offen.
+          # geprüft 2026-11-22: vorbereitung_probe_s 900 vor kniend ergänzt (Fußnote * zur Tabelle Teil 11 S. 3: 15 Min.
+          #   Vorbereitung/Probe vor dem Kniend-Anschlag, nicht in der Schießzeit); Probe vor liegend und stehend nach Ermessen
+          #   des Schützen innerhalb der Einzelzeit, daher dort "unbegrenzt". Widerspruch zu "Einzelzeiten inkl. Probe/
+          #   Vorbereitung" bleibt offen (pruefen ablauf).
+          - id: "kniend"
+            name: "Kniend"
+            serien: 1
+            schuss_je_serie: 10
+            wettkampfzeit_s: 1500
+            vorbereitung_probe_s: 900
+            probeschuesse: "unbegrenzt"
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "kniend" }] }
+          - id: "liegend"
+            name: "Liegend"
+            serien: 1
+            schuss_je_serie: 10
+            wettkampfzeit_s: 1200
+            probeschuesse: "unbegrenzt"
+            positionen:
+              - { nr: 2, anschlaege: [{ haltung: "liegend" }] }
+          - id: "stehend"
+            name: "Stehend"
+            serien: 1
+            schuss_je_serie: 10
+            wettkampfzeit_s: 1800
+            probeschuesse: "unbegrenzt"
+            positionen:
+              - { nr: 3, anschlaege: [{ haltung: "stehend" }] }
+disziplinen:
+  - kennziffer: "11.10"
+    name: "Lichtgewehr"
+    waffe: "Lichtgewehr, max. 3000 g, Systemlänge max. 850 mm, Abzug frei"
+    munition: "Lichtpunkt"
+    visierung: "keine Visierhilfe, keine optischen Zielhilfsmittel"
+    anschlag: "stehend frei"
+    scheibe: "in Teil 11 nicht genannt"
+    ablauf: "licht-20"
+    hinweis: "Wettkampforientiert (WO). Schüler II und III; Standerhöhungen erlaubt (11.5). Schießjacke oder Nierengurt, nicht beides (11.3.1, neu 2027). Schäftung nach 1.4.7; Laufbeschwerung radial max. 30 mm, nicht über die Mündung (Tabelle Teil 11 S. 3)."   # geprüft 2026-11-22: Schäftung/Laufbeschwerung ergänzt
+    pruefen: ["scheibe"]
+  - kennziffer: "11.20"
+    name: "Lichtgewehr 3-Stellung"
+    waffe: "Lichtgewehr, max. 3000 g, Systemlänge max. 850 mm, Abzug frei"
+    munition: "Lichtpunkt"
+    visierung: "keine Visierhilfe, keine optischen Zielhilfsmittel"
+    anschlag: "kniend, liegend, stehend (je 10 Schuss)"
+    scheibe: "in Teil 11 nicht genannt"
+    ablauf: "licht-3x10"
+    hinweis: "Wettkampforientiert (WO). Bei der DM schießt Schüler III in Schüler II mit. Schäftung nach 1.4.7; Laufbeschwerung radial max. 30 mm, nicht über die Mündung (Tabelle Teil 11 S. 3)."
+    pruefen: ["scheibe", "ablauf"]
+  - kennziffer: "11.50"
+    name: "Lichtpistole"
+    waffe: "Lichtpistole, max. 1000 g, passt in Prüfkasten 420 × 200 × 50 mm, Abzug frei"
+    munition: "Lichtpunkt"
+    visierung: "keine Angabe in Teil 11"
+    anschlag: "stehend frei"
+    scheibe: "in Teil 11 nicht genannt"
+    ablauf: "licht-20"
+    hinweis: "Wettkampforientiert (WO). Bei der DM schießt Schüler III in Schüler II mit."
+    pruefen: ["scheibe", "visierung"]

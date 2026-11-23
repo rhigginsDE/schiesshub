@@ -1,0 +1,102 @@
+# Flinte FITASC-Disziplinen (Compak-Sporting, Parcours, Universaltrap) – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027, Teil 3: 3.21–3.29 (allgemein FITASC), 3.30 Compak-Sporting,
+#   3.35 Parcours, 3.40 Universaltrap, 3.45 Abweichungen ISSF/FITASC (Teil 3 S. 33–65); Teil 0 Wettbewerbstabelle
+#   (Teil 0 S. 83/84); FITASC-Klassen Teil 0, 0.7.1 (Teil 0 S. 21). DM-Klassen: Tabelle DM 2025–2028 ("DM Flinte nach FITASC").
+# Änderungen 2026→2027: Synopse nennt für Teil 3 keine Änderungen.
+# FORMAT: gruppe.art "wurfscheibe" neu (siehe Notiz). Treffer als Ringwerte [1, 0].
+#   Einzelscheibe: 2 Schuss erlaubt (3.22.1); Doublette: je Scheibe 1 Schuss (3.30.1.5). Die Schusszahl je Serie hängt
+#   vom Layout ab und wird deshalb nicht eingetragen (nur ziele_je_serie).
+# WIDERSPRUCH: Teil 0 (Tabelle S. 83/84) nennt für 3.30, 3.35, 3.40 "75, 125" Wettkampfscheiben und 24,5 g Schrot;
+#   Teil 3 nennt 200 Scheiben national (Parcours, 3.35.3.3), 125 (Universaltrap, 3.40) und 28,5 g (3.21.2, 3.45.4).
+#   Hier gilt der Fachteil (Teil 3); Teil-0-Werte als Varianten/Hinweis, siehe Notiz.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "flinte-fitasc"
+  name: "Flinte FITASC (Compak-Sporting, Parcours, Universaltrap)"
+  waffenart: "flinte"
+  art: "wurfscheibe"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # SpO 3.29.1.1: Platz 1–3 Stechen (3.29.1.2: erst eine 25er-Runde, dann KO, Doublette als Kombination);
+  #   ab Platz 4 besserer letzter Durchgang, dann rückwärts. Kein Finale.
+  gleichstand: ["stechen", "letzte_serie_rueckwaerts"]
+  stechen_bis_platz: 3
+  geprueft: false
+ablaeufe:
+  compak-sporting:
+    beschreibung: "Compak-Sporting: Durchgänge zu je 25 Wurfscheiben (5 Stände × 5); Gesamtzahl laut Teil 0: 75 oder 125"
+    varianten:
+      - id: "75"
+        name: "75 Scheiben"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf"
+            serien: 3                 # Teil 0 Tabelle S. 83: "75, 125"; Durchgang 25 WS (3.30.2)
+            ziele_je_serie: 25
+            ringwerte: [1, 0]
+      - id: "125"
+        name: "125 Scheiben"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf"
+            serien: 5
+            ziele_je_serie: 25
+            ringwerte: [1, 0]
+  parcours:
+    beschreibung: "Parcours: national 200 Wurfscheiben in 8 Durchgängen zu je 25 (je Durchgang 15 Einzelscheiben, 5 Doubletten)"
+    varianten:
+      - id: "national"
+        name: "Nationaler Wettbewerb (200 Scheiben)"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf"
+            serien: 8                 # SpO 3.35.3.3; Jury kann die Zahl ändern
+            ziele_je_serie: 25        # 15 Einzelscheiben + 5 Doubletten (3.35.1.3)
+            ringwerte: [1, 0]
+  universaltrap:
+    beschreibung: "Universaltrap: 125 Wurfscheiben in 5 Serien zu je 25 (5 Positionen × 5 Maschinen), bis zu 2 Schuss je Scheibe"
+    varianten:
+      - id: "national"
+        name: "Nationaler Wettkampf (125 Scheiben)"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf"
+            serien: 5                 # SpO 3.40 (Einleitung), 3.40.2
+            ziele_je_serie: 25
+            max_schuss_je_serie: 50   # 2 Schuss je Scheibe (3.40.2)
+            ringwerte: [1, 0]
+disziplinen:
+  - kennziffer: "3.30"
+    name: "Compak-Sporting"
+    waffe: "Flinte bis Kaliber 12, auch halbautomatisch (Magazin max. 1 Patrone); keine Vorderschaft-/Unterhebelrepetierer, kein Release-Abzug, kein Leuchtpunkt"
+    munition: "Kal. 12; Schrotladung max. 28,5 g, kugelförmige Schrote 1,9–2,6 mm, keine gemischten Schrotgrößen"
+    visierung: "Laufschiene/Korn"
+    anschlag: "stehend; Anschlag bei Abruf frei, Schuss nur mit Waffe an der Schulter (3.30)"
+    scheibe: "Wurfscheiben inkl. Mini, Midi, Battue, Rollhase (Sonderscheiben max. 40 %)"
+    ablauf: "compak-sporting"
+    hinweis: "Je Stand 5 Scheiben nach einer von 5 Layout-Gruppen (3.30.2). KO-Stechen mit Layout-Gruppe 5 (3.30.3.3). Teil 0 nennt 24,5 g Schrot – Fachteil 3.21.2 nennt 28,5 g."
+    pruefen: ["ablauf", "munition"]   # Gesamtzahl nur in Teil 0 ("75, 125"); Schrotgewicht Teil 0 vs. Teil 3
+  - kennziffer: "3.35"
+    name: "Parcours (Jagdparcours, Sporting)"
+    waffe: "wie 3.30"
+    munition: "wie 3.30"
+    visierung: "Laufschiene/Korn"
+    anschlag: "stehend; Schaft bis zum Erscheinen der Scheibe unter der Markierung 25 cm unter der Schulterachse (3.35.1.6)"
+    scheibe: "Wurfscheiben inkl. Mini, Midi, Segelscheibe, Rollhase, Flash-/Elektroscheiben"
+    ablauf: "parcours"
+    hinweis: "Teil 0 nennt '75, 125' Scheiben, Teil 3 (3.35.3.3) 200 für nationale Wettbewerbe. Keine Ziel- oder Anschlagübungen (3.24.5)."
+    pruefen: ["ablauf", "munition"]
+  - kennziffer: "3.40"
+    name: "Universaltrap"
+    waffe: "wie 3.30"
+    munition: "wie 3.30"
+    visierung: "Laufschiene/Korn"
+    anschlag: "stehend"
+    scheibe: "Standard-Wurfscheibe 110 mm, 105 g ± 5 g (3.22); 5 Maschinen, Schema 1–10"
+    ablauf: "universaltrap"
+    # geprüft 2026-11-22: 3.22 druckt "110 cm"; Scheibe Nr. 11 (Teil 0 0.20) nennt 110 mm ± 1 mm, daher 110 mm richtig.
+    hinweis: "Teil 0 nennt '75, 125' Scheiben, Teil 3 (3.40) 125 für nationale Wettkämpfe. Durchmesser 110 mm laut Scheibe Nr. 11 (3.22 druckt versehentlich 110 cm)."
+    pruefen: ["munition"]

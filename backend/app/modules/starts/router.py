@@ -1,4 +1,5 @@
-"""HTTP-Schnittstelle des Moduls `starts`: Anmeldung, Starts, Ablauf am Stand, Sichten."""
+"""HTTP-Schnittstelle des Moduls `starts`: Anmeldung, Starts, Ablauf am Schießstand,
+Sichten."""
 
 from datetime import UTC, datetime
 from typing import Annotated, Literal
@@ -51,11 +52,11 @@ StartEditor = Annotated[Actor, Depends(require(PERMISSION_START_EDIT))]
 Caller = Annotated[Actor, Depends(require(PERMISSION_START_CALL))]
 Aborter = Annotated[Actor, Depends(require(PERMISSION_START_ABORT))]
 
-# Volle Namen in den Stand-Sichten (`names=full`): nur für das Personal am Stand.
+# Volle Namen in den Sichten der Station Stand (`names=full`): nur für das Personal am Schießstand.
 FULL_NAME_PERMISSIONS = (PERMISSION_START_CALL, "result.capture", PERMISSION_ENTRY_READ)
 FULL_NAMES_DENIED = (
-    "Volle Namen sieht nur das Personal am Stand (Berechtigung „start.call“, „result.capture“ "
-    "oder „entry.read“). Ohne sie steht jede Person so da, wie sie es gewählt hat "
+    "Volle Namen sieht nur das Personal am Schießstand (Berechtigung „start.call“, "
+    "„result.capture“ oder „entry.read“). Ohne sie steht jede Person so da, wie sie es gewählt hat "
     "(names=public)."
 )
 Names = Annotated[
@@ -100,9 +101,9 @@ CALL_CONFLICT = {
     status.HTTP_409_CONFLICT: {
         "description": (
             "Im aktuellen Zustand nicht möglich (`detail`, bei Feldbezug `errors`). Mit "
-            "`code: heat_imminent`: Der Aufruf aus der Reihenfolge würde eine Bahn belegen, die "
-            "ein bald beginnender Durchgang braucht (Uhrzeit und Bahnen im Text); nach Rückfrage "
-            "mit `confirm_heat_conflict: true` wiederholen."
+            "`code: heat_imminent`: Der Aufruf aus der Reihenfolge würde einen Schützenstand "
+            "belegen, den ein bald beginnender Durchgang braucht (Uhrzeit und Schützenstände im "
+            "Text); nach Rückfrage mit `confirm_heat_conflict: true` wiederholen."
         ),
         "model": CallConflictOut,
     }
@@ -278,11 +279,11 @@ async def abort_start(
 
 @router.get(
     f"{RANGE}/queue",
-    summary="Reihenfolge eines Stands",
+    summary="Reihenfolge eines Schießstands",
     description=(
-        "Wartende Starts in ihrer Reihenfolge und alle Bahnen. Belegt ist eine Bahn, solange "
-        "ein Start auf ihr steht (aufgerufen oder erfasst, noch nicht freigegeben), mit Status "
-        "und Erfassungsfortschritt (`progress`)."
+        "Wartende Starts in ihrer Reihenfolge und alle Schützenstände. Belegt ist ein "
+        "Schützenstand, solange ein Start darauf steht (aufgerufen oder erfasst, noch nicht "
+        "freigegeben), mit Status und Erfassungsfortschritt (`progress`)."
     ),
     responses=NOT_FOUND,
 )
@@ -319,12 +320,12 @@ async def move_start(
     f"{START}/call",
     summary="Start aufrufen",
     description=(
-        "Reihenfolge: auf `lane` oder die erste freie Bahn. Zeitplan: auf die Bahn des "
-        "Durchgangs. Eine Bahn trägt nur einen Start (aufgerufen oder erfasst, bis sie frei "
-        "wird), eine Person steht nur auf einer Bahn. Aus der Reihenfolge nicht ohne "
-        "`confirm_heat_conflict` auf eine Bahn, die ein Durchgang innerhalb von "
-        "`settings.heat_reserve_minutes` braucht (409 `heat_imminent`); ohne `lane` wird dann "
-        "zuerst eine Bahn genommen, die keiner braucht."
+        "Reihenfolge: auf `lane` oder den ersten freien Schützenstand. Zeitplan: auf den "
+        "Schützenstand des Durchgangs. Ein Schützenstand trägt nur einen Start (aufgerufen oder "
+        "erfasst, bis er frei wird), eine Person steht nur auf einem Schützenstand. Aus der "
+        "Reihenfolge nicht ohne `confirm_heat_conflict` auf einen Schützenstand, den ein "
+        "Durchgang innerhalb von `settings.heat_reserve_minutes` braucht (409 "
+        "`heat_imminent`); ohne `lane` wird dann zuerst einer genommen, den keiner braucht."
     ),
     responses=CALL_WRITE,
 )
@@ -354,8 +355,8 @@ async def call_start(
     f"{START}/return",
     summary="Aufgerufenen Start zurückstellen",
     description=(
-        "Die Bahn wird frei. Bei der Reihenfolge kommt der Start vorn (`front`) oder hinten "
-        "(`back`) wieder in die Warteschlange; im Zeitplan behält er seinen Platz."
+        "Der Schützenstand wird frei. Bei der Reihenfolge kommt der Start vorn (`front`) oder "
+        "hinten (`back`) wieder in die Warteschlange; im Zeitplan behält er seinen Platz."
     ),
     responses=WRITE,
 )
@@ -375,11 +376,12 @@ async def return_start(
 
 @router.post(
     f"{START}/release-lane",
-    summary="Bahn freigeben",
+    summary="Schützenstand freigeben",
     description=(
-        "Nimmt einen erfassten Start von seiner Bahn, ohne den Status zu ändern (z. B. Schütze "
-        "fertig, Ergebnis noch nicht abgeschlossen). Mit dem Abschließen oder Abbrechen wird die "
-        "Bahn ohnehin frei. Ein nur aufgerufener Start wird zurückgestellt, nicht freigegeben."
+        "Nimmt einen erfassten Start von seinem Schützenstand, ohne den Status zu ändern (z. B. "
+        "Schütze fertig, Ergebnis noch nicht abgeschlossen). Mit dem Abschließen oder Abbrechen "
+        "wird der Schützenstand ohnehin frei. Ein nur aufgerufener Start wird zurückgestellt, "
+        "nicht freigegeben."
     ),
     responses=WRITE,
 )
@@ -397,11 +399,12 @@ async def release_lane(
     f"{RANGE}/call-next",
     summary="Nächste aufrufen",
     description=(
-        "Füllt alle freien Bahnen des Stands (mit `lane` nur diese: „Nächsten auf Bahn N“) der "
-        "Reihe nach aus der Reihenfolge. Belegt bleibt eine Bahn auch mit einem erfassten "
-        "Start, bis er abgeschlossen, abgebrochen oder die Bahn freigegeben ist. Wer gerade auf "
-        "einer Bahn steht (auch an einem anderen Stand), wird übersprungen (`skipped`) und "
-        "behält seinen Platz. Bahnen, die ein Durchgang innerhalb von "
+        "Füllt alle freien Schützenstände des Schießstands (mit `lane` nur diesen: „Nächsten "
+        "auf Schützenstand N“) der Reihe nach aus der Reihenfolge. Belegt bleibt ein "
+        "Schützenstand auch mit einem erfassten Start, bis er abgeschlossen, abgebrochen oder "
+        "der Schützenstand freigegeben ist. Wer gerade auf einem Schützenstand steht (auch an "
+        "einem anderen Schießstand), wird übersprungen (`skipped`) und behält seinen Platz. "
+        "Schützenstände, die ein Durchgang innerhalb von "
         "`settings.heat_reserve_minutes` braucht, bleiben ohne `confirm_heat_conflict` frei "
         "(`held_lanes`); wäre nur auf ihnen jemand drangekommen, kommt 409 `heat_imminent`."
     ),
@@ -437,7 +440,7 @@ async def call_next(
 # --- Zeitplan ----------------------------------------------------------------
 
 
-@router.get(HEATS, summary="Durchgänge eines Stands", responses=NOT_FOUND)
+@router.get(HEATS, summary="Durchgänge eines Schießstands", responses=NOT_FOUND)
 async def list_heats(
     tournament_id: UUID, range_id: UUID, session: SessionDep, _: StartReader
 ) -> list[HeatOut]:
@@ -515,7 +518,9 @@ async def delete_heat(
 @router.post(
     f"{HEAT}/call",
     summary="Durchgang aufrufen",
-    description="Ruft alle wartenden Starts des Durchgangs auf ihre Bahnen – alle oder keinen.",
+    description=(
+        "Ruft alle wartenden Starts des Durchgangs auf ihre Schützenstände – alle oder keinen."
+    ),
     responses=WRITE,
 )
 async def call_heat(
@@ -531,7 +536,9 @@ async def call_heat(
 
 
 @router.put(
-    f"{START}/slot", summary="Start einem Durchgang und einer Bahn zuweisen", responses=WRITE
+    f"{START}/slot",
+    summary="Start einem Durchgang und einem Schützenstand zuweisen",
+    responses=WRITE,
 )
 async def assign_slot(
     tournament_id: UUID,
@@ -563,8 +570,9 @@ async def clear_slot(
     "/competitions/{competition_id}/next-slot",
     summary="Nächster freier Platz (Vorschlag)",
     description=(
-        "Frühester Durchgang ab `after` (Standard: jetzt) mit freier Bahn auf dem Stand des "
-        "Wettbewerbs. Mit `entry_id` ohne Überschneidung mit den übrigen Durchgängen der Person. "
+        "Frühester Durchgang ab `after` (Standard: jetzt) mit freiem Schützenstand auf dem "
+        "Schießstand des Wettbewerbs. Mit `entry_id` ohne Überschneidung mit den übrigen "
+        "Durchgängen der Person. "
         "`null`, wenn es keinen freien Platz gibt."
     ),
     responses=WRITE,
@@ -593,7 +601,7 @@ async def next_slot(
     "/startlist",
     summary="Startliste",
     description=(
-        "Alle Starts, wahlweise eines Wettbewerbs oder Stands. Namen nur nach der "
+        "Alle Starts, wahlweise eines Wettbewerbs oder Schießstands. Namen nur nach der "
         "Anzeige-Einstellung der Person, der Verein nur mit `show_club`."
     ),
     responses=NOT_FOUND,
@@ -613,9 +621,9 @@ async def get_startlist(
 
 @router.get(
     f"{RANGE}/now",
-    summary="Am Stand und als Nächstes",
+    summary="Am Schießstand und als Nächstes",
     description=(
-        "Belegte Bahnen (aufgerufen oder erfasst, mit Status und Erfassungsfortschritt "
+        "Belegte Schützenstände (aufgerufen oder erfasst, mit Status und Erfassungsfortschritt "
         "`progress`), der nächste Durchgang mit seinen Starts und die nächsten Wartenden der "
         "Reihenfolge. Namen nur nach der Anzeige-Einstellung der Person."
     ),

@@ -1,0 +1,84 @@
+# Bogen 3D – DSB-Disziplinen (ENTWURF)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog dsb.de/fileadmin/dsb/sportordnung/, abgerufen 2026-11-22):
+#   Teil 6: 6.1.1.4 (Kennzahlen), 6.7.1.1 (bis LM: Zielgruppen nach Größe der 11/10/8-Zone mit Entfernungen je Pflock),
+#   6.7.1.2 (DM: blauer Pflock 5–30 m, roter Pflock 5–45 m), 6.7.2 (24 Ziele × 2 Pfeile), 6.7.7.2 (Zonen 11/10/8/5),
+#   6.7.8.1 (stehen oder knien), 6.7.8.3 (120 s je Ziel), 6.7.8.4 (Wertung), 6.7.8.6 (Ergebnisgleichheit);
+#   Teil 0 S. 88 (Übersicht 6.60–6.68: "48 in Passen zu 2 Pfeilen je 2 Minuten").
+#   Klassen bei DM: Tabelle "Bogenwettbewerbe – Regelteil 6 (2026-2028)", Stand 04.11.2025.
+# Änderungen 2026→2027 (Synopse 01.01.2027): 6.7.8.2/6.7.8.3 nur redaktionell; 6.2.3 Langbogen-Pfeile: Nocke direkt
+#   am Holzschaft oder Selfnock (neu). Pfeilzahl, Zeit, Wertung unverändert.
+# Varianten = Pflockfarbe (6.7.1.1/6.7.1.2): blau = Blank-, Lang-, Traditioneller Bogen; rot = Recurve, Compound (alle Klassen).
+# Kurs ausschließlich unbekannte Entfernungen (6.7.7.1); Entfernung je Ziel nicht festgelegt -> keine distanzen_m.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "bogen-3d"
+  name: "Bogen 3D"
+  waffenart: "bogen"
+  art: "bogen-3d"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # 6.7.8.6: größere Anzahl 11er, dann 10er; sonst gleichrangig.
+  gleichstand: ["elfer", "zehner"]
+  geprueft: true # geprüft 2026-11-22: Kennzahlen 6.1.1.4, Pflöcke DM 6.7.1.2, 24 Ziele x 2 Pfeile 6.7.2, 120 s je Ziel 6.7.8.3, Zonen 11/10/8/5 6.7.7.2, Gleichstand 6.7.8.6, Klassen Bogentabelle 2026–2028 – ohne Befund, keine offenen Punkte
+ablaeufe:
+  3d-48:
+    beschreibung: "48 Pfeile: 24 3D-Ziele auf unbekannte Entfernungen, je 2 Pfeile (beide werden gewertet); 120 s je Ziel für die Zweiergruppe am Pflock; Zonen 11/10/8/5"
+    varianten:
+      - id: "blauer-pflock"
+        name: "Blauer Pflock (Blankbogen, Langbogen, Traditioneller Bogen): DM 5–30 m"
+        abschnitte:
+          # zeit_je_serie_s: Zeit gilt je Ziel für die Gruppe von zwei Schützen ab Einnehmen des Pflocks (6.7.8.3).
+          - { id: "parcours", name: "Parcours", serien: 24, schuss_je_serie: 2, zeit_je_serie_s: 120, probeschuesse: "unbegrenzt", ringwerte: [11, 10, 8, 5, 0] }
+      - id: "roter-pflock"
+        name: "Roter Pflock (Recurve, Compound): DM 5–45 m"
+        abschnitte:
+          - { id: "parcours", name: "Parcours", serien: 24, schuss_je_serie: 2, zeit_je_serie_s: 120, probeschuesse: "unbegrenzt", ringwerte: [11, 10, 8, 5, 0] }
+disziplinen:
+  - kennziffer: "6.60"
+    name: "Bogen 3D Recurve"
+    waffe: "Recurvebogen"
+    munition: "Pfeile (6.2.3)"
+    visierung: "Visier (Diopter), ohne mehrere Zielpunkte (6.7.9.7)"
+    anschlag: "stehend oder kniend"
+    scheibe: "3D-Ziel (Zonen 11/10/8/5)"
+    ablauf: "3d-48"
+    hinweis: "Roter Pflock. Alle anderen Klassen ohne Schüler: mögliche Teilnahme in leistungsstärkerer Klasse."
+  - kennziffer: "6.65"
+    name: "Bogen 3D Compound"
+    waffe: "Compoundbogen"
+    munition: "Pfeile (6.2.3)"
+    visierung: "Scope, Peepsight; ohne mehrere Zielpunkte und Peep-Eliminator (6.7.9.7)"
+    anschlag: "stehend oder kniend"
+    scheibe: "3D-Ziel (Zonen 11/10/8/5)"
+    ablauf: "3d-48"
+    hinweis: "Roter Pflock."
+  - kennziffer: "6.66"
+    name: "Bogen 3D Blankbogen"
+    waffe: "Blankbogen"
+    munition: "Pfeile (6.2.3)"
+    visierung: "ohne Visier"
+    anschlag: "stehend oder kniend"
+    scheibe: "3D-Ziel (Zonen 11/10/8/5)"
+    ablauf: "3d-48"
+    hinweis: "Blauer Pflock. Schüler A m/w und Master w neu bei der DM."
+  - kennziffer: "6.67"
+    name: "Bogen 3D Langbogen"
+    waffe: "Langbogen"
+    munition: "Holzpfeile mit Naturfedern, Nocke am Holzschaft oder Selfnock (6.2.3, Fassung 2027)"
+    visierung: "ohne Visier"
+    anschlag: "stehend oder kniend"
+    scheibe: "3D-Ziel (Zonen 11/10/8/5)"
+    ablauf: "3d-48"
+    hinweis: "Blauer Pflock. Senioren m neu bei der DM."
+  - kennziffer: "6.68"
+    name: "Bogen 3D Traditioneller Bogen"
+    waffe: "Traditioneller Bogen"
+    munition: "Pfeile (6.2.3)"
+    visierung: "ohne Visier"
+    anschlag: "stehend oder kniend"
+    scheibe: "3D-Ziel (Zonen 11/10/8/5)"
+    ablauf: "3d-48"
+    hinweis: "Blauer Pflock. Schüler A m/w, Jugend m/w, Master w und Senioren m neu bei der DM."

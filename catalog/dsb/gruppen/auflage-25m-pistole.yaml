@@ -1,0 +1,56 @@
+# Auflage 25 m Sportpistole – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog dsb.de/fileadmin/dsb/sportordnung/, abgerufen 2026-11-22),
+#   Teil 9: 9.1–9.8 und Wettbewerbstabelle Auflagewettbewerbe (Teil 9 S. 8); Teil 0: Wettbewerbstabelle 0.21
+#   (Teil 0 S. 81), Scheiben 0.20, Ergebnisgleichheit 0.12, Mannschaft 0.7.2.2.
+# Anschlag: Kl. 70–73 (Senioren I–II) nur stehend aufgelegt; Kl. 74–81 (Senioren III–VI) stehend oder sitzend
+#   aufgelegt auf Hocker ohne Lehne (9.7.6.1). Ganzer Wettkampf im gleichen Anschlag (9.7.6 Nr. 9).
+#   Sitzend auch für Para-Sportschützen mit Hilfsmittelausweis bzw. Eintrag G/aG im Schwerbehindertenausweis (9.7.7).
+# Änderungen 2026→2027 in Teil 9 (Synopse 01.01.2027): nur Ausrüstung (9.7.2 Schaftkappe, 9.7.3 Visierlinien-
+#   rückverlagerung) und 9.8.3.1 (nichtzielender Arm keine Stütze); Schusszahl, Zeiten, Wertung unverändert.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "auflage-25m-pistole"
+  name: "Auflage 25 m Sportpistole"
+  waffenart: "kurzwaffe"
+  distanz_m: 25
+  art: "auflage"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # SpO 9.4.1 (volle Ringwertung, Plätze 1–6): Zehnerserien von hinten, Anzahl 10er/9er/8er …, Innenzehner,
+  #   Gesamtergebnis in Zehnteln; dann gleicher Rang. Bei 300 Ringen Stechen nach 9.4.3 (siehe Notiz).
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner", "zehntel_gesamt"]
+  geprueft: false
+ablaeufe:
+  praezision-6x5:
+    beschreibung: "30 Schuss aufgelegt, nur Präzision: 6 Serien à 5 Schuss in je 150 s; vorher 1 Probeserie in 150 s"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "praezision"
+            name: "Präzision"
+            serien: 6
+            schuss_je_serie: 5
+            zeit_je_serie_s: 150   # SpO 9.3, Tabelle Teil 9
+            vorbereitung_probe_s: 150   # 1 Probeserie in 150 s vor den Wertungsserien (SpO 9.2)
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 4, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 5, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 6, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+disziplinen:
+  - kennziffer: "2.42"
+    name: "25 m Sportpistole Auflage - Präzision"
+    waffe: "Sportpistole (Mehrlader)"
+    munition: "5,6 mm (.22 l.r./.22 lfb) Randzünder"
+    visierung: "offen (Kimme/Korn), kein Zielhilfsmittel"
+    anschlag: "stehend aufgelegt (Kl. 70–73); stehend oder sitzend aufgelegt (Kl. 74–81)"
+    scheibe: "DSB-Scheibe Nr. 4 (25 m Pistole Präzision)"
+    ablauf: "praezision-6x5"
+    # geprüft 2026-11-22: Auflagemaße (Teil 9 S. 9) und max. 1 Schuss je Scheibe (Tabelle Teil 9 S. 8) ergänzt.
+    hinweis: "Kein Duellteil. Max. 1400 g; Abzug mind. 1000 g; Prüfkasten 300 × 150 × 50 mm; Lauflänge 10–15,3 cm; Auflagefläche unterhalb des Griffes, Länge (Vorderkante bis Fingerrille) 40 mm, Breite lt. Prüfkasten (Teil 9 S. 9); max. 1 Schuss je Scheibe; Pistole darf vor dem Startkommando aufgelegt sein (9.8.3 Nr. 6); Störungen wie 25 m Standardpistole, nur 1 Wiederholung (9.8.4)."

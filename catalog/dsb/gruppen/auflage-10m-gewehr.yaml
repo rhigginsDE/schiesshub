@@ -1,0 +1,76 @@
+# Auflage 10 m Luftgewehr – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog dsb.de/fileadmin/dsb/sportordnung/, abgerufen 2026-11-22),
+#   Teil 9: 9.1–9.8 und Wettbewerbstabelle Auflagewettbewerbe (Teil 9 S. 8); Teil 0: Wettbewerbstabelle 0.21
+#   (Teil 0 S. 76), Scheiben 0.20, Ergebnisgleichheit 0.12, Mannschaft 0.7.2.2.
+# Anschlag: Kl. 70–73 (Senioren I–II) nur stehend aufgelegt; Kl. 74–81 (Senioren III–VI) stehend oder sitzend
+#   aufgelegt auf Hocker ohne Lehne (9.7.6.1). Ganzer Wettkampf im gleichen Anschlag (9.7.6 Nr. 9).
+#   Sitzend auch für Para-Sportschützen mit Hilfsmittelausweis bzw. Eintrag G/aG im Schwerbehindertenausweis (9.7.7).
+# Änderungen 2026→2027 in Teil 9 (Synopse 01.01.2027): nur Ausrüstung (9.7.2 Schaftkappe, 9.7.3 Visierlinien-
+#   rückverlagerung) und 9.8.3.1 (nichtzielender Arm keine Stütze); Schusszahl, Zeiten, Wertung unverändert.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "auflage-10m-gewehr"
+  name: "Auflage 10 m Luftgewehr"
+  waffenart: "langwaffe"
+  distanz_m: 10
+  art: "auflage"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # SpO 9.4: Zehntelwertung auf DM und Landesmeisterschaften für 1.11, 2.11, 1.41, 1.36. Darunter nennt 9.4 nur
+  #   die Wertung gemäß 0.11 ff. (ganze Ringe), sofern die Ausschreibung nichts anderes bestimmt.
+  zehntelwertung: true
+  # SpO 9.4.1 (Zehntelwertung, Plätze 1–6): Gesamtsumme in Zehnteln, dann letzte Zehnerserie in Zehnteln
+  #   rückwärts vergleichend; danach gleicher Platz. Bei ganzen Ringen gilt 9.4.1 "volle Ringwertung" (siehe Notiz).
+  gleichstand: ["letzte_serie_rueckwaerts"]
+  geprueft: false
+ablaeufe:
+  auflage-30-10m:
+    beschreibung: "30 Schuss aufgelegt; 55 Min. (Zuganlage) bzw. 45 Min. (andere Systeme) inkl. Probe"
+    varianten:
+      - id: "zuganlage"
+        name: "Zuganlage"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            serien: 3
+            schuss_je_serie: 10
+            probeschuesse: "unbegrenzt"   # SpO 9.2, nur vor dem ersten Wertungsschuss
+            wettkampfzeit_s: 3300   # inkl. Probe (SpO 9.3)
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+      - id: "andere-systeme"
+        name: "Andere Systeme (z. B. elektronische Scheiben)"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            serien: 3
+            schuss_je_serie: 10
+            probeschuesse: "unbegrenzt"   # SpO 9.2, nur vor dem ersten Wertungsschuss
+            wettkampfzeit_s: 2700   # inkl. Probe (SpO 9.3)
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+    # geprüft 2026-11-22: Endkampf ergänzt. Teil 15 S. 2–4 enthält "Endkampfregeln für die Auflagewettbewerbe des DSB"
+    #   (10 m / 50 m / 100 m Gewehr und 10 m Luftpistole, Seniorinnen und Senioren). Ob das Vorkampfergebnis übertragen
+    #   wird, sagt der Abschnitt nicht ausdrücklich (er beruht auf den ISSF-Finalregeln, dort Start bei null).
+    finale:
+      teilnehmer: 8
+      abschnitt: "SpO Teil 15 S. 2–4 (Endkampfregeln Auflage)"
+      hinweis: "DM: Endkampf in Senioren I m/w und Senioren III m/w (DM-Schusszahlentabelle, Fußnote Endkampf im Auflagebereich). Zehntelwertung; 5 Min. Vorbereitung mit unbegrenzter Probe; 2×5 Schuss in je 250 s, dann 14 Einzelschüsse in je 50 s; nach dem 12. Schuss scheidet der Letzte aus, danach nach jedem zweiten Schuss; 24 Schuss; Gleichstand beim Ausscheiden durch Stechschüsse."
+disziplinen:
+  - kennziffer: "1.11"
+    # geprüft 2026-11-22: name "Luftgewehr Auflage" → "Luftgewehr Auflage 10 m" (Wettbewerbstabelle 0.21, Teil 0 S. 76).
+    name: "Luftgewehr Auflage 10 m"
+    waffe: "Luftgewehr (Einzellader oder Mehrlader als Einzellader)"
+    munition: "4,5 mm (.177)"
+    visierung: "Diopter/Korn (optische Zielhilfsmittel nach 0.5.3.1)"
+    anschlag: "stehend aufgelegt (Kl. 70–73); stehend oder sitzend aufgelegt (Kl. 74–81)"
+    scheibe: "DSB-Scheibe Nr. 1 (10 m Gewehr)"
+    ablauf: "auflage-30-10m"
+    hinweis: "Zehntelwertung auf DM und LM (9.4). Max. 5500 g; kein Stecher; Systemlänge max. 850 mm; Auflagepunkt max. 550 mm ab Systemeinbettung, Auflagenbreite am Schaft max. 60 mm; keine Hakenkappe; max. 1 Schuss je Scheibe."

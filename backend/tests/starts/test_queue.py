@@ -73,13 +73,13 @@ async def test_call_lane_collision_and_gapless_queue(api: Api, queue_setup: Setu
     assert queue["lanes"][0]["start"] is None
 
     detail = await api.fail("POST", f"{path}/{s1['id']}/call", 409, json={"lane": 2})
-    assert detail == "Bahn 2 ist schon belegt."
+    assert detail == "Schützenstand 2 ist schon belegt."
     detail = await api.fail("POST", f"{path}/{s1['id']}/call", 422, json={"lane": 3})
-    assert detail == "Der Stand hat nur 2 Bahnen."
+    assert detail == "Der Schießstand hat nur 2 Schützenstände."
     # Ohne Bahn: die erste freie.
     assert (await api.ok("POST", f"{path}/{s1['id']}/call", json={}))["lane"] == 1
     detail = await api.fail("POST", f"{path}/{s3['id']}/call", 409, json={})
-    assert detail == "Alle Bahnen des Stands sind belegt."
+    assert detail == "Alle Schützenstände des Schießstands sind belegt."
 
 
 async def test_same_person_not_on_two_lanes(api: Api, queue_setup: Setup) -> None:
@@ -91,7 +91,7 @@ async def test_same_person_not_on_two_lanes(api: Api, queue_setup: Setup) -> Non
 
     await api.ok("POST", f"{path}/{first['id']}/call", json={})
     detail = await api.fail("POST", f"{path}/{other['id']}/call", 409, json={})
-    assert detail.startswith("Startnummer 1 steht gerade schon auf einer Bahn.")
+    assert detail.startswith("Startnummer 1 steht gerade schon auf einem Schützenstand.")
 
 
 async def test_call_next_fills_free_lanes_and_skips_busy_person(

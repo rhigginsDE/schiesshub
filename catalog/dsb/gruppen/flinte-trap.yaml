@@ -1,0 +1,113 @@
+# Flinte Trap und Doppeltrap (ISSF-Disziplinen) – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027, Teil 3: 3.1–3.9 (allgemein ISSF), 3.10 Trap, 3.12 Trap Team Mixed,
+#   3.15 Doppeltrap (Teil 3 S. 1–26); Teil 0 Wettbewerbstabelle (Teil 0 S. 83); Teil 15: 15.3 Finalregeln Flinte,
+#   15.4 Stechen (Teil 15 S. 30–34). DM-Klassen: Tabelle Wettbewerbe/Klassen DM 2025–2028.
+# Änderungen 2026→2027: Synopse nennt für Teil 3 und 15.3/15.4 keine Änderungen (nur allgemeine Teil-0-Punkte).
+# FORMAT: gruppe.art "wurfscheibe" gibt es noch nicht (siehe Notiz, Formatbedarf). Treffer werden als
+#   Ringwerte [1, 0] erfasst (1 = TREFFER, 0 = FEHLER; Protokoll "I"/"0").
+#   Doppeltrap: jede Doublette = 2 Wurfscheiben, jede einzeln 1/0; ziele_je_serie zählt Wurfscheiben (15 Doubletten = 30).
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "flinte-trap"
+  name: "Flinte Trap"
+  waffenart: "flinte"
+  art: "wurfscheibe"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # SpO 3.9.1.1: Platz 1–6 Stechen, wenn kein Finale (Durchführung 15.4.1 Trap / 15.4.2 Doppeltrap).
+  # SpO 3.9.1.2: ab Platz 7 letzte Serie (25 WS bzw. 15 Doubletten) und weiter rückwärts, dann Trefferfolge
+  #   ab der letzten Scheibe rückwärts bis zum ersten Fehler. Mannschaft: 3.9.1.3 (sinngemäß, Summe der Mitglieder).
+  gleichstand: ["stechen", "letzte_serie_rueckwaerts", "trefferfolge_rueckwaerts"]
+  stechen_bis_platz: 6
+  geprueft: true   # geprüft 2026-11-22 gegen SpO 2027 Teil 0 (0.20, 0.21), Teil 3 (3.1–3.15), Teil 15 (15.3, 15.4)
+ablaeufe:
+  trap:
+    beschreibung: "Trap: 125 Wurfscheiben in 5 Serien zu je 25, bis zu 2 Schuss je Scheibe; Schüler 75 Geradeausscheiben in 3 Serien, 1 Schuss je Scheibe"
+    finale:
+      teilnehmer: 6
+      # geprüft 2026-11-22: Ausscheiden präzisiert (nach 25, 30, 35, 40; zuletzt 10 Scheiben), SpO 15.3.3
+      hinweis: "Nur Herren I, Damen I, Junioren I m/w. Finale beginnt bei null, 1 Schuss je Scheibe; nach 25, 30, 35 und 40 Scheiben scheidet jeweils der Letzte aus, Sieg nach 50 Scheiben."
+      abschnitt: "SpO 15.3.1, 15.3.3"
+    varianten:
+      - id: "standard"
+        name: "Alle Klassen (125 Scheiben)"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf"
+            serien: 5                 # SpO 3.10.1; je Serie 5 Scheiben von jeder der 5 Positionen (3.10.6.3)
+            ziele_je_serie: 25
+            max_schuss_je_serie: 50   # bis zu 2 Schuss je Wurfscheibe (SpO 3.10.1)
+            ringwerte: [1, 0]
+      - id: "schueler"
+        name: "Schüler (75 Geradeausscheiben)"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf"
+            serien: 3                 # SpO 3.10.1: Schüler (Klassen 20, 21) 75 Geradeausscheiben
+            ziele_je_serie: 25
+            schuss_je_serie: 25       # Schüler nur ein Schuss je Scheibe (SpO 3.10.1)
+            ringwerte: [1, 0]
+  trap-team-mixed:
+    beschreibung: "Trap Team Mixed: je Teammitglied 75 Wurfscheiben in 3 Serien zu je 25 (Team 150), Regeln wie Trap"
+    finale:
+      teilnehmer: 6
+      hinweis: "Beste 6 Teams; Wechsel des Schützen nach je 5 Scheiben, sonst Ablauf wie Trap-Finale."
+      abschnitt: "SpO 3.12.2, 15.3.4"
+    varianten:
+      - id: "standard"
+        name: "Je Teammitglied"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf (je Teammitglied)"
+            serien: 3                 # SpO 3.12.1
+            ziele_je_serie: 25
+            max_schuss_je_serie: 50   # Regeln wie Trap 3.10 (SpO 3.12.2)
+            ringwerte: [1, 0]
+  doppeltrap:
+    beschreibung: "Doppeltrap: 150 Wurfscheiben in 5 Serien zu je 15 Doubletten, je Scheibe 1 Schuss"
+    finale:
+      teilnehmer: 6
+      # geprüft 2026-11-22: Finalklassen ergänzt (15.3.1 gilt klassenbezogen, auch für Doppeltrap), Ausscheiden präzisiert (15.3.5)
+      hinweis: "Nur Herren I, Damen I, Junioren I m/w (15.3.1). Finale beginnt bei null; nach 15, 20, 25 und 30 Doubletten scheidet jeweils der Letzte aus, Sieg nach 40 Doubletten."
+      abschnitt: "SpO 15.3.1, 15.3.5"
+    varianten:
+      - id: "standard"
+        name: "Alle Klassen (150 Scheiben)"
+        abschnitte:
+          - id: "wettkampf"
+            name: "Wettkampf"
+            serien: 5                 # SpO 3.15.1; je Serie 3 Doubletten (Schema A, B, C) von jeder der 5 Positionen (3.15.5.2)
+            ziele_je_serie: 30        # 15 Doubletten = 30 Wurfscheiben
+            schuss_je_serie: 30
+            ringwerte: [1, 0]
+disziplinen:
+  - kennziffer: "3.10"
+    name: "Trap"
+    waffe: "Flinte bis Kaliber 12, auch halbautomatisch (Magazin max. 1 Patrone); keine Vorderschaft-/Unterhebelrepetierer, kein Release-Abzug, kein Leuchtpunkt, kein Kompensator"
+    munition: "Kal. 12/70; Schrotladung max. 24,5 g, kugelförmige Schrote max. 2,6 mm; transparenter Schrotbecher"
+    visierung: "Laufschiene/Korn"
+    anschlag: "stehend"
+    scheibe: "Wurfscheibe, Scheibe Nr. 11 (Olympischer Trapgraben, 15 Maschinen, Schema 1–9)"   # geprüft 2026-11-22: Scheibe Nr. 11 ergänzt (Teil 0 S. 83, 0.20)
+    ablauf: "trap"
+    hinweis: "Schüler (20/21): Variante schueler. Finale nur Herren I, Damen I, Junioren I m/w (15.3.1); übrige Klassen Platz 1–6 per Stechen."
+  - kennziffer: "3.12"
+    name: "Trap Team Mixed"
+    waffe: "wie 3.10"
+    munition: "wie 3.10"
+    visierung: "Laufschiene/Korn"
+    anschlag: "stehend"
+    scheibe: "Wurfscheibe, Scheibe Nr. 11 (Olympischer Trapgraben)"
+    ablauf: "trap-team-mixed"
+    hinweis: "Team aus einem männlichen und einem weiblichen Mitglied; in der Rotte nebeneinander, zuerst der Mann. DM: Team Junioren (40/41) und Team Dame/Herr (10/11)."
+  - kennziffer: "3.15"
+    name: "Doppeltrap"
+    waffe: "wie 3.10"
+    munition: "wie 3.10"
+    visierung: "Laufschiene/Korn"
+    anschlag: "stehend"
+    scheibe: "Wurfscheibe, Scheibe Nr. 11 (Doublette, 3 Maschinen, Schema A/B/C)"
+    ablauf: "doppeltrap"
+    hinweis: "Verwarnungen/Störungen je Serie von 15 Doubletten (3.5.5, 3.3). Damen starten in der jeweiligen Herrenklasse."

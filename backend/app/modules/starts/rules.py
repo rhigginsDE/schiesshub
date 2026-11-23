@@ -1,7 +1,7 @@
 """Reine Regeln des Moduls `starts`: ohne Datenbank, einzeln getestet.
 
 Statusmaschine, Startgeld, Mehrfachstart, Startnummern, Reihenfolge, Durchgangsserien und die
-Bahnvergabe beim „nächste aufrufen“.
+Vergabe der Schützenstände beim „nächste aufrufen“.
 """
 
 from collections.abc import Iterable, Mapping, Sequence
@@ -27,7 +27,7 @@ STATUS_LABELS: dict[str, str] = {
 # Erlaubte Übergänge. `called → registered` ist „zurückstellen“, `final → captured` das
 # Wiederöffnen eines abgeschlossenen Ergebnisses durch das Ergebnis-Modul (mit Grund).
 # `registered → captured` ist die nachträgliche Erfassung ohne Aufrufen (kleine Vereine rufen
-# nicht auf); bei der Reihenfolge bleibt die Bahn dann leer.
+# nicht auf); bei der Reihenfolge bleibt der Schützenstand dann leer.
 TRANSITIONS: Mapping[StartStatus, frozenset[StartStatus]] = {
     "registered": frozenset({"called", "captured", "aborted"}),
     "called": frozenset({"registered", "captured", "aborted"}),
@@ -37,7 +37,8 @@ TRANSITIONS: Mapping[StartStatus, frozenset[StartStatus]] = {
 }
 REASON_REQUIRED: frozenset[tuple[StartStatus, StartStatus]] = frozenset({("final", "captured")})
 
-# Ab hier hat ein Start eine Bahn belegt oder ein Ergebnis; eine Anmeldung damit bleibt stehen.
+# Ab hier hat ein Start einen Schützenstand belegt oder ein Ergebnis; eine Anmeldung damit
+# bleibt stehen.
 SHOT_STATUSES: frozenset[StartStatus] = frozenset({"called", "captured", "final"})
 
 # Schlüssel in `tournament.settings` (Modul `turnier`): erste automatisch vergebene Startnummer.
@@ -78,7 +79,7 @@ def check_transition(
 
 
 def has_result(status: str, abort_reason: str | None) -> bool:
-    """Ob ein Start schon geschossen wurde (oder gerade auf der Bahn steht)."""
+    """Ob ein Start schon geschossen wurde (oder gerade auf dem Schützenstand steht)."""
     if status in SHOT_STATUSES:
         return True
     return status == "aborted" and abort_reason in ("dnf", "dsq")
@@ -149,21 +150,22 @@ class Waiting:
 
 @dataclass(frozen=True, slots=True)
 class Distribution:
-    # (Start, Bahn) in der Reihenfolge der Vergabe.
+    # (Start, Schützenstand) in der Reihenfolge der Vergabe.
     picks: list[tuple[UUID, int]]
     # Starts, die vor oder zwischen den Vergebenen standen, aber übersprungen wurden, weil ihre
-    # Person schon auf einer Bahn steht (oder in diesem Durchlauf eine bekommen hat).
+    # Person schon auf einem Schützenstand steht (oder in diesem Durchlauf einen bekommen hat).
     skipped: list[UUID]
 
 
 def distribute_lanes(
     free_lanes: Sequence[int], waiting: Sequence[Waiting], busy_entries: Iterable[UUID]
 ) -> Distribution:
-    """Verteilt die Wartenden der Reihe nach auf die freien Bahnen.
+    """Verteilt die Wartenden der Reihe nach auf die freien Schützenstände.
 
-    Wer schon auf einer Bahn steht (oder in diesem Durchlauf eine bekommt), wird übersprungen
+    Wer schon auf einem Schützenstand steht (oder in diesem Durchlauf einen bekommt), wird
+    übersprungen
     und bleibt an seinem Platz in der Reihenfolge. Übersprungen zählt nur, wer drangekommen
-    wäre, solange noch eine Bahn frei war.
+    wäre, solange noch ein Schützenstand frei war.
     """
     busy = set(busy_entries)
     lanes = list(free_lanes)
@@ -208,12 +210,12 @@ def first_free_lane(lane_count: int, taken: Iterable[int]) -> int | None:
     return next((lane for lane in range(1, lane_count + 1) if lane not in used), None)
 
 
-# --- Zeitplan und Reihenfolge auf einem Stand --------------------------------
+# --- Zeitplan und Reihenfolge auf einem Schießstand ---------------------------
 
 # Schlüssel in `tournament.settings` (Modul `turnier`): So viele Minuten vor Beginn eines
-# Durchgangs hält der Stand dessen gebuchte Bahnen für ihn frei; Aufrufe aus der Reihenfolge
-# auf diese Bahnen brauchen dann eine Bestätigung. 0 = aus. Fehlt er (ältere Turniere), gilt
-# der Standard.
+# Durchgangs hält der Schießstand dessen gebuchte Schützenstände für ihn frei; Aufrufe aus der
+# Reihenfolge auf diese Schützenstände brauchen dann eine Bestätigung. 0 = aus. Fehlt er (ältere
+# Turniere), gilt der Standard.
 HEAT_RESERVE_SETTING = "heat_reserve_minutes"
 DEFAULT_HEAT_RESERVE_MINUTES = 10
 
@@ -226,7 +228,7 @@ def heat_reserve_minutes(settings: Mapping[str, Any]) -> int:
 
 
 def heat_is_reserving(starts_at: datetime, ends_at: datetime, now: datetime, minutes: int) -> bool:
-    """Ob ein Durchgang seine Bahnen jetzt freihält: Er beginnt innerhalb von `minutes`
+    """Ob ein Durchgang seine Schützenstände jetzt freihält: Er beginnt innerhalb von `minutes`
     Minuten oder hat schon begonnen und ist noch nicht vorbei. Mit 0 Minuten nie."""
     if minutes <= 0:
         return False
@@ -234,8 +236,8 @@ def heat_is_reserving(starts_at: datetime, ends_at: datetime, now: datetime, min
 
 
 def lane_list(lanes: Iterable[int]) -> str:
-    """„Bahn 3“, „Bahnen 1 und 3“, „Bahnen 1, 2 und 4“."""
+    """„Schützenstand 3“, „Schützenstände 1 und 3“, „Schützenstände 1, 2 und 4“."""
     numbers = [str(lane) for lane in sorted(set(lanes))]
     if len(numbers) == 1:
-        return f"Bahn {numbers[0]}"
-    return f"Bahnen {', '.join(numbers[:-1])} und {numbers[-1]}"
+        return f"Schützenstand {numbers[0]}"
+    return f"Schützenstände {', '.join(numbers[:-1])} und {numbers[-1]}"

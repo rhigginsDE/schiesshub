@@ -1,4 +1,5 @@
-"""Voreinstellung der Planung aus dem Ablauf ableiten (docs/ARCHITEKTUR.md, „Ablauf am Stand“).
+"""Voreinstellung der Planung aus dem Ablauf ableiten (docs/ARCHITEKTUR.md, Abschnitt
+„Ablauf am Schießstand“).
 
 Haben alle Abschnitte einer Variante eine feste Zeit je Serie (`zeit_je_serie_s`) oder eine
 vollständige Zeitliste (`zeiten_s`), ist der Wettbewerb planbar: Zeitplan mit einer Dauer je

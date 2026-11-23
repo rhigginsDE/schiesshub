@@ -384,9 +384,13 @@ async def needs_review(tournament_id: UUID, session: SessionDep, _: Reader) -> l
         "Platzierungen je Klasse (bei gemeinsamer Wertung eine Gruppe). `scope=live` nimmt "
         "laufende Zwischenstände auf (`status: running`). `merged=true` legt Klassen über "
         "`merge_into_id` zusammen. Namen nur nach Anzeige-Einstellung der Person. "
-        "Abgebrochene Starts (nicht angetreten, aufgegeben, disqualifiziert) bekommen nie einen "
-        "Platz: Sie stehen am Ende ihrer Gruppe ohne Platz (`group: unranked`, `abort_reason`); "
-        "`include_aborted=false` lässt sie weg. In `scope=final` stehen auch unvollständige "
+        "Ein Abbruch nach dem Kommando „Feuer“ (aufgegeben mit erfassten Werten) wird nach dem "
+        "bis dahin erzielten Ergebnis platziert (Sporthandbuch K 1.14 / L 1.12; nicht "
+        "geschossene Serien nach der Regel der Wertung; `abort_label`: „Abbruch (AB)“). Ohne "
+        "Platz bleiben nicht angetreten, disqualifiziert, Abbruch ohne Wertungswert und "
+        "Abbrüche ohne vergleichbares Ergebnis (`abort_note`): Sie stehen am Ende ihrer Gruppe "
+        "(`group: unranked`, `abort_reason`); `include_aborted=false` lässt sie weg. "
+        "In `scope=final` stehen auch unvollständige "
         "Ergebnisse ohne Platz da."
     ),
     responses=NOT_FOUND,

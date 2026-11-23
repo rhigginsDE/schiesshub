@@ -69,8 +69,8 @@ async def test_captured_start_keeps_its_lane(api: Api, queue_setup: Setup) -> No
     response = await api.client.post(f"/api/v1{path}/starts/{third['id']}/call", json={"lane": 1})
     assert response.status_code == 409
     assert response.json() == {
-        "detail": "Bahn 1 ist schon belegt.",
-        "errors": [{"field": "lane", "message": "Bahn 1 ist schon belegt."}],
+        "detail": "Schützenstand 1 ist schon belegt.",
+        "errors": [{"field": "lane", "message": "Schützenstand 1 ist schon belegt."}],
     }
 
     # Abschließen gibt die Bahn frei; die Angabe `lane` bleibt.
@@ -92,7 +92,7 @@ async def test_release_lane(api: Api, queue_setup: Setup) -> None:
     start = await _start(api, setup)
     path = f"/tournaments/{setup.tid}/starts/{start['id']}"
     detail = await api.fail("POST", f"{path}/release-lane", 409)
-    assert detail == "Der Start steht auf keiner Bahn."
+    assert detail == "Der Start steht auf keinem Schützenstand."
     await api.ok("POST", f"{path}/call", json={})
     detail = await api.fail("POST", f"{path}/release-lane", 409)
     assert "zurückstellen" in detail
@@ -153,7 +153,7 @@ async def test_person_on_lane_with_captured_start_is_skipped(api: Api, queue_set
     assert result["called"] == []
     assert [item["start_id"] for item in result["skipped"]] == [later["id"]]
     detail = await api.fail("POST", f"{path}/starts/{later['id']}/call", 409, json={})
-    assert "steht gerade schon auf einer Bahn" in detail
+    assert "steht gerade schon auf einem Schützenstand" in detail
 
 
 async def test_reopen_does_not_occupy_the_lane_again(api: Api, queue_setup: Setup) -> None:

@@ -1,0 +1,108 @@
+# Feldarmbrust (IAU) – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22), Teil 5: 5.1.4, 5.4.4, 5.5.3,
+#   5.14 (Disziplin 5.40) mit 5.14.1.1, 5.14.1.4, 5.14.2–5.14.2.6 und Wettbewerbstabelle Armbrust (Teil 5 S. 17);
+#   Teil 0: 0.21 (S. 86), Scheiben Nr. 18 und Nr. 21 (0.20, S. 72 und S. 74).
+# Feldarmbrust steht nicht in der DM-Tabelle 2025–2028 (keine DM-Klassen). IAU-1800 (2 Tage, 5.14.2.6) hat keine
+#   eigene Kennziffer und ist daher nicht aufgenommen.
+# geprüft 2026-11-22: Tabelle Teil 5 S. 17 für 5.41–5.43 (nicht sicher zuordenbar, daher pruefen waffe/visierung):
+#   Spalte Gewicht/Sehnenlänge "≤10000 g" und "≤900 mm"; Schäftung frei, Visierlinie ≤760 mm; Visierhilfe Wasserwaage,
+#   Visiereinrichtung mit Zubehör 150 mm.
+# Änderungen 2026→2027 in Teil 5: keine. Teil 0, Scheibe Nr. 18: nur Satz zur Ziffernbeschriftung ergänzt (Synopse).
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "feldarmbrust"
+  name: "Feldarmbrust"
+  waffenart: "armbrust"
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # SpO 5.14.2.2: mehr Treffer, dann mehr Innenzehner, dann mehr Zehner; sonst gleicher Rang.
+  gleichstand: ["mehr_treffer", "innenzehner", "zehner"]
+  geprueft: false
+ablaeufe:
+  # geprüft 2026-11-22: IAU 600 in 18 m und 25 m getrennt, damit die zwei Probeserien für 18 m (5.14.2.1) eingetragen
+  #   werden können; für 25 m regelt 5.14.2.1 keine Probe (alt: ein gemeinsamer Ablauf iau-600 ohne Probeschüsse).
+  iau-600-18:
+    beschreibung: "60 Pfeile: 20 Serien zu 3 Pfeilen in je 3 Min.; zwei Probeserien zu 3 Pfeilen in je 5 Min."
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            serien: 20
+            schuss_je_serie: 3
+            zeit_je_serie_s: 180      # 5.14.2; 0.21
+            probeschuesse: 6          # zwei Probeserien à 3 Pfeile, je 5 Min. (5.14.2.1, 18 m)
+  iau-600-25:
+    beschreibung: "60 Pfeile: 20 Serien zu 3 Pfeilen in je 3 Min.; Probe für 25 m in der SpO nicht geregelt"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            serien: 20
+            schuss_je_serie: 3
+            zeit_je_serie_s: 180      # 5.14.2; 0.21
+  iau-900:
+    beschreibung: "90 Pfeile: je 30 auf 65 m, 50 m, 35 m; Serien zu 3 Pfeilen in je 3 Min."
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "distanz-65"
+            name: "65 m"
+            serien: 10
+            schuss_je_serie: 3
+            zeit_je_serie_s: 180
+            distanzen_m: [65, 65, 65, 65, 65, 65, 65, 65, 65, 65]
+            probeschuesse: 6          # zwei Probeserien à 3 Pfeile, je 5 Min. (5.14.2.1)
+          - id: "distanz-50"
+            name: "50 m"
+            serien: 10
+            schuss_je_serie: 3
+            zeit_je_serie_s: 180
+            distanzen_m: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50]
+            probeschuesse: 3          # eine Probeserie (5.14.2.1)
+          - id: "distanz-35"
+            name: "35 m"
+            serien: 10
+            schuss_je_serie: 3
+            zeit_je_serie_s: 180
+            distanzen_m: [35, 35, 35, 35, 35, 35, 35, 35, 35, 35]
+            probeschuesse: 3          # eine Probeserie (5.14.2.1)
+disziplinen:
+  - kennziffer: "5.41"
+    name: "Feldarmbrust IAU 600 – 18 m"
+    waffe: "Armbrust jeder Art mit mechanischem Abzug und Pfeilsperre (5.14.1.4), max. 10 000 g"
+    munition: "Pfeile 304–457 mm, Spitzenwinkel max. 65°, mit Initialen gekennzeichnet"
+    visierung: "Diopter/Korn, Wasserwaage erlaubt"
+    anschlag: "stehend"
+    scheibe: "DSB-Scheibe Nr. 18 (Dreifachauflage, Wertung 10–6)"
+    ablauf: "iau-600-18"
+    hinweis: "Hallenwettbewerb 18 m. Zwei Probeserien. Nicht in der DM-Tabelle 2025–2028."
+    pruefen: ["waffe", "visierung"]
+  - kennziffer: "5.42"
+    name: "Feldarmbrust IAU 600 – 25 m"
+    waffe: "Armbrust jeder Art mit mechanischem Abzug und Pfeilsperre (5.14.1.4), max. 10 000 g"
+    munition: "Pfeile 304–457 mm, Spitzenwinkel max. 65°, mit Initialen gekennzeichnet"
+    visierung: "Diopter/Korn, Wasserwaage erlaubt"
+    anschlag: "stehend"
+    scheibe: "laut 0.21 Scheibe Nr. 18; laut Scheibentabelle 0.20 Scheibe Nr. 21, Auflage 40 cm (Widerspruch, offen)"
+    ablauf: "iau-600-25"
+    hinweis: "25 m. Anzahl Probeserien für 25 m in 5.14.2.1 nicht geregelt. Nicht in der DM-Tabelle 2025–2028."
+    pruefen: ["scheibe", "waffe", "visierung"]
+  - kennziffer: "5.43"
+    name: "Feldarmbrust IAU 900"
+    waffe: "Armbrust jeder Art mit mechanischem Abzug und Pfeilsperre (5.14.1.4), max. 10 000 g"
+    munition: "Pfeile 304–457 mm, Spitzenwinkel max. 65°, mit Initialen gekennzeichnet"
+    visierung: "Diopter/Korn, Wasserwaage erlaubt"
+    anschlag: "stehend"
+    scheibe: "65 m und 50 m: Scheibe Nr. 21, Auflage 60 cm; 35 m: Scheibe Nr. 18 (laut 0.20; 0.21 nennt nur Nr. 18)"
+    ablauf: "iau-900"
+    hinweis: "Reihenfolge 65 m – 50 m – 35 m an einem Tag (5.14.2.5). Nicht in der DM-Tabelle 2025–2028."
+    pruefen: ["scheibe", "waffe", "visierung"]

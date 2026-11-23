@@ -90,7 +90,8 @@ async def test_call_next_on_one_lane_skips_person_on_another_range(
     ]
     assert result["held_lanes"] == []
     assert result["message"] == (
-        f"Startnummer {ilse['start_number']} steht gerade auf einer Bahn und wurde übersprungen."
+        f"Startnummer {ilse['start_number']} steht gerade auf einem Schützenstand und wurde "
+        "übersprungen."
     )
     # Bahn 1 blieb frei, Ilse behält ihren Platz.
     queue = await api.ok("GET", f"/tournaments/{setup.tid}/ranges/{setup.range_id}/queue")
@@ -99,9 +100,11 @@ async def test_call_next_on_one_lane_skips_person_on_another_range(
 
     response = await api.client.post(f"/api/v1{call_next}", json={"lane": 2})
     assert response.status_code == 409
-    assert response.json()["errors"] == [{"field": "lane", "message": "Bahn 2 ist schon belegt."}]
+    assert response.json()["errors"] == [
+        {"field": "lane", "message": "Schützenstand 2 ist schon belegt."}
+    ]
     detail = await api.fail("POST", call_next, 422, json={"lane": 3})
-    assert detail == "Der Stand hat nur 2 Bahnen."
+    assert detail == "Der Schießstand hat nur 2 Schützenstände."
     # Nur Ilse wartet, sie steht noch drüben: niemand wird aufgerufen.
     result = await api.ok("POST", call_next, json={"lane": 1})
     assert result["called"] == []
@@ -176,7 +179,7 @@ async def test_imminent_heat_holds_its_lanes(api: Api, mixed: dict[str, Any]) ->
         (waiting[1]["id"], 2),
     ]
     assert result["held_lanes"] == [3]
-    assert result["message"] == f"Bahn 3 bleibt für Durchgang 1 ({clock} Uhr) frei."
+    assert result["message"] == f"Schützenstand 3 bleibt für Durchgang 1 ({clock} Uhr) frei."
     assert result["upcoming_heat"]["lanes"] == [3]
 
     # Nur noch Bahn 3 frei: ohne Bestätigung 409 mit Code, Uhrzeit und Bahn im Text.
@@ -190,8 +193,8 @@ async def test_imminent_heat_holds_its_lanes(api: Api, mixed: dict[str, Any]) ->
         assert response.status_code == 409, (path, body)
         assert response.json() == {
             "detail": (
-                f"Durchgang 1 beginnt um {clock} Uhr und braucht Bahn 3. Soll trotzdem aus der "
-                "Reihenfolge aufgerufen werden, bitte bestätigen."
+                f"Durchgang 1 beginnt um {clock} Uhr und braucht Schützenstand 3. Soll trotzdem "
+                "aus der Reihenfolge aufgerufen werden, bitte bestätigen."
             ),
             "code": "heat_imminent",
         }
@@ -202,7 +205,7 @@ async def test_imminent_heat_holds_its_lanes(api: Api, mixed: dict[str, Any]) ->
     assert called["lane"] == 3
     # Der Durchgang selbst ruft wie gewohnt; die Bahn ist jetzt belegt.
     detail = await api.fail("POST", f"{base}/ranges/{setup.range_id}/heats/{heat['id']}/call", 409)
-    assert detail.startswith("Bahn 3 ist noch belegt.")
+    assert detail.startswith("Schützenstand 3 ist noch belegt.")
     assert karl["lane"] == 3
 
 
@@ -224,7 +227,7 @@ async def test_confirmed_call_next_fills_held_lanes(api: Api, mixed: dict[str, A
     assert "hat um" not in (result["message"] or "")
     detail = (await api.client.post(f"/api/v1{path}", json={})).json()["detail"]
     assert "hat um" in detail
-    assert "begonnen und braucht Bahn 1" in detail
+    assert "begonnen und braucht Schützenstand 1" in detail
     result = await api.ok("POST", path, json={"confirm_heat_conflict": True})
     assert [(item["id"], item["lane"]) for item in result["called"]] == [(third["id"], 1)]
 

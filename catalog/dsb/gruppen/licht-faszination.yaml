@@ -1,0 +1,59 @@
+# Faszination Lichtschießen (FL), Auflage – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22), Teil 11: 11 (Allgemein),
+#   11.1 (Klassen, Entfernung 5–10 m), 11.3.2, 11.4.2, 11.5 und Tabelle Lichtschießen (Teil 11 S. 3).
+# Abgebildet ist nur der Schießteil. Zu FL gehören laut Teil 11 außerdem Kondition, Koordination, Schnelligkeit und
+#   Konzentration; diese Teile wählt der Veranstalter frei, wie sie in die Wertung eingehen, regelt Teil 11 nicht.
+#   Nicht in der DM-Tabelle 2025–2028. Entfernung 5–10 m nach Veranstalter, daher keine feste distanz_m.
+# Änderungen 2026→2027 in Teil 11: nur 11.3.1 (betrifft WO, nicht FL).
+# Klassen-IDs (Kl. 22–27) sind vorläufig; Schüler IV (Kl. 26/27, bis 8 Jahre) gibt es nur bei FL.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "licht-faszination"
+  name: "Faszination Lichtschießen"
+  waffenart: "licht"
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  geprueft: false
+  # Keine Gleichstandsregel in Teil 11 für FL.
+ablaeufe:
+  licht-auflage-20:
+    beschreibung: "Schießteil: 20 Schuss stehend aufgelegt in 30 Min.; vorher 15 Min. Vorbereitung mit unbegrenzter Probe"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            serien: 2
+            schuss_je_serie: 10
+            wettkampfzeit_s: 1800
+            vorbereitung_probe_s: 900
+            probeschuesse: "unbegrenzt"
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", aufgelegt: true }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", aufgelegt: true }] }
+disziplinen:
+  - kennziffer: "11.11"
+    name: "Faszination Lichtgewehr"
+    waffe: "Lichtgewehr, max. 3000 g, Systemlänge max. 850 mm, Abzug frei"
+    munition: "Lichtpunkt"
+    visierung: "keine Visierhilfe, keine optischen Zielhilfsmittel"   # geprüft 2026-11-22: Visierhilfe "keine" ergänzt (Tabelle Teil 11 S. 3)
+    anschlag: "stehend aufgelegt"
+    scheibe: "in Teil 11 nicht genannt"
+    ablauf: "licht-auflage-20"
+    hinweis: "Nur der Schießteil; weitere Teile (Kondition, Koordination, Schnelligkeit, Konzentration) nach Veranstalter. Entfernung 5–10 m. Keine Schießkleidung."
+    pruefen: ["scheibe", "ablauf"]
+  - kennziffer: "11.51"
+    name: "Faszination Lichtpistole"
+    waffe: "Lichtpistole, max. 1000 g, passt in Prüfkasten 420 × 200 × 50 mm, Abzug frei"
+    munition: "Lichtpunkt"
+    visierung: "keine Angabe in Teil 11"
+    anschlag: "stehend aufgelegt"
+    scheibe: "in Teil 11 nicht genannt"
+    ablauf: "licht-auflage-20"
+    hinweis: "Nur der Schießteil; weitere Teile nach Veranstalter. Entfernung 5–10 m. Keine Schießkleidung."
+    pruefen: ["scheibe", "visierung", "ablauf"]

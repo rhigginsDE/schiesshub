@@ -84,12 +84,13 @@ class StartlistScene(SceneBase):
     @model_validator(mode="after")
     def _check(self) -> Self:
         _unique(self.competition_ids, "Ein Wettbewerb")
-        _unique(self.range_ids, "Ein Stand")
+        _unique(self.range_ids, "Ein Schießstand")
         return self
 
 
 class WinnersScene(SceneBase):
-    """Siegerliste: nur abgeschlossene Ergebnisse, die ersten `top` Plätze je Klasse."""
+    """Ergebnisliste: nur abgeschlossene Ergebnisse (und Abbrüche mit Platz), die ersten `top`
+    Plätze je Klasse. Der Schlüssel `winners` bleibt."""
 
     kind: Literal["winners"]
     competition_ids: IdList = Field(default_factory=list)
@@ -261,8 +262,9 @@ class FeedPerson(BaseModel):
 class FeedRankRow(BaseModel):
     place: int | None
     tied: bool
-    # ranked: regulär; last: unvollständig (live, hinten); unranked: ohne Platz (abgebrochen –
-    # dann mit `abort_reason` – stehen sie in `FeedRankGroup.unplaced`).
+    # ranked: regulär (auch ein Abbruch nach „Feuer“ mit Platz, Sporthandbuch K 1.14 / L 1.12);
+    # last: unvollständig (live, hinten); unranked: ohne Platz (abgebrochen – dann mit
+    # `abort_reason` – stehen sie in `FeedRankGroup.unplaced`).
     group: Literal["ranked", "last", "unranked"]
     start_id: UUID
     start_number: int
@@ -270,8 +272,9 @@ class FeedRankRow(BaseModel):
     display_name: str | None
     club: str | None
     class_short: str
-    # Ergebnis als Text. Abgebrochen: bei nicht angetreten (dns) immer null, bei aufgegeben
-    # oder disqualifiziert nur, wenn alle Rohwerte erfasst sind (sonst wäre es kein Ergebnis).
+    # Ergebnis als Text. Abbruch mit Platz: das gewertete Ergebnis (nicht geschossene Serien
+    # nach der Regel der Wertung). Ohne Platz: bei nicht angetreten (dns) immer null, bei
+    # Abbruch oder disqualifiziert nur, wenn alle Rohwerte erfasst sind.
     score_text: str | None
     complete: bool
     series: list[SeriesPart]
@@ -281,9 +284,15 @@ class FeedRankRow(BaseModel):
     provisional: bool
     abort_reason: AbortReason | None
     # Geteilter Platz, den ein Stechen entscheidet (`stechen_bis_platz`), und der Hinweis
-    # zu einem offenen Gleichstand („Ringgleichheit auf Platz 2: Stechen“), sonst null.
+    # zu einem offenen geteilten Platz („Ringgleichheit auf Platz 2: Stechen“), sonst null.
     needs_shootoff: bool = False
     tie_note: str | None = None
+    # Fertiger Text zum Abbruchgrund für die Anzeige: „Abbruch (AB)“, „nicht angetreten“,
+    # „disqualifiziert“; null ohne Abbruch.
+    abort_label: str | None = None
+    # Warum ein Abbruch mit erfassten Werten ohne Platz bleibt („Ergebnis nicht vergleichbar:
+    # Regel für nicht geschossene Serien fehlt“); sonst null.
+    abort_note: str | None = None
 
 
 class FeedRankGroup(BaseModel):
@@ -291,12 +300,14 @@ class FeedRankGroup(BaseModel):
     # null bei gemeinsamer Wertung.
     class_name: str | None
     class_short: str | None
-    # Plätze (Siegerliste: bis `top`; Live-Wertung: auch unvollständige, höchstens `rows`).
+    # Plätze (Ergebnisliste: bis `top`; Live-Wertung: auch unvollständige, höchstens `rows`).
     rows: list[FeedRankRow]
     # Zeilen, die wegen der Zeilenzahl nicht gezeigt werden.
     more: int
-    # Abgebrochene Starts ohne Platz (nur mit `show_aborted`), nie unter den Plätzen: mit
-    # `abort_reason` und dem anzeigbaren Namen wie bei Platzierten.
+    # Starts ohne Platz (nur mit `show_aborted`), nie unter den Plätzen: nicht angetreten,
+    # disqualifiziert, Abbruch ohne Wertungswert (AB) oder ohne vergleichbares Ergebnis – mit
+    # `abort_reason`, `abort_label` und dem anzeigbaren Namen wie bei Platzierten. Ein Abbruch
+    # nach „Feuer“ mit Platz steht in `rows`.
     unplaced: list[FeedRankRow] = []
 
 

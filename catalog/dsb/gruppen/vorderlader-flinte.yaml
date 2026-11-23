@@ -1,0 +1,107 @@
+# Vorderlader Flinte (Wurfscheibe) – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027, Teil 7: 7.7.1, 7.7.4, 7.8 (Teil 7 S. 9–11), Vorderladertabelle (S. 13);
+#   Teil 0: 0.21 (S. 89). Sinngemäß ergänzend Teil 3 (Flinte), soweit Teil 7 nichts anderes regelt (SpO 7.8).
+#   DM-Klassen: Tabelle Wettbewerbe/Klassen DM 2025–2028.
+# Änderungen: 2026 Ergänzung in 7.8.3.1 (anerkannte Funktionsstörung bei nicht gezündeter Treibladung; NO TARGET bzw.
+#   FEHLER); 2026→2027 keine Änderungen in Teil 7.
+# geprüft 2026-11-22: "Ab 18 Jahren" bei 7.71/7.72 entfernt – 0.2 Nr. 2 erlaubt Einzellader-Langwaffen mit glattem Lauf bis
+#   Kal. 12 ab 14; ob das für Vorderlader-Flinten gilt, beantwortet die SpO nicht (Notiz teil-7, offen, nicht in YAML).
+# geprüft 2026-11-22: Teil 0 (0.21) nennt 50 Wettkampfschüsse und "ohne Zeitbegrenzung, entsprechend Rottenplan"; der Fachteil
+#   regelt 25 Scheiben (DM 50, 7.8.2.4) und 60/75 Min. je Rotte (7.8.3.2). Eingetragen ist der Fachteil.
+# FORMAT: gruppe.art "wurfscheibe" gibt es noch nicht (siehe Notiz, Formatbedarf). Treffer werden als Ringwerte 1/0 erfasst.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "vorderlader-flinte"
+  name: "Vorderlader Flinte"
+  waffenart: "flinte"
+  art: "wurfscheibe"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # SpO 7.8.3.5 Einzel: Stechen bei Gleichstand auf Platz 1–6, ab Platz 7 gleicher Platz.
+  # Mannschaft: ununterbrochene Trefferfolgen der letzten Serie rückwärts, dann Serie davor (siehe Notiz).
+  gleichstand: ["stechen"]
+  stechen_bis_platz: 6
+  geprueft: true   # geprüft 2026-11-22 gegen SpO 2027 Teil 7 (7.7, 7.8, Vorderladertabelle S. 13) und Teil 0 (0.21)
+ablaeufe:
+  perkussionsflinte:
+    beschreibung: "25 Wurfscheiben (5 Stände × 5), DM 50 in zwei Durchgängen; Rotte 60 Min."
+    varianten:
+      - id: "standard"
+        name: "Standard (25 Scheiben)"
+        abschnitte:
+          - id: "durchgang-1"
+            name: "Durchgang"
+            serien: 5                 # 5 Stationen, je 5 Wurfscheiben (SpO 7.8.2.2, 7.8.2.4)
+            schuss_je_serie: 5
+            ringwerte: [1, 0]         # Treffer / Fehler
+            probeschuesse: 0          # nur eine Probescheibe zum Ansehen, kein Probeschießen (SpO 7.8.3.2)
+            wettkampfzeit_s: 3600     # Zeit je Rotte (SpO 7.8.3.2); 6. Schütze: +10 Min.
+      - id: "dm"
+        name: "Deutsche Meisterschaft (50 Scheiben)"
+        abschnitte:
+          - id: "durchgang-1"
+            name: "1. Durchgang"
+            serien: 5
+            schuss_je_serie: 5
+            ringwerte: [1, 0]
+            probeschuesse: 0
+            wettkampfzeit_s: 3600
+          - id: "durchgang-2"
+            name: "2. Durchgang"
+            serien: 5
+            schuss_je_serie: 5
+            ringwerte: [1, 0]
+            probeschuesse: 0
+            wettkampfzeit_s: 3600
+  steinschlossflinte:
+    beschreibung: "25 Wurfscheiben (5 Stände × 5), DM 50 in zwei Durchgängen; Rotte 75 Min."
+    varianten:
+      - id: "standard"
+        name: "Standard (25 Scheiben)"
+        abschnitte:
+          - id: "durchgang-1"
+            name: "Durchgang"
+            serien: 5
+            schuss_je_serie: 5
+            ringwerte: [1, 0]
+            probeschuesse: 0
+            wettkampfzeit_s: 4500     # SpO 7.8.3.2
+      - id: "dm"
+        name: "Deutsche Meisterschaft (50 Scheiben)"
+        abschnitte:
+          - id: "durchgang-1"
+            name: "1. Durchgang"
+            serien: 5
+            schuss_je_serie: 5
+            ringwerte: [1, 0]
+            probeschuesse: 0
+            wettkampfzeit_s: 4500
+          - id: "durchgang-2"
+            name: "2. Durchgang"
+            serien: 5
+            schuss_je_serie: 5
+            ringwerte: [1, 0]
+            probeschuesse: 0
+            wettkampfzeit_s: 4500
+disziplinen:
+  - kennziffer: "7.71"
+    name: "Perkussionsflinte"
+    waffe: "Perkussionsflinte (Original oder Replika); Lauflänge min. 40 cm"   # geprüft 2026-11-22: Lauflänge ergänzt (0.21)
+    munition: "Kaliber beliebig; Schwarzpulver max. 6,2 g; Schrot max. 2,6 mm, Schrotvorlage max. 35 g (Blei oder bleifreies Monometall)"
+    visierung: "Korn (Dach/Perl/Blatt/Buckel) fest, Kimme V/U fest; kein Diopter"
+    anschlag: "stehend; sportlicher Voranschlag oder jagdlicher Anschlag (Schulter- oder Hüftanschlag)"
+    scheibe: "Wurfscheibe (DSB-Scheibe Nr. 11), Einmaschinenstand, 5 Stationen"
+    ablauf: "perkussionsflinte"
+    hinweis: "Kein Stecher. Je Durchgang 1 Funktionsstörung frei (max. 6), jede weitere zählt als Fehler (SpO 7.8.3.1). Doppelflinte: je Scheibe nur ein Lauf geladen. DM: eine offene Klasse, E + M."
+  - kennziffer: "7.72"
+    name: "Steinschlossflinte"
+    waffe: "Steinschlossflinte oder glattes Steinschlossgewehr; auch Steinschlossmuskete (Original oder Replika); Lauflänge min. 40 cm"   # geprüft 2026-11-22: Lauflänge ergänzt (0.21)
+    munition: "Kaliber beliebig; Schwarzpulver max. 6,2 g; Schrot max. 2,6 mm, Schrotvorlage max. 35 g (Blei oder bleifreies Monometall)"
+    visierung: "Korn (Dach/Perl/Blatt/Buckel) fest, Kimme V/U fest; kein Diopter"
+    anschlag: "stehend; sportlicher Voranschlag oder jagdlicher Anschlag"
+    scheibe: "Wurfscheibe (DSB-Scheibe Nr. 11), Einmaschinenstand, 5 Stationen"
+    ablauf: "steinschlossflinte"
+    hinweis: "Kein Stecher. Je Durchgang 3 Funktionsstörungen frei (max. 6), jede weitere zählt als Fehler (SpO 7.8.3.1). DM: eine offene Klasse, E + M."

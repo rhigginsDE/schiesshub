@@ -198,7 +198,7 @@ async def test_winners_rows_and_class_filter(api: Api, setup: Setup) -> None:
     )
     feed = await api.feed(display_id)
     winners, ladies, short = feed["scenes"]
-    assert winners["title"] == "Siegerliste"
+    assert winners["title"] == "Ergebnisliste"
     groups = winners["ranking"]["groups"]
     assert [(g["class_short"], [r["start_id"] for r in g["rows"]]) for g in groups] == [
         ("OFF", [starts["brandt"], starts["geheim"]]),
@@ -383,7 +383,7 @@ async def test_range_scene_skipped_when_nothing_happens(api: Api, setup: Setup) 
     assert kinds(feed) == ["idle"]
     assert skipped(feed) == [
         ("stand", "Auf „Stand 1“ ist gerade nichts los."),
-        ("fremd", "Der Stand gehört nicht zum gezeigten Turnier."),
+        ("fremd", "Der Schießstand gehört nicht zum gezeigten Turnier."),
     ]
 
 

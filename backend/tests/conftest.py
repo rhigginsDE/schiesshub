@@ -147,17 +147,35 @@ def edit_yaml(path: Path, change: Callable[[dict], None]) -> None:
     path.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
 
-@pytest.fixture
-def real_catalog_counts() -> dict[str, int]:
-    """Zahlen direkt aus den Dateien gezählt, unabhängig vom Code unter Test."""
-    groups = sorted((REAL_CATALOG_DIR / "bds" / "gruppen").glob("*.yaml"))
+def _count_federation(directory: Path) -> dict[str, int]:
+    groups = sorted((directory / "gruppen").glob("*.yaml"))
     disciplines = sum(
         len(yaml.safe_load(path.read_text(encoding="utf-8"))["disziplinen"]) for path in groups
     )
-    classes = yaml.safe_load(
-        (REAL_CATALOG_DIR / "bds" / "klassen.yaml").read_text(encoding="utf-8")
-    )
+    classes = yaml.safe_load((directory / "klassen.yaml").read_text(encoding="utf-8"))
     return {"gruppen": len(groups), "disziplinen": disciplines, "klassen": len(classes["klassen"])}
+
+
+@pytest.fixture
+def real_catalog_counts_by_federation() -> dict[str, dict[str, int]]:
+    """Zahlen je Verband direkt aus den Dateien gezählt, unabhängig vom Code unter Test."""
+    return {
+        directory.name: _count_federation(directory)
+        for directory in sorted(REAL_CATALOG_DIR.iterdir())
+        if (directory / "katalog.yaml").is_file()
+    }
+
+
+@pytest.fixture
+def real_catalog_counts(
+    real_catalog_counts_by_federation: dict[str, dict[str, int]],
+) -> dict[str, int]:
+    """Summe über alle Verbände, wie sie /health und der Import melden."""
+    totals = {"gruppen": 0, "disziplinen": 0, "klassen": 0}
+    for counts in real_catalog_counts_by_federation.values():
+        for key, value in counts.items():
+            totals[key] += value
+    return totals
 
 
 @pytest.fixture

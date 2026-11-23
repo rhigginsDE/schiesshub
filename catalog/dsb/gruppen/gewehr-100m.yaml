@@ -1,0 +1,93 @@
+# Gewehr 100 m (ein Anschlag) – DSB-Disziplinen (ENTWURF)
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22): Teil 1: 1.1.1, 1.1.2, 1.4.6,
+#   Wettbewerbstabelle (Teil 1 S. 19), Schusszahlen/Schießzeiten (Teil 1 S. 21); Teil 0: 0.21 (Teil 0 S. 76, 79, 80),
+#   Scheibe Nr. 4 (100 m Gewehr, Teil 0 S. 65), 0.12.1. DM: 1.35 mit 30 Schuss, ganze Ringe (DSB-Schusszahlentabelle).
+# 1.92, 1.97 nur in 0.21 ("entsprechend Ausschreibung"), nicht in der DM-Tabelle; Vorbereitungszeit dort nicht geregelt.
+# 1.38 GK 100 m Feuerstutzen (0.21: "15–30" Schuss, BY: Feuerstutzen traditionell) fehlt absichtlich (siehe Notiz).
+# Änderungen 2026→2027: 1.4.6 Hinweis (Ausrüstung); sonst keine.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "gewehr-100m"
+  name: "Gewehr 100 m"
+  waffenart: "langwaffe"
+  distanz_m: 100
+  art: "praezision"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  zehntelwertung: false
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  geprueft: false
+ablaeufe:
+  kk-100:
+    beschreibung: "30 Schuss stehend in 45 Min. (Zuganlage) bzw. 40 Min. (andere Systeme); 15 Schuss in 30 bzw. 25 Min. (Empfehlung); vorher 15 Min. Vorbereitung mit beliebig vielen Probeschüssen"
+    varianten:
+      - id: "30-andere-systeme"
+        name: "30 Schuss, andere Systeme (z. B. elektronisch)"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 3, schuss_je_serie: 10, wettkampfzeit_s: 2400, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+      - id: "30-zuganlage"
+        name: "30 Schuss, Zuganlage"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 3, schuss_je_serie: 10, wettkampfzeit_s: 2700, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+      # 15 Schuss: Serieneinteilung nennt die SpO nicht; als eine Serie zu 15 eingetragen (prüfen).
+      - id: "15-andere-systeme"
+        name: "15 Schuss, andere Systeme (Zeit als Empfehlung)"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 1, schuss_je_serie: 15, wettkampfzeit_s: 1500, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+      - id: "15-zuganlage"
+        name: "15 Schuss, Zuganlage"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 1, schuss_je_serie: 15, wettkampfzeit_s: 1800, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+  gk-liegend-60-90:
+    beschreibung: "60 Schuss liegend in 90 Min. (Zuganlage) bzw. 75 Min. (elektronisch)"
+    varianten:
+      - id: "elektronisch"
+        name: "Elektronische Anlage"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 4500 }
+      - id: "zuganlage"
+        name: "Zuganlage"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 5400 }
+  gk-liegend-60-60:
+    beschreibung: "60 Schuss liegend in 60 Min. (Zuganlage) bzw. 45 Min. (elektronisch)"
+    varianten:
+      - id: "elektronisch"
+        name: "Elektronische Anlage"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 2700 }
+      - id: "zuganlage"
+        name: "Zuganlage"
+        abschnitte:
+          - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 3600 }
+disziplinen:
+  - kennziffer: "1.35"
+    name: "KK-Gewehr 100 m"
+    waffe: "KK-Gewehr, Einzellader (Mehrlader als Einzellader); max. 7500 g, Lauflänge min. 40 cm; Hakenkappe erlaubt, keine Handstütze"
+    munition: ".22 l.r. (5,6 mm)"
+    visierung: "Diopter/Korn; Korntunnel max. 25 mm Ø, max. 50 mm lang; kein Zielfernrohr"
+    anschlag: "stehend"
+    scheibe: "DSB-Scheibe Nr. 4 (100 m Gewehr)"
+    ablauf: "kk-100"
+    hinweis: "DM: 30 Schuss. Abzug frei; Laufbeschwerung bis 60 mm unter der Laufachse, nicht über die sichtbare Mündung."
+  - kennziffer: "1.92"
+    name: "GK-Liegendkampf 100 m"
+    waffe: "GK-Gewehr, Einzellader (Mehrlader als Einzellader); Lauflänge min. 40 cm"
+    munition: "bis 8 mm"
+    visierung: "Diopter/Korn"
+    anschlag: "liegend"
+    scheibe: "DSB-Scheibe Nr. 4 (100 m Gewehr)"
+    ablauf: "gk-liegend-60-90"
+    hinweis: "Nur in 0.21 geregelt, Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."
+  - kennziffer: "1.97"
+    name: "GK-Liegendkampf Mehrlader 100 m"
+    waffe: "GK-Gewehr, Mehrlader (Einzellader zulässig); Lauflänge min. 40 cm"
+    munition: "bis 8 mm"
+    visierung: "Diopter/Korn"
+    anschlag: "liegend"
+    scheibe: "DSB-Scheibe Nr. 4 (100 m Gewehr)"
+    ablauf: "gk-liegend-60-60"
+    hinweis: "Nur in 0.21 geregelt, Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."

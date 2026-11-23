@@ -1,4 +1,5 @@
-"""Lesende Sichten für die Stationen: Startliste, Reihenfolge eines Stands, „am Stand“.
+"""Lesende Sichten für die Stationen: Startliste, Reihenfolge eines Schießstands,
+„am Schießstand“.
 
 Diese Sichten zeigen Personen nur so, wie sie es gewählt haben (`display_mode`): voll, abgekürzt
 oder gar nicht. Der volle Name erscheint hier nie, wenn die Person ihn nicht freigegeben hat;
@@ -102,11 +103,11 @@ async def startlist(
     *,
     full_names: bool = False,
 ) -> list[StationStartOut]:
-    """Alle Starts des Turniers, wahlweise eines Wettbewerbs oder Stands.
+    """Alle Starts des Turniers, wahlweise eines Wettbewerbs oder Schießstands.
 
-    Reihenfolge je Wettbewerb: Durchgang (Uhrzeit, darin die gebuchte Bahn), sonst Platz in der
-    Reihenfolge, dann Startnummer und Versuch. Die Bahn eines Starts ohne Durchgang ist nur die
-    zuletzt benutzte und zählt nicht – sonst stünde ein 2. Versuch vor dem 1.
+    Reihenfolge je Wettbewerb: Durchgang (Uhrzeit, darin der gebuchte Schützenstand), sonst Platz
+    in der Reihenfolge, dann Startnummer und Versuch. Der Schützenstand eines Starts ohne Durchgang
+    ist nur der zuletzt benutzte und zählt nicht – sonst stünde ein 2. Versuch vor dem 1.
     """
     await get_tournament(session, tournament_id)
     conditions: list[ColumnElement[bool]] = [Entry.tournament_id == tournament_id]
@@ -133,7 +134,7 @@ async def startlist(
 async def _lanes(
     session: AsyncSession, range_: Range, *, full_names: bool = False
 ) -> list[LaneOut]:
-    """Alle Bahnen des Stands; belegt ist eine Bahn, solange ein Start auf ihr steht
+    """Alle Schützenstände des Schießstands; belegt ist einer, solange ein Start darauf steht
     (aufgerufen oder erfasst, noch nicht freigegeben), mit seinem Erfassungsfortschritt."""
     occupied = {
         row.lane: row
@@ -146,7 +147,7 @@ async def _lanes(
         )
     }
     progress = await hooks.lane_progress(session, [row.start_id for row in occupied.values()])
-    # Auch Bahnen über der aktuellen Bahnzahl, falls dort noch jemand steht.
+    # Auch Schützenstände über der aktuellen Zahl, falls dort noch jemand steht.
     numbers = sorted(set(range(1, range_.lane_count + 1)) | {lane for lane in occupied if lane})
     lanes = []
     for lane in numbers:
@@ -201,8 +202,8 @@ async def range_now(
     *,
     full_names: bool = False,
 ) -> RangeNowOut:
-    """„Am Stand“ (belegte Bahnen mit Start und Fortschritt) und „als Nächstes“ (Durchgang und
-    Reihenfolge)."""
+    """„Am Schießstand“ (belegte Schützenstände mit Start und Fortschritt) und „als Nächstes“
+    (Durchgang und Reihenfolge)."""
     tournament = await get_tournament(session, tournament_id)
     range_ = await get_range(session, tournament_id, range_id)
     next_heat = await session.scalar(

@@ -1,9 +1,9 @@
 """Übungsturnier mit Beispieldaten (`POST /tournaments/practice`) und sein Entfernen.
 
-Die Beispieldaten stehen in `practice.yaml`: Stände, Wettbewerbe (Kennziffern aus dem Katalog),
-erfundene Vereine und Personen, Starts mit Zielzustand und Rohwerten. Angelegt wird alles über
-die echten Services der Module `turnier`, `teilnehmer`, `starts` und `ergebnisse`: Wertung,
-Ranglisten, Audit- und Ereignisprotokoll sind dieselben wie in einem echten Turnier.
+Die Beispieldaten stehen in `practice.yaml`: Schießstände, Wettbewerbe (Kennziffern aus dem
+Katalog), erfundene Vereine und Personen, Starts mit Zielzustand und Rohwerten. Angelegt wird
+alles über die echten Services der Module `turnier`, `teilnehmer`, `starts` und `ergebnisse`:
+Wertung, Ranglisten, Audit- und Ereignisprotokoll sind dieselben wie in einem echten Turnier.
 
 Kennzeichnung: Das Turnier hat `is_practice` (höchstens eines, fest ab dem Anlegen). Die Personen
 tragen die Mitgliedsnummer `ÜBUNG-<n>`, ihre Vereine heißen erkennbar erfunden. Welche Personen
@@ -50,7 +50,7 @@ from app.modules.turnier.tournament_templates import (
 PRACTICE_FILE = Path(__file__).parent / "practice.yaml"
 MEMBER_NO_PREFIX = "ÜBUNG-"
 StartState = Literal["registered", "called", "captured", "final", "aborted"]
-# Diese Zustände lassen den Start auf seiner Bahn stehen; sie kommen zuletzt dran.
+# Diese Zustände lassen den Start auf seinem Schützenstand stehen; sie kommen zuletzt dran.
 ON_LANE_STATES = frozenset({"called", "captured"})
 # {<abschnitt>: [<serie>, …]}
 RawSections = dict[str, list[dict[str, Any]]]
@@ -322,7 +322,7 @@ async def _fill(
             )
             plan.append((item, booked[0].id))
 
-    # Erst alles, was die Bahn wieder freigibt, dann die Starts, die auf der Bahn stehen bleiben.
+    # Erst alles, was den Schützenstand wieder freigibt, dann die Starts, die darauf stehen bleiben.
     ordered = [step for step in plan if step[0].state not in ON_LANE_STATES] + [
         step for step in plan if step[0].state in ON_LANE_STATES
     ]
@@ -389,7 +389,7 @@ async def remove_practice(
     await session.execute(
         delete(AuditLog).where(AuditLog.details["tournament_id"].astext == str(tournament_id))
     )
-    # Stände (samt Durchgängen), Klassen und Wettbewerbe löscht die Datenbank mit.
+    # Schießstände (samt Durchgängen), Klassen und Wettbewerbe löscht die Datenbank mit.
     await session.execute(delete(Tournament).where(Tournament.id == tournament_id))
 
     person_ids = [uuid.UUID(value) for value in owned.get("person_ids", [])]

@@ -1,0 +1,73 @@
+# Formelle Begriffe des BDS (Bund Deutscher Sportschützen).
+#
+# Quelle: BDS-Sporthandbuch Teil A (Änderungsversion BVA-Bescheid 30.06.2026), Teil K und L
+# (Fassung BVA-Bescheid 30.06.2026), Kommentar Stand 05.08.2026. Ausgewertet in
+# `schiesshub-intern/Business/Recherche/bds-begriffe.md`. Fundstellen: Teil und Abschnitt,
+# dazu die gedruckte Seite.
+#
+# Nur belegte Wörter. Was hier fehlt, kommt aus `standard.yaml`.
+
+begriffe:
+  # K 1.14 (S. K-6), L 1.12 (S. L-5): „Ergebnislisten“ (das SHB nutzt nur den Plural).
+  # „Siegerliste“ kommt nicht vor.
+  ergebnisliste: "Ergebnisliste"
+  # A 7.02 (S. A-18)
+  startliste: "Startliste"
+  # L 6.05 (S. L-34)
+  startnummer: "Startnummer"
+  # A 7.05 (S. A-18), Überschrift „Versäumen des Starttermins“. „Startzeit“ kommt nicht vor.
+  startzeit: "Starttermin"
+  # A 4.02 (S. A-13): „Schießstand“, „Schießstände“
+  schiessstand: "Schießstand"
+  schiessstaende: "Schießstände"
+  # K 1.01 (S. K-2), L 1.01 (S. L-2), A 4.07 (S. A-13): „Schützenstand“, „Schützenstände“.
+  # „Bahn“ kommt als eigenes Wort nicht vor.
+  schuetzenstand: "Schützenstand"
+  schuetzenstaende: "Schützenstände"
+  # A 9.09 (S. A-23)
+  durchgang: "Durchgang"
+  # L 11.04 (S. L-61), L 12.04 (S. L-69)
+  durchgangszeit: "Durchgangszeit"
+  # K 1.10 (S. K-4), K 5.03 (S. K-20), A 9.05 (S. A-23); Kom. S. 77 (Glossar)
+  wertungsserie: "Wertungsserie"
+  # L 2.08 (S. L-18): „Wertungsschüsse“
+  wertungsschuesse: "Wertungsschüsse"
+  # A 9.06 (S. A-23), K 1.11 (S. K-4/K-5)
+  trefferaufnahme: "Trefferaufnahme"
+  # A 9.03 (S. A-23): allgemeines Wort bei gleichem Ergebnis ist „Ringgleichheit“ (Mehrdistanz
+  # Flinte/Büchse: `treffergleichheit`). „Gleichstand“ und „Stechen“ kommen nicht vor.
+  ergebnisgleichheit: "Ringgleichheit"
+  # A 9.03 (S. A-23)
+  ringgleichheit: "Ringgleichheit"
+  # L 11.04 (S. L-61), L 12.04 (S. L-69)
+  treffergleichheit: "Treffergleichheit"
+  # K 1.07 (S. K-3), L 1.05 (S. L-3): „Abbruch („AB“)“; K 1.14 (S. K-6), L 1.12 (S. L-5).
+  # „AB“ ist die einzige Ergebnis-Kurzform im SHB (kein DNS/DNF/DSQ).
+  abbruch: "Abbruch"
+  abbruch_kurz: "AB"
+  # A 7.05 (S. A-18): „trotz Aufruf nicht zum Schießen antritt“ (sinngemäß, kein festes Wort).
+  nicht_angetreten: "nicht angetreten"
+  # A 5.07 (S. A-14/A-15), A 9.10 (S. A-24), K 1.18 (S. K-7)
+  disqualifiziert: "disqualifiziert"
+  # A 5.07 Überschrift „Verwarnung / Disqualifikation“ (S. A-14)
+  disqualifikation: "Disqualifikation"
+  # A 10 Überschrift (S. A-25), A 9.06 (S. A-23), A 10.03.1 (S. A-26)
+  einspruch: "Einspruch"
+  # A 10.01.1, A 10.01.3, A 10.01.5 (S. A-25), A 10.03.2 (S. A-26)
+  protest: "Protest"
+  # A 10.04 (S. A-27): „Protestgebühr“ (25 Euro, Erstattung bei Stattgabe).
+  protestgebuehr: "Protestgebühr"
+  # Gebühr für einen Einspruch gegen das Ergebnis, wie sie die Ausschreibung nennt:
+  # A 10.04 (S. A-27) „Protestgebühr“. „Einspruchsgebühr“ kommt nicht vor.
+  gebuehr_einspruch: "Protestgebühr"
+  # A 4.04 (S. A-13), A 7.02 (S. A-18)
+  standaufsicht: "Standaufsicht"
+  # A 7.01 (S. A-18), A 3.19 (S. A-11)
+  schiessleiter: "Schießleiter"
+  # A 3.01 (S. A-6), A 5.07 (S. A-15), A 8.01 (S. A-20). „Wettkampfleiter“ kommt nicht vor.
+  wettkampfleitung: "Wettkampfleitung"
+  # A 3.15 (S. A-10)
+  startgeld: "Startgeld"
+  # A 3.08 (S. A-7/A-8): „Wettbewerbsklassen“; Glossar Kom. S. 77
+  klasse: "Wettbewerbsklasse"
+  # kennziffer: in bds-begriffe.md nicht belegt → Standard.

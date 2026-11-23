@@ -1,0 +1,54 @@
+# Auflage 10 m Armbrust – DSB-Disziplinen
+# Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog dsb.de/fileadmin/dsb/sportordnung/, abgerufen 2026-11-22),
+#   Teil 9: 9.1–9.8 und Wettbewerbstabelle Auflagewettbewerbe (Teil 9 S. 8); Teil 0: Wettbewerbstabelle 0.21
+#   (Teil 0 S. 85), Scheiben 0.20, Ergebnisgleichheit 0.12, Mannschaft 0.7.2.2.
+# Anschlag: Kl. 70–73 (Senioren I–II) nur stehend aufgelegt; Kl. 74–81 (Senioren III–VI) stehend oder sitzend
+#   aufgelegt auf Hocker ohne Lehne (9.7.6.1). Ganzer Wettkampf im gleichen Anschlag (9.7.6 Nr. 9).
+#   Sitzend auch für Para-Sportschützen mit Hilfsmittelausweis bzw. Eintrag G/aG im Schwerbehindertenausweis (9.7.7).
+# Änderungen 2026→2027 in Teil 9 (Synopse 01.01.2027): nur Ausrüstung (9.7.2 Schaftkappe, 9.7.3 Visierlinien-
+#   rückverlagerung) und 9.8.3.1 (nichtzielender Arm keine Stütze); Schusszahl, Zeiten, Wertung unverändert.
+schema: 1
+verband: "dsb"
+gruppe:
+  id: "auflage-10m-armbrust"
+  name: "Auflage 10 m Armbrust"
+  waffenart: "armbrust"
+  distanz_m: 10
+  art: "auflage"
+wertung:
+  modell: "ringe"
+  rangfolge: "absteigend"
+  # SpO 9.4.1 (volle Ringwertung, Plätze 1–6): Zehnerserien von hinten, Anzahl 10er/9er/8er …, Innenzehner,
+  #   Gesamtergebnis in Zehnteln; dann gleicher Rang. Bei 300 Ringen Stechen nach 9.4.3 (siehe Notiz).
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner", "zehntel_gesamt"]
+  geprueft: false
+ablaeufe:
+  auflage-30-70min:
+    beschreibung: "30 Schuss aufgelegt; 70 Min. inkl. Probe"
+    varianten:
+      - id: "standard"
+        name: "Standard"
+        abschnitte:
+          - id: "wertung"
+            name: "Wertung"
+            serien: 3
+            schuss_je_serie: 10
+            probeschuesse: "unbegrenzt"   # SpO 9.2, nur vor dem ersten Wertungsschuss
+            wettkampfzeit_s: 4200   # Tabelle Teil 9 und Teil 0: 70 Min.; 9.3 nennt für 10 m 55/45 Min.
+            positionen:
+              - { nr: 1, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 2, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+              - { nr: 3, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
+disziplinen:
+  - kennziffer: "5.11"
+    name: "Armbrust 10 m Auflage"
+    waffe: "Armbrust"
+    munition: "Bolzen 4,5 mm (Toleranz 0,05 mm)"
+    visierung: "Diopter/Korn"
+    anschlag: "stehend aufgelegt (Kl. 70–73); stehend oder sitzend aufgelegt (Kl. 74–81)"
+    scheibe: "DSB-Scheibe Nr. 1 (10 m Gewehr/Armbrust)"
+    ablauf: "auflage-30-70min"
+    hinweis: "Max. 6750 g; Sehnenlänge max. 608 mm; Visierlänge max. 860 mm; Wasserwaage erlaubt; Schaftbeschwerung unterhalb des Schaftes erlaubt; Auflage bis Schaftende, Breite max. 60 mm. Teil 0 nennt als Anschlag nur „stehend“. Nicht in der DM-Tabelle 2025–2028."
+    optional: true
+    pruefen: ["ablauf", "anschlag"]
