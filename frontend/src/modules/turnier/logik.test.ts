@@ -389,7 +389,8 @@ describe("Ausschreibung: Dokument → Druckansicht", () => {
     expect(wettbewerbe?.art).toBe("wettbewerbe");
     if (wettbewerbe?.art === "wettbewerbe") {
       expect(wettbewerbe.wettbewerbe[0]?.startgeld?.replace(/\s/g, " ")).toBe("8,00 € / 5,00 €");
-      expect(wettbewerbe.wettbewerbe[0]?.abweichend).toBe(true);
+      // Abweichungen vom Katalog stehen nur im Turnier-Editor, nicht in der Ausschreibung.
+      expect(wettbewerbe.wettbewerbe[0]).not.toHaveProperty("abweichend");
     }
     expect(modell.eckdaten).toEqual([
       { bezeichnung: "Ort", text: "Schützenhaus" },

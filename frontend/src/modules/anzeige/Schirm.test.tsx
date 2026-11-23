@@ -48,9 +48,9 @@ describe("Bildschirm", () => {
     expect(erste).toHaveLength(2);
   });
 
-  it("Siegerliste: Podest je Klasse", () => {
+  it("Ergebnisliste: Podest je Klasse", () => {
     zeige(beispielFeed({ scenes: [szenen.winners] }));
-    const sieger = screen.getByRole("region", { name: "Siegerliste" });
+    const sieger = screen.getByRole("region", { name: "Ergebnisliste" });
     expect(within(sieger).getByText("Schützenklasse")).toBeVisible();
     expect(within(sieger).getByText("Clara Probe")).toBeVisible();
     expect(sieger.querySelectorAll('[data-rang="1"]')).toHaveLength(2);
@@ -59,10 +59,10 @@ describe("Bildschirm", () => {
     expect(sieger.querySelectorAll('[data-stufe="3"]')).toHaveLength(0);
   });
 
-  it("Startliste: Durchgang, Bahn, Status, weitere", () => {
+  it("Startliste: Durchgang, Schützenstand, Status, weitere", () => {
     zeige(beispielFeed({ scenes: [szenen.startlist] }));
     const liste = screen.getByRole("region", { name: "Startliste" });
-    expect(within(liste).getByText(/Durchgang 3 · \d\d:\d\d · Bahn 2/)).toBeVisible();
+    expect(within(liste).getByText(/Durchgang 3 · \d\d:\d\d · Schützenstand 2/)).toBeVisible();
     expect(within(liste).getByText("aufgerufen")).toBeVisible();
     expect(within(liste).getByText("Startnummer 6")).toBeVisible();
     expect(within(liste).getByText("+ 4 weitere Starts")).toBeVisible();
@@ -117,7 +117,7 @@ describe("Bildschirm", () => {
     expect(ohne).toHaveLength(2);
     const [egon, rita] = ohne as [HTMLElement, HTMLElement];
     expect(within(egon).getByText("Egon Abbruch")).toBeVisible();
-    expect(within(egon).getByText("aufgegeben")).toBeVisible();
+    expect(within(egon).getByText("Abbruch (AB)")).toBeVisible();
     expect(within(egon).getByText("30,00 s")).toBeVisible();
     // „Nicht angetreten“: weder Platz noch Wert, nur der Grund
     expect(within(rita).getByText("nicht angetreten")).toBeVisible();
@@ -201,7 +201,7 @@ describe("Bildschirm", () => {
     ]);
   });
 
-  it("Siegerliste: Abgebrochene nie auf dem Podest, sondern mit Grund danach", () => {
+  it("Ergebnisliste: Abgebrochene nie auf dem Podest, sondern mit Grund danach", () => {
     const basis = rangliste();
     const ranking = {
       ...basis,
@@ -229,7 +229,7 @@ describe("Bildschirm", () => {
     };
     const sieger = szenen.winners as SzeneVon<"winners">;
     zeige(beispielFeed({ scenes: [{ ...sieger, ranking }] }));
-    const region = screen.getByRole("region", { name: "Siegerliste" });
+    const region = screen.getByRole("region", { name: "Ergebnisliste" });
     expect(region.querySelectorAll("[data-rang]")).toHaveLength(1);
     expect(within(region).getByText("Ohne Platzierung")).toBeVisible();
     expect(within(region).queryByText("Weitere Plätze")).toBeNull();
@@ -265,42 +265,44 @@ describe("Bildschirm", () => {
     expect(within(liste).queryByText("abgebrochen")).toBeNull();
   });
 
-  it("Standanzeige: Ablauf mit Positionen, Serien-Übersicht, Am Stand, Als Nächstes", () => {
+  it("Standanzeige: Ablauf mit Positionen, Serien-Übersicht, Am Schießstand, Als Nächstes", () => {
     zeige(beispielFeed({ scenes: [szenen.range] }));
-    const stand = screen.getByRole("region", { name: "25-m-Stand" });
+    const stand = screen.getByRole("region", { name: "Schießstand Kurzwaffe 25 m" });
     expect(within(stand).getByRole("heading", { name: "1201Pistole bis 9 mm" })).toBeVisible();
     expect(within(stand).queryByText(/Katalog/)).toBeNull();
     expect(within(stand).queryByText(/Sollzeit 60 s statt 50 s/)).toBeNull();
     expect(within(stand).getByRole("list", { name: "Parcours" })).toBeVisible();
     expect(within(stand).getByText("Es zählen 2 von 3 Serien")).toBeVisible();
     expect(within(stand).getByText("gestrichen – zählt nicht")).toBeVisible();
-    expect(within(stand).getByText("Am Stand")).toBeVisible();
+    expect(within(stand).getByText("Am Schießstand")).toBeVisible();
     expect(within(stand).getByText("frei")).toBeVisible();
     expect(within(stand).getByText("Dora Nächste")).toBeVisible();
   });
 
-  it("QA G-7: „Als Nächstes“ je Wettbewerb mit Kennziffer, Bahn bzw. Platz beschriftet, wer gerade schießt", () => {
+  it("QA G-7: „Als Nächstes“ je Wettbewerb mit Kennziffer, Schützenstand bzw. Platz beschriftet, wer gerade schießt", () => {
     zeige(beispielFeed({ scenes: [szenen.range] }));
-    const stand = screen.getByRole("region", { name: "25-m-Stand" });
+    const stand = screen.getByRole("region", { name: "Schießstand Kurzwaffe 25 m" });
     const naechste = within(stand)
       .getByRole("heading", { name: "Als Nächstes" })
       .closest("section") as HTMLElement;
     expect(within(naechste).getByText("Durchgang 4 · 14:20")).toBeVisible();
     expect(within(naechste).getByText("1001")).toBeVisible();
-    expect(within(naechste).getByText("Bahn")).toBeVisible();
+    expect(within(naechste).getByText("Schützenstand")).toBeVisible();
     expect(within(naechste).getByText("Reihenfolge")).toBeVisible();
     expect(within(naechste).getByText("Platz")).toBeVisible();
     const dora = within(naechste).getByText("Dora Nächste").closest("[data-zeile]") as HTMLElement;
     expect(within(dora).getByText("3")).toBeVisible();
     const karl = within(naechste).getByText("Karl Weiß").closest("[data-zeile]") as HTMLElement;
     expect(karl).toHaveAttribute("data-besetzt");
-    expect(within(karl).getByText("gerade auf Bahn 1, 15-m-Stand")).toBeVisible();
+    expect(
+      within(karl).getByText("gerade am Schießstand Flinte 15 m, Schützenstand 1"),
+    ).toBeVisible();
     expect(within(naechste).getByText("+ 2 weitere")).toBeVisible();
   });
 
   it("Standanzeige: ohne `current` keine Hervorhebung und kein Fortschritt", () => {
     zeige(beispielFeed({ scenes: [szenen.range] }));
-    const stand = screen.getByRole("region", { name: "25-m-Stand" });
+    const stand = screen.getByRole("region", { name: "Schießstand Kurzwaffe 25 m" });
     expect(within(stand).queryByText(/^Jetzt/)).toBeNull();
     expect(within(stand).queryByText(/^\d+ von \d+$/)).toBeNull();
     expect(stand.querySelector("[aria-current]")).toBeNull();
@@ -308,7 +310,7 @@ describe("Bildschirm", () => {
     expect(within(stand).getByText("Durchgang 4 · 14:20")).toBeVisible();
   });
 
-  it("Standanzeige: hebt die laufende Serie hervor und zeigt je Bahn den Fortschritt", () => {
+  it("Standanzeige: hebt die laufende Serie hervor und zeigt je Schützenstand den Fortschritt", () => {
     const basis = szenen.range as SzeneVon<"range">;
     const [ablauf] = basis.range.procedures;
     if (!ablauf) throw new Error("Testdaten ohne Ablauf");
@@ -373,16 +375,16 @@ describe("Bildschirm", () => {
       },
     };
     zeige(beispielFeed({ scenes: [szene] }));
-    const stand = screen.getByRole("region", { name: "25-m-Stand" });
+    const stand = screen.getByRole("region", { name: "Schießstand Kurzwaffe 25 m" });
     // Parcours (Positionen): aktive Karte und Textzeile
     const parcours = within(stand).getByRole("list", { name: "Parcours" });
     expect(within(parcours).getAllByRole("listitem")[1]).toHaveAttribute("aria-current", "step");
-    expect(within(stand).getByText("Position 2: Bahn 1")).toBeVisible();
+    expect(within(stand).getByText("Position 2: Schützenstand 1")).toBeVisible();
     // Präzision (Serien): Kachel mit Marke
     const praezision = within(stand).getByRole("list", { name: "Präzision" });
     const serien = within(praezision).getAllByRole("listitem");
     expect(serien[2]).toHaveAttribute("aria-current", "step");
-    expect(within(serien[2] as HTMLElement).getByText("Jetzt · Bahn 2")).toBeVisible();
+    expect(within(serien[2] as HTMLElement).getByText("Jetzt · Schützenstand 2")).toBeVisible();
     // Fortschritt je Bahn
     const bahn1 = within(stand).getByText("Schütze 1").closest("[data-zeile]") as HTMLElement;
     expect(bahn1).toHaveTextContent("Parcours · Position 2 von 2");

@@ -40,7 +40,7 @@
   },
   "start": {
     "ueberschrift": "So läuft dein Turnier",
-    "einleitung": "Fünf Schritte vom Turnier bis zur Siegerliste. Der markierte Schritt ist als Nächstes dran.",
+    "einleitung": "Fünf Schritte vom Turnier bis zur Ergebnisliste. Der markierte Schritt ist als Nächstes dran.",
     "stationen_ueberschrift": "Station wählen",
     "stationen_einleitung": "Jedes Gerät im Schützenhaus öffnet die Station, an der es steht.",
     "auswahl_hinweis": "Der Ablauf und die Stationen auf diesem Gerät arbeiten in diesem Turnier.",
@@ -58,10 +58,10 @@
     "schritt": {
       "turnier": "Turnier einrichten",
       "anmeldung": "Schützen anmelden",
-      "erfassung": "Am Stand aufrufen und Ergebnisse erfassen",
+      "erfassung": "Am Schießstand aufrufen und Ergebnisse erfassen",
       "anzeige": "Ergebnisse zeigen",
       "sicherung": "Daten sichern",
-      "erfassung_stand": "Am Stand aufrufen"
+      "erfassung_stand": "Am Schießstand aufrufen"
     },
     "stand": {
       "offen": "Offen",
@@ -95,11 +95,11 @@
       "erfassung_fertig_one": "Der Start ist abgeschlossen.",
       "erfassung_fertig_other": "Alle {{count}} Starts sind abgeschlossen.",
       "erfassung_beendet": "Das Turnier ist abgeschlossen.",
-      "erfassung_unbekannt": "Aufgerufen wird am Stand, erfasst am Erfassungsterminal.",
+      "erfassung_unbekannt": "Aufgerufen wird am Schießstand, erfasst am Erfassungsterminal.",
       "anzeige_bereit": "Zeigt Startliste und Live-Wertung auf dem großen Bildschirm.",
       "anzeige_live_one": "Die Live-Wertung läuft, 1 Ergebnis steht fest.",
       "anzeige_live_other": "Die Live-Wertung läuft, {{count}} Ergebnisse stehen fest.",
-      "anzeige_siegerliste": "Alle Ergebnisse stehen fest. Zeit für die Siegerliste.",
+      "anzeige_siegerliste": "Alle Ergebnisse stehen fest. Zeit für die Ergebnisliste.",
       "sicherung_ok": "Zuletzt gesichert um {{zeit}} Uhr.",
       "sicherung_keine": "Noch keine Sicherung gelaufen.",
       "sicherung_warnung": "{{was}}.",
@@ -112,14 +112,14 @@
       "zur_anmeldung": "Zur Anmeldung",
       "ergebnisse_erfassen": "Ergebnisse erfassen",
       "anzeige_oeffnen": "Anzeige öffnen",
-      "siegerliste": "Siegerliste zeigen",
+      "siegerliste": "Ergebnisliste zeigen",
       "passwort_festlegen": "Passwort festlegen",
       "zur_sicherung": "Sicherung prüfen",
-      "zum_stand": "Zum Stand"
+      "zum_stand": "Zum Schießstand"
     },
-    "stand_link": "Ablauf am Stand",
+    "stand_link": "Ablauf am Schießstand",
     "ohne_recht": "Das übernimmt jemand mit passender Rolle.",
-    "siegerliste_drucken": "Siegerliste drucken"
+    "siegerliste_drucken": "Ergebnisliste drucken"
   },
   "anmeldung": {
     "einrichtung_ausstehend": "Ersteinrichtung ausstehend",

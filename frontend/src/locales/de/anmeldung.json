@@ -33,7 +33,7 @@
   "buchen": {
     "titel": "Starts buchen",
     "keine": "Im Turnier gibt es noch keine Wettbewerbe. Ohne Wettbewerb lassen sich keine Starts buchen.",
-    "ohne_stand": "ohne Stand",
+    "ohne_stand": "ohne Schießstand",
     "reihenfolge": "Reihenfolge",
     "zeitplan": "Zeitplan",
     "schon_one": "{{count}} Start gebucht",
@@ -61,9 +61,9 @@
   },
   "platz": {
     "titel": "Platz wählen: {{wettbewerb}}",
-    "hinweis": "Durchgang und Bahn auf dem {{stand}} für den ersten neuen Start. Weitere Starts bekommen den nächsten freien Platz.",
+    "hinweis": "Durchgang und Schützenstand am {{stand}} für den ersten neuen Start. Weitere Starts bekommen den nächsten freien Platz.",
     "schliessen": "Schließen",
-    "kurz": "{{zeit}} · Bahn {{bahn}}",
+    "kurz": "{{zeit}} · Schützenstand {{bahn}}",
     "durchgang": "Durchgang {{nummer}}",
     "vorschlag": "Vorschlag:",
     "gewaehlt": "Gewählt:",
@@ -73,10 +73,10 @@
     "vorschlag_nehmen": "Vorschlag nehmen",
     "weitere_one": "+ {{count}} weiterer Start: nächster freier Platz",
     "weitere_other": "+ {{count}} weitere Starts: jeweils nächster freier Platz",
-    "bahn_frei": "Bahn {{bahn}} um {{zeit}} wählen",
-    "bahn_belegt": "Bahn {{bahn}} um {{zeit}} ist belegt",
+    "bahn_frei": "Schützenstand {{bahn}} um {{zeit}} wählen",
+    "bahn_belegt": "Schützenstand {{bahn}} um {{zeit}} ist belegt",
     "leer_titel": "Keine Durchgänge",
-    "leer_text": "Auf diesem Stand gibt es keinen kommenden Durchgang. Durchgänge legt die Standaufsicht an."
+    "leer_text": "An diesem Schießstand gibt es keinen kommenden Durchgang. Durchgänge legt die Standaufsicht an."
   },
   "summe": {
     "titel": "Zu zahlen",
@@ -128,7 +128,7 @@
     "versuch": "{{nr}}. Start",
     "position": "Platz {{nr}} in der Reihenfolge",
     "ohne_platz": "noch ohne Platz im Zeitplan",
-    "sperre_aufgerufen": "Steht gerade auf der Bahn – stornieren geht nicht mehr, nur abbrechen am Stand.",
+    "sperre_aufgerufen": "Steht gerade am Schützenstand – stornieren geht nicht mehr, nur abbrechen am Schießstand.",
     "sperre_geschossen": "Schon geschossen – stornieren geht nicht mehr.",
     "sperre_abgebrochen": "Abgebrochen – stornieren geht nicht mehr."
   },
@@ -140,7 +140,7 @@
     "dns": "nicht angetreten",
     "dnf": "aufgegeben",
     "dsq": "disqualifiziert",
-    "bahn": "Bahn {{bahn}}"
+    "bahn": "Schützenstand {{bahn}}"
   },
   "storno": {
     "knopf": "Stornieren",

@@ -123,7 +123,7 @@ export const szenen: Record<FeedSzene["kind"], FeedSzene> = {
     kind: "winners",
     scene_id: "sieger",
     seconds: 20,
-    title: "Siegerliste",
+    title: "Ergebnisliste",
     part: 1,
     parts: 1,
     ranking: rangliste(),
@@ -139,7 +139,7 @@ export const szenen: Record<FeedSzene["kind"], FeedSzene> = {
       competition_id: "w1",
       competition_name: "Pistole bis 9 mm",
       range_id: "r1",
-      range_name: "25-m-Stand",
+      range_name: "Schießstand Kurzwaffe 25 m",
       starts: [
         person({
           start_id: "p1",
@@ -157,12 +157,12 @@ export const szenen: Record<FeedSzene["kind"], FeedSzene> = {
     kind: "range",
     scene_id: "stand",
     seconds: 20,
-    title: "25-m-Stand",
+    title: "Schießstand Kurzwaffe 25 m",
     part: 1,
     parts: 1,
     range: {
       range_id: "r1",
-      range_name: "25-m-Stand",
+      range_name: "Schießstand Kurzwaffe 25 m",
       lane_count: 2,
       procedures: [
         {
@@ -273,7 +273,7 @@ export const szenen: Record<FeedSzene["kind"], FeedSzene> = {
               attempt: 1,
               busy: true,
               busy_range_id: "r2",
-              busy_range_name: "15-m-Stand",
+              busy_range_name: "Schießstand Flinte 15 m",
               busy_lane: 1,
               position: 1,
             },

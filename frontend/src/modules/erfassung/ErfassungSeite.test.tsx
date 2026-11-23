@@ -32,7 +32,7 @@ const turnier = {
 
 const uebersicht = {
   ...turnier,
-  ranges: [{ id: R, tournament_id: T, name: "15-m-Stand", lane_count: 2, sort: 0 }],
+  ranges: [{ id: R, tournament_id: T, name: "Schießstand Flinte 15 m", lane_count: 2, sort: 0 }],
   classes: [],
   competitions: [{ id: "w", catalog_code: "4401", name: "Selbstladeflinte", range_id: R }],
 };
@@ -649,7 +649,7 @@ describe("Erfassungsterminal", () => {
     expect(gewaehlt[0]).not.toHaveProperty("art");
   });
 
-  it("zeigt Bahnen am Stand und die Liste „Zu prüfen“", async () => {
+  it("zeigt Schützenstände am Schießstand und die Liste „Zu prüfen“", async () => {
     localStorage.setItem("schiesshub.erfassung.stand", JSON.stringify({ [T]: R }));
     routen({
       [`GET /tournaments/${T}/results/needs-review`]: {
@@ -671,11 +671,11 @@ describe("Erfassungsterminal", () => {
     anzeigen(undefined);
     expect(await screen.findByText("Zu prüfen · 1")).toBeInTheDocument();
     expect(screen.getByText(/Ablauf geändert/)).toBeInTheDocument();
-    expect(screen.getByText("Am Stand · 1")).toBeInTheDocument();
-    expect(screen.getByText("Bahn frei")).toBeInTheDocument();
+    expect(screen.getByText("Am Schießstand · 1")).toBeInTheDocument();
+    expect(screen.getByText("Schützenstand frei")).toBeInTheDocument();
   });
 
-  it("zeigt am Stand den vollen Namen aus der Startliste (names=full), ohne die Anmeldungen zu laden", async () => {
+  it("zeigt am Schießstand den vollen Namen aus der Startliste (names=full), ohne die Anmeldungen zu laden", async () => {
     localStorage.setItem("schiesshub.erfassung.stand", JSON.stringify({ [T]: R }));
     const aufrufe = routen({
       [`GET /tournaments/${T}/startlist?names=full`]: {
@@ -683,7 +683,7 @@ describe("Erfassungsterminal", () => {
       },
     });
     anzeigen(undefined);
-    expect(await screen.findByText("Am Stand · 1")).toBeInTheDocument();
+    expect(await screen.findByText("Am Schießstand · 1")).toBeInTheDocument();
     expect(screen.getAllByText("Markus Brandt").length).toBeGreaterThan(0);
     expect(screen.queryByText("M. Brandt")).toBeNull();
     expect(aufrufe.some((a) => a.pfad.includes("/entries"))).toBe(false);

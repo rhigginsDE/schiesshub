@@ -1,6 +1,6 @@
 {
   "titel": "Anzeige",
-  "zweck": "Startliste, Live-Wertung und Siegerliste für den Bildschirm im Schützenhaus.",
+  "zweck": "Startliste, Live-Wertung und Ergebnisliste für den Bildschirm im Schützenhaus.",
   "aktion": {
     "speichern": "Speichern",
     "abbrechen": "Abbrechen"
@@ -8,7 +8,7 @@
   "art": {
     "live_ranking": "Live-Wertung",
     "startlist": "Startliste",
-    "winners": "Siegerliste",
+    "winners": "Ergebnisliste",
     "range": "Standanzeige",
     "notice": "Hinweis"
   },
@@ -21,7 +21,7 @@
   },
   "abbruch": {
     "dns": "nicht angetreten",
-    "dnf": "aufgegeben",
+    "dnf": "Abbruch (AB)",
     "dsq": "disqualifiziert"
   },
   "schirm": {
@@ -48,14 +48,14 @@
     "weitere_plaetze": "Weitere Plätze",
     "ohne_platzierung": "Ohne Platzierung",
     "platz": {
-      "durchgang_bahn": "Durchgang {{nummer}} · {{zeit}} · Bahn {{bahn}}",
+      "durchgang_bahn": "Durchgang {{nummer}} · {{zeit}} · Schützenstand {{bahn}}",
       "durchgang": "Durchgang {{nummer}} · {{zeit}}",
-      "bahn": "Bahn {{bahn}}"
+      "bahn": "Schützenstand {{bahn}}"
     },
     "weitere_starts_one": "+ {{count}} weiterer Start",
     "weitere_starts_other": "+ {{count}} weitere Starts",
     "ablauf": {
-      "kicker": "Disziplin am Stand",
+      "kicker": "Disziplin am Schießstand",
       "gewertet": "Es zählen {{gewertet}} von {{gesamt}} Serien",
       "sollzeit": "Sollzeit {{zeit}}",
       "serie": "Serie {{nr}}",
@@ -65,12 +65,12 @@
       "trefferaufnahme": "Trefferaufnahme",
       "jetzt": "Jetzt",
       "jetzt_kurz": "Jetzt · {{bahnen}}",
-      "bahnen_one": "Bahn {{bahnen}}",
-      "bahnen_other": "Bahnen {{bahnen}}",
+      "bahnen_one": "Schützenstand {{bahnen}}",
+      "bahnen_other": "Schützenstände {{bahnen}}",
       "position_bahnen": "Position {{nr}}: {{bahnen}}"
     },
     "stand": {
-      "am_stand": "Am Stand",
+      "am_stand": "Am Schießstand",
       "als_naechstes": "Als Nächstes",
       "durchgang": "Durchgang {{nummer}}",
       "reihenfolge": "Reihenfolge",
@@ -81,11 +81,11 @@
       "von": "{{nr}} von {{gesamt}}",
       "fertig": "fertig",
       "durchgang_um": "Durchgang {{nummer}} · {{zeit}}",
-      "spalte_bahn": "Bahn",
+      "spalte_bahn": "Schützenstand",
       "spalte_platz": "Platz",
-      "busy": "gerade auf Bahn {{bahn}}, {{stand}}",
+      "busy": "gerade am {{stand}}, Schützenstand {{bahn}}",
       "busy_ohne_bahn": "gerade am {{stand}}",
-      "busy_kurz": "gerade auf einer Bahn",
+      "busy_kurz": "gerade an einem Schützenstand",
       "weitere_one": "+ {{count}} weiterer",
       "weitere_other": "+ {{count}} weitere"
     },
@@ -217,8 +217,8 @@
     "laufende_hilfe": "Zwischenstände mit Live-Punkt",
     "abgebrochene": "Abgebrochene Starts zeigen",
     "abgebrochene_hilfe": "Nicht angetreten, aufgegeben oder disqualifiziert: Sie stehen mit dem Grund am Ende der Liste und bekommen keinen Platz.",
-    "staende": "Stände",
-    "alle_staende": "Alle Stände",
+    "staende": "Schießstände",
+    "alle_staende": "Alle Schießstände",
     "starts": "Starts je Wettbewerb",
     "starts_hilfe": "Der Rest erscheint als Anzahl",
     "abgeschlossene": "Auch erledigte Starts zeigen",
@@ -227,9 +227,9 @@
     "top_hilfe": "Die ersten 1 bis 20 Plätze",
     "vorlaeufige": "Vorläufige Ergebnisse zeigen",
     "vorlaeufige_hilfe": "Ergebnisse in der Einspruchsfrist, gekennzeichnet",
-    "stand": "Stand",
-    "stand_waehlen": "Stand wählen",
-    "stand_fehlt": "Bitte einen Stand wählen.",
+    "stand": "Schießstand",
+    "stand_waehlen": "Schießstand wählen",
+    "stand_fehlt": "Bitte einen Schießstand wählen.",
     "naechste": "Starter unter „Als Nächstes“",
     "naechste_hilfe": "0 bis 30",
     "ablauf": "Ablauf der Disziplin zeigen",
@@ -260,22 +260,22 @@
   "export": {
     "knopf": "Listen drucken",
     "titel": "Listen drucken und speichern",
-    "einleitung": "Startliste und Siegerliste als PDF zum Ausdrucken und Aushängen oder als Tabelle (CSV) für die Tabellenkalkulation, dazu alle Ergebnisse als Rohdaten.",
-    "dialog_titel": "Startliste und Siegerliste",
+    "einleitung": "Startliste und Ergebnisliste als PDF zum Ausdrucken und Aushängen oder als Tabelle (CSV) für die Tabellenkalkulation, dazu alle Ergebnisse als Rohdaten.",
+    "dialog_titel": "Startliste und Ergebnisliste",
     "namen": "Namen",
     "namen_oeffentlich": "Wie von der Person gewählt",
     "namen_voll": "Volle Namen (intern)",
     "datenschutz": "Volle Namen nur für den internen Gebrauch, z. B. für Urkunden oder die Abrechnung: nicht aushängen und nicht weitergeben – manche Personen haben ihren vollen Namen nicht freigegeben.",
     "wettbewerb": "Wettbewerb",
     "alle_wettbewerbe": "Alle Wettbewerbe",
-    "stand": "Stand",
-    "alle_staende": "Alle Stände",
+    "stand": "Schießstand",
+    "alle_staende": "Alle Schießstände",
     "klasse": "Klasse",
     "alle_klassen": "Alle Klassen",
     "sortierung": "Sortierung",
     "sortierung_wettbewerb": "Je Wettbewerb",
     "sortierung_startnummer": "Nach Startnummer",
-    "sortierung_stand": "Je Stand nach Uhrzeit",
+    "sortierung_stand": "Je Schießstand nach Uhrzeit",
     "top": "Nur die ersten Plätze",
     "top_hilfe": "Leer = alle Plätze",
     "zusammen": "Klassen zusammenlegen",
@@ -288,10 +288,10 @@
     },
     "startlist": {
       "titel": "Startliste",
-      "text": "Alle Starts, wahlweise eines Wettbewerbs oder Stands."
+      "text": "Alle Starts, wahlweise eines Wettbewerbs oder Schießstands."
     },
     "winners": {
-      "titel": "Siegerliste",
+      "titel": "Ergebnisliste",
       "text": "Platzierungen je Wettbewerb und Klasse aus abgeschlossenen Ergebnissen."
     },
     "results": {
@@ -300,7 +300,7 @@
     },
     "datei": {
       "startlist": "Startliste",
-      "winners": "Siegerliste",
+      "winners": "Ergebnisliste",
       "results": "Ergebnisse"
     },
     "gespeichert": "Datei gespeichert",
@@ -312,8 +312,8 @@
   },
   "einrichten": {
     "titel": "Für „{{name}}“ gibt es noch keine Anzeige",
-    "text": "Eine Anzeige zeigt dieses Turnier auf dem großen Bildschirm: Live-Wertung, Startliste und Siegerliste im Wechsel. Alles Weitere stellst du danach ein. Für den Aushang kannst du die Siegerliste auch drucken.",
+    "text": "Eine Anzeige zeigt dieses Turnier auf dem großen Bildschirm: Live-Wertung, Startliste und Ergebnisliste im Wechsel. Alles Weitere stellst du danach ein. Für den Aushang kannst du die Ergebnisliste auch drucken.",
     "knopf": "Anzeige für „{{name}}“ einrichten",
-    "drucken": "Siegerliste drucken"
+    "drucken": "Ergebnisliste drucken"
   }
 }

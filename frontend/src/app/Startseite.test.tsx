@@ -56,7 +56,7 @@ describe("Startseite: nur was die Rolle darf", () => {
   const mitRolle = (permissions: string[], teil: Record<string, unknown> = {}) => ({
     ...STATUS,
     auth_enforced: true,
-    device: { id: "g1", name: "Tablet Stand", default_role_id: null },
+    device: { id: "g1", name: "Tablet Schießstand", default_role_id: null },
     user: { id: "p1", name: "S. Krämer" },
     role: { id: "r1", name: "Standaufsicht" },
     permissions,
@@ -66,7 +66,7 @@ describe("Startseite: nur was die Rolle darf", () => {
     ...teil,
   });
 
-  it("Standaufsicht: nur der Stand, mit „Zum Stand“ als Hauptaktion und eigenem Menüpunkt", async () => {
+  it("Standaufsicht: nur der Schießstand, mit „Zum Schießstand“ als Hauptaktion und eigenem Menüpunkt", async () => {
     apiAttrappe({
       "/health": HEALTH,
       "/auth/status": mitRolle(["start.call", "start.read", "tournament.read"]),
@@ -75,13 +75,13 @@ describe("Startseite: nur was die Rolle darf", () => {
       [`/tournaments/${TURNIER_ID}/startlist`]: [start(1, "final"), start(2, "registered")],
     });
     renderApp("/");
-    const knopf = await screen.findByRole("link", { name: "Zum Stand" });
+    const knopf = await screen.findByRole("link", { name: "Zum Schießstand" });
     expect(knopf).toHaveAttribute("href", "/erfassung/stand");
-    expect(screen.getByRole("heading", { name: "Am Stand aufrufen" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Am Schießstand aufrufen" })).toBeInTheDocument();
     expect(screen.queryByText("Schützen anmelden")).not.toBeInTheDocument();
     expect(screen.queryByText("Turnier einrichten")).not.toBeInTheDocument();
     const navigation = screen.getByRole("navigation", { name: "Stationen" });
-    expect(within(navigation).getByRole("link", { name: "Stand" })).toHaveAttribute(
+    expect(within(navigation).getByRole("link", { name: "Schießstand" })).toHaveAttribute(
       "href",
       "/erfassung/stand",
     );

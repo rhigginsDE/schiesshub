@@ -107,7 +107,7 @@ describe("Turnier einrichten", () => {
     const klassen = within(nav).getByRole("button", { name: /Klassen/ });
     expect(within(klassen).getByText("Fehlt noch: Klassen")).toBeInTheDocument();
     expect(klassen).toHaveAttribute("aria-current", "step");
-    const staende = within(nav).getByRole("button", { name: /Stände/ });
+    const staende = within(nav).getByRole("button", { name: /Schießstände/ });
     expect(within(staende).getByText("Erledigt")).toBeInTheDocument();
     // Vorgaben vor den Wettbewerben, und am Ende des Schritts geht es weiter.
     const titel = within(nav)
@@ -133,21 +133,23 @@ describe("Turnier einrichten", () => {
     expect(screen.getAllByText("Nicht gespeichert").length).toBeGreaterThan(0);
 
     const nav = screen.getByRole("navigation", { name: "Schritte der Einrichtung" });
-    await userEvent.click(within(nav).getByRole("button", { name: /Stände/ }));
+    await userEvent.click(within(nav).getByRole("button", { name: /Schießstände/ }));
     let dialog = await screen.findByRole("dialog", { name: "Änderungen speichern?" });
     await userEvent.click(within(dialog).getByRole("button", { name: "Weiter bearbeiten" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(screen.getByRole("textbox", { name: /Veranstalter/ })).toHaveValue("SV Neu");
 
-    await userEvent.click(within(nav).getByRole("button", { name: /Stände/ }));
+    await userEvent.click(within(nav).getByRole("button", { name: /Schießstände/ }));
     dialog = await screen.findByRole("dialog", { name: "Änderungen speichern?" });
     await userEvent.click(within(dialog).getByRole("button", { name: "Speichern und weiter" }));
     await waitFor(() => expect(geschrieben).toHaveLength(1));
     expect(geschrieben[0]).toMatchObject({ methode: "PATCH", inhalt: { organizer: "SV Neu" } });
-    expect(await screen.findByRole("heading", { name: "Stände", level: 2 })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Schießstände", level: 2 }),
+    ).toBeInTheDocument();
   });
 
-  it("Vorgaben: Bahnen vor einem Durchgang freihalten (Standard 10, 0 = aus)", async () => {
+  it("Vorgaben: Schützenstände vor einem Durchgang freihalten (Standard 10, 0 = aus)", async () => {
     const turnier = beispielTurnier();
     turnier.settings = { ...turnier.settings, heat_reserve_minutes: 10 };
     const geschrieben = api({
@@ -159,11 +161,11 @@ describe("Turnier einrichten", () => {
     // Liegt unter „Erweitert“ bei den Ablauf-Einstellungen, gleich nach der Wechselzeit.
     await userEvent.click(await screen.findByText("Erweitert"));
     const feld = await screen.findByRole("textbox", {
-      name: /Bahnen vor einem Durchgang freihalten/,
+      name: /Schützenstände vor einem Durchgang freihalten/,
     });
     expect(feld).toHaveValue("10 Min.");
     expect(
-      screen.getByText(/bleiben die gebuchten Bahnen so viele Minuten vor Beginn/),
+      screen.getByText(/bleiben die gebuchten Schützenstände so viele Minuten vor Beginn/),
     ).toBeInTheDocument();
     await userEvent.clear(feld);
     await userEvent.type(feld, "0");
@@ -181,10 +183,12 @@ describe("Turnier einrichten", () => {
 
     const name = await screen.findByRole("textbox", { name: /^Name/ });
     await userEvent.type(name, " X");
-    await userEvent.click(screen.getByRole("button", { name: /Weiter: Stände/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Weiter: Schießstände/ }));
     const dialog = await screen.findByRole("dialog", { name: "Änderungen speichern?" });
     await userEvent.click(within(dialog).getByRole("button", { name: "Verwerfen" }));
-    expect(await screen.findByRole("heading", { name: "Stände", level: 2 })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Schießstände", level: 2 }),
+    ).toBeInTheDocument();
     expect(geschrieben).toHaveLength(0);
   });
 
@@ -319,7 +323,7 @@ describe("Ausschreibung als Blatt", () => {
                 catalog_federation: "bds",
                 catalog_code: "4403",
                 group: null,
-                range_name: "15-m-Stand",
+                range_name: "Schießstand Flinte 15 m",
                 procedure: null,
                 sections: [],
                 multi_start: false,
@@ -359,12 +363,8 @@ describe("Ausschreibung als Blatt", () => {
     expect(screen.queryByText("Sicherheit")).not.toBeInTheDocument();
     const zeile = screen.getAllByRole("row").find((z) => within(z).queryByText("4403"));
     expect(zeile && within(zeile).getByText(/7,00/)).toBeTruthy();
-    expect(
-      zeile &&
-        within(zeile).getByText(
-          "Abweichend vom Katalog: Fallscheibe: 3 von 4 Serien gewertet statt 4 von 4",
-        ),
-    ).toBeTruthy();
+    // Abweichungen vom Katalog stehen nur im Turnier-Editor, nicht in der Ausschreibung.
+    expect(screen.queryByText(/Abweichend vom Katalog/)).not.toBeInTheDocument();
     expect(screen.getByText("Stand 22.11.2026")).toBeInTheDocument();
     expect(screen.getByText("erstellt mit Schiesshub")).toBeInTheDocument();
   });

@@ -1,6 +1,6 @@
 {
   "titel": "Erfassung",
-  "zweck": "Ergebnisse am Stand eingeben: Ringe, Zeiten und Zuschläge je Serie.",
+  "zweck": "Ergebnisse am Schießstand eingeben: Ringe, Zeiten und Zuschläge je Serie.",
   "turnier_hinweis": "Das Terminal erfasst in einem Turnier. Die Wahl gilt für dieses Gerät.",
   "bereiche": "Bereiche der Station",
   "flaeche": "Erfassung des Starts",
@@ -8,20 +8,20 @@
   "aktionen": "Aktionen",
   "leer": {
     "titel": "Start wählen",
-    "text": "Hier trägst du die Ergebnisse je Start ein und schließt sie ab. Tipp links eine Bahn an oder such eine Startnummer."
+    "text": "Hier trägst du die Ergebnisse je Start ein und schließt sie ab. Tipp links einen Schützenstand an oder such eine Startnummer."
   },
   "auswahl": {
     "titel": "Startauswahl",
     "oeffnen": "Starts",
     "zurueck": "Zur Erfassung",
-    "am_stand_one": "Am Stand · {{count}}",
-    "am_stand_other": "Am Stand · {{count}}",
-    "bahn": "Bahn {{bahn}}",
-    "bahn_frei": "Bahn frei",
+    "am_stand_one": "Am Schießstand · {{count}}",
+    "am_stand_other": "Am Schießstand · {{count}}",
+    "bahn": "Schützenstand {{bahn}}",
+    "bahn_frei": "Schützenstand frei",
     "ohne_name": "Name nicht angezeigt",
     "wartend_one": "Wartend · {{count}}",
     "wartend_other": "Wartend · {{count}}",
-    "wartend_leer": "Niemand wartet auf diesem Stand.",
+    "wartend_leer": "Niemand wartet an diesem Schießstand.",
     "wartend_hinweis": "Wartende lassen sich direkt erfassen, auch ohne Aufruf.",
     "erfasst_one": "Erfasst, nicht abgeschlossen · {{count}}",
     "erfasst_other": "Erfasst, nicht abgeschlossen · {{count}}",
@@ -30,18 +30,18 @@
     "durchgang": "Durchgang {{nummer}}, {{zeit}}",
     "platz": "Nr. {{platz}} in der Reihenfolge",
     "versuch": "{{nr}}. Start",
-    "bahn_kurz": "Bahn",
+    "bahn_kurz": "Schützenstand",
     "am_stand_leer": "Noch niemand aufgerufen.",
-    "am_stand_leer_text": "Schützen rufst du am Stand auf. Wartende kannst du auch direkt erfassen.",
-    "zum_stand": "Am Stand aufrufen",
+    "am_stand_leer_text": "Schützen rufst du am Schießstand auf. Wartende kannst du auch direkt erfassen.",
+    "zum_stand": "Am Schießstand aufrufen",
     "klasse": "Klasse {{klasse}}"
   },
   "stand": {
-    "beschriftung": "Stand",
-    "waehlen": "Stand wählen",
-    "text": "Welchen Stand erfasst dieses Gerät? Die Wahl bleibt gespeichert.",
-    "leer_titel": "Kein Stand angelegt",
-    "leer_text": "Im Turnier gibt es noch keinen Stand. Stände legt die Turnierleitung an."
+    "beschriftung": "Schießstand",
+    "waehlen": "Schießstand wählen",
+    "text": "Welchen Schießstand erfasst dieses Gerät? Die Wahl bleibt gespeichert.",
+    "leer_titel": "Kein Schießstand angelegt",
+    "leer_text": "Im Turnier gibt es noch keinen Schießstand. Schießstände legt die Turnierleitung an."
   },
   "suche": {
     "beschriftung": "Startnummer oder Name suchen",
@@ -80,8 +80,8 @@
   },
   "kopf": {
     "startnummer": "Startnummer {{nr}}",
-    "bahn": "Bahn {{bahn}}",
-    "ohne_bahn": "ohne Bahn",
+    "bahn": "Schützenstand {{bahn}}",
+    "ohne_bahn": "ohne Schützenstand",
     "versuch": "Start {{nr}} von {{von}}",
     "vorlaeufig": "vorläufig bis {{zeit}}",
     "max_ringe": "Wertung: Ringe, höchstens {{max}}",
@@ -342,8 +342,8 @@
   "fertig": {
     "titel_one": "Der Start ist erfasst",
     "titel_other": "Alle {{count}} Starts sind erfasst",
-    "text": "Alle Ergebnisse sind abgeschlossen. Als Nächstes zeigst du sie auf dem großen Bildschirm oder druckst die Siegerliste für den Aushang. Zum Korrigieren such links den Start.",
+    "text": "Alle Ergebnisse sind abgeschlossen. Als Nächstes zeigst du sie auf dem großen Bildschirm oder druckst die Ergebnisliste für den Aushang. Zum Korrigieren such links den Start.",
     "zeigen": "Ergebnisse zeigen",
-    "drucken": "Siegerliste drucken"
+    "drucken": "Ergebnisliste drucken"
   }
 }

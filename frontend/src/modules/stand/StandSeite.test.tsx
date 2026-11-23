@@ -73,7 +73,7 @@ function wettbewerb(id: string, planung: "queue" | "schedule") {
 function uebersicht(planungen: ("queue" | "schedule")[]): TurnierUebersicht {
   return {
     ...turnier,
-    ranges: [{ id: R, tournament_id: T, name: "15-m-Stand", lane_count: 2, sort: 0 }],
+    ranges: [{ id: R, tournament_id: T, name: "Schießstand Flinte 15 m", lane_count: 2, sort: 0 }],
     classes: [],
     competitions: planungen.map((p) => wettbewerb(p === "queue" ? W_Q : W_Z, p)),
   } as unknown as TurnierUebersicht;
@@ -151,12 +151,12 @@ afterEach(() => {
  * einem Nachladen neu, geht der erste Klick ins Leere; dann wird noch einmal geklickt.
  */
 async function abbruchPunkt(benutzer: ReturnType<typeof userEvent.setup>, name: string) {
-  await screen.findByRole("listitem", { name: "Bahn 1" });
+  await screen.findByRole("listitem", { name: "Schützenstand 1" });
   return waitFor(
     async () => {
       const punkt = screen.queryByRole("menuitem", { name });
       if (punkt) return punkt;
-      const bahn1 = screen.getByRole("listitem", { name: "Bahn 1" });
+      const bahn1 = screen.getByRole("listitem", { name: "Schützenstand 1" });
       const knopf = within(bahn1).getByRole("button", { name: /Abbrechen/ });
       // Nur klicken, solange das Menü zu ist; ein zweiter Klick würde es wieder schließen.
       if (knopf.getAttribute("aria-expanded") !== "true") await benutzer.click(knopf);
@@ -166,8 +166,8 @@ async function abbruchPunkt(benutzer: ReturnType<typeof userEvent.setup>, name: 
   );
 }
 
-describe("Stand", { timeout: 15000 }, () => {
-  it("zeigt die Bahnen und ruft mit dem einen Hauptknopf die Nächsten auf", async () => {
+describe("Schießstand", { timeout: 15000 }, () => {
+  it("zeigt die Schützenstände und ruft mit dem einen Hauptknopf die Nächsten auf", async () => {
     const aufrufe = routen(["queue"], {
       [`POST /tournaments/${T}/ranges/${R}/call-next`]: {
         inhalt: {
@@ -182,7 +182,7 @@ describe("Stand", { timeout: 15000 }, () => {
     const benutzer = userEvent.setup();
     renderAnsicht(() => <StandMitMeldungen />);
 
-    const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
+    const bahn1 = await screen.findByRole("listitem", { name: "Schützenstand 1" });
     expect(within(bahn1).getByText("Name nicht angezeigt")).toBeInTheDocument();
     expect(within(bahn1).getByText("8")).toBeInTheDocument();
     expect(within(bahn1).getByText("seit 09:05")).toBeInTheDocument();
@@ -196,7 +196,7 @@ describe("Stand", { timeout: 15000 }, () => {
     expect(await screen.findByText("1 Start aufgerufen")).toBeInTheDocument();
   });
 
-  it("QA G-11: zeigt den Text des Servers zu Übersprungenen und freigehaltenen Bahnen", async () => {
+  it("QA G-11: zeigt den Text des Servers zu Übersprungenen und freigehaltenen Schützenständen", async () => {
     routen(["queue"], {
       [`POST /tournaments/${T}/ranges/${R}/call-next`]: {
         inhalt: {
@@ -213,7 +213,8 @@ describe("Stand", { timeout: 15000 }, () => {
           ],
           held_lanes: [2],
           upcoming_heat: null,
-          message: "Startnummer 7 steht gerade auf einer Bahn. Bahn 2 bleibt für Durchgang 2 frei.",
+          message:
+            "Startnummer 7 steht gerade an einem Schützenstand. Schützenstand 2 bleibt für Durchgang 2 frei.",
         },
       },
     });
@@ -222,10 +223,10 @@ describe("Stand", { timeout: 15000 }, () => {
 
     await benutzer.click(await screen.findByRole("button", { name: /Nächste aufrufen/ }));
     expect(await screen.findByText("Niemand aufgerufen")).toBeInTheDocument();
-    expect(screen.getByText(/Bahn 2 bleibt für Durchgang 2 frei/)).toBeInTheDocument();
+    expect(screen.getByText(/Schützenstand 2 bleibt für Durchgang 2 frei/)).toBeInTheDocument();
   });
 
-  it("QA G-11: „Nächsten auf Bahn 2“ ruft über call-next mit Bahn auf", async () => {
+  it("QA G-11: „Nächsten an Schützenstand 2“ ruft über call-next mit Schützenstand auf", async () => {
     const aufrufe = routen(["queue"], {
       [`POST /tournaments/${T}/ranges/${R}/call-next`]: {
         inhalt: { called: [], skipped: [], held_lanes: [], upcoming_heat: null, message: null },
@@ -234,8 +235,10 @@ describe("Stand", { timeout: 15000 }, () => {
     const benutzer = userEvent.setup();
     renderAnsicht(() => <StandSeite suche={{}} onSuche={() => {}} />);
 
-    const bahn2 = await screen.findByRole("listitem", { name: "Bahn 2" });
-    await benutzer.click(within(bahn2).getByRole("button", { name: "Nächsten auf Bahn 2" }));
+    const bahn2 = await screen.findByRole("listitem", { name: "Schützenstand 2" });
+    await benutzer.click(
+      within(bahn2).getByRole("button", { name: "Nächsten an Schützenstand 2" }),
+    );
     const aufruf = aufrufe.find((a) => a.pfad.endsWith("/call-next"));
     expect(aufruf?.inhalt).toEqual({ lane: 2 });
     expect(aufrufe.some((a) => a.pfad.endsWith("/call") && a.methode === "POST")).toBe(false);
@@ -257,7 +260,7 @@ describe("Stand", { timeout: 15000 }, () => {
           : {
               status: 409,
               inhalt: {
-                detail: "Durchgang 2 beginnt um 05:15 und braucht Bahn 2.",
+                detail: "Durchgang 2 beginnt um 05:15 und braucht Schützenstand 2.",
                 code: "heat_imminent",
               },
             },
@@ -268,7 +271,7 @@ describe("Stand", { timeout: 15000 }, () => {
     await benutzer.click(await screen.findByRole("button", { name: /Nächste aufrufen/ }));
     const dialog = await screen.findByRole("dialog", {}, { timeout: 5000 });
     expect(
-      within(dialog).getByText("Durchgang 2 beginnt um 05:15 und braucht Bahn 2."),
+      within(dialog).getByText("Durchgang 2 beginnt um 05:15 und braucht Schützenstand 2."),
     ).toBeInTheDocument();
     await benutzer.click(within(dialog).getByRole("button", { name: "Trotzdem aufrufen" }));
 
@@ -277,7 +280,7 @@ describe("Stand", { timeout: 15000 }, () => {
     expect(await screen.findByText("1 Start aufgerufen")).toBeInTheDocument();
   });
 
-  it("QA G-11: zeigt ruhig, dass ein Durchgang bald Bahnen braucht", async () => {
+  it("QA G-11: zeigt ruhig, dass ein Durchgang bald Schützenstände braucht", async () => {
     routen(["queue"], {
       [`GET /tournaments/${T}/ranges/${R}/queue?names=full`]: {
         inhalt: {
@@ -303,7 +306,9 @@ describe("Stand", { timeout: 15000 }, () => {
     });
     renderAnsicht(() => <StandSeite suche={{}} onSuche={() => {}} />);
     expect(
-      await screen.findByText("Durchgang 2 um 05:15 braucht Bahn 2 – wird ab 05:05 freigehalten"),
+      await screen.findByText(
+        "Durchgang 2 um 05:15 braucht Schützenstand 2 – wird ab 05:05 freigehalten",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -376,7 +381,7 @@ describe("Stand", { timeout: 15000 }, () => {
     });
     renderAnsicht(() => <StandSeite suche={{}} onSuche={() => {}} />);
 
-    const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
+    const bahn1 = await screen.findByRole("listitem", { name: "Schützenstand 1" });
     expect(await within(bahn1).findByText("Paul Winter")).toBeInTheDocument();
     expect(within(bahn1).queryByText("Name nicht angezeigt")).toBeNull();
     expect(aufrufe.some((a) => a.pfad.includes("/entries"))).toBe(false);
@@ -404,12 +409,12 @@ describe("Stand", { timeout: 15000 }, () => {
       </RechteProvider>
     ));
 
-    const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
+    const bahn1 = await screen.findByRole("listitem", { name: "Schützenstand 1" });
     expect(within(bahn1).getByText("Name nicht angezeigt")).toBeInTheDocument();
     expect(aufrufe.some((a) => a.pfad.includes("names=full"))).toBe(false);
   });
 
-  it("hält die Bahn bis zum Abschluss, zeigt den Fortschritt und gibt sie nach Rückfrage frei", async () => {
+  it("hält den Schützenstand bis zum Abschluss, zeigt den Fortschritt und gibt sie nach Rückfrage frei", async () => {
     const inErfassung = { ...aufgerufen, status: "captured" as const };
     const aufrufe = routen(["queue"], {
       [`GET /tournaments/${T}/ranges/${R}/queue?names=full`]: {
@@ -441,7 +446,7 @@ describe("Stand", { timeout: 15000 }, () => {
     const benutzer = userEvent.setup();
     renderAnsicht(() => <StandSeite suche={{}} onSuche={() => {}} />);
 
-    const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
+    const bahn1 = await screen.findByRole("listitem", { name: "Schützenstand 1" });
     expect(within(bahn1).getByText("wird erfasst")).toBeInTheDocument();
     expect(within(bahn1).getByText("2 von 4 Serien erfasst")).toBeInTheDocument();
     expect(within(bahn1).getByRole("link", { name: /Ergebnis erfassen/ })).toHaveAttribute(
@@ -450,11 +455,11 @@ describe("Stand", { timeout: 15000 }, () => {
     );
     expect(within(bahn1).queryByRole("button", { name: /Zurückstellen/ })).toBeNull();
 
-    await benutzer.click(within(bahn1).getByRole("button", { name: /Bahn freigeben/ }));
+    await benutzer.click(within(bahn1).getByRole("button", { name: /Schützenstand freigeben/ }));
     const dialog = await screen.findByRole("dialog", {}, { timeout: 5000 });
-    expect(within(dialog).getByText("Bahn 1 freigeben?")).toBeInTheDocument();
+    expect(within(dialog).getByText("Schützenstand 1 freigeben?")).toBeInTheDocument();
     expect(aufrufe.some((a) => a.pfad.endsWith("/release-lane"))).toBe(false);
-    await benutzer.click(within(dialog).getByRole("button", { name: "Bahn freigeben" }));
+    await benutzer.click(within(dialog).getByRole("button", { name: "Schützenstand freigeben" }));
     expect(aufrufe.some((a) => a.methode === "POST" && a.pfad.endsWith("/release-lane"))).toBe(
       true,
     );
@@ -465,7 +470,7 @@ describe("Stand", { timeout: 15000 }, () => {
     const benutzer = userEvent.setup();
     renderAnsicht(() => <StandSeite suche={{}} onSuche={() => {}} />);
 
-    const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
+    const bahn1 = await screen.findByRole("listitem", { name: "Schützenstand 1" });
     expect(within(bahn1).getByText("4401")).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
@@ -572,7 +577,7 @@ describe("Stand", { timeout: 15000 }, () => {
       </RechteProvider>
     ));
 
-    const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
+    const bahn1 = await screen.findByRole("listitem", { name: "Schützenstand 1" });
     expect(screen.getByText(/Aufrufen ist für deine Rolle nicht freigegeben/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Nächste aufrufen/ })).toBeNull();
     expect(within(bahn1).queryByRole("button", { name: /Abbrechen/ })).toBeNull();
@@ -606,7 +611,7 @@ describe("Stand", { timeout: 15000 }, () => {
       </RechteProvider>
     ));
 
-    const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
+    const bahn1 = await screen.findByRole("listitem", { name: "Schützenstand 1" });
     expect(within(bahn1).getByRole("button", { name: /Abbrechen/ })).toBeInTheDocument();
     expect(within(bahn1).queryByRole("button", { name: /Zurückstellen/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /Nächste aufrufen/ })).toBeNull();
@@ -631,7 +636,9 @@ describe("Stand", { timeout: 15000 }, () => {
     const benutzer = userEvent.setup();
     renderAnsicht(() => <StandSeite suche={{}} onSuche={() => {}} />);
 
-    expect(await screen.findByText("Gerade wartet niemand auf diesem Stand.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Gerade wartet niemand an diesem Schießstand."),
+    ).toBeInTheDocument();
     await benutzer.click(screen.getByRole("button", { name: "Durchgänge anlegen" }));
     const dialog = await screen.findByRole("dialog", {}, { timeout: 5000 });
     const anzahl = within(dialog).getByRole("textbox", { name: "Anzahl" });

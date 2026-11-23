@@ -435,6 +435,10 @@
   gap: 6px;
 }
 
+.durchgangBahnen {
+  container-type: inline-size;
+}
+
 .platz {
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr) auto;
@@ -456,6 +460,38 @@
 .platzBahn {
   font-size: 13px;
   color: var(--sh-text-gedaempft);
+}
+
+/* „Schützenstand 12“ passt nicht in 64 px: eigene Breite, damit die Zeilen bündig bleiben */
+.durchgangBahnen .platz {
+  grid-template-columns: max-content minmax(0, 1fr) auto;
+}
+
+.durchgangBahnen .platzBahn {
+  min-width: 16ch;
+  white-space: nowrap;
+}
+
+/* Schmal (Handy): Schützenstand als eigene Zeile über Name und Status */
+@container (max-width: 440px) {
+  .durchgangBahnen .platz {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-block: 6px;
+  }
+
+  .durchgangBahnen .platzBahn {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  /* Freie Schützenstände bleiben einzeilig: „Schützenstand 2 · frei“ */
+  .durchgangBahnen .platz[data-frei] {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+
+  .durchgangBahnen .platz[data-frei] .platzBahn {
+    grid-column: auto;
+  }
 }
 
 .platzWer {

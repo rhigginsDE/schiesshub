@@ -148,14 +148,6 @@
   color: var(--sh-text-gedaempft);
 }
 
-.abweichend {
-  display: block;
-  margin-top: 2px;
-  font-size: 12px;
-  font-style: italic;
-  color: var(--sh-text-weich);
-}
-
 .aufzaehlung {
   padding-left: 18px;
   list-style: disc;

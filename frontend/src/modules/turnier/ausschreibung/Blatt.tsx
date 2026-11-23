@@ -89,12 +89,6 @@ export function BausteinBlatt({ baustein }: { baustein: DruckBaustein }) {
                 <td>
                   <strong>{w.name}</strong>
                   <span className={s.klein}>{w.starts}</span>
-                  {w.abweichend && (
-                    <span className={s.abweichend}>
-                      {t("ausschreibung.druck.abweichend")}
-                      {w.abweichungen.length > 0 && `: ${w.abweichungen.join("; ")}`}
-                    </span>
-                  )}
                 </td>
                 <td>{w.ablauf}</td>
                 <td>

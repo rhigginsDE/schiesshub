@@ -1,6 +1,6 @@
 {
   "titel": "Turnier",
-  "zweck": "Turnier anlegen, Wettbewerbe aus dem Katalog wählen, Stände, Klassen und Startgeld festlegen.",
+  "zweck": "Turnier anlegen, Wettbewerbe aus dem Katalog wählen, Schießstände, Klassen und Startgeld festlegen.",
   "bereiche": "Bereiche",
   "aktion": {
     "abbrechen": "Abbrechen",
@@ -65,7 +65,7 @@
     "leer_text": "Leg mit „Turnier anlegen“ dein erstes Turnier an. Danach führt dich eine Liste Schritt für Schritt durch die Einrichtung.",
     "loeschen": "„{{name}}“ löschen",
     "loeschen_titel": "„{{name}}“ löschen?",
-    "loeschen_text": "Das Turnier wird mit allen Ständen, Klassen und Wettbewerben gelöscht. Das lässt sich nicht rückgängig machen.",
+    "loeschen_text": "Das Turnier wird mit allen Schießständen, Klassen und Wettbewerben gelöscht. Das lässt sich nicht rückgängig machen.",
     "loeschen_knopf": "Turnier löschen",
     "kopieren": "Kopieren",
     "kopieren_lang": "„{{name}}“ als Vorlage für ein neues Turnier nehmen"
@@ -88,11 +88,11 @@
       },
       "kopie": {
         "titel": "Wie ein früheres Turnier",
-        "text": "Übernimmt Stände, Klassen, Wettbewerbe und Startgeld. Teilnehmer und Ergebnisse kommen nicht mit."
+        "text": "Übernimmt Schießstände, Klassen, Wettbewerbe und Startgeld. Teilnehmer und Ergebnisse kommen nicht mit."
       },
       "vorlage": {
         "titel": "Aus einer Vorlage",
-        "text": "Fertige Turniere mit Ständen und Wettbewerben, zum Beispiel Fallscheibe Flinte 15 m."
+        "text": "Fertige Turniere mit Schießständen und Wettbewerben, zum Beispiel Fallscheibe Flinte 15 m."
       }
     }
   },
@@ -106,7 +106,7 @@
     "dauer": "Das neue Turnier dauert wieder {{count}} Tage.",
     "name_hilfe": "Die Jahreszahl im Namen passt sich dem Datum an, bis du den Namen selbst änderst.",
     "uebernommen": "Kommt mit",
-    "uebernommen_text": "Stände, Klassen, Wettbewerbe mit Ablauf und Startgeld, die Vorgaben und die Ausschreibung.",
+    "uebernommen_text": "Schießstände, Klassen, Wettbewerbe mit Ablauf und Startgeld, die Vorgaben und die Ausschreibung.",
     "nicht_uebernommen": "Kommt nicht mit",
     "nicht_uebernommen_text": "Teilnehmer, Anmeldungen, Durchgänge und Ergebnisse. Das neue Turnier beginnt als Entwurf.",
     "knopf": "Kopieren und einrichten"
@@ -180,7 +180,7 @@
     "queue": "Der Reihe nach aufrufen",
     "schedule": "Nach Zeitplan",
     "queue_hilfe": "Ohne feste Uhrzeiten: Wer angemeldet ist, wartet, und die Standaufsicht ruft den Nächsten auf.",
-    "schedule_hilfe": "Durchgänge mit Uhrzeit und Bahn; die Anmeldung bucht einen freien Platz.",
+    "schedule_hilfe": "Durchgänge mit Uhrzeit und Schützenstand; die Anmeldung bucht einen freien Platz.",
     "vorschlag_zeitplan": "Vorschlag aus dem Ablauf: nach Zeitplan, {{minuten}} Min. je Durchgang",
     "vorschlag_reihenfolge": "Vorschlag aus dem Ablauf: der Reihe nach aufrufen",
     "uebernehmen": "Vorschlag übernehmen",
@@ -207,8 +207,8 @@
       "vorlage_hinweis": "Art des Turniers: {{vorlage}}. Die Vorgaben dazu, etwa für Mehrfachstart, änderst du unter „{{bereich}}“."
     },
     "staende": {
-      "titel": "Stände",
-      "text": "Wo geschossen wird und wie viele Bahnen es gibt. Ein Stand genügt, wenn alles auf einem Stand stattfindet."
+      "titel": "Schießstände",
+      "text": "Wo geschossen wird und wie viele Schützenstände es gibt. Ein Schießstand genügt, wenn alles auf einem Schießstand stattfindet."
     },
     "klassen": {
       "titel": "Klassen",
@@ -227,7 +227,7 @@
     },
     "ausschreibung": {
       "titel": "Ausschreibung",
-      "text": "Texte für die Ausschreibung. Wettbewerbe, Klassen, Startgeld, Termine und Stände kommen automatisch aus dem Turnier."
+      "text": "Texte für die Ausschreibung. Wettbewerbe, Klassen, Startgeld, Termine und Schießstände kommen automatisch aus dem Turnier."
     }
   },
   "speichern": {
@@ -242,11 +242,11 @@
     "optional": "Optional",
     "fehlt": "Fehlt noch: {{was}}",
     "fehlt_was": {
-      "kein_stand": "ein Stand",
+      "kein_stand": "ein Schießstand",
       "keine_klasse": "Klassen",
       "kein_wettbewerb": "ein Wettbewerb",
-      "ohne_stand_one": "Stand für {{count}} Wettbewerb",
-      "ohne_stand_other": "Stand für {{count}} Wettbewerbe",
+      "ohne_stand_one": "Schießstand für {{count}} Wettbewerb",
+      "ohne_stand_other": "Schießstand für {{count}} Wettbewerbe",
       "ohne_dauer_one": "Dauer je Durchgang bei {{count}} Wettbewerb",
       "ohne_dauer_other": "Dauer je Durchgang bei {{count}} Wettbewerben"
     },
@@ -273,7 +273,7 @@
     "startgeld_hilfe": "Vorgabe für neue Wettbewerbe; 0,00 heißt kostenlos.",
     "vorhanden_one": "Dein vorhandener Wettbewerb behält sein Startgeld. Ändern kannst du es dort unter „Wettbewerbe“.",
     "vorhanden_other": "Deine {{count}} vorhandenen Wettbewerbe behalten ihr Startgeld. Ändern kannst du es dort unter „Wettbewerbe“.",
-    "erweitert_inhalt": "Erfassung, Wechselzeit, Bahnen vor einem Durchgang freihalten, erste Startnummer, Einspruchsfrist, Zeitzone, Währung",
+    "erweitert_inhalt": "Erfassung, Wechselzeit, Schützenstände vor einem Durchgang freihalten, erste Startnummer, Einspruchsfrist, Zeitzone, Währung",
     "waehrung": "Währung",
     "waehrung_hilfe": "Kürzel, z. B. EUR",
     "mehrfach_standard": "Mehrfachstart für neue Wettbewerbe erlauben",
@@ -291,8 +291,8 @@
     "einspruch_neu_aus": "Eine Korrektur verlängert die Frist nicht: Sie läuft ab dem ersten Abschluss weiter.",
     "zeitzone": "Zeitzone",
     "zeitzone_hilfe": "Uhrzeiten auf dem Bildschirm, in Listen und beim Export stehen in dieser Zeit.",
-    "bahnen_freihalten": "Bahnen vor einem Durchgang freihalten",
-    "bahnen_freihalten_hilfe": "Teilen sich Zeitplan und Reihenfolge einen Stand, bleiben die gebuchten Bahnen so viele Minuten vor Beginn des Durchgangs frei. 0 schaltet das aus."
+    "bahnen_freihalten": "Schützenstände vor einem Durchgang freihalten",
+    "bahnen_freihalten_hilfe": "Teilen sich Zeitplan und Reihenfolge einen Schießstand, bleiben die gebuchten Schützenstände so viele Minuten vor Beginn des Durchgangs frei. 0 schaltet das aus."
   },
   "zeitzone": {
     "Europe_Berlin": "Deutschland (Berlin)",
@@ -315,25 +315,25 @@
     "UTC": "Weltzeit (UTC)"
   },
   "staende": {
-    "neu": "Weiterer Stand",
-    "weiterer": "Weiteren Stand anlegen",
-    "erster_titel": "Ersten Stand anlegen",
-    "erster_text": "Name und Zahl der Bahnen genügen. Weitere Stände kannst du jederzeit ergänzen.",
+    "neu": "Weiterer Schießstand",
+    "weiterer": "Weiteren Schießstand anlegen",
+    "erster_titel": "Ersten Schießstand anlegen",
+    "erster_text": "Name und Zahl der Schützenstände genügen. Weitere Schießstände kannst du jederzeit ergänzen.",
     "reihenfolge_hinweis": "Die Reihenfolge gilt für Listen und Anzeige.",
     "name": "Name",
-    "name_platzhalter": "z. B. 25-m-Stand",
-    "bahnen": "Bahnen",
-    "bahnen_anzahl_one": "{{anzahl}} Bahn",
-    "bahnen_anzahl_other": "{{anzahl}} Bahnen",
+    "name_platzhalter": "z. B. Schießstand Kurzwaffe 25 m",
+    "bahnen": "Schützenstände",
+    "bahnen_anzahl_one": "{{anzahl}} Schützenstand",
+    "bahnen_anzahl_other": "{{anzahl}} Schützenstände",
     "wettbewerbe_one": "{{count}} Wettbewerb",
     "wettbewerbe_other": "{{count}} Wettbewerbe",
-    "anlegen": "Stand anlegen",
-    "leer_titel": "Noch kein Stand",
-    "leer_text": "Für dieses Turnier ist noch kein Stand angelegt.",
+    "anlegen": "Schießstand anlegen",
+    "leer_titel": "Noch kein Schießstand",
+    "leer_text": "Für dieses Turnier ist noch kein Schießstand angelegt.",
     "loeschen_titel": "„{{name}}“ löschen?",
-    "loeschen_text": "Der Stand wird aus dem Turnier entfernt.",
-    "loeschen_text_wettbewerbe_one": "Der Stand wird entfernt. {{count}} Wettbewerb verliert dadurch seinen Stand.",
-    "loeschen_text_wettbewerbe_other": "Der Stand wird entfernt. {{count}} Wettbewerbe verlieren dadurch ihren Stand."
+    "loeschen_text": "Der Schießstand wird aus dem Turnier entfernt.",
+    "loeschen_text_wettbewerbe_one": "Der Schießstand wird entfernt. {{count}} Wettbewerb verliert dadurch seinen Schießstand.",
+    "loeschen_text_wettbewerbe_other": "Der Schießstand wird entfernt. {{count}} Wettbewerbe verlieren dadurch ihren Schießstand."
   },
   "klassen": {
     "kein_geburtsdatum": "Schiesshub speichert kein Geburtsdatum. Die Klasse wählt die Anmeldung von Hand; die Altersangaben aus dem Katalog sind nur Hilfetext.",
@@ -408,14 +408,14 @@
     "leer_text": "Links im Katalog eine Disziplin suchen und „Hinzufügen“ wählen.",
     "eigen": "Eigen",
     "eigen_lang": "Abgewandelter Wettbewerb",
-    "ohne_stand": "Kein Stand",
+    "ohne_stand": "Kein Schießstand",
     "aufklappen": "Einstellungen aufklappen",
     "zuklappen": "Einstellungen zuklappen",
     "gruppe": {
-      "grundlagen": "Stand und Startgeld",
+      "grundlagen": "Schießstand und Startgeld",
       "klassen": "Zugelassene Klassen",
       "wertung": "Name, Wertung und Erfassung",
-      "planung": "Planung am Stand",
+      "planung": "Planung am Schießstand",
       "ablauf": "Ablauf"
     },
     "erweitert": {
@@ -425,11 +425,11 @@
     },
     "name": "Name",
     "name_hilfe": "So steht der Wettbewerb auf Startzetteln und in der Anzeige.",
-    "stand": "Stand",
-    "kein_stand": "Kein Stand gewählt",
-    "stand_fehlt": "Ohne Stand lassen sich keine Bahnen zuteilen.",
-    "stand_option_one": "{{name}} ({{count}} Bahn)",
-    "stand_option_other": "{{name}} ({{count}} Bahnen)",
+    "stand": "Schießstand",
+    "kein_stand": "Kein Schießstand gewählt",
+    "stand_fehlt": "Ohne Schießstand lassen sich keine Schützenstände zuteilen.",
+    "stand_option_one": "{{name}} ({{count}} Schützenstand)",
+    "stand_option_other": "{{name}} ({{count}} Schützenstände)",
     "variante": "Ablauf laut Katalog",
     "variante_hilfe": "Der Katalog nennt für diese Disziplin mehrere Abläufe. Ein Wechsel übernimmt den gewählten Ablauf unverändert.",
     "variante_titel": "Ablauf „{{name}}“ übernehmen?",
@@ -453,7 +453,7 @@
     "herkunft_eigen": "Abgewandelter Wettbewerb ohne Bindung an den Katalog. Alle Werte sind frei einstellbar.",
     "zuruecksetzen": "Auf Katalog zurücksetzen",
     "zuruecksetzen_titel": "Ablauf auf den Katalog zurücksetzen?",
-    "zuruecksetzen_text": "Ablauf und Wertung kommen neu aus dem aktuellen Katalog. Stand, Startgeld, Klassen und Planung bleiben.",
+    "zuruecksetzen_text": "Ablauf und Wertung kommen neu aus dem aktuellen Katalog. Schießstand, Startgeld, Klassen und Planung bleiben.",
     "zuruecksetzen_knopf": "Zurücksetzen",
     "kopieren": "Als abgewandelten Wettbewerb kopieren",
     "kopieren_titel": "Als abgewandelten Wettbewerb kopieren",
@@ -538,21 +538,21 @@
     }
   },
   "offen": {
-    "kein_stand": "Es gibt noch keinen Stand.",
+    "kein_stand": "Es gibt noch keinen Schießstand.",
     "keine_klasse": "Es gibt noch keine Klasse.",
     "kein_wettbewerb": "Es gibt noch keinen Wettbewerb.",
-    "ohne_stand": "„{{name}}“ hat keinen Stand.",
+    "ohne_stand": "„{{name}}“ hat keinen Schießstand.",
     "ohne_dauer": "„{{name}}“ plant mit Zeitplan, aber ohne Dauer je Durchgang."
   },
   "zusammenfassung": {
-    "staende": "Stände",
+    "staende": "Schießstände",
     "klassen": "Klassen",
     "einspruch": "Einspruchsfrist",
     "keine": "keine",
     "aus": "aus",
     "minuten": "{{wert}} Min.",
-    "stand_one": "{{name}} ({{count}} Bahn)",
-    "stand_other": "{{name}} ({{count}} Bahnen)",
+    "stand_one": "{{name}} ({{count}} Schützenstand)",
+    "stand_other": "{{name}} ({{count}} Schützenstände)",
     "wie_katalog": "Ablauf wie Katalog",
     "frei": "frei",
     "frei_lang": "Abgewandelt (frei änderbar)",
@@ -622,8 +622,8 @@
       "begruessung": "Üblich: Einladung zum Turnier und ein kurzer Gruß des Vereins.",
       "veranstalter-und-ort": "Üblich: ausrichtender Verein, Schützenhaus, Anfahrt und Parken.",
       "teilnahmeberechtigung": "Üblich: wer starten darf, z. B. Mitglieder, Gäste, nötige Ausweise oder Waffenbesitzkarte.",
-      "anmeldung": "Üblich: wie und bis wann gemeldet wird, Nachmeldung am Stand, Bezahlung.",
-      "ablauf": "Üblich: Öffnungszeiten, Beginn der Durchgänge, Einteilung auf die Bahnen.",
+      "anmeldung": "Üblich: wie und bis wann gemeldet wird, Nachmeldung am Schießstand, Bezahlung.",
+      "ablauf": "Üblich: Öffnungszeiten, Beginn der Durchgänge, Einteilung auf die Schützenstände.",
       "sicherheit": "Üblich: Waffenkontrolle, Transport, Gehörschutz und Schutzbrille.",
       "wertung": "Üblich: Wertung, Ehrung der Sieger, Preise und Urkunden.",
       "einsprueche": "Üblich: Frist und Weg für Einsprüche, Einspruchsgebühr.",
@@ -636,7 +636,7 @@
       "classes": "Aus dem Turnier: Klassen",
       "fees": "Aus dem Turnier: Startgeld",
       "dates": "Aus dem Turnier: Termine",
-      "ranges": "Aus dem Turnier: Stände"
+      "ranges": "Aus dem Turnier: Schießstände"
     },
     "eckdaten": {
       "venue": "Ort",
@@ -649,7 +649,7 @@
     "platzhalter": {
       "venue": "z. B. Schützenhaus Musterstadt",
       "address": "Straße, PLZ und Ort",
-      "registration_info": "z. B. per E-Mail bis zum Meldeschluss, Nachmeldung am Stand möglich",
+      "registration_info": "z. B. per E-Mail bis zum Meldeschluss, Nachmeldung am Schießstand möglich",
       "contact_info": "z. B. 0123 456789"
     },
     "termine": {
@@ -657,8 +657,8 @@
       "meldeschluss": "Meldeschluss"
     },
     "staende": {
-      "zeile_one": "{{name}} ({{count}} Bahn)",
-      "zeile_other": "{{name}} ({{count}} Bahnen)"
+      "zeile_one": "{{name}} ({{count}} Schützenstand)",
+      "zeile_other": "{{name}} ({{count}} Schützenstände)"
     },
     "druck": {
       "zurueck": "Zurück",
@@ -669,11 +669,10 @@
       "kennziffer": "Kennziffer",
       "wettbewerb": "Wettbewerb",
       "ablauf": "Ablauf",
-      "stand_spalte": "Stand",
+      "stand_spalte": "Schießstand",
       "startgeld": "Startgeld / Nachkauf",
       "erster_start": "Erster Start",
-      "nachkauf": "Nachkauf",
-      "abweichend": "Abweichend vom Katalog"
+      "nachkauf": "Nachkauf"
     }
   }
 }

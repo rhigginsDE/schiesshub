@@ -145,8 +145,6 @@ export interface DruckWettbewerb {
   starts: string;
   stand: string;
   startgeld: string | null;
-  abweichend: boolean;
-  abweichungen: string[];
 }
 
 export interface DruckGebuehr {
@@ -258,8 +256,6 @@ export function druckModell(
                 ? `${geld(g.fee_first_cents)} / ${geld(g.fee_repeat_cents)}`
                 : geld(g.fee_first_cents)
               : null,
-            abweichend: w.deviates_from_catalog,
-            abweichungen: w.deviations,
           };
         }),
       });
