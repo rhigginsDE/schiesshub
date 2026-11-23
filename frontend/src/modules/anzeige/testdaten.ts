@@ -5,6 +5,7 @@ import type { Feed, FeedPerson, FeedRangliste, FeedSzene, FeedZeile } from "./ty
 export function zeile(teil: Partial<FeedZeile> & Pick<FeedZeile, "start_id" | "place">): FeedZeile {
   return {
     tied: false,
+    needs_shootoff: false,
     group: "ranked",
     start_number: 1,
     attempt: 1,
@@ -50,8 +51,6 @@ export function rangliste(): FeedRangliste {
     direction: "absteigend",
     unit: "Ringe",
     combined: false,
-    deviates: false,
-    deviations: [],
     groups: [
       {
         class_id: "k1",
@@ -152,8 +151,6 @@ export const szenen: Record<FeedSzene["kind"], FeedSzene> = {
         person({ start_id: "p2", start_number: 6, display_name: null, club: null }),
       ],
       more: 4,
-      deviates: false,
-      deviations: [],
     },
   },
   range: {
@@ -177,8 +174,6 @@ export const szenen: Record<FeedSzene["kind"], FeedSzene> = {
           description: null,
           scoring: "Ringe, höher ist besser",
           notes: ["−1 Ring je volle Sekunde über der Sollzeit"],
-          deviates: true,
-          deviations: ["Sollzeit 60 s statt 50 s"],
           current: [],
           sections: [
             {
@@ -191,7 +186,6 @@ export const szenen: Record<FeedSzene["kind"], FeedSzene> = {
               target_time_s: 60,
               time_measured: true,
               summary: "2 Serien · je 5 Schuss",
-              deviations: [],
               series: [1, 2].map((nr) => ({
                 number: nr,
                 counted: true,
@@ -218,7 +212,6 @@ export const szenen: Record<FeedSzene["kind"], FeedSzene> = {
               target_time_s: null,
               time_measured: false,
               summary: "3 Serien · je 10 Schuss · je 300 s",
-              deviations: [],
               series: [1, 2, 3].map((nr) => ({
                 number: nr,
                 counted: nr <= 2,

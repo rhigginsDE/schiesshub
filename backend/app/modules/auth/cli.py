@@ -4,6 +4,7 @@
     python -m app.modules.auth.cli list-users
     python -m app.modules.auth.cli reset-pin NAME-ODER-ID [--pin PIN]
     python -m app.modules.auth.cli ensure-admin NAME [--pin PIN]
+    python -m app.modules.auth.cli enforcement status|on|off
 
 Im Container: `docker compose exec backend python -m app.modules.auth.cli …`.
 
@@ -14,7 +15,13 @@ aus den `AUTH_…`-Einstellungen. Jeder Befehl schreibt einen Audit-Eintrag („
 Server-Konsole“), nie mit PIN oder Code. Ohne `--pin` wird eine zufällige PIN erzeugt und genau
 einmal angezeigt.
 
-Exit-Codes: 0 in Ordnung, 1 Fehler (z. B. Person unbekannt, PIN zu kurz, Datenbank nicht
+`enforcement off` ist der einzige Weg, die in der App eingeschaltete Berechtigungsprüfung wieder
+auszuschalten. Der laufende Server liest den Schalter alle `AUTH_ENFORCEMENT_POLL_SECONDS`
+Sekunden neu und übernimmt die Änderung ohne Neustart. Steht `AUTH_ENFORCED=true` in der
+Umgebung, gilt die Prüfung trotzdem; dann hilft nur, die Variable zu entfernen und den Server neu
+zu starten.
+
+Exit-Codes: 0 in Ordnung, 1 Fehler (z. B. Benutzer unbekannt, PIN zu kurz, Datenbank nicht
 erreichbar), 2 falscher Aufruf.
 """
 
@@ -36,7 +43,9 @@ from app.core.db import create_engine, create_session_factory
 from app.core.events import EventHub
 from app.core.localtime import zone
 from app.core.security import Actor
+from app.modules.auth import enforcement as switch
 from app.modules.auth import service
+from app.modules.auth.audit import record_audit
 from app.modules.auth.schemas import Name, PairingCodeIn
 from app.modules.auth.settings import AuthSettings
 
@@ -125,7 +134,7 @@ async def pairing_code(
 async def list_users(session: AsyncSession, *, out: TextIO = sys.stdout) -> None:
     users = await service.console_list_users(session)
     if not users:
-        print("Es gibt noch keine Personen mit Zugang (Ersteinrichtung offen).", file=out)
+        print("Es gibt noch keine Benutzer (Ersteinrichtung offen).", file=out)
         return
     width = max(len(user.name) for user in users)
     role_width = max(len(user.role_name) for user in users)
@@ -156,12 +165,12 @@ async def reset_pin(
         session, Actor(), auth, EventHub(), user.id, new_pin, via=service.CONSOLE_VIA
     )
     print(f"PIN für „{result.name}“ gesetzt, eine Sperre ist aufgehoben.", file=out)
-    print("Bestehende Anmeldungen dieser Person sind beendet.", file=out)
+    print("Bestehende Anmeldungen dieses Benutzers sind beendet.", file=out)
     if pin is None:
         _show_pin(new_pin, out)
     if not result.active:
         print(
-            "Hinweis: Die Person ist inaktiv und kann sich so nicht anmelden "
+            "Hinweis: Der Benutzer ist inaktiv und kann sich so nicht anmelden "
             "(ensure-admin reaktiviert Administratoren).",
             file=out,
         )
@@ -204,13 +213,75 @@ async def ensure_admin(
     print("Ein neues Gerät koppeln: pairing-code --name GERÄTENAME", file=out)
 
 
+ENV_WINS = (
+    "Achtung: AUTH_ENFORCED=true steht in der Umgebung des Servers und gewinnt – die Prüfung "
+    "bleibt an. Zum Ausschalten AUTH_ENFORCED entfernen (oder auf false setzen) und den Server "
+    "neu starten."
+)
+
+
+async def enforcement(
+    session: AsyncSession, settings: Settings, *, action: str, out: TextIO = sys.stdout
+) -> None:
+    """Berechtigungsprüfung anzeigen (`status`), einschalten (`on`) oder ausschalten (`off`)."""
+    env = settings.auth_enforced
+    stored = await switch.load(session)
+    poll = settings.auth_enforcement_poll_seconds
+    if action == "status":
+        effective = "an" if env or stored else "aus"
+        print(f"Berechtigungsprüfung: {effective}", file=out)
+        print(f"  AUTH_ENFORCED (Umgebung):     {'true' if env else 'false'}", file=out)
+        print(f"  In der App eingeschaltet:     {'ja' if stored else 'nein'}", file=out)
+        if env:
+            print(
+                "Die Umgebungsvariable gewinnt; ausschalten nur über AUTH_ENFORCED und Neustart.",
+                file=out,
+            )
+        elif stored:
+            print("Ausschalten: enforcement off", file=out)
+        return
+
+    wanted = action == "on"
+    if stored == wanted:
+        print(
+            f"Der gespeicherte Schalter ist bereits {'an' if wanted else 'aus'}. Nichts geändert.",
+            file=out,
+        )
+    else:
+        if wanted and not await switch.full_admin_exists(session):
+            raise CliError(
+                "Es gibt keinen aktiven Administrator mit PIN – niemand könnte sich anmelden. "
+                "Zuerst: ensure-admin NAME"
+            )
+        await switch.store(session, wanted)
+        record_audit(
+            session,
+            Actor(),
+            "auth.enforcement_enabled" if wanted else "auth.enforcement_disabled",
+            "setting",
+            switch.SETTING_KEY,
+            {"via": service.CONSOLE_VIA},
+        )
+        await session.commit()
+        print(
+            f"Berechtigungsprüfung {'eingeschaltet' if wanted else 'ausgeschaltet'}. Der laufende "
+            f"Server übernimmt das innerhalb von etwa {poll:g} Sekunden (kein Neustart nötig).",
+            file=out,
+        )
+    if env and not wanted:
+        print(ENV_WINS, file=out)
+
+
 # --- Aufruf ------------------------------------------------------------------
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m app.modules.auth.cli",
-        description="Notzugang über die Server-Konsole: Geräte koppeln, PINs und Administratoren.",
+        description=(
+            "Notzugang über die Server-Konsole: Geräte koppeln, PINs, Administratoren, "
+            "Berechtigungsprüfung."
+        ),
     )
     commands = parser.add_subparsers(dest="command", required=True, metavar="BEFEHL")
     code = commands.add_parser("pairing-code", help="einmaligen Kopplungscode erzeugen")
@@ -218,13 +289,17 @@ def _parser() -> argparse.ArgumentParser:
     code.add_argument(
         "--minutes", type=float, help="Gültigkeit in Minuten (Standard: AUTH_PAIRING_CODE_MINUTES)"
     )
-    commands.add_parser("list-users", help="Personen mit Rolle und Zustand anzeigen")
+    commands.add_parser("list-users", help="Benutzer mit Rolle und Zustand anzeigen")
     reset = commands.add_parser("reset-pin", help="PIN setzen und Sperre aufheben")
-    reset.add_argument("who", metavar="NAME-ODER-ID", help="Name oder ID der Person")
+    reset.add_argument("who", metavar="NAME-ODER-ID", help="Name oder ID des Benutzers")
     reset.add_argument("--pin", help="neue PIN (ohne Angabe: zufällig, einmal angezeigt)")
     admin = commands.add_parser("ensure-admin", help="Administrator anlegen oder reaktivieren")
-    admin.add_argument("name", metavar="NAME", help="Name der Person")
-    admin.add_argument("--pin", help="PIN (neue Person ohne Angabe: zufällig, einmal angezeigt)")
+    admin.add_argument("name", metavar="NAME", help="Name des Benutzers")
+    admin.add_argument("--pin", help="PIN (neuer Benutzer ohne Angabe: zufällig, einmal angezeigt)")
+    switch_cmd = commands.add_parser(
+        "enforcement", help="Berechtigungsprüfung anzeigen, ein- oder ausschalten"
+    )
+    switch_cmd.add_argument("action", choices=("status", "on", "off"), metavar="status|on|off")
     return parser
 
 
@@ -243,6 +318,8 @@ async def run(args: argparse.Namespace, settings: Settings, out: TextIO = sys.st
                     await reset_pin(session, settings, who=args.who, pin=args.pin, out=out)
                 case "ensure-admin":
                     await ensure_admin(session, settings, name=args.name, pin=args.pin, out=out)
+                case "enforcement":
+                    await enforcement(session, settings, action=args.action, out=out)
     finally:
         await engine.dispose()
 

@@ -38,7 +38,6 @@ from app.modules.starts.schemas import StationStartOut
 from app.modules.teilnehmer.models import Club, Person
 from app.modules.teilnehmer.names import clean_text
 from app.modules.turnier.models import Competition, Range, TournamentClass
-from app.modules.turnier.service import catalog_diff_of
 from app.scoring import ComputedResult, DefinitionError, load_definition
 from app.scoring.numbers import to_decimal
 
@@ -102,10 +101,10 @@ def _sections_of(definition: dict | None) -> tuple[tuple[str, str], ...]:
 
 
 async def competitions(
-    session: AsyncSession, tournament_id: uuid.UUID, *, deviations: bool = False
+    session: AsyncSession, tournament_id: uuid.UUID
 ) -> dict[uuid.UUID, CompetitionInfo]:
-    """Wettbewerbe des Turniers; mit `deviations` auch die Abweichungen vom Katalog
-    (`turnier.service.catalog_diff_of`, dieselben Texte wie Editor, Ausschreibung, Anzeige)."""
+    """Wettbewerbe des Turniers. Abweichungen vom Katalog stehen bewusst nicht in den Listen:
+    Sie zeigt nur die Turnierverwaltung (Entscheidung vom 22.11.2026)."""
     ranges = {
         item.id: item
         for item in await session.scalars(select(Range).where(Range.tournament_id == tournament_id))
@@ -118,10 +117,6 @@ async def competitions(
     ):
         range_ = ranges.get(competition.range_id) if competition.range_id else None
         model, rounding = _scoring_of(competition.definition)
-        texts: tuple[str, ...] = ()
-        if deviations:
-            diff = await catalog_diff_of(session, competition)
-            texts = tuple(item.text for item in diff.differences) if diff.deviates else ()
         result[competition.id] = CompetitionInfo(
             id=competition.id,
             code=competition.catalog_code,
@@ -137,7 +132,6 @@ async def competitions(
             model=model,
             target_times=_target_times(competition.definition),
             time_rounding=rounding,
-            deviations=texts,
         )
     return result
 
@@ -247,7 +241,7 @@ async def winners(
     if competition_id is not None:
         await competition_of(session, tournament_id, competition_id)
     await check_class(session, tournament_id, class_id)
-    competitions_ = await competitions(session, tournament_id, deviations=True)
+    competitions_ = await competitions(session, tournament_id)
     classes = await class_names(session, tournament_id)
     lookup = await _names(session, tournament_id, names)
     chosen: Sequence[uuid.UUID] = (

@@ -4,7 +4,16 @@ from datetime import datetime
 from typing import Annotated, Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StringConstraints, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StringConstraints,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 
 from app.modules.teilnehmer.names import DisplayMode
 
@@ -66,20 +75,52 @@ class ClubOut(BaseModel):
 # --- Person ------------------------------------------------------------------
 
 
+CLUB_ID_DESCRIPTION = (
+    "Vorhandener Verein. Alternativ `club_name` angeben, nicht beides. Beim Ändern entfernt "
+    "`null` den Verein."
+)
+CLUB_NAME_DESCRIPTION = (
+    "Verein über seinen Namen statt über `club_id` (nicht beides, sonst 422 an diesem Feld). "
+    "Gesucht wird wie in der Vereinssuche: ohne Groß-/Kleinschreibung, Leerzeichen, Akzente und "
+    "Umlaut-Schreibweise („schuetzenverein“ findet „Schützenverein“). Gibt es keinen solchen "
+    "Verein, wird er in derselben Transaktion wie die Person angelegt; scheitert das Speichern "
+    "der Person, entsteht auch kein Verein. Das Neuanlegen verlangt zusätzlich die Berechtigung "
+    "`club.edit` (sonst 403); für einen vorhandenen Verein genügt `person.edit`. `null` gilt "
+    "als nicht angegeben."
+)
+BOTH_CLUB_FIELDS = (
+    "Bitte entweder einen vorhandenen Verein (club_id) oder einen Vereinsnamen (club_name) "
+    "angeben, nicht beides."
+)
+
+
+def _check_club_name(club_name: str | None, info: ValidationInfo) -> str | None:
+    if club_name is not None and info.data.get("club_id") is not None:
+        raise ValueError(BOTH_CLUB_FIELDS)
+    return club_name
+
+
 class PersonCreate(_Input):
     name: Name
     member_no: MemberNo | None = None
-    club_id: UUID | None = None
+    club_id: UUID | None = Field(default=None, description=CLUB_ID_DESCRIPTION)
+    # Muss nach `club_id` stehen: Der Validator sieht nur schon geprüfte Felder.
+    club_name: Name | None = Field(default=None, description=CLUB_NAME_DESCRIPTION)
     display_mode: DisplayMode = "full"
     show_club: StrictBool = True
+
+    _club_name_alone = field_validator("club_name")(_check_club_name)
 
 
 class PersonUpdate(_Input):
     name: Name | None = None
     member_no: MemberNo | None = None
-    club_id: UUID | None = None
+    club_id: UUID | None = Field(default=None, description=CLUB_ID_DESCRIPTION)
+    club_name: Name | None = Field(default=None, description=CLUB_NAME_DESCRIPTION)
     display_mode: DisplayMode | None = None
     show_club: StrictBool | None = None
+
+    _club_name_alone = field_validator("club_name")(_check_club_name)
 
     @model_validator(mode="after")
     def _required_not_null(self) -> Self:

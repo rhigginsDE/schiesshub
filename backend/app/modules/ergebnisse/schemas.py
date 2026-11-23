@@ -206,7 +206,8 @@ class SeriesPart(BaseModel):
     number: int
     struck: bool
     status: str
-    rings: int | None
+    # Bei Zehntelwertung Text mit einer Nachkommastelle („20.1“), sonst ganze Zahl.
+    rings: Decimal | int | None
     time_cs: int | None
     standing: int | None
     total_cs: int | None
@@ -215,7 +216,15 @@ class SeriesPart(BaseModel):
 class RankingRow(BaseModel):
     place: int | None
     tied: bool
+    # Geteilt und nicht entschieden (Grund in `tie_reason`, Text in `tie_note`).
     tie_unresolved: bool
+    # missing_data: Rohdaten für `tie_criterion` fehlen; manual: `tie_criterion` rechnet der
+    # Server nicht (nach Sportordnung entscheiden); shootoff: Stechen (`stechen_bis_platz`).
+    tie_reason: Literal["missing_data", "manual", "shootoff"] | None = None
+    tie_criterion: str | None = None
+    needs_shootoff: bool = False
+    # Hinweis zum Anzeigen, z. B. „Ringgleichheit auf Platz 2: Stechen“.
+    tie_note: str | None = None
     # ranked: regulär; last: unvollständig (live), hinten; unranked: ohne Platz (abgebrochen,
     # unvollständig in einer endgültigen Liste, prüfen).
     group: Literal["ranked", "last", "unranked"]

@@ -245,7 +245,7 @@ def test_position_distance_must_match_distances(minimal_catalog: Path) -> None:
 
 def test_unknown_stance_is_rejected(minimal_catalog: Path) -> None:
     positions = [
-        {"nr": n, "anschlaege": [{"haltung": "sitzend", "hand": "beidhaendig"}]} for n in (1, 2)
+        {"nr": n, "anschlaege": [{"haltung": "hockend", "hand": "beidhaendig"}]} for n in (1, 2)
     ]
     _set_positions(minimal_catalog, positions)
 
@@ -253,6 +253,40 @@ def test_unknown_stance_is_rejected(minimal_catalog: Path) -> None:
 
     assert errors
     assert all("haltung" in error.pfad for error in errors)
+
+
+def test_seated_rested_stance_is_accepted(minimal_catalog: Path) -> None:
+    positions = [
+        {"nr": n, "anschlaege": [{"haltung": "sitzend", "aufgelegt": True}]} for n in (1, 2)
+    ]
+    _set_positions(minimal_catalog, positions)
+
+    assert errors_of(minimal_catalog) == []
+
+
+def test_dsb_fields_are_accepted(minimal_catalog: Path) -> None:
+    _edit_section(
+        minimal_catalog, wettkampfzeit_s=3000, vorbereitung_probe_s=900, probeschuesse="unbegrenzt"
+    )
+
+    def change(data: dict) -> None:
+        data["wertung"]["zehntelwertung"] = True
+        procedure = data["ablaeufe"]["praezision-2x10"]
+        procedure["finale"] = {"teilnehmer": 8, "abschnitt": "SpO 15.1.1"}
+        procedure["varianten"][0]["wettkampfzeit_gesamt_s"] = 5400
+
+    edit_yaml(minimal_catalog / GROUP_FILE, change)
+
+    assert errors_of(minimal_catalog) == []
+
+
+def test_sighting_shots_must_be_a_count_or_unlimited(minimal_catalog: Path) -> None:
+    _edit_section(minimal_catalog, probeschuesse="beliebig")
+
+    errors = errors_of(minimal_catalog)
+
+    assert errors
+    assert all("probeschuesse" in error.pfad for error in errors)
 
 
 def _edit_section(minimal_catalog: Path, **fields: object) -> None:
@@ -343,6 +377,101 @@ def test_scoring_breaks_must_ascend_and_stay_within_series(minimal_catalog: Path
         [error] = errors_of(minimal_catalog)
 
         assert "trefferaufnahme_nach" in error.meldung
+
+
+def test_plausibility_limits_are_accepted(minimal_catalog: Path) -> None:
+    _edit_section(minimal_catalog, zeit_plausibel_faktor=2.5, zeit_plausibel_max_s=600)
+
+    assert errors_of(minimal_catalog) == []
+
+
+def test_plausibility_limits_must_be_sensible(minimal_catalog: Path) -> None:
+    # _edit_section ändert die Datei fortlaufend, deshalb wird der gültige Wert zurückgesetzt.
+    _edit_section(minimal_catalog, zeit_plausibel_faktor=0.5)
+    errors = errors_of(minimal_catalog)
+    assert errors
+    assert all("zeit_plausibel_faktor" in error.pfad for error in errors)
+
+    _edit_section(minimal_catalog, zeit_plausibel_faktor=1, zeit_plausibel_max_s=0)
+    errors = errors_of(minimal_catalog)
+    assert errors
+    assert all("zeit_plausibel_max_s" in error.pfad for error in errors)
+
+
+CLASSES_FILE = "tst/klassen.yaml"
+START_RIGHTS = """
+schema: 1
+verband: "tst"
+startrecht:
+  "1001":
+    satz: "kugel"
+    wettbewerb: "Pistole bis 9 mm"
+    einzel: ["10", "11"]
+    mannschaft: ["10"]
+    mannschaft_startet_bei: { "11": "10" }
+"""
+
+
+def _numbered_classes(minimal_catalog: Path) -> None:
+    def change(data: dict) -> None:
+        data["klassensaetze"] = {"kugel": "Kugelwettbewerbe"}
+        data["klassen"][0].update(nummer="10", satz="kugel")
+        data["klassen"][1].update(nummer="11", satz="kugel", hoeher_in=["offen"])
+
+    edit_yaml(minimal_catalog / CLASSES_FILE, change)
+
+
+def test_class_numbers_sets_and_start_rights_are_accepted(minimal_catalog: Path) -> None:
+    _numbered_classes(minimal_catalog)
+    (minimal_catalog / "tst" / "startrecht.yaml").write_text(START_RIGHTS, encoding="utf-8")
+
+    result = load_catalog(minimal_catalog)
+
+    assert result.errors == []
+    [federation] = result.federations
+    assert federation.start_rights is not None
+    assert federation.start_rights.startrecht["1001"].mannschaft_startet_bei == {"11": "10"}
+
+
+def test_class_number_must_be_unique_within_set(minimal_catalog: Path) -> None:
+    _numbered_classes(minimal_catalog)
+    edit_yaml(minimal_catalog / CLASSES_FILE, lambda data: data["klassen"][1].update(nummer="10"))
+
+    [error] = errors_of(minimal_catalog)
+
+    assert error.pfad == "klassen[1].nummer"
+
+
+def test_class_set_must_be_described(minimal_catalog: Path) -> None:
+    _numbered_classes(minimal_catalog)
+    edit_yaml(minimal_catalog / CLASSES_FILE, lambda data: data["klassen"][1].update(satz="bogen"))
+
+    [error] = errors_of(minimal_catalog)
+
+    assert error.pfad == "klassen[1].satz"
+
+
+def test_promotion_must_reference_known_class(minimal_catalog: Path) -> None:
+    _numbered_classes(minimal_catalog)
+    edit_yaml(
+        minimal_catalog / CLASSES_FILE, lambda data: data["klassen"][1].update(hoeher_in=["x"])
+    )
+
+    [error] = errors_of(minimal_catalog)
+
+    assert error.pfad == "klassen[1].hoeher_in[0]"
+
+
+def test_start_rights_must_use_known_class_numbers(minimal_catalog: Path) -> None:
+    _numbered_classes(minimal_catalog)
+    (minimal_catalog / "tst" / "startrecht.yaml").write_text(
+        START_RIGHTS.replace('"11": "10"', '"11": "99"'), encoding="utf-8"
+    )
+
+    [error] = errors_of(minimal_catalog)
+
+    assert error.pfad == "startrecht.1001.mannschaft_startet_bei"
+    assert "'99'" in error.meldung
 
 
 def test_missing_head_file(minimal_catalog: Path) -> None:

@@ -11,6 +11,7 @@ from app.modules.katalog.schemas import (
     DisziplinOut,
     GruppeOut,
     KlasseOut,
+    StartrechtOut,
     VerbandOut,
 )
 
@@ -70,5 +71,18 @@ async def disziplin(session: SessionDep, verband: str, kennziffer: str) -> Diszi
 async def klassen(session: SessionDep, verband: VerbandQuery = None) -> list[KlasseOut]:
     try:
         return await service.list_classes(session, verband)
+    except service.NotFoundError as exc:
+        raise _not_found(exc) from exc
+
+
+@router.get(
+    "/startrecht/{verband}",
+    summary="Startrecht der Klassen je Wettbewerb",
+    responses=NOT_FOUND,
+    response_model_exclude_defaults=True,
+)
+async def startrecht(session: SessionDep, verband: str) -> StartrechtOut:
+    try:
+        return await service.get_start_rights(session, verband)
     except service.NotFoundError as exc:
         raise _not_found(exc) from exc

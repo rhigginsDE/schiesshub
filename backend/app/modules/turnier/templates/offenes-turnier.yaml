@@ -1,0 +1,17 @@
+# Vorlage für ein neues Turnier (Format: app/modules/turnier/tournament_templates.py).
+# Nur Verweise auf den Katalog: Ablauf und Wertung kommen beim Anlegen aus catalog/bds.
+# Grundeinstellungen wie „Offenes Turnier“ beim Anlegen (template: open): Mehrfachstart erlaubt.
+schema: 1
+id: "offenes-turnier"
+name: "Offenes Turnier"
+description: "Offenes Turnier für Gäste mit Präzision und Speed auf 25 m sowie Fallscheibe Flinte auf 15 m, Mehrfachstart erlaubt."
+template: "open"
+classes: { federation: "bds" }
+ranges:
+  - { key: "kurzwaffe", name: "Kurzwaffenstand 25 m", lane_count: 5 }
+  - { key: "flinte", name: "Flintenstand 15 m", lane_count: 2 }
+competitions:
+  - { catalog_federation: "bds", catalog_code: "1001", range: "kurzwaffe" }
+  - { catalog_federation: "bds", catalog_code: "1006", range: "kurzwaffe" }
+  - { catalog_federation: "bds", catalog_code: "1401", range: "kurzwaffe" }
+  - { catalog_federation: "bds", catalog_code: "4401", range: "flinte" }

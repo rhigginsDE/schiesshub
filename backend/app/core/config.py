@@ -28,8 +28,12 @@ class Settings(BaseSettings):
     backup_usb_marker: str = ".schiesshub-backup"
 
     # --- Anmeldung und Rechte (Modul `auth`) ---
-    # Echten Berechtigungsprüfer registrieren; sonst sind alle Endpunkte offen.
+    # Berechtigungsprüfung fest einschalten. Aus (Standard, Entwicklung): Sie gilt erst, wenn sie
+    # in der App eingeschaltet wurde (System → Server); ausschalten geht dann nur auf der Konsole
+    # (`python -m app.modules.auth.cli enforcement off`). Steht hier `true`, gilt sie immer.
     auth_enforced: bool = False
+    # So oft liest der Server den gespeicherten Schalter neu (Änderungen über die Konsole).
+    auth_enforcement_poll_seconds: float = Field(default=5, gt=0)
     # Gültigkeit eines Kopplungscodes.
     auth_pairing_code_minutes: float = Field(default=10, gt=0)
     # Mindestlänge der PIN (nur Ziffern).

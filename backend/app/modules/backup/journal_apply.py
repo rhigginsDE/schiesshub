@@ -192,6 +192,75 @@ class ApplyReport:
         return lines
 
 
+# --- Vorab rechnen (ohne Datenbank) ------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class BackupStart:
+    """Was die Planung von einem Start der Sicherung braucht."""
+
+    entry_id: str
+    competition_id: str
+    # Ereignis-Kennung -> laufende Nummer, wie sie in der Sicherung stehen.
+    events: dict[str, int]
+
+
+@dataclass(slots=True)
+class ApplyPlan:
+    """Was `apply_records` mit diesen Ereignissen voraussichtlich tun würde.
+
+    Dieselben Regeln wie beim Einspielen: Zuordnung zu Anmeldung und Wettbewerb, lückenlose
+    Nummern, gleiche Nummer bei gleicher Kennung. Nicht vorab erkennbar ist nur, ob sich der
+    Status eines Starts nachziehen lässt; das meldet erst das Einspielen.
+    """
+
+    applied: set[str] = field(default_factory=set)
+    present: int = 0
+    missing_start_events: set[str] = field(default_factory=set)
+    conflict_events: set[str] = field(default_factory=set)
+
+
+def plan_records(records: list[dict[str, Any]], starts: dict[str, BackupStart]) -> ApplyPlan:
+    plan = ApplyPlan()
+    by_start: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for record in records:
+        by_start[record["start_id"]].append(record)
+    for start_id, items in by_start.items():
+        items.sort(key=lambda record: record["seq"])
+        ids = {str(record["event_id"]) for record in items}
+        start = starts.get(start_id)
+        if start is None:
+            plan.missing_start_events |= ids
+            continue
+        first = items[0]
+        if start.entry_id != first["entry_id"] or start.competition_id != first["competition_id"]:
+            plan.conflict_events |= ids - set(start.events)
+            continue
+        last = max(start.events.values(), default=0)
+        new: set[str] = set()
+        present = 0
+        ok = True
+        for record in items:
+            event_id = str(record["event_id"])
+            if event_id in start.events:
+                if start.events[event_id] != record["seq"]:
+                    ok = False
+                    break
+                present += 1
+                continue
+            if record["seq"] != last + 1:
+                ok = False
+                break
+            new.add(event_id)
+            last = record["seq"]
+        plan.present += present
+        if ok:
+            plan.applied |= new
+        else:
+            plan.conflict_events |= ids - set(start.events)
+    return plan
+
+
 # --- Einspielen -----------------------------------------------------------------------
 
 

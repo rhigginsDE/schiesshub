@@ -1,4 +1,4 @@
-"""Rollenliste für die Personenverwaltung, Abgleich der Startrollen, Audit mit Namen und Filtern."""
+"""Rollenliste für die Benutzerverwaltung, Abgleich der Startrollen, Audit mit Namen und Filtern."""
 
 import json
 from datetime import UTC, datetime, timedelta
@@ -188,7 +188,7 @@ async def test_audit_names_texts_and_filters(make_app: AppFactory, engine: Async
         window = (await admin.get(f"{API}/audit", params={"since": past, "until": future})).json()
         actions = (await admin.get(f"{API}/audit/actions")).json()
 
-        # Gerät und Person gelöscht bzw. umbenannt: Namen zum Zeitpunkt der Abfrage.
+        # Gerät und Benutzer gelöscht bzw. umbenannt: Namen zum Zeitpunkt der Abfrage.
         await admin.delete(f"{API}/devices/{tablet_id}")
         await admin.patch(f"{API}/users/{kasse['id']}", json={"name": "Karla Kasse"})
         later = (await admin.get(f"{API}/audit", params={"user_id": kasse["id"]})).json()
@@ -197,7 +197,7 @@ async def test_audit_names_texts_and_filters(make_app: AppFactory, engine: Async
     created = next(item for item in everything if item["action"] == "user.created")
     assert (created["user_id"], created["user_name"]) == (admin_id, "Anna Admin")
     assert (created["device_id"], created["device_name"]) == (admin_device, "Kasse 1")
-    assert created["action_text"] == "Person mit Zugang angelegt"
+    assert created["action_text"] == "Benutzer angelegt"
 
     assert {item["action"] for item in by_user["items"]} == {"auth.login", "auth.logout"}
     assert by_user["total"] == 2

@@ -1,0 +1,203 @@
+# Übungsturnier mit Beispieldaten (POST /tournaments/practice, Format: practice.py).
+#
+# Alle Personen und Vereine sind erfunden und als Übung erkennbar. Kein Geburtsdatum. Die
+# Wettbewerbe entstehen frisch aus dem aktuellen Katalog; hier stehen nur Kennziffern und
+# Rohwerte, keine Regeln. Rohwerte je Abschnitt (`raw: {<abschnitt>: [<serie>, …]}`) im Format
+# von docs/DATENMODELL.md, „Rohwerte“.
+#
+# Zustände der Starts: registered (wartet), called (aufgerufen), captured (teils erfasst),
+# final (abgeschlossen), aborted (abgebrochen). Starts, die eine Bahn belegt lassen (called,
+# captured), werden zuletzt eingespielt.
+schema: 1
+id: "uebungsturnier"
+name: "Übungsturnier"
+description: "Übungsturnier mit erfundenen Personen und Ergebnissen zum Ausprobieren aller Stationen; lässt sich jederzeit rückstandsfrei entfernen."
+organizer: "Übungsverein Musterstadt"
+template: "open"
+settings:
+  protest_minutes: 30
+  default_fee_first_cents: 1000
+  default_fee_repeat_cents: 500
+classes: { federation: "bds" }
+ranges:
+  - { key: "flinte", name: "Übungsstand Flinte 15 m", lane_count: 2 }
+  - { key: "kurzwaffe", name: "Übungsstand Kurzwaffe 25 m", lane_count: 4 }
+competitions:
+  - { key: "fallscheibe", catalog_federation: "bds", catalog_code: "4401", range: "flinte" }
+  - { key: "repetier", catalog_federation: "bds", catalog_code: "4403", range: "flinte" }
+  # Präzision hat feste Zeiten je Serie und wird deshalb nach Zeitplan geplant.
+  - { key: "praezision", catalog_federation: "bds", catalog_code: "1001", range: "kurzwaffe" }
+# Durchgänge lückenlos hintereinander; Beginn des ersten relativ zu „jetzt“ (auf 5 Minuten
+# abgerundet): Durchgang 1 ist vorbei, Durchgang 2 läuft gerade.
+heats:
+  - { competition: "praezision", count: 4, first_offset_minutes: -20 }
+clubs:
+  - { key: "uv", name: "Übungsverein Musterstadt", short: "ÜV Musterstadt" }
+  - { key: "ps", name: "Probeschützen Beispielhausen", short: "PS Beispielhausen" }
+  - { key: "tg", name: "Testgilde Vorlagendorf", short: "TG Vorlagendorf" }
+persons:
+  - name: "Anna Beispiel"
+    club: "uv"
+    class: "damen-1"
+    starts:
+      - competition: "fallscheibe"
+        state: "final"
+        raw:
+          fallscheibe:
+            - { time_cs: 742, standing: 0 }
+            - { time_cs: 815, standing: 0 }
+            - { time_cs: 690, standing: 1 }
+            - { time_cs: 771, standing: 0 }
+      - competition: "praezision"
+        heat: 1
+        state: "final"
+        raw:
+          praezision: [{ sum: 91, tens: 3 }, { sum: 88, tens: 2 }]
+  - name: "Bernd Muster"
+    club: "uv"
+    class: "schuetzen"
+    starts:
+      - competition: "fallscheibe"
+        state: "final"
+        raw:
+          fallscheibe:
+            - { time_cs: 655, standing: 0 }
+            - { time_cs: 702, standing: 0 }
+            - { time_cs: 688, standing: 0 }
+            - { time_cs: 731, standing: 0 }
+        correction:
+          reason: "Übung: Zeit der 3. Serie falsch abgelesen, nach Rücksprache mit der Standaufsicht korrigiert."
+          raw:
+            fallscheibe:
+              - { time_cs: 655, standing: 0 }
+              - { time_cs: 702, standing: 0 }
+              - { time_cs: 698, standing: 0 }
+              - { time_cs: 731, standing: 0 }
+      - competition: "praezision"
+        heat: 1
+        state: "final"
+        raw:
+          praezision: [{ sum: 95, tens: 6 }, { sum: 93, tens: 4 }]
+  - name: "Clara Probe"
+    club: "ps"
+    class: "damen-1"
+    starts:
+      - competition: "fallscheibe"
+        state: "final"
+        raw:
+          fallscheibe:
+            - { time_cs: 903, standing: 1 }
+            - { time_cs: 845, standing: 0 }
+            - { time_cs: 880, standing: 0 }
+            - { time_cs: 912, standing: 2 }
+      # Mehrfachstart: zwei Starts im selben Wettbewerb, der zweite zum Nachkauf-Betrag.
+      - competition: "repetier"
+        state: "final"
+        raw:
+          fallscheibe:
+            - { time_cs: 1020, standing: 0 }
+            - { time_cs: 990, standing: 1 }
+            - { time_cs: 1005, standing: 0 }
+            - { time_cs: 970, standing: 0 }
+      - competition: "repetier"
+        state: "final"
+        raw:
+          fallscheibe:
+            - { time_cs: 950, standing: 0 }
+            - { time_cs: 930, standing: 0 }
+            - { time_cs: 965, standing: 1 }
+            - { time_cs: 940, standing: 0 }
+  - name: "Dieter Übung"
+    club: "ps"
+    class: "schuetzen"
+    starts:
+      - competition: "fallscheibe"
+        state: "aborted"
+        abort_reason: "dnf"
+        note: "Übung: Waffenstörung nach der 2. Serie, aufgegeben."
+        raw:
+          fallscheibe:
+            - { time_cs: 1210, standing: 1 }
+            - { time_cs: 1388, standing: 2 }
+      - competition: "praezision"
+        heat: 1
+        state: "final"
+        raw:
+          praezision: [{ sum: 84, tens: 1 }, { sum: 87, tens: 2 }]
+  - name: "Erika Musterfrau"
+    club: "tg"
+    class: "damen-1"
+    starts:
+      - competition: "fallscheibe"
+        state: "final"
+        raw:
+          fallscheibe:
+            - { time_cs: 801, standing: 0 }
+            - { time_cs: 799, standing: 0 }
+            - { time_cs: 845, standing: 0 }
+            - { time_cs: 820, standing: 1 }
+  - name: "Frank Beispielmann"
+    club: "tg"
+    class: "schuetzen"
+    starts:
+      - competition: "repetier"
+        state: "final"
+        raw:
+          fallscheibe:
+            - { time_cs: 880, standing: 0 }
+            - { time_cs: 860, standing: 0 }
+            - { time_cs: 875, standing: 0 }
+            - { time_cs: 901, standing: 0 }
+      - competition: "praezision"
+        heat: 1
+        state: "final"
+        raw:
+          praezision: [{ sum: 90, tens: 2 }, { sum: 92, tens: 3 }]
+  - name: "Greta Testfeld"
+    club: "uv"
+    class: "damen-1"
+    display_mode: "short"
+    starts:
+      - competition: "fallscheibe"
+        state: "captured"
+        raw:
+          fallscheibe:
+            - { time_cs: 760, standing: 0 }
+            - { time_cs: 795, standing: 1 }
+  - name: "Hans Übungsmann"
+    club: "ps"
+    class: "senioren"
+    starts:
+      - { competition: "fallscheibe", state: "called" }
+  - name: "Ida Mustermann"
+    club: "tg"
+    class: "damen-1"
+    show_club: false
+    starts:
+      - { competition: "fallscheibe", state: "registered" }
+      - competition: "praezision"
+        heat: 2
+        state: "captured"
+        raw:
+          praezision: [{ sum: 89, tens: 2 }]
+  - name: "Jonas Probelauf"
+    club: "uv"
+    class: "schuetzen"
+    starts:
+      - competition: "praezision"
+        heat: 2
+        state: "captured"
+        raw:
+          praezision: [{ sum: 93, tens: 4 }]
+      - { competition: "repetier", state: "registered" }
+  - name: "Karla Vorlage"
+    club: "ps"
+    class: "damen-1"
+    starts:
+      - { competition: "praezision", heat: 3, state: "registered" }
+      - { competition: "fallscheibe", state: "registered" }
+  - name: "Lukas Trockenübung"
+    club: "tg"
+    class: "schuetzen"
+    starts:
+      - { competition: "praezision", heat: 3, state: "registered" }

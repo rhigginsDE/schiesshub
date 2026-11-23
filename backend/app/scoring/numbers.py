@@ -5,9 +5,12 @@ dem Katalog (YAML) werden über ihre Textform umgewandelt, damit aus 0.1 nicht
 0.1000000000000000055 wird.
 """
 
-from decimal import Decimal
+import re
+from decimal import Decimal, InvalidOperation
 
 CS_PER_SECOND = 100
+TENTH = Decimal("0.1")
+_DECIMAL_TEXT = re.compile(r"^\d+(?:[.,]\d+)?$")
 
 
 def to_decimal(value: object) -> Decimal:
@@ -42,6 +45,43 @@ def to_hundredths(value: Decimal) -> int:
     if not is_hundredths(value):
         raise ValueError(f"{value} ist nicht auf Hundertstel genau")
     return int(value * CS_PER_SECOND)
+
+
+def parse_decimal_input(value: object) -> Decimal | None:
+    """Eingabe einer Kommazahl ab 0 (Zehntelwertung): Zahl oder Text mit Komma oder Punkt.
+
+    `10.5`, `"10,5"`, `"10.5"`, `10`, `Decimal("10.5")` → `Decimal`; None bei allem anderen
+    (Wahrheitswert, negativ, kein Zahltext, nicht endlich). Nachkommastellen bleiben, wie
+    eingegeben („9,80“ → 9.80), damit der Aufrufer zu viele Stellen erkennen kann.
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, str):
+        text = value.strip()
+        if not _DECIMAL_TEXT.match(text):
+            return None
+        return Decimal(text.replace(",", "."))
+    if isinstance(value, float):
+        value = Decimal(str(value))
+    if isinstance(value, int):
+        value = Decimal(value)
+    if not isinstance(value, Decimal) or not value.is_finite() or value < 0:
+        return None
+    return value
+
+
+def decimal_places(value: Decimal) -> int:
+    """Anzahl Nachkommastellen, wie geschrieben (10.50 → 2, 10 → 0)."""
+    exponent = value.as_tuple().exponent
+    return -exponent if isinstance(exponent, int) and exponent < 0 else 0
+
+
+def to_tenths(value: Decimal) -> Decimal:
+    """Auf eine Nachkommastelle gebracht (nur für Werte, die schon auf Zehntel genau sind)."""
+    try:
+        return value.quantize(TENTH)
+    except InvalidOperation:  # pragma: no cover - nur bei absurd großen Werten
+        return value
 
 
 def format_number(value: Decimal | int) -> str:

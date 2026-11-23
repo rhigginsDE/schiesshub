@@ -1,4 +1,4 @@
-"""Fachlogik: Ersteinrichtung, Kopplung, Anmeldung, Geräte, Rollen und Personen.
+"""Fachlogik: Ersteinrichtung, Kopplung, Anmeldung, Geräte, Rollen und Benutzer.
 
 Jede Funktion, die Daten ändert, schreibt einen Audit-Eintrag, committet und meldet danach ein
 Ereignis über den EventHub (Nutzlast: nur IDs).
@@ -10,16 +10,17 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import InputError
+from app.core.errors import CodedError, InputError
 from app.core.events import EventHub
-from app.core.security import Actor, reset_permission_checker, set_permission_checker
-from app.modules.auth import credentials, permissions
+from app.core.security import Actor
+from app.modules.auth import credentials, enforcement, permissions
 from app.modules.auth.audit import record_audit
 from app.modules.auth.errors import (
+    ENFORCEMENT_BLOCKED,
     LOGIN_FAILED,
     ConflictError,
     InvalidError,
@@ -27,12 +28,14 @@ from app.modules.auth.errors import (
     NotFoundError,
     UnauthorizedError,
 )
-from app.modules.auth.identity import Identity, check_permission, now, unpaired
+from app.modules.auth.identity import Identity, now, unpaired
 from app.modules.auth.models import AuthSession, Device, PairingCode, Role, UserAccount
 from app.modules.auth.schemas import (
+    BlockerOut,
     DeviceBrief,
     DeviceOut,
     DeviceUpdateIn,
+    EnforcementOut,
     LoginIn,
     PairIn,
     PairingCodeIn,
@@ -54,7 +57,7 @@ from app.modules.auth.settings import AuthSettings
 logger = logging.getLogger("schiesshub.auth")
 
 PAIR_PATH = "/pair?code={code}"
-WRONG_PIN = "Die Anmeldung ist fehlgeschlagen. Bitte Person und PIN prüfen."
+WRONG_PIN = "Die Anmeldung ist fehlgeschlagen. Bitte Benutzer und PIN prüfen."
 LAST_ADMIN = "Es muss immer mindestens ein aktiver Administrator bleiben."
 
 
@@ -164,12 +167,11 @@ async def on_startup(app: FastAPI) -> None:
         await session.flush()
         await reconcile_roles(session)
         await remove_expired(session)
-    if settings.enforced:
-        set_permission_checker(check_permission)
-        logger.info("Berechtigungsprüfung aktiv (AUTH_ENFORCED).")
-    else:
-        reset_permission_checker()
-        logger.warning("Berechtigungsprüfung aus: AUTH_ENFORCED ist nicht gesetzt.")
+    await enforcement.start(app, settings)
+
+
+async def on_shutdown(app: FastAPI) -> None:
+    await enforcement.stop(app)
 
 
 # --- Hilfen ------------------------------------------------------------------
@@ -217,7 +219,7 @@ async def _device_role_or_invalid(session: AsyncSession, role_id: uuid.UUID) -> 
     if permissions.grants_administration(role.permissions, is_system=role.is_system):
         raise InputError.single(
             "default_role_id",
-            f"Die Rolle „{role.name}“ enthält Verwaltungsrechte (Rollen, Personen, Geräte, "
+            f"Die Rolle „{role.name}“ enthält Verwaltungsrechte (Rollen, Benutzer, Geräte, "
             "System oder Sicherung verwalten) und kann deshalb nicht ohne Anmeldung gelten. "
             "Bitte eine Rolle ohne Verwaltungsrechte wählen, etwa „Anzeige“.",
         )
@@ -231,7 +233,7 @@ async def _ensure_unique_user_name(
     if exclude is not None:
         statement = statement.where(UserAccount.id != exclude)
     if await session.scalar(statement) is not None:
-        raise ConflictError(f"Eine Person mit dem Namen „{name}“ gibt es bereits.")
+        raise ConflictError(f"Einen Benutzer mit dem Namen „{name}“ gibt es bereits.")
 
 
 async def _ensure_unique_role_name(
@@ -273,12 +275,12 @@ def _new_device(name: str, default_role_id: uuid.UUID | None) -> tuple[str, Devi
 
 
 async def get_status(
-    session: AsyncSession, identity: Identity, settings: AuthSettings
+    session: AsyncSession, identity: Identity, settings: AuthSettings, *, enforced: bool
 ) -> StatusOut:
     device = identity.device
     return StatusOut(
         setup_required=await setup_required(session),
-        auth_enforced=settings.enforced,
+        auth_enforced=enforced,
         device=DeviceBrief(id=device.id, name=device.name, default_role_id=device.default_role_id)
         if device
         else None,
@@ -290,6 +292,53 @@ async def get_status(
         max_failed_logins=settings.max_failed_logins,
         lockout_minutes=settings.lockout_minutes,
     )
+
+
+# --- Berechtigungsprüfung einschalten ----------------------------------------
+
+
+async def get_enforcement(
+    session: AsyncSession, identity: Identity, state: enforcement.EnforcementState
+) -> EnforcementOut:
+    found = [] if state.enforced else await enforcement.blockers(session, identity)
+    return EnforcementOut(
+        enforced=state.enforced,
+        source=state.source,
+        can_enable=not state.enforced and not found,
+        blockers=[BlockerOut(code=item.code, message_de=item.message_de) for item in found],
+    )
+
+
+async def enable_enforcement(
+    session: AsyncSession,
+    identity: Identity,
+    state: enforcement.EnforcementState,
+    events: EventHub,
+) -> EnforcementOut:
+    """Schaltet die Prüfung ein, wenn sich dabei niemand aussperrt. Schon an: ändert nichts."""
+    if not state.enforced:
+        found = await enforcement.blockers(session, identity)
+        if found:
+            raise CodedError(
+                status.HTTP_409_CONFLICT,
+                "Die Berechtigungsprüfung kann noch nicht eingeschaltet werden. "
+                + " ".join(item.message_de for item in found),
+                ENFORCEMENT_BLOCKED,
+            )
+        await enforcement.store(session, True)
+        record_audit(
+            session,
+            identity.actor(),
+            "auth.enforcement_enabled",
+            "setting",
+            enforcement.SETTING_KEY,
+        )
+        await session.commit()
+        state.setting = True
+        enforcement.apply(state)
+        enforcement.publish(events, state)
+        logger.warning("Berechtigungsprüfung in der App eingeschaltet.")
+    return await get_enforcement(session, identity, state)
 
 
 # --- Ersteinrichtung ---------------------------------------------------------
@@ -716,10 +765,9 @@ async def delete_role(
         raise ConflictError(f"Die Systemrolle „{role.name}“ kann nicht gelöscht werden.")
     user_count = await session.scalar(select(func.count()).where(UserAccount.role_id == role.id))
     if user_count:
-        people = "Person" if user_count == 1 else "Personen"
         raise ConflictError(
-            f"Die Rolle „{role.name}“ ist noch {user_count} {people} zugewiesen. "
-            "Bitte diesen Personen zuerst eine andere Rolle geben."
+            f"Die Rolle „{role.name}“ ist noch {user_count} Benutzer zugewiesen. "
+            "Bitte diesen Benutzern zuerst eine andere Rolle geben."
         )
     record_audit(session, actor, "role.deleted", "role", role.id, {"name": role.name})
     await session.delete(role)
@@ -727,7 +775,7 @@ async def delete_role(
     events.publish("role.deleted", {"role_id": str(role_id)})
 
 
-# --- Personen ----------------------------------------------------------------
+# --- Benutzer ----------------------------------------------------------------
 
 
 def _user_out(user: UserAccount) -> UserOut:
@@ -755,7 +803,7 @@ async def _get_user(
         statement = statement.with_for_update()
     user = await session.scalar(statement)
     if user is None:
-        raise NotFoundError("Die Person gibt es nicht.")
+        raise NotFoundError("Den Benutzer gibt es nicht.")
     return user
 
 
@@ -870,7 +918,7 @@ class EnsuredAdmin:
 
 
 async def find_user(session: AsyncSession, name_or_id: str) -> UserAccount:
-    """Person nach ID oder Name (ohne Groß-/Kleinschreibung)."""
+    """Benutzer nach ID oder Name (ohne Groß-/Kleinschreibung)."""
     value = name_or_id.strip()
     try:
         user_id = uuid.UUID(value)
@@ -881,7 +929,7 @@ async def find_user(session: AsyncSession, name_or_id: str) -> UserAccount:
     else:
         user = await session.get(UserAccount, user_id)
     if user is None:
-        raise NotFoundError(f"Eine Person „{value}“ gibt es nicht.")
+        raise NotFoundError(f"Einen Benutzer „{value}“ gibt es nicht.")
     return user
 
 
@@ -924,10 +972,10 @@ async def console_ensure_admin(
     name: str,
     pin: str | None,
 ) -> EnsuredAdmin:
-    """Legt einen Administrator an oder macht eine vorhandene Person (wieder) dazu.
+    """Legt einen Administrator an oder macht einen vorhandenen Benutzer (wieder) dazu.
 
-    Vorhandene Personen werden aktiviert, entsperrt und bekommen die Systemrolle; die PIN ändert
-    sich nur mit `pin`. Neue Personen brauchen eine PIN.
+    Vorhandene Benutzer werden aktiviert, entsperrt und bekommen die Systemrolle; die PIN ändert
+    sich nur mit `pin`. Neue Benutzer brauchen eine PIN.
     """
     if pin is not None:
         _check_pin(pin, settings)
@@ -937,7 +985,7 @@ async def console_ensure_admin(
     )
     if existing is None:
         if pin is None:
-            raise InvalidError("Für eine neue Person ist eine PIN nötig.")
+            raise InvalidError("Für einen neuen Benutzer ist eine PIN nötig.")
         user = UserAccount(
             id=uuid.uuid4(),
             name=name,

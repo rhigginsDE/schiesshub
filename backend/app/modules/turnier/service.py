@@ -222,7 +222,7 @@ async def list_tournaments(session: AsyncSession) -> list[Tournament]:
 
 
 async def create_tournament(
-    session: AsyncSession, events: EventHub, data: TournamentCreate
+    session: AsyncSession, events: EventHub, data: TournamentCreate, *, is_practice: bool = False
 ) -> Tournament:
     date_to = data.date_to or data.date_from
     if date_to < data.date_from:
@@ -236,6 +236,7 @@ async def create_tournament(
         template=data.template,
         settings=_merge_settings(template_settings(data.template), data.settings),
         announcement=default_announcement(data.template).model_dump(mode="json"),
+        is_practice=is_practice,
     )
     session.add(tournament)
     await session.commit()

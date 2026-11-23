@@ -306,7 +306,7 @@ PRAEZISION_UNFINISHED["scoring"]["unbeendete_serie"] = "ringe_bis_dahin_zeit_let
         ),
         (section_with(GK_PLAIN, ringwerte=[10, 0]), "ringwerte braucht schuss_je_serie"),
         (section_with(SPEED_PLAIN, ringwerte=[10, 10]), "ringwerte enthält einen Wert mehrfach"),
-        (section_with(SPEED_PLAIN, ringwerte=[11]), "ringwerte"),
+        (section_with(SPEED_PLAIN, ringwerte=[-1]), "ringwerte"),
         (section_with(SPEED_PLAIN, ringwerte=[]), "ringwerte"),
         (
             section_with(SPEED_PLAIN, zeit_bei_abbruch_s=60),

@@ -42,7 +42,11 @@ Alle Tabellen haben `id` (UUID), `created_at`, `updated_at`. Geld steht in Cent 
 
 ## Turnier
 
-**`tournament`**: `name`, `organizer`, `date_from`, `date_to`, `status` (`draft`, `active`, `closed`), `template` (`open`, `club_championship`, `custom`), `settings` (JSONB).
+**`tournament`**: `name`, `organizer`, `date_from`, `date_to`, `status` (`draft`, `active`, `closed`), `template` (`open`, `club_championship`, `custom`), `settings` (JSONB), `is_practice`, `practice_data` (JSONB).
+
+`is_practice` kennzeichnet das Übungsturnier mit Beispieldaten (`POST /tournaments/practice`, Beispieldaten in `backend/app/modules/turnier/practice.yaml`). Es gibt höchstens eines (eindeutiger Teilindex); die Kennzeichnung steht beim Anlegen fest, ein Trigger weist spätere Änderungen ab. Oberfläche und Exporte zeigen es als „Übung“. `practice_data` (nur beim Übungsturnier) nennt die Personen und Vereine, die es angelegt hat: `{"person_ids": […], "club_ids": […]}`. Die Übungspersonen tragen die Mitgliedsnummer `ÜBUNG-<n>`, haben wie alle Personen kein Geburtsdatum und gehören zu erkennbar erfundenen Vereinen. `DELETE /tournaments/{id}` entfernt das Übungsturnier in jedem Status samt Anmeldungen, Starts, Durchgängen, Ergebnissen (auch `result_event`, siehe dort), seinen Audit-Einträgen und den Übungspersonen und -vereinen; wer inzwischen in einem anderen Turnier gemeldet ist oder einem Verein mit echten Personen angehört, bleibt.
+
+**Kopie** (`POST /tournaments/{id}/copy`): übernimmt Einstellungen, Ausschreibung (Meldeschluss um denselben Abstand verschoben wie der Beginn), Stände, Klassen samt Zusammenlegung und Wettbewerbe mit `definition`, Startgeld und Mehrfachstart; jeder Wettbewerb beginnt mit Revision 1 (Grund „Kopiert aus dem Turnier …“). Anmeldungen, Starts, Durchgänge und Ergebnisse kommen nicht mit. **Vorlagen** (`GET /tournament-templates`, `POST /tournaments/from-template`) sind YAML-Dateien in `backend/app/modules/turnier/templates/` und verweisen nur über Verband und Kennziffer auf den Katalog; die Wettbewerbe entstehen beim Anlegen frisch aus dem aktuellen Katalog.
 
 `settings` enthält alles, was kein eigenes Feld braucht, zum Beispiel `protest_minutes` (Einspruchsfrist, `null` = aus), `protest_restart_on_correction` (beginnt die Einspruchsfrist mit einer Korrektur neu? Standard `true`; bei `false` läuft sie ab dem Abschluss weiter), `timezone` (Ortszeit für Uhrzeiten in Listen und auf der Anzeige, IANA-Name, Standard `Europe/Berlin`), `currency`, `first_start_number` (erste vergebene Startnummer, Standard 1), Voreinstellungen für die Anzeige. Fehlt ein Schlüssel (ältere Turniere), gilt der Standard.
 
@@ -121,7 +125,7 @@ Erlaubte Statuswechsel:
 
 Ergebnisse werden nie überschrieben.
 
-**`result_event`** (nur Einfügen, ein Trigger weist UPDATE und DELETE ab): `start_id`, `seq` (fortlaufend je Start ab 1), `type`, `payload` (JSONB), `reason`, `user_id`, `device_id`, `idempotency_key` (vom Client, eindeutig je Start), `request_hash` (SHA-256 über Vorgang und Inhalt, erkennt Wiederholungen mit anderem Inhalt), `created_at`.
+**`result_event`** (nur Einfügen, ein Trigger weist UPDATE und DELETE ab; einzige Ausnahme: DELETE von Ereignissen zu Starts des Übungsturniers, damit es sich entfernen lässt): `start_id`, `seq` (fortlaufend je Start ab 1), `type`, `payload` (JSONB), `reason`, `user_id`, `device_id`, `idempotency_key` (vom Client, eindeutig je Start), `request_hash` (SHA-256 über Vorgang und Inhalt, erkennt Wiederholungen mit anderem Inhalt), `created_at`.
 
 | `type` | Bedeutung |
 |---|---|

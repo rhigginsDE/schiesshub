@@ -151,6 +151,26 @@ async def list_contents(dump_file: Path, limit_s: float = 120) -> list[str]:
     return [line for line in lines if line.strip() and not line.startswith(";")]
 
 
+async def table_data(dump_file: Path, tables: list[str], limit_s: float = 300) -> bytes:
+    """Inhalt einzelner Tabellen eines Abzugs als SQL-Text (`COPY … FROM stdin`), ohne Datenbank.
+
+    Tabellen, die es im Abzug nicht gibt, fehlen in der Ausgabe einfach.
+    """
+    args = [
+        require_tool("pg_restore"),
+        "--data-only",
+        *(f"--table={table}" for table in tables),
+        "--file=-",
+        str(dump_file),
+    ]
+    try:
+        return await run_tool(args, base_environment(), limit_s)
+    except TimeoutError:
+        raise PgToolError(
+            f"pg_restore hat nicht innerhalb von {limit_s:.0f} s geantwortet."
+        ) from None
+
+
 async def restore(target: PgTarget, dump_file: Path, limit_s: float) -> None:
     """Spielt einen Abzug in eine leere Datenbank ein, alles in einer Transaktion."""
     args = [

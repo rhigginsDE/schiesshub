@@ -27,6 +27,7 @@ from app.modules.katalog.schemas import (
     KatalogStatusOut,
     KlasseOut,
     RegelwerkOut,
+    StartrechtOut,
     VerbandOut,
 )
 
@@ -276,6 +277,21 @@ async def list_classes(session: AsyncSession, federation_key: str | None) -> lis
             zusammenlegen_in=klass.merge_into,
             zusammenlegen_nach_alter=klass.merge_by_age,
             hinweis=klass.note,
+            nummer=klass.number,
+            satz=klass.class_set,
+            hoeher_in=klass.promote_to,
         )
         for klass, key in rows
     ]
+
+
+async def get_start_rights(session: AsyncSession, federation_key: str) -> StartrechtOut:
+    await _require_federation(session, federation_key)
+    content = await session.scalar(
+        select(Federation.start_rights).where(Federation.key == federation_key)
+    )
+    if content is None:
+        raise NotFoundError(f"Für den Verband „{federation_key}“ ist kein Startrecht hinterlegt.")
+    return StartrechtOut.model_validate(
+        {"verband": federation_key, "stand_tabelle": None, "hinweise": [], **content}
+    )

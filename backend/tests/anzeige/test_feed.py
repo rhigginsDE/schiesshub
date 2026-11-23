@@ -304,8 +304,8 @@ async def test_range_scene_with_multi_distance_positions(api: Api) -> None:
 
     (procedure,) = data["procedures"]
     assert procedure["catalog_code"] == "1201"
-    assert procedure["deviates"] is False
-    assert procedure["deviations"] == []
+    assert "deviates" not in procedure
+    assert "deviations" not in procedure
     assert "−1 Ring je volle Sekunde über der Sollzeit" in procedure["notes"]
     fertigkeit, parcours = procedure["sections"]
     assert [s["hit_review_after"] for s in fertigkeit["series"]] == [False, True, False, True]
@@ -354,12 +354,14 @@ async def test_range_scene_marks_reduced_counted_series(api: Api) -> None:
 
     data = (await api.feed(display_id))["scenes"][0]["range"]
     (procedure,) = data["procedures"]
-    assert procedure["deviates"] is True
-    assert procedure["deviations"]
+    # Abweichungen vom Katalog zeigt nur die Turnierverwaltung (Entscheidung vom 22.11.2026);
+    # der Ablauf selbst (gestrichene Serie) steht trotzdem da.
+    assert "deviates" not in procedure
+    assert "deviations" not in procedure
     (section,) = procedure["sections"]
     assert section["counted_series"] == 1
     assert [step["counted"] for step in section["series"]] == [True, False]
-    assert section["deviations"]
+    assert "deviations" not in section
     assert "gewertet wird die erste Serie" in section["summary"]
     assert all(lane["start"] is None for lane in data["lanes"])
     assert len(data["next"]) == 1

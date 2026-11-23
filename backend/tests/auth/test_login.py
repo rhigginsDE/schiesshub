@@ -18,7 +18,7 @@ from tests.auth.conftest import (
     sql,
 )
 
-WRONG_PIN = "Die Anmeldung ist fehlgeschlagen. Bitte Person und PIN prüfen."
+WRONG_PIN = "Die Anmeldung ist fehlgeschlagen. Bitte Benutzer und PIN prüfen."
 
 
 async def test_login_options_need_a_paired_device(make_app: AppFactory) -> None:

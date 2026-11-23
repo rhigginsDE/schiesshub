@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { beschreibeWertung } from "./wertung";
+import { beschreibeWertung, type WertungOffen } from "./wertung";
 
 describe("beschreibeWertung", () => {
   it("beschreibt Fallscheibe ohne Gleichstandsregel", () => {
@@ -38,9 +38,31 @@ describe("beschreibeWertung", () => {
       modell: "punkte_nach_tabelle",
       rangfolge: "absteigend",
       geprueft: false,
-      gleichstand: ["stechen"],
+      gleichstand: ["los_entscheid"],
     });
     expect(klartext.name).toBe("Modell „punkte_nach_tabelle“");
-    expect(klartext.gleichstand).toEqual(["stechen"]);
+    expect(klartext.gleichstand).toEqual(["los entscheid"]);
+  });
+
+  it("beschreibt Zehntelwertung, Stechen und die DSB-Kriterien", () => {
+    const klartext = beschreibeWertung(
+      {
+        modell: "ringe",
+        rangfolge: "absteigend",
+        geprueft: false,
+        gleichstand: ["stechen", "letzte_serie_rueckwaerts", "zehntel_gesamt"],
+        zehntelwertung: true,
+        stechen_bis_platz: 3,
+      } as WertungOffen,
+      "de",
+    );
+
+    expect(klartext.saetze).toContain("Gewertet wird in Zehnteln (0 und 1,0 bis 10,9).");
+    expect(klartext.saetze).toContain("Bei Ringgleichheit auf den Plätzen 1 bis 3 wird gestochen.");
+    expect(klartext.gleichstand).toEqual([
+      "ein Stechen",
+      "das bessere Ergebnis der letzten Zehnerserie, dann der vorletzten und so weiter",
+      "das höhere Ergebnis in Zehnteln",
+    ]);
   });
 });

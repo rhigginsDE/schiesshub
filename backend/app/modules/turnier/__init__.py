@@ -6,12 +6,12 @@ from app.modules.turnier.router import (
     PERMISSION_EDIT,
     PERMISSION_READ,
     PERMISSION_REOPEN,
-    router,
+    module_router,
 )
 
 manifest = ModuleManifest(
     name="turnier",
     title="Turnier",
-    router=router,
+    router=module_router,
     permissions=(PERMISSION_READ, PERMISSION_EDIT, PERMISSION_REOPEN),
 )

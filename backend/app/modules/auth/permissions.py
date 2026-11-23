@@ -28,7 +28,9 @@ STARTER_ROLES: dict[str, tuple[str, ...]] = {
         "club.edit",
         "export.*",
         "display.*",
+        # Sicherung ansehen und auslösen, nicht einrichten und nicht wiederherstellen.
         "backup.read",
+        "backup.run",
     ),
     "Kasse": (
         "entry.*",
@@ -52,7 +54,7 @@ STARTER_ROLES: dict[str, tuple[str, ...]] = {
 }
 
 # Verwaltungsrechte. Eine Rolle, die eines davon gewährt (auch über `*` oder `bereich.*`), gilt
-# nie als Standardrolle eines Geräts: Ohne PIN darf niemand Rollen, Personen, Geräte, System oder
+# nie als Standardrolle eines Geräts: Ohne PIN darf niemand Rollen, Benutzer, Geräte, System oder
 # Sicherung verwalten.
 ADMINISTRATION_PERMISSIONS: tuple[str, ...] = (
     "role.manage",
@@ -60,6 +62,7 @@ ADMINISTRATION_PERMISSIONS: tuple[str, ...] = (
     "device.manage",
     "system.manage",
     "backup.manage",
+    "backup.restore",
 )
 
 # Was eine Berechtigung braucht, damit sie an ihrer Station etwas nützt: Die Seiten der Station
@@ -82,6 +85,8 @@ REQUIRES: dict[str, tuple[str, ...]] = {
     "person.delete": ("person.read",),
     "club.edit": ("person.read",),
     "backup.manage": ("backup.read",),
+    "backup.run": ("backup.read",),
+    "backup.restore": ("backup.read",),
 }
 
 

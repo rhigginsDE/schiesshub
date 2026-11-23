@@ -12,11 +12,14 @@ from sqlalchemy import (
     CheckConstraint,
     Date,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
     UniqueConstraint,
     Uuid,
+    false,
+    text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -31,6 +34,13 @@ class Tournament(UUIDPrimaryKey, Timestamps, Base):
         CheckConstraint("status IN ('draft', 'active', 'closed')", name="status"),
         CheckConstraint("template IN ('open', 'club_championship', 'custom')", name="template"),
         CheckConstraint("date_to >= date_from", name="dates"),
+        # Höchstens ein Übungsturnier (Migration 0016_turnier_uebung).
+        Index(
+            "uq_tournament_practice",
+            "is_practice",
+            unique=True,
+            postgresql_where=text("is_practice"),
+        ),
     )
 
     name: Mapped[str] = mapped_column(String(200))
@@ -44,6 +54,12 @@ class Tournament(UUIDPrimaryKey, Timestamps, Base):
     # Ausschreibung nach schemas.Announcement. Leer bei Turnieren von vor dieser Spalte; dann
     # gilt die Standardgliederung der Vorlage.
     announcement: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    # Übungsturnier mit Beispieldaten (`POST /tournaments/practice`). Steht beim Anlegen fest; ein
+    # Trigger verhindert die spätere Änderung.
+    is_practice: Mapped[bool] = mapped_column(Boolean, server_default=false(), default=False)
+    # Nur beim Übungsturnier: die Personen und Vereine, die es angelegt hat
+    # (`{"person_ids": […], "club_ids": […]}`), damit „Übung entfernen“ genau sie löscht.
+    practice_data: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
 
 
 class Range(UUIDPrimaryKey, Timestamps, Base):

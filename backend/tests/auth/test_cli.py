@@ -315,7 +315,7 @@ async def test_program_exit_codes(session: AsyncSession, test_database_url: str)
 
     code, _, stderr = await _run_cli(test_database_url, "reset-pin", "Niemand")
     assert code == cli.EXIT_ERROR
-    assert "Fehler: Eine Person „Niemand“ gibt es nicht." in stderr
+    assert "Fehler: Einen Benutzer „Niemand“ gibt es nicht." in stderr
 
     code, _, stderr = await _run_cli(test_database_url, "unbekannt")
     assert code == cli.EXIT_USAGE

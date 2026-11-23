@@ -5,7 +5,7 @@ import { formatDauer, formatZahl } from "../../lib/format";
 import { Piktogramm } from "./Piktogramm";
 import s from "./PositionsAblauf.module.css";
 import { anschlagText, positionAnschlagText } from "./text";
-import type { Position } from "./typen";
+import type { Anschlag, Position } from "./typen";
 
 export interface PositionsAblaufProps {
   positionen: Position[];
@@ -95,6 +95,7 @@ export function PositionsAblauf({
                         <Piktogramm
                           haltung={anschlag.haltung}
                           hand={anschlag.hand}
+                          aufgelegt={(anschlag as Anschlag).aufgelegt}
                           label={anschlagText(anschlag, t)}
                         />
                       </span>

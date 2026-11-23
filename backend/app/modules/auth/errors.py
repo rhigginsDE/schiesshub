@@ -9,6 +9,8 @@ DEVICE_REVOKED = "device_revoked"
 SESSION_EXPIRED = "session_expired"
 LOGIN_REQUIRED = "login_required"
 LOGIN_FAILED = "login_failed"
+# 409: Berechtigungsprüfung kann (noch) nicht eingeschaltet werden, siehe GET /auth/enforcement.
+ENFORCEMENT_BLOCKED = "enforcement_blocked"
 
 
 class NotFoundError(HTTPException):
@@ -33,7 +35,7 @@ class UnauthorizedError(CodedError):
     - `device_revoked`: Gerät gesperrt
     - `session_expired`: Anmeldung abgelaufen oder beendet (z. B. nach PIN-Wechsel)
     - `login_required`: Gerät gekoppelt, aber niemand angemeldet (und keine nutzbare Standardrolle)
-    - `login_failed`: Person oder PIN stimmt nicht
+    - `login_failed`: Benutzer oder PIN stimmt nicht
     """
 
     def __init__(self, detail: str, code: str) -> None:

@@ -87,6 +87,8 @@ function abschnitt(id: string, name: string, series: SerieForm[]): Formular["sec
 
 function formular(teil: Partial<Formular>): Formular {
   return {
+    ring_decimals: 0,
+    tie_breakers_evaluated: [],
     variant_id: "standard",
     variant_name: "Standard",
     model: "x",
@@ -161,6 +163,7 @@ export const SERIENSUMME: Formular = formular({
 
 export function wertung(teil: Partial<Wertung> = {}): Wertung {
   return {
+    decimals: 0,
     model: "x",
     direction: "aufsteigend",
     unit: "s",

@@ -63,6 +63,15 @@ class DuplicateError(Exception):
         self.candidates = candidates
 
 
+class ClubCreationForbiddenError(Exception):
+    """Der Verein aus `club_name` fehlt, und dem Anfragenden fehlt `club.edit` zum Anlegen."""
+
+
+# Fragt, ob der Anfragende einen neuen Verein anlegen darf (`club.edit`). Wird nur aufgerufen,
+# wenn der Verein aus `club_name` wirklich fehlt.
+ClubCreationCheck = Callable[[], Awaitable[bool]]
+
+
 class DeletionBlockedError(Exception):
     """Ein anderes Modul verhindert das Löschen einer Person."""
 
@@ -184,8 +193,16 @@ async def get_club(session: AsyncSession, club_id: UUID) -> ClubOut:
     return _club_out(*row)
 
 
-async def _find_club_by_name(session: AsyncSession, name: str) -> Club | None:
-    return await session.scalar(select(Club).where(func.lower(Club.name) == func.lower(name)))
+async def _clubs_like(session: AsyncSession, name: str) -> list[Club]:
+    """Alle Vereine mit gleicher Vergleichsform (`names.fold`), nach Name sortiert.
+
+    So vergleichen Vereinsanlage, Umbenennen, `club_name` an der Person und der CSV-Import:
+    ohne Groß-/Kleinschreibung, Akzente und Umlaut-Schreibweise („Schutzengilde“ und
+    „Schuetzengilde“ sind derselbe Verein wie „Schützengilde“).
+    """
+    folded = fold(name)
+    clubs = (await session.scalars(select(Club).order_by(func.lower(Club.name), Club.id))).all()
+    return [club for club in clubs if fold(club.name) == folded]
 
 
 def _club_name_taken(name: str) -> ConflictError:
@@ -204,7 +221,7 @@ async def create_club(
     session: AsyncSession, index: PersonIndex, events: EventHub, data: ClubCreate
 ) -> ClubOut:
     name = clean_text(data.name)
-    if await _find_club_by_name(session, name) is not None:
+    if await _clubs_like(session, name):
         raise _club_name_taken(name)
     club = Club(name=name, short=data.short)
     session.add(club)
@@ -222,8 +239,7 @@ async def update_club(
         raise NotFoundError("Diesen Verein gibt es nicht.")
     if "name" in data.model_fields_set and data.name is not None:
         name = clean_text(data.name)
-        existing = await _find_club_by_name(session, name)
-        if existing is not None and existing.id != club.id:
+        if any(other.id != club.id for other in await _clubs_like(session, name)):
             raise _club_name_taken(name)
         club.name = name
     if "short" in data.model_fields_set:
@@ -334,6 +350,67 @@ async def _require_club(session: AsyncSession, club_id: UUID | None) -> None:
         raise InvalidReferenceError("Den angegebenen Verein gibt es nicht.")
 
 
+async def _find_club_like(session: AsyncSession, name: str) -> Club | None:
+    """Verein mit gleicher Vergleichsform (`names.fold`) wie in der Vereinssuche.
+
+    Passen mehrere (etwa „Köhler SV“ und „Koehler SV“), gewinnt die gleiche Schreibweise ohne
+    Groß-/Kleinschreibung, sonst der erste nach Name.
+    """
+    return _pick_club(await _clubs_like(session, name), name)
+
+
+def _pick_club(found: Sequence[Club], name: str) -> Club | None:
+    """Aus Vereinen gleicher Vergleichsform: die gleiche Schreibweise, sonst den ersten."""
+    if not found:
+        return None
+    same_spelling = name.casefold()
+    return next((club for club in found if club.name.casefold() == same_spelling), found[0])
+
+
+async def _club_for_name(
+    session: AsyncSession, club_name: str, may_create_club: ClubCreationCheck | None
+) -> tuple[Club, bool]:
+    """Sucht den Verein zu `club_name` oder legt ihn in der laufenden Transaktion an.
+
+    Liefert den Verein und ob er neu ist. Bestätigt wird erst zusammen mit der Person; ohne
+    `may_create_club` (Aufruf aus dem Server selbst) ist das Anlegen erlaubt.
+    """
+    name = clean_text(club_name)
+    club = await _find_club_like(session, name)
+    if club is not None:
+        return club, False
+    if may_create_club is not None and not await may_create_club():
+        raise ClubCreationForbiddenError(
+            f"Den Verein „{name}“ gibt es noch nicht. Neue Vereine anlegen darf nur, wer die "
+            "Berechtigung „club.edit“ hat. Bitte einen vorhandenen Verein wählen."
+        )
+    club = Club(name=name)
+    session.add(club)
+    try:
+        await session.flush()
+    except IntegrityError as exc:
+        # Gleichzeitig hat jemand denselben Verein angelegt.
+        raise _club_name_taken(name) from exc
+    return club, True
+
+
+async def _commit_person(session: AsyncSession) -> None:
+    try:
+        await session.commit()
+    except IntegrityError as exc:
+        if "uq_club_name_ci" in str(exc.orig):
+            raise ConflictError(
+                "Den Verein hat gerade jemand anders angelegt. Bitte noch einmal speichern."
+            ) from exc
+        raise
+
+
+def _publish_new_club(index: PersonIndex, events: EventHub, club: Club | None) -> None:
+    if club is not None:
+        index.put_club(club.id, club.name)
+        events.publish(EVENT_CLUB_CREATED, {"club_id": str(club.id)})
+
+
 async def check_duplicates(
     session: AsyncSession, index: PersonIndex, name: str, club_id: UUID | None
 ) -> list[PersonOut]:
@@ -349,50 +426,82 @@ async def create_person(
     data: PersonCreate,
     *,
     force: bool,
+    may_create_club: ClubCreationCheck | None = None,
 ) -> PersonOut:
+    """Legt die Person an; mit `club_name` samt Verein (gesucht oder neu, eine Transaktion)."""
     name = clean_text(data.name)
-    await _require_club(session, data.club_id)
-    if not force:
-        candidates = index.duplicates(name, data.club_id)
-        if candidates:
-            raise DuplicateError(
-                "Eine Person mit diesem Namen gibt es in diesem Verein schon. Ist es dieselbe "
-                "Person? Zum Anlegen trotzdem `force=true` mitschicken.",
-                await _persons_by_ids(session, candidates),
-            )
-    person = Person(
-        name_enc=name,
-        member_no_enc=data.member_no,
-        club_id=data.club_id,
-        display_mode=data.display_mode,
-        show_club=data.show_club,
-    )
-    session.add(person)
-    await session.commit()
-    index.put_person(person.id, name, data.member_no, data.club_id)
+    new_club: Club | None = None
+    try:
+        club_id = data.club_id
+        if data.club_name is not None:
+            club, created = await _club_for_name(session, data.club_name, may_create_club)
+            club_id = club.id
+            new_club = club if created else None
+        else:
+            await _require_club(session, club_id)
+        # In einem neuen Verein kann es keine Dublette geben.
+        if not force and new_club is None:
+            candidates = index.duplicates(name, club_id)
+            if candidates:
+                raise DuplicateError(
+                    "Eine Person mit diesem Namen gibt es in diesem Verein schon. Ist es dieselbe "
+                    "Person? Zum Anlegen trotzdem `force=true` mitschicken.",
+                    await _persons_by_ids(session, candidates),
+                )
+        person = Person(
+            name_enc=name,
+            member_no_enc=data.member_no,
+            club_id=club_id,
+            display_mode=data.display_mode,
+            show_club=data.show_club,
+        )
+        session.add(person)
+        await _commit_person(session)
+    except Exception:
+        # Auch ein schon eingefügter neuer Verein verschwindet wieder.
+        await session.rollback()
+        raise
+    _publish_new_club(index, events, new_club)
+    index.put_person(person.id, name, data.member_no, club_id)
     events.publish(EVENT_PERSON_CREATED, {"person_id": str(person.id)})
     return await get_person(session, person.id)
 
 
 async def update_person(
-    session: AsyncSession, index: PersonIndex, events: EventHub, person_id: UUID, data: PersonUpdate
+    session: AsyncSession,
+    index: PersonIndex,
+    events: EventHub,
+    person_id: UUID,
+    data: PersonUpdate,
+    *,
+    may_create_club: ClubCreationCheck | None = None,
 ) -> PersonOut:
     person = await session.get(Person, person_id)
     if person is None:
         raise NotFoundError("Diese Person gibt es nicht.")
     fields = data.model_fields_set
-    if "club_id" in fields:
-        await _require_club(session, data.club_id)
-        person.club_id = data.club_id
-    if "name" in fields and data.name is not None:
-        person.name_enc = clean_text(data.name)
-    if "member_no" in fields:
-        person.member_no_enc = data.member_no
-    if "display_mode" in fields and data.display_mode is not None:
-        person.display_mode = data.display_mode
-    if "show_club" in fields and data.show_club is not None:
-        person.show_club = data.show_club
-    await session.commit()
+    new_club: Club | None = None
+    try:
+        if data.club_name is not None:
+            club, created = await _club_for_name(session, data.club_name, may_create_club)
+            person.club_id = club.id
+            new_club = club if created else None
+        elif "club_id" in fields:
+            await _require_club(session, data.club_id)
+            person.club_id = data.club_id
+        if "name" in fields and data.name is not None:
+            person.name_enc = clean_text(data.name)
+        if "member_no" in fields:
+            person.member_no_enc = data.member_no
+        if "display_mode" in fields and data.display_mode is not None:
+            person.display_mode = data.display_mode
+        if "show_club" in fields and data.show_club is not None:
+            person.show_club = data.show_club
+        await _commit_person(session)
+    except Exception:
+        await session.rollback()
+        raise
+    _publish_new_club(index, events, new_club)
     index.put_person(person.id, person.name_enc, person.member_no_enc, person.club_id)
     events.publish(EVENT_PERSON_UPDATED, {"person_id": str(person.id)})
     return await get_person(session, person.id)
@@ -440,20 +549,27 @@ async def export_persons_csv(session: AsyncSession) -> tuple[str, int]:
 
 
 async def import_persons(
-    session: AsyncSession, index: PersonIndex, events: EventHub, content: bytes, *, dry_run: bool
+    session: AsyncSession,
+    index: PersonIndex,
+    events: EventHub,
+    content: bytes,
+    *,
+    dry_run: bool,
+    may_create_club: ClubCreationCheck | None = None,
 ) -> ImportReportOut:
     """Importiert Personen aus CSV. Fehlende Vereine werden angelegt.
 
     Je Zeile: `new` (wird angelegt), `duplicate` (gleicher Name im selben Verein, schon vorhanden
     oder weiter oben in der Datei; wird übersprungen) oder `error` (wird übersprungen).
-    Mit `dry_run` wird nichts gespeichert.
+    Vereine werden wie überall mit `names.fold` verglichen. Mit `dry_run` wird nichts
+    gespeichert. Braucht das Übernehmen neue Vereine und verneint `may_create_club`, wird nichts
+    importiert (`ClubCreationForbiddenError`); die Vorschau nennt neue Vereine trotzdem.
     """
     parsed = csvio.parse_person_csv(content)
 
-    clubs_by_name = {
-        name.casefold(): (club_id, name)
-        for club_id, name in (await session.execute(select(Club.id, Club.name)))
-    }
+    clubs_by_fold: dict[str, list[Club]] = {}
+    for existing in await session.scalars(select(Club).order_by(func.lower(Club.name), Club.id)):
+        clubs_by_fold.setdefault(fold(existing.name), []).append(existing)
     new_clubs: dict[str, Club] = {}
     seen_in_file: set[tuple[str, str | None]] = set()
     report: list[ImportRowOut] = []
@@ -471,9 +587,11 @@ async def import_persons(
                 )
             )
             continue
-        club_key = row.club.casefold() if row.club else None
-        existing_club = clubs_by_name.get(club_key) if club_key else None
-        club_id = existing_club[0] if existing_club else None
+        club_key = fold(row.club) if row.club else None
+        existing_club = (
+            _pick_club(clubs_by_fold.get(club_key, []), row.club) if club_key and row.club else None
+        )
+        club_id = existing_club.id if existing_club else None
         file_key = (fold(row.name), club_key)
         if file_key in seen_in_file:
             report.append(
@@ -516,6 +634,20 @@ async def import_persons(
         )
         to_create.append((len(report), person, club_key if club is not None else None))
         report.append(ImportRowOut(line=row.line, status="new", name=row.name, club=row.club))
+
+    if not dry_run and new_clubs and may_create_club is not None and not await may_create_club():
+        missing = sorted((club.name for club in new_clubs.values()), key=str.casefold)
+        quoted = ", ".join(f"„{name}“" for name in missing)
+        lead = (
+            f"Den Verein {quoted} gibt es noch nicht."
+            if len(missing) == 1
+            else f"Diese Vereine gibt es noch nicht: {quoted}."
+        )
+        raise ClubCreationForbiddenError(
+            f"{lead} Neue Vereine anlegen darf nur, wer die Berechtigung „club.edit“ hat. Es "
+            "wurde nichts importiert. Bitte die Vereine zuerst anlegen lassen oder in der Datei "
+            "vorhandene Vereine eintragen."
+        )
 
     if not dry_run and to_create:
         session.add_all(new_clubs.values())

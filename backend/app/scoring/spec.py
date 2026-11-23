@@ -6,11 +6,12 @@ Kennt die Wertung ein Feld nicht, ist das ein Fehler – so fällt auf, wenn der
 Neues beschreibt, das die Wertung (noch) nicht versteht.
 """
 
+import re
 from decimal import Decimal
 from itertools import pairwise
 from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
+from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, Field, model_validator
 
 from app.scoring.numbers import to_decimal
 
@@ -18,22 +19,58 @@ Number = Annotated[Decimal, BeforeValidator(to_decimal)]
 NonNegativeNumber = Annotated[Decimal, BeforeValidator(to_decimal), Field(ge=0)]
 PositiveNumber = Annotated[Decimal, BeforeValidator(to_decimal), Field(gt=0)]
 PositiveInt = Annotated[int, Field(gt=0)]
-RingValue = Annotated[int, Field(ge=0, le=10)] | Literal["X"]
+NonNegativeInt = Annotated[int, Field(ge=0)]
+# Ohne `ringwerte` gelten 0–10 und „X“; mit `ringwerte` genau die dort genannten (Bogen 3D: 11).
+RingValue = NonNegativeInt | Literal["X"]
 Text = Annotated[str, Field(min_length=1)]
+
+_CRITERION_ID = re.compile(r"^[a-z][a-z0-9_]*$")
+
+
+def _check_criterion_id(value: str) -> str:
+    if not _CRITERION_ID.match(value):
+        raise ValueError(
+            f"Gleichstandskriterium „{value}“: nur Kleinbuchstaben a–z, Ziffern und Unterstrich"
+        )
+    return value
+
+
+# Jede ID in diesem Format wird angenommen; was die Wertung nicht rechnet, ist manuell zu
+# entscheiden (siehe `ranking.py`).
+CriterionId = Annotated[str, AfterValidator(_check_criterion_id)]
 
 Direction = Literal["absteigend", "aufsteigend"]
 CaptureMode = Literal["shot", "series"]
 CAPTURE_MODES: tuple[CaptureMode, ...] = ("shot", "series")
 
-# Gleichstandskriterien, die die Wertung kennt (Reihenfolge = Reihenfolge in der Doku).
-TIE_BREAKERS = ("zehner", "innenzehner", "neuner_abwaerts", "parcours_zeit")
+# Gleichstandskriterien, die die Wertung selbst rechnet (Bedeutung: `ranking.py`). Andere IDs
+# sind erlaubt, werden aber nicht gerechnet: Ab der ersten solchen ID ist ein verbleibender
+# Gleichstand nach Sportordnung manuell zu entscheiden.
+TIE_BREAKERS = (
+    "zehner",
+    "innenzehner",
+    "neuner_abwaerts",
+    "parcours_zeit",
+    "letzte_serie_rueckwaerts",
+    "schuesse_rueckwaerts",
+    "ergebnis_zweite_haelfte",
+    "mehr_treffer",
+    "zehntel_gesamt",
+    "elfer",
+    "neuner",
+    "sechser",
+    "fuenfer",
+)
+# Stechen rechnet die Wertung nie; mit `stechen_bis_platz` gilt es nur für die Plätze bis N.
+SHOOTOFF = "stechen"
 
-# Felder unter `scoring`, die nur bestimmte Modelle auswerten.
+# Felder unter `scoring`, die nur bestimmte Modelle auswerten (`false` zählt als nicht gesetzt).
 MODEL_PARAMETERS = (
     "abzug_je_voller_sekunde_ueber_sollzeit",
     "min_teilergebnis",
     "zeit_rundung",
     "unbeendete_serie",
+    "zehntelwertung",
 )
 
 
@@ -44,8 +81,10 @@ class _Strict(BaseModel):
 class StanceSpec(_Strict):
     """Ein erlaubter Anschlag an einer Position."""
 
-    haltung: Literal["stehend", "kniend", "liegend"]
+    haltung: Literal["stehend", "kniend", "liegend", "sitzend"]
     hand: Literal["beidhaendig", "einhaendig", "starke_hand", "schwache_hand"] | None = None
+    aufgelegt: bool | None = None
+    """Auflageschießen; nur Hinweis."""
 
 
 class PositionSpec(_Strict):
@@ -90,6 +129,12 @@ class SectionSpec(_Strict):
         None
     )
     zeit_plausibel_max_s: PositiveNumber | None = None
+    # Nur Information für Maske und Ablauf, ohne Einfluss auf die Rechnung:
+    wettkampfzeit_s: PositiveNumber | None = None
+    """Gesamtzeit für alle Wertungsschüsse des Abschnitts."""
+    vorbereitung_probe_s: PositiveNumber | None = None
+    """Vorbereitungs- und Probezeit vor dem ersten Wertungsschuss."""
+    probeschuesse: NonNegativeInt | Literal["unbegrenzt"] | None = None
 
     @model_validator(mode="after")
     def _check_per_series_lists(self) -> Self:
@@ -125,6 +170,8 @@ class SectionSpec(_Strict):
 class VariantSpec(_Strict):
     id: Text
     name: Text
+    wettkampfzeit_gesamt_s: PositiveNumber | None = None
+    """Gemeinsame Zeit über alle Abschnitte (z. B. Dreistellungskampf); nur Information."""
     abschnitte: Annotated[list[SectionSpec], Field(min_length=1)]
 
     @model_validator(mode="after")
@@ -142,11 +189,16 @@ class ScoringSpec(_Strict):
     modell: Text
     rangfolge: Direction
     geprueft: bool | None = None
-    gleichstand: list[Text] | None = None
+    gleichstand: list[CriterionId] | None = None
     abzug_je_voller_sekunde_ueber_sollzeit: NonNegativeNumber | None = None
     min_teilergebnis: Number | None = None
     zeit_rundung: Literal["summe_abrunden"] | None = None
     unbeendete_serie: Literal["ringe_bis_dahin_zeit_letzter_schuss"] | None = None
+    zehntelwertung: bool | None = None
+    """Ringe je Schuss 0 oder 1,0–10,9 (eine Nachkommastelle); nur Modell `ringe`."""
+    stechen_bis_platz: PositiveInt | None = None
+    """Gleichstand im Ergebnis auf den Plätzen 1 bis N entscheidet ein Stechen (nicht die
+    Wertung); die übrigen Plätze trennt `gleichstand` ohne `stechen`."""
 
 
 class DefinitionSpec(_Strict):

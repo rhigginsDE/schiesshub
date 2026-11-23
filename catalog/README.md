@@ -9,11 +9,14 @@ catalog/
   <verband>/
     katalog.yaml          Kopf: Verband, Regelwerk, Stand, Hinweise
     klassen.yaml          Wettbewerbsklassen (optional)
+    startrecht.yaml       Startrecht der Klassen je Wettbewerb (optional, braucht Klassennummern)
     gruppen/
       <gruppe>.yaml       eine Datei je Disziplingruppe
 ```
 
-Aktuell enthalten: `bds/` mit 191 Disziplinen in 25 Gruppen (Sporthandbuch Teil K und L, Fassung des BVA-Genehmigungsbescheids vom 30.06.2026).
+Aktuell enthalten:
+
+- `bds/` mit 191 Disziplinen in 25 Gruppen (Sporthandbuch Teil K und L, Fassung des BVA-Genehmigungsbescheids vom 30.06.2026).
 
 ## Eine Gruppendatei
 
@@ -23,7 +26,7 @@ verband: "bds"
 gruppe:
   id: "kw-25m-praezision"       # = Dateiname
   name: "KW 25 m Präzision"
-  waffenart: "kurzwaffe"        # kurzwaffe | langwaffe | flinte
+  waffenart: "kurzwaffe"        # kurzwaffe | langwaffe | flinte | armbrust | bogen | blasrohr | licht
   distanz_m: 25
   art: "praezision"
 wertung:
@@ -56,7 +59,7 @@ disziplinen:
 
 Optionale Felder einer Disziplin: `optional: true` (wird nicht mehr auf Deutschen Meisterschaften ausgetragen), `pruefen: ["visierung"]` (Angabe ist unsicher und muss nachgesehen werden), `fruehere_kennziffer: "1310"` (die Disziplin lief früher unter dieser Kennziffer; im Sporthandbuch in Klammern genannt).
 
-Werte für `gruppe.art`: `praezision`, `speed`, `kombi`, `fallscheibe`, `fallscheibe-gk`, `fallscheibe-kk`, `mehrdistanz`, `zeitserie`, `fertigkeit`, `symbolscheibe`, `intervall`.
+Werte für `gruppe.art`: `praezision`, `speed`, `kombi`, `fallscheibe`, `fallscheibe-gk`, `fallscheibe-kk`, `mehrdistanz`, `zeitserie`, `fertigkeit`, `symbolscheibe`, `intervall`, `auflage`, `dreistellung`, `laufende-scheibe`, `vogelbaum`, `wurfscheibe`, `feldbogen`, `bogen-3d`.
 
 ### Abschnitte
 
@@ -78,13 +81,21 @@ Ein Ablauf besteht aus Varianten (zum Beispiel Bezirks-, Landes-, Deutsche Meist
 | `pause_zwischen_schuessen_s` | Zeit, in der die Scheibe zwischen zwei Schüssen weggedreht ist (Intervall) |
 | `sollzeit_s` | Sollzeit für den ganzen Abschnitt; darüber gilt `abzug_je_voller_sekunde_ueber_sollzeit` (Mehrdistanz-Parcours) |
 | `max_gesamtzeit_s` | Abbruchzeit für den ganzen Abschnitt (Mehrdistanz-Parcours) |
-
 | `positionen` | Anschlag je Serie, ein Eintrag je Serie (siehe unten) |
 | `ringwerte` | mögliche Ringwerte je Treffer, absteigend ohne Wiederholung (Speed: `[10, 7, 0]`) |
 | `zeit_bei_abbruch_s` | Serienzeit bei Zeitlimit oder Abbruch durch den Schützen (Fallscheibe: 60) |
 | `zuschlag_stoerung_vor_erstem_schuss_s` | Zuschlag bei Waffenstörung vor dem ersten Wertungsschuss (Fallscheibe: 50) |
 | `trefferaufnahme_nach` | Trefferaufnahme nach diesen Serien, 1-basiert und aufsteigend, z. B. `[2, 4]`; nur zur Information |
 | `serien_gewertet` | nur die ersten N Serien zählen. Im Katalog nicht setzen: Das ist eine Turnier-Einstellung, die das Turnier-Modul mit demselben Format prüft. |
+| `zeit_plausibel_faktor` | Eingabeschutz, keine Sportregel: Eine gemessene Zeit über Faktor × Zeitlimit (`max_zeit_je_serie_s` bzw. `max_gesamtzeit_s`) gilt als Tippfehler. Zahl ≥ 1; ohne Angabe 3, ohne Zeitlimit gilt eine Stunde. Für Turnier-Abweichungen und eigene Disziplinen. |
+| `zeit_plausibel_max_s` | Eingabeschutz: feste Obergrenze für gemessene Zeiten in Sekunden, hat Vorrang vor dem Faktor |
+| `wettkampfzeit_s` | Gesamtzeit für alle Wertungsschüsse des Abschnitts. Der DSB nennt meist eine Gesamtzeit statt einer Zeit je Serie. |
+| `vorbereitung_probe_s` | Vorbereitungs- und Probezeit vor dem ersten Wertungsschuss |
+| `probeschuesse` | Zahl der Probeschüsse oder `"unbegrenzt"` |
+
+Auf Ebene der Variante gibt es `wettkampfzeit_gesamt_s`: eine gemeinsame Zeit für alle Abschnitte, z. B. beim Dreistellungskampf.
+
+Ein Ablauf kann ein `finale` beschreiben, nur zur Information: `{ teilnehmer: 8, hinweis: "…", abschnitt: "SpO 15.1.1" }`. Der Hinweis steht in eigenen Worten, nicht im Wortlaut des Regelwerks.
 
 Bei Mehrdistanz stehen die Varianten für die Parcours-Varianten des Sporthandbuchs, nicht für Meisterschaftsebenen.
 
@@ -104,7 +115,8 @@ positionen:
 
 | Feld | Werte |
 |---|---|
-| `haltung` | `stehend`, `kniend`, `liegend` |
+| `haltung` | `stehend`, `kniend`, `liegend`, `sitzend` |
+| `aufgelegt` | `true` beim Auflageschießen |
 | `hand` | `beidhaendig`, `einhaendig` (Hand freigestellt), `starke_hand`, `schwache_hand`; bei Langwaffe und Flinte weglassen |
 
 ### Wertungsmodelle
@@ -120,7 +132,9 @@ Weitere Felder unter `wertung`:
 
 | Feld | Bedeutung |
 |---|---|
-| `gleichstand` | Kriterien bei Ergebnisgleichheit in ihrer Reihenfolge, z. B. `zehner`, `innenzehner`, `neuner_abwaerts`, `parcours_zeit` (niedrigere Parcourszeit gewinnt). Fehlt, wenn das Sporthandbuch keine Regel nennt. |
+| `gleichstand` | Kriterien bei Ergebnisgleichheit in ihrer Reihenfolge, z. B. `zehner`, `innenzehner`, `neuner_abwaerts`, `parcours_zeit` (niedrigere Parcourszeit gewinnt), `letzte_serie_rueckwaerts` (letzte 10-Schuss-Serie, dann rückwärts), `stechen`, `zehntel_gesamt`. Fehlt, wenn das Regelwerk keine Regel nennt. Was ein Kriterium bedeutet, steht beim jeweiligen Verband in der Gruppendatei als Kommentar. |
+| `zehntelwertung` | `true`: Ringe mit einer Nachkommastelle (0 und 1,0 bis 10,9) |
+| `stechen_bis_platz` | Ringgleichheit auf den Plätzen 1 bis N wird durch Stechen entschieden |
 | `abzug_je_voller_sekunde_ueber_sollzeit` | Ringabzug je voller Sekunde über `sollzeit_s` |
 | `min_teilergebnis` | Untergrenze je Teilergebnis vor dem Addieren (Mehrdistanz: 0) |
 | `zeit_rundung` | `summe_abrunden`: Summe der Serienzeiten wird vor dem Abzug auf volle Sekunden abgerundet (Speed) |
@@ -149,12 +163,41 @@ klassen:
 
 Optionale Felder: `zusammenlegen_nach_alter: true` (die Zielklasse aus `zusammenlegen_in` richtet sich nach dem Alter, nicht nach der Reihenfolge), `hinweis`. Auf Dateiebene: `stichtag` (Sportjahr und Bezugspunkt der Altersangaben), `regeln` (allgemeine Hinweise) und `unsicher` (Punkte, die in der Quelle nicht eindeutig sind).
 
+Für Verbände mit offiziellen Klassennummern (DSB) gibt es zusätzlich:
+
+| Feld | Bedeutung |
+|---|---|
+| `nummer` | offizielle Klassennummer als Text, z. B. `"10"` für Herren I. Nur innerhalb eines Klassensatzes eindeutig. |
+| `satz` | Klassensatz, z. B. `sportschiessen`, `auflage`, `bogen`. Jeder Satz muss auf Dateiebene unter `klassensaetze` beschrieben sein. |
+| `hoeher_in` | Klassen, in die gemeldet werden darf, obwohl das Alter eine andere ergibt (Höhermeldung) |
+
+## Startrecht
+
+`<verband>/startrecht.yaml` hält fest, welche Klassen in welchem Wettbewerb starten, so wie es die Meisterschaftstabelle des Verbands vorgibt. Alle Klassen stehen als Klassennummer innerhalb des Satzes.
+
+```yaml
+schema: 1
+verband: "dsb"
+stand_tabelle: "DM 2025–2028"
+startrecht:
+  "1.10":
+    satz: "sportschiessen"
+    wettbewerb: "Luftgewehr"
+    einzel: ["20", "21", "30", "31"]
+    mannschaft: ["20", "30"]
+    startet_bei: { "17": "15" }              # Einzel: Klasse 17 schießt in Klasse 15 mit
+    mannschaft_startet_bei: { "12": "10" }   # Mannschaft: Klasse 12 schießt in Klasse 10 mit
+    kein_startrecht: ["42", "43"]
+```
+
+Weitere Felder: `kennziffer` (wenn der Schlüssel von der Kennziffer abweicht, z. B. `"para-1.10"`), `meisterschaft`, `olympisch`, `startmoeglichkeit_0711` (Start in einer ausgeschriebenen Klasse über die Höhermeldung), `endkampf`, `mix_team` (Liste mit `name` und `klassen`), `neu_bei_dm`, `deutsche_schuelermeisterschaft` (eigene Einträge mit denselben Feldern), `hinweis` und `offen` (in der Quelle nicht eindeutig lesbar). `satz` darf eine Liste sein. Dann gilt für eine Nummer der erste Satz, der sie kennt.
+
 ## Regeln für Beiträge
 
 - Nur Fakten eintragen: Kennziffer, Name, Schusszahlen, Zeiten. Keine Regeltexte oder Tabellen aus Sporthandbüchern kopieren.
 - Bei jeder Änderung die Quelle im Pull Request nennen (Regelwerk, Fassung, Abschnitt).
 - `geprueft: true` nur setzen, wenn die Gruppe vollständig mit dem aktuellen Sporthandbuch abgeglichen wurde.
-- Kennziffern sind Text, keine Zahlen (`"1001"`).
+- Kennziffern sind Text, keine Zahlen (`"1001"`, `"1.10"`).
 - Ein neuer Verband bekommt ein eigenes Verzeichnis mit eigener `katalog.yaml`.
 
 ## Haftung

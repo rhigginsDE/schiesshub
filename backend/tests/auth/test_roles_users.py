@@ -1,4 +1,4 @@
-"""Rollen und Personen verwalten, inklusive Schutzregeln für Administratoren."""
+"""Rollen und Benutzer verwalten, inklusive Schutzregeln für Administratoren."""
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -113,8 +113,8 @@ async def test_role_in_use_cannot_be_deleted(make_app: AppFactory) -> None:
 
     assert in_use.status_code == 409
     assert in_use.json()["detail"] == (
-        "Die Rolle „Kasse“ ist noch 1 Person zugewiesen. "
-        "Bitte diesen Personen zuerst eine andere Rolle geben."
+        "Die Rolle „Kasse“ ist noch 1 Benutzer zugewiesen. "
+        "Bitte diesen Benutzern zuerst eine andere Rolle geben."
     )
     assert display_deleted.status_code == 204
     assert devices[0]["default_role_id"] is None

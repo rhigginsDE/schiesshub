@@ -20,7 +20,7 @@ PositiveNumber = Annotated[int, Field(gt=0)] | Annotated[float, Field(gt=0)]
 PositiveInt = Annotated[int, Field(gt=0)]
 NonNegativeInt = Annotated[int, Field(ge=0)]
 
-WeaponType = Literal["kurzwaffe", "langwaffe", "flinte"]
+WeaponType = Literal["kurzwaffe", "langwaffe", "flinte", "armbrust", "bogen", "blasrohr", "licht"]
 GroupKind = Literal[
     "praezision",
     "speed",
@@ -33,9 +33,16 @@ GroupKind = Literal[
     "fertigkeit",
     "symbolscheibe",
     "intervall",
+    "auflage",
+    "dreistellung",
+    "laufende-scheibe",
+    "vogelbaum",
+    "wurfscheibe",
+    "feldbogen",
+    "bogen-3d",
 ]
 ScoringModel = Literal["ringe", "ringe_minus_zeit", "ringe_mit_zeitabzug", "zeit_plus_zuschlaege"]
-Stance = Literal["stehend", "kniend", "liegend"]
+Stance = Literal["stehend", "kniend", "liegend", "sitzend"]
 # "einhaendig": eine Hand, welche ist freigestellt.
 Hand = Literal["beidhaendig", "einhaendig", "starke_hand", "schwache_hand"]
 Gender = Literal["alle", "weiblich", "maennlich", "divers"]
@@ -103,6 +110,12 @@ class Klasse(StrictModel):
     name: Text
     kurz: Text
     geschlecht: Gender
+    # Offizielle Klassennummer (DSB: "10" = Herren I), nur innerhalb eines Satzes eindeutig.
+    nummer: Code | None = None
+    # Klassensatz (Schlüssel aus `klassensaetze`), z. B. "sportschiessen" oder "auflage".
+    satz: Slug | None = None
+    # Klassen, in die gemeldet werden darf, obwohl das Alter eine andere ergibt (Höhermeldung).
+    hoeher_in: list[Slug] = []
     alter_hilfe: Text | None = None
     mindeststarter_dm: PositiveInt | None = None
     zusammenlegen_in: list[Slug] = []
@@ -117,6 +130,8 @@ class KlassenDatei(StrictModel):
     geprueft: bool = False
     stichtag: Stichtag | None = None
     geschlecht_hinweis: Text | None = None
+    # Klassensätze mit Kurzbeschreibung und Fundstelle (DSB: Kugel, Auflage, Bogen …).
+    klassensaetze: dict[Slug, Text] = {}
     klassen: list[Klasse]
     regeln: list[Text] = []
     unsicher: list[Text] = []
@@ -144,12 +159,18 @@ class Wertung(StrictModel):
     # Speed: Wird eine Serie nicht beendet, zählen die bis dahin erzielten Ringe und die
     # Zeit des letzten Schusses (K 6.10, L 9.09).
     unbeendete_serie: Literal["ringe_bis_dahin_zeit_letzter_schuss"] | None = None
+    # Zehntelwertung: Ringwerte mit einer Nachkommastelle (0 und 1,0 bis 10,9).
+    zehntelwertung: bool | None = None
+    # Ringgleichheit auf den Plätzen 1 bis N wird durch Stechen entschieden (Kriterium "stechen").
+    stechen_bis_platz: PositiveInt | None = None
 
 
 class Anschlag(StrictModel):
     haltung: Stance
     # Bei Langwaffe und Flinte nicht angegeben.
     hand: Hand | None = None
+    # Auflageschießen: Waffe liegt auf einer Auflage.
+    aufgelegt: bool | None = None
 
 
 class Position(StrictModel):
@@ -191,6 +212,16 @@ class Abschnitt(StrictModel):
     serien_gewertet: PositiveInt | None = None
     # Trefferaufnahme nach diesen Serien (1-basiert, aufsteigend), rein informativ.
     trefferaufnahme_nach: list[PositiveInt] | None = None
+    # Gesamtzeit für alle Wertungsschüsse des Abschnitts (DSB nennt meist keine Zeit je Serie).
+    wettkampfzeit_s: PositiveNumber | None = None
+    # Vorbereitungs- und Probezeit vor dem ersten Wertungsschuss.
+    vorbereitung_probe_s: PositiveNumber | None = None
+    probeschuesse: NonNegativeInt | Literal["unbegrenzt"] | None = None
+    # Eingabeschutz, keine Sportregel: Eine gemessene Zeit über Faktor × Zeitlimit
+    # (max_zeit_je_serie_s bzw. max_gesamtzeit_s; ohne Angabe 3, ohne Limit eine Stunde) gilt als
+    # Tippfehler. zeit_plausibel_max_s setzt die Grenze fest und hat Vorrang.
+    zeit_plausibel_faktor: Annotated[int, Field(ge=1)] | Annotated[float, Field(ge=1)] | None = None
+    zeit_plausibel_max_s: PositiveNumber | None = None
 
     @model_validator(mode="after")
     def _check_per_series_lists(self) -> Self:
@@ -236,6 +267,8 @@ class Abschnitt(StrictModel):
 class Variante(StrictModel):
     id: Slug
     name: Text
+    # Gemeinsame Zeit für alle Abschnitte (z. B. Dreistellungskampf mit Wechselzeiten).
+    wettkampfzeit_gesamt_s: PositiveNumber | None = None
     abschnitte: Annotated[list[Abschnitt], Field(min_length=1)]
 
     @model_validator(mode="after")
@@ -245,8 +278,17 @@ class Variante(StrictModel):
         return self
 
 
+class Finale(StrictModel):
+    """Finale bzw. Endkampf, nur zur Information (eigene Worte, mit Fundstelle)."""
+
+    teilnehmer: PositiveInt
+    hinweis: Text | None = None
+    abschnitt: Text | None = None
+
+
 class Ablauf(StrictModel):
     beschreibung: Text
+    finale: Finale | None = None
     varianten: Annotated[list[Variante], Field(min_length=1)]
 
     @model_validator(mode="after")
@@ -278,3 +320,54 @@ class GruppenDatei(StrictModel):
     wertung: Wertung
     ablaeufe: dict[Slug, Ablauf]
     disziplinen: list[Disziplin]
+
+
+# --- startrecht.yaml --------------------------------------------------------
+
+KlassenNummer = Code
+
+
+class MixTeam(StrictModel):
+    name: Text
+    klassen: Annotated[list[KlassenNummer], Field(min_length=1)]
+
+
+class Startfelder(StrictModel):
+    """Startrecht der Klassen eines Satzes. Alle Klassen sind Klassennummern (`Klasse.nummer`)."""
+
+    einzel: list[KlassenNummer] = []
+    mannschaft: list[KlassenNummer] = []
+    # Klasse -> Klasse, in der sie mitschießt (DSB-Tabelle: "b 10").
+    startet_bei: dict[KlassenNummer, KlassenNummer] = {}
+    mannschaft_startet_bei: dict[KlassenNummer, KlassenNummer] = {}
+    olympisch: list[KlassenNummer] = []
+    # Darf per Höhermeldung (DSB: SpO 0.7.1.1) in einer ausgeschriebenen Klasse starten.
+    startmoeglichkeit_0711: list[KlassenNummer] = []
+    kein_startrecht: list[KlassenNummer] = []
+    endkampf: list[KlassenNummer] = []
+    mix_team: list[MixTeam] = []
+    neu_bei_dm: list[KlassenNummer] = []
+    hinweis: Text | None = None
+    # In der Quelle nicht eindeutig lesbar.
+    offen: Text | None = None
+
+
+class StartrechtEintrag(Startfelder):
+    """Startrecht in einem Wettbewerb laut Meisterschaftstabelle des Verbands."""
+
+    # Klassensatz; bei mehreren gilt für eine Nummer der erste Satz, der sie kennt
+    # (DSB Blasrohr: eigene Schülerklassen, sonst die Klassen des Sportschießens).
+    satz: Slug | Annotated[list[Slug], Field(min_length=1)]
+    wettbewerb: Text
+    # Kennziffer im Katalog, falls sie vom Schlüssel abweicht (z. B. Schlüssel "para-1.10").
+    kennziffer: Code | None = None
+    meisterschaft: Text | None = None
+    deutsche_schuelermeisterschaft: Startfelder | None = None
+
+
+class StartrechtDatei(StrictModel):
+    schema_: Literal[1] = Field(alias="schema")
+    verband: Slug
+    stand_tabelle: Text | None = None
+    hinweise: list[Text] = []
+    startrecht: dict[Code, StartrechtEintrag]

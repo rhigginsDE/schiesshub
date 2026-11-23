@@ -2,6 +2,7 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Any, cast
 
 from pydantic import ValidationError
@@ -10,7 +11,7 @@ from app.scoring import models as _models  # noqa: F401  (registriert die Modell
 from app.scoring.errors import DefinitionError
 from app.scoring.plan import SectionPlan, build_section_plan
 from app.scoring.registry import ScoringModel, get_model
-from app.scoring.spec import CAPTURE_MODES, CaptureMode, DefinitionSpec, ScoringSpec
+from app.scoring.spec import CAPTURE_MODES, SHOOTOFF, CaptureMode, DefinitionSpec, ScoringSpec
 from app.scoring.status import ABORTED, MALFUNCTION, NORMAL, UNFINISHED, SeriesStatus
 
 
@@ -21,6 +22,8 @@ class Definition:
     scoring: ScoringSpec
     sections: tuple[SectionPlan, ...]
     model: ScoringModel
+    competition_time_total_s: Decimal | None = None
+    """`wettkampfzeit_gesamt_s` der Variante (nur Information)."""
 
     @property
     def multi_section(self) -> bool:
@@ -29,6 +32,27 @@ class Definition:
     @property
     def tie_breakers(self) -> list[str]:
         return list(self.scoring.gleichstand or [])
+
+    @property
+    def tenths(self) -> bool:
+        return bool(self.scoring.zehntelwertung)
+
+    @property
+    def tie_chain(self) -> tuple[list[str], str | None]:
+        """Gerechnete Gleichstandskriterien in Reihenfolge und das erste nicht gerechnete.
+
+        Gerechnet wird bis zur ersten ID, die das Modell nicht rechnet (unbekannt oder
+        `stechen`); ab dort ist ein Gleichstand manuell zu entscheiden. Mit `stechen_bis_platz`
+        wird `stechen` übersprungen: Es gilt dann nur für die Plätze bis N (`ranking.py`).
+        """
+        evaluated: list[str] = []
+        for criterion in self.tie_breakers:
+            if criterion == SHOOTOFF and self.scoring.stechen_bis_platz is not None:
+                continue
+            if criterion not in self.model.tie_breakers:
+                return evaluated, criterion
+            evaluated.append(criterion)
+        return evaluated, None
 
     def series_statuses(self, plan: SectionPlan) -> list[SeriesStatus]:
         """Status, die eine Serie dieses Abschnitts haben darf (siehe `status.py`)."""
@@ -58,7 +82,9 @@ def load_definition(data: Mapping[str, Any] | Definition) -> Definition:
     plans: list[SectionPlan] = []
     problems: list[str] = []
     for index, section in enumerate(spec.variant.abschnitte):
-        plan, section_problems = build_section_plan(section)
+        plan, section_problems = build_section_plan(
+            section, tenths=bool(spec.scoring.zehntelwertung)
+        )
         problems.extend(
             f"variant.abschnitte[{index}] ({section.id}): {p}" for p in section_problems
         )
@@ -74,6 +100,7 @@ def load_definition(data: Mapping[str, Any] | Definition) -> Definition:
         scoring=spec.scoring,
         sections=tuple(plans),
         model=model,
+        competition_time_total_s=spec.variant.wettkampfzeit_gesamt_s,
     )
 
 

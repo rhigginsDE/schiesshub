@@ -146,6 +146,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/katalog/startrecht/{verband}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Startrecht der Klassen je Wettbewerb */
+        get: operations["katalog_startrecht"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tournaments": {
         parameters: {
             query?: never;
@@ -164,6 +181,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tournaments/from-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turnier aus einer fertigen Vorlage anlegen
+         * @description Legt ein Turnier im Entwurf aus einer Vorlage von `GET /tournament-templates` an: Grundeinstellungen, Stände, Klassen und Wettbewerbe. Die Wettbewerbe entstehen frisch aus dem aktuellen Katalog (wie `POST …/competitions`). 422 bei unbekannter Vorlage, 409, wenn eine Kennziffer der Vorlage im Katalog fehlt (dann wird nichts angelegt). Antwort: das Turnier mit Ständen, Klassen und Wettbewerben.
+         */
+        post: operations["turnier_create_from_template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/practice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Übungsturnier mit Beispieldaten anlegen
+         * @description Legt das Übungsturnier an (`is_practice: true`, Status aktiv, heutiges Datum): zwei Stände, drei Wettbewerbe aus dem Katalog (Fallscheibe Flinte 15 m 4401 und 4403 nach Reihenfolge, Präzision 1001 nach Zeitplan mit Durchgängen um die aktuelle Uhrzeit), zwölf erfundene Personen in drei erfundenen Vereinen (Mitgliedsnummer `ÜBUNG-…`, kein Geburtsdatum) und Starts in allen Zuständen mit Ergebnissen, Korrektur und Abbruch – alles über die echten Abläufe, also mit Wertung, Ranglisten und Protokoll. Es gibt höchstens ein Übungsturnier: Ein zweiter Aufruf antwortet 409 mit `code` `practice_exists` und der `tournament_id` des bestehenden. Entfernen mit `DELETE /tournaments/{id}`.
+         */
+        post: operations["turnier_create_practice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tournaments/{tournament_id}": {
         parameters: {
             query?: never;
@@ -175,7 +232,10 @@ export interface paths {
         get: operations["turnier_get_tournament"];
         put?: never;
         post?: never;
-        /** Turnier löschen (nur im Entwurf) */
+        /**
+         * Turnier löschen (nur im Entwurf) oder Übung entfernen
+         * @description Ein echtes Turnier lässt sich nur im Entwurf und ohne Anmeldungen löschen. Das Übungsturnier (`is_practice`) wird in jedem Status entfernt, samt Anmeldungen, Starts, Durchgängen, Ergebnissen mit Ereignisprotokoll, seinen Audit-Einträgen und den Übungspersonen und -vereinen. Übungspersonen, die inzwischen in einem anderen Turnier gemeldet sind, und Vereine mit echten Personen bleiben.
+         */
         delete: operations["turnier_delete_tournament"];
         options?: never;
         head?: never;
@@ -197,6 +257,26 @@ export interface paths {
          * @description Schrittweise: `draft` → `active` → `closed`. Zurück verlangt zusätzlich die Berechtigung `tournament.reopen`.
          */
         post: operations["turnier_change_status"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turnier kopieren („wie letztes Jahr“)
+         * @description Neues Turnier im Entwurf mit neuem Namen und Termin. Kopiert: Einstellungen, Ausschreibung, Stände, Klassen samt Zusammenlegung, Wettbewerbe mit ihrer Definition (auch bewusste Abweichungen vom Katalog), Startgeld und Mehrfachstart. Nicht kopiert: Anmeldungen, Starts, Durchgänge, Ergebnisse, Revisionen (jeder Wettbewerb beginnt mit Revision 1). Der Meldeschluss der Ausschreibung verschiebt sich um denselben Abstand wie der Beginn; ohne `date_to` dauert die Kopie so lange wie das Original, ohne `organizer` gilt der des Originals. Je Wettbewerb aus dem Katalog meldet `catalog_changed`, ob sich der Katalog seit dem Anlegen im Original geändert hat; die Kopie behält trotzdem die Definition des Originals (übernehmen: `POST …/competitions/{id}/reset-definition`). Die Kopie eines Übungsturniers ist ein normales Turnier ohne Teilnehmer.
+         */
+        post: operations["turnier_copy_tournament"];
         delete?: never;
         options?: never;
         head?: never;
@@ -523,6 +603,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tournament-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fertige Turnier-Vorlagen
+         * @description Vorlagen aus dem Repository (`app/modules/turnier/templates/`) mit Name, einem Satz Beschreibung, Ständen und den enthaltenen Wettbewerben (Kennziffer und Name aus dem aktuellen Katalog). `available: false`: Die Kennziffer fehlt im Katalog; dann lässt sich die Vorlage nicht anlegen. Anlegen mit `POST /tournaments/from-template`.
+         */
+        get: operations["turnier_list_templates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/clubs": {
         parameters: {
             query?: never;
@@ -598,7 +698,7 @@ export interface paths {
         put?: never;
         /**
          * Person anlegen
-         * @description Gibt es im selben Verein schon eine Person mit gleicher Schreibweise des Namens (ohne Groß-/Kleinschreibung, Akzente und Umlaut-Schreibweise), kommt 409 mit den Kandidaten. Mit `force=true` wird trotzdem angelegt.
+         * @description Gibt es im selben Verein schon eine Person mit gleicher Schreibweise des Namens (ohne Groß-/Kleinschreibung, Akzente und Umlaut-Schreibweise), kommt 409 mit den Kandidaten. Mit `force=true` wird trotzdem angelegt. Der Verein kommt über `club_id` oder über `club_name`: Ein noch fehlender Verein wird dann zusammen mit der Person angelegt (braucht zusätzlich `club.edit`, sonst 403) – oder gar nicht, wenn die Person nicht gespeichert wird. In einem neuen Verein gibt es keine Dubletten.
          */
         post: operations["teilnehmer_create_person"];
         delete?: never;
@@ -658,7 +758,7 @@ export interface paths {
         put?: never;
         /**
          * Personen aus CSV importieren
-         * @description Rohinhalt der CSV-Datei als Anfragekörper (`Content-Type: text/csv`). UTF-8 mit oder ohne BOM; ist die Datei kein gültiges UTF-8, wird sie als Windows-1252 gelesen (Excel „CSV (Trennzeichen-getrennt)“). Trennzeichen `;`, `,` oder Tabulator. Spalten: `name`/`Name` (Pflicht; alternativ `Vorname` und `Nachname`/`Name`/`Familienname`, zusammengesetzt zu „Vorname Nachname“), `club`/`Verein`/`Vereinsname`, `member_no`/`Mitgliedsnummer`, `display_mode`/`Anzeige`, `show_club`/`Verein anzeigen` (ohne Rücksicht auf Groß-/Kleinschreibung, Leerzeichen und Umlaut-Schreibweise). Andere Spalten werden ignoriert, nicht gespeichert und in `ignored_columns` genannt. Fehlende Vereine werden angelegt, Dubletten und fehlerhafte Zeilen übersprungen. Mit `dry_run=true` wird nur geprüft.
+         * @description Rohinhalt der CSV-Datei als Anfragekörper (`Content-Type: text/csv`). UTF-8 mit oder ohne BOM; ist die Datei kein gültiges UTF-8, wird sie als Windows-1252 gelesen (Excel „CSV (Trennzeichen-getrennt)“). Trennzeichen `;`, `,` oder Tabulator. Spalten: `name`/`Name` (Pflicht; alternativ `Vorname` und `Nachname`/`Name`/`Familienname`, zusammengesetzt zu „Vorname Nachname“), `club`/`Verein`/`Vereinsname`, `member_no`/`Mitgliedsnummer`, `display_mode`/`Anzeige`, `show_club`/`Verein anzeigen` (ohne Rücksicht auf Groß-/Kleinschreibung, Leerzeichen und Umlaut-Schreibweise). Andere Spalten werden ignoriert, nicht gespeichert und in `ignored_columns` genannt. Fehlende Vereine werden angelegt (Vergleich ohne Groß-/Kleinschreibung und Umlaut-Schreibweise), Dubletten und fehlerhafte Zeilen übersprungen. Mit `dry_run=true` wird nur geprüft; `new_clubs` nennt die Vereine, die angelegt würden. Neue Vereine brauchen beim Übernehmen zusätzlich `club.edit`, sonst 403 mit den fehlenden Vereinen, und es wird nichts importiert.
          */
         post: operations["teilnehmer_import_persons"];
         delete?: never;
@@ -685,7 +785,10 @@ export interface paths {
         delete: operations["teilnehmer_delete_person"];
         options?: never;
         head?: never;
-        /** Person ändern */
+        /**
+         * Person ändern
+         * @description Nur mitgeschickte Felder ändern sich. Verein über `club_id` oder `club_name` wie beim Anlegen (ein neuer Verein braucht zusätzlich `club.edit`, sonst 403).
+         */
         patch: operations["teilnehmer_update_person"];
         trace?: never;
     };
@@ -1307,10 +1410,50 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Ersteinrichtung, Gerät, angemeldete Person, Rechte */
+        /** Ersteinrichtung, Gerät, angemeldeter Benutzer, Rechte */
         get: operations["auth_get_status"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/enforcement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Berechtigungsprüfung: an oder aus, und was vor dem Einschalten fehlt
+         * @description Für jedes Gerät lesbar, auch ungekoppelt. `blockers` nennt, was diese Anfrage noch braucht, um die Prüfung einzuschalten (Codes: `no_admin_with_pin`, `device_not_paired`, `not_logged_in`, `not_admin`). Ausschalten geht nicht über die App, nur auf der Server-Konsole.
+         */
+        get: operations["auth_get_enforcement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/enforcement/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Berechtigungsprüfung einschalten
+         * @description Braucht `system.manage`. Zusätzlich muss die Anfrage von einem gekoppelten Gerät kommen, an dem ein Benutzer mit vollen Verwaltungsrechten (Rollen, Benutzer, Geräte, System) angemeldet ist – auch solange die Prüfung noch aus und sonst alles offen ist. Ist sie schon an, ändert sich nichts. Meldet das Ereignis `auth.enforcement_changed`.
+         */
+        post: operations["auth_enable_enforcement"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1358,7 +1501,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Aktive Personen zur Auswahl bei der Anmeldung */
+        /** Aktive Benutzer zur Auswahl bei der Anmeldung */
         get: operations["auth_login_options"];
         put?: never;
         post?: never;
@@ -1411,7 +1554,7 @@ export interface paths {
         };
         /**
          * Alle bekannten Berechtigungen aller Module
-         * @description Für jedes gekoppelte Gerät lesbar, auch ohne angemeldete Person: Die Namen sind nicht geheim, die Oberfläche braucht sie, um Stationen freizugeben. `requires` nennt je Berechtigung die, ohne die sie an ihrer Station praktisch nichts nützt.
+         * @description Für jedes gekoppelte Gerät lesbar, auch ohne angemeldeten Benutzer: Die Namen sind nicht geheim, die Oberfläche braucht sie, um Stationen freizugeben. `requires` nennt je Berechtigung die, ohne die sie an ihrer Station praktisch nichts nützt.
          */
         get: operations["auth_list_permissions"];
         put?: never;
@@ -1521,10 +1664,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Personen mit Zugang */
+        /** Benutzer */
         get: operations["users_list_users"];
         put?: never;
-        /** Person anlegen */
+        /** Benutzer anlegen */
         post: operations["users_create_user"];
         delete?: never;
         options?: never;
@@ -1545,7 +1688,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Person umbenennen, Rolle ändern, (de)aktivieren */
+        /** Benutzer umbenennen, Rolle ändern, (de)aktivieren */
         patch: operations["users_update_user"];
         trace?: never;
     };
@@ -1575,7 +1718,7 @@ export interface paths {
         };
         /**
          * Audit-Protokoll, neueste zuerst
-         * @description Mit den heutigen Namen von Person und Gerät (gelöscht: null) und einem deutschen Kurztext je Aktion. Filter: Zeitraum `since` (einschließlich) bis `until` (ausschließlich), Person `user_id`, Gerät `device_id`, Aktion `action` als Name (`role.updated`) oder Bereich (`role.*`).
+         * @description Mit den heutigen Namen von Benutzer und Gerät (gelöscht: null) und einem deutschen Kurztext je Aktion. Filter: Zeitraum `since` (einschließlich) bis `until` (ausschließlich), Benutzer `user_id`, Gerät `device_id`, Aktion `action` als Name (`role.updated`) oder Bereich (`role.*`).
          */
         get: operations["audit_list_audit"];
         put?: never;
@@ -1771,6 +1914,100 @@ export interface paths {
         put?: never;
         /** Sicherung prüfen (entschlüsseln, Prüfsumme, Inhalt) – ohne Zurückspielen */
         post: operations["backup_verify_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backup/maintenance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wartungszustand (während einer Wiederherstellung)
+         * @description Für jedes gekoppelte Gerät. Während der Wartung beantwortet der Server schreibende Anfragen mit 503 und `code: maintenance`; während des Tauschs der Datenbank (wenige Sekunden, `exclusive`) auch lesende. Änderungen meldet das Ereignis `backup.maintenance`.
+         */
+        get: operations["backup_get_maintenance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backup/restore/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Wiederherstellbare Sicherungen auf Server und Stick, neueste zuerst */
+        get: operations["backup_restore_sources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backup/restore/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sicherung prüfen und Vorschau der Wiederherstellung (ändert nichts)
+         * @description Prüft Prüfsumme und Passwort, liest den Abzug und vergleicht ihn mit dem jetzigen Stand. `restorable` ist false, wenn `problems` etwas nennt. `confirm` gehört in `POST /backup/restore/execute`.
+         */
+        post: operations["backup_restore_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backup/restore/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Wiederherstellung starten (Hintergrundauftrag)
+         * @description Startet die Wiederherstellung und antwortet sofort mit dem Status (202). Fortschritt unter `GET /backup/restore/status` und als Ereignis `backup.restore`. Es läuft immer nur eine Wiederherstellung.
+         */
+        post: operations["backup_restore_execute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backup/restore/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fortschritt und Ergebnis der Wiederherstellung */
+        get: operations["backup_restore_status"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2091,6 +2328,7 @@ export interface components {
             schluessel: string;
             /** Beschreibung */
             beschreibung: string;
+            finale?: components["schemas"]["Finale"] | null;
             /** Varianten */
             varianten: components["schemas"]["Variante"][];
         };
@@ -2160,6 +2398,42 @@ export interface components {
             serien_gewertet?: number | null;
             /** Trefferaufnahme Nach */
             trefferaufnahme_nach?: number[] | null;
+            /** Wettkampfzeit S */
+            wettkampfzeit_s?: number | null;
+            /** Vorbereitung Probe S */
+            vorbereitung_probe_s?: number | null;
+            /** Probeschuesse */
+            probeschuesse?: number | "unbegrenzt" | null;
+            /** Zeit Plausibel Faktor */
+            zeit_plausibel_faktor?: number | null;
+            /** Zeit Plausibel Max S */
+            zeit_plausibel_max_s?: number | null;
+        };
+        /**
+         * AccessCheckOut
+         * @description Was nach der Wiederherstellung mit dem Zugang der auslösenden Person geschieht.
+         */
+        AccessCheckOut: {
+            /** Enforced Now */
+            enforced_now: boolean;
+            /** Enforced After */
+            enforced_after: boolean;
+            /** Account In Backup */
+            account_in_backup: boolean | null;
+            /** Account Is Admin In Backup */
+            account_is_admin_in_backup: boolean | null;
+            /** Device In Backup */
+            device_in_backup: boolean | null;
+            /** Session In Backup */
+            session_in_backup: boolean | null;
+            /** Pin Changed */
+            pin_changed: boolean | null;
+            /** Admins In Backup */
+            admins_in_backup: number | null;
+            /** Lockout Risk */
+            lockout_risk: boolean;
+            /** Message De */
+            message_de: string;
         };
         /**
          * Announcement
@@ -2241,9 +2515,11 @@ export interface components {
              * Haltung
              * @enum {string}
              */
-            haltung: "stehend" | "kniend" | "liegend";
+            haltung: "stehend" | "kniend" | "liegend" | "sitzend";
             /** Hand */
             hand?: ("beidhaendig" | "einhaendig" | "starke_hand" | "schwache_hand") | null;
+            /** Aufgelegt */
+            aufgelegt?: boolean | null;
         };
         /** AuditActionOut */
         AuditActionOut: {
@@ -2365,6 +2641,16 @@ export interface components {
             warn_all_stations: boolean;
             /** Warn On Display */
             warn_on_display: boolean;
+        };
+        /**
+         * BlockerOut
+         * @description Was vor dem Einschalten der Berechtigungsprüfung noch fehlt.
+         */
+        BlockerOut: {
+            /** Code */
+            code: string;
+            /** Message De */
+            message_de: string;
         };
         /**
          * CallConflictOut
@@ -2545,6 +2831,44 @@ export interface components {
             detail: string;
             /** Code */
             code: string;
+        };
+        /**
+         * ComparisonOut
+         * @description Vergleich der Sicherung mit dem jetzigen Stand (Ergebnis-Ereignisse und Starts).
+         */
+        ComparisonOut: {
+            /** Events Now */
+            events_now: number;
+            /** Events In Backup */
+            events_in_backup: number;
+            /** Events Since Backup */
+            events_since_backup: number;
+            /** Events From Journal */
+            events_from_journal: number;
+            /** Events Lost */
+            events_lost: number;
+            /** Lost Start Missing */
+            lost_start_missing: number;
+            /** Lost Not In Journal */
+            lost_not_in_journal: number;
+            /** Lost Conflict */
+            lost_conflict: number;
+            /** Events Only In Backup */
+            events_only_in_backup: number;
+            /** Journal Applicable */
+            journal_applicable: number;
+            /** Starts Now */
+            starts_now: number;
+            /** Starts In Backup */
+            starts_in_backup: number;
+            /** Starts Since Backup */
+            starts_since_backup: number;
+            /** Journal Files */
+            journal_files: number;
+            /** Journal Unreadable */
+            journal_unreadable: string[];
+            /** Summary De */
+            summary_de: string;
         };
         /**
          * CompetitionCreate
@@ -2732,7 +3056,7 @@ export interface components {
             /** Complete */
             complete: boolean;
             /** Rings */
-            rings: number | null;
+            rings: string | number | null;
             /** Tens */
             tens: number | null;
             /** Inner Tens */
@@ -2758,6 +3082,13 @@ export interface components {
             steps: string[];
             /** Warnings */
             warnings: components["schemas"]["Issue"][];
+            /**
+             * Decimals
+             * @default 0
+             */
+            decimals: number;
+            /** Hits */
+            hits?: number | null;
         };
         /**
          * ConflictOut
@@ -2768,6 +3099,35 @@ export interface components {
             detail: string;
             /** Errors */
             errors?: components["schemas"]["FieldError"][] | null;
+        };
+        /**
+         * CopiedCompetitionOut
+         * @description Ein kopierter Wettbewerb und wie er zum aktuellen Katalog steht.
+         */
+        CopiedCompetitionOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Source Id
+             * Format: uuid
+             */
+            source_id: string;
+            /** Name */
+            name: string;
+            /** Catalog Federation */
+            catalog_federation: string | null;
+            /** Catalog Code */
+            catalog_code: string | null;
+            /** Catalog Changed */
+            catalog_changed: boolean;
+            /** Catalog Stand Then */
+            catalog_stand_then?: string | null;
+            /** Catalog Stand Now */
+            catalog_stand_now?: string | null;
+            catalog_diff: components["schemas"]["CatalogDiffOut"];
         };
         /** CorrectRequest */
         CorrectRequest: {
@@ -3187,6 +3547,17 @@ export interface components {
             /** Candidates */
             candidates: components["schemas"]["PersonOut"][];
         };
+        /** EnforcementOut */
+        EnforcementOut: {
+            /** Enforced */
+            enforced: boolean;
+            /** Source */
+            source: ("env" | "setting") | null;
+            /** Can Enable */
+            can_enable: boolean;
+            /** Blockers */
+            blockers: components["schemas"]["BlockerOut"][];
+        };
         /** EntryCreate */
         EntryCreate: {
             /**
@@ -3532,10 +3903,6 @@ export interface components {
             scoring: string;
             /** Notes */
             notes: string[];
-            /** Deviates */
-            deviates: boolean;
-            /** Deviations */
-            deviations: string[];
             /** Sections */
             sections: components["schemas"]["FeedSection"][];
             /**
@@ -3665,6 +4032,13 @@ export interface components {
             provisional: boolean;
             /** Abort Reason */
             abort_reason: ("dns" | "dnf" | "dsq") | null;
+            /**
+             * Needs Shootoff
+             * @default false
+             */
+            needs_shootoff: boolean;
+            /** Tie Note */
+            tie_note?: string | null;
         };
         /** FeedRanking */
         FeedRanking: {
@@ -3685,16 +4059,6 @@ export interface components {
             combined: boolean;
             /** Groups */
             groups: components["schemas"]["FeedRankGroup"][];
-            /**
-             * Deviates
-             * @default false
-             */
-            deviates: boolean;
-            /**
-             * Deviations
-             * @default []
-             */
-            deviations: string[];
         };
         /** FeedSection */
         FeedSection: {
@@ -3716,8 +4080,6 @@ export interface components {
             time_measured: boolean;
             /** Summary */
             summary: string;
-            /** Deviations */
-            deviations: string[];
             /** Series */
             series: components["schemas"]["FeedSeriesStep"][];
         };
@@ -3787,16 +4149,6 @@ export interface components {
             starts: components["schemas"]["FeedPerson"][];
             /** More */
             more: number;
-            /**
-             * Deviates
-             * @default false
-             */
-            deviates: boolean;
-            /**
-             * Deviations
-             * @default []
-             */
-            deviations: string[];
         };
         /** FeedStartlistScene */
         FeedStartlistScene: {
@@ -3998,7 +4350,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "shots" | "integer" | "time" | "choice";
+            kind: "shots" | "integer" | "decimal" | "time" | "choice";
             /** Required */
             required: boolean;
             /** Options */
@@ -4013,6 +4365,30 @@ export interface components {
             max?: number | null;
             /** Unit */
             unit?: string | null;
+            /** Decimals */
+            decimals?: number | null;
+            /** Step */
+            step?: string | null;
+            /** Value Min */
+            value_min?: string | null;
+            /** Value Max */
+            value_max?: string | null;
+            /** Zero Allowed */
+            zero_allowed?: boolean | null;
+            /** Per Target */
+            per_target?: boolean | null;
+        };
+        /**
+         * Finale
+         * @description Finale bzw. Endkampf, nur zur Information (eigene Worte, mit Fundstelle).
+         */
+        Finale: {
+            /** Teilnehmer */
+            teilnehmer: number;
+            /** Hinweis */
+            hinweis?: string | null;
+            /** Abschnitt */
+            abschnitt?: string | null;
         };
         /** FinalizeRequest */
         FinalizeRequest: {
@@ -4052,9 +4428,25 @@ export interface components {
             /** Series Expected */
             series_expected: number;
             /** Max Rings */
-            max_rings: number | null;
+            max_rings: string | number | null;
             /** Notes */
             notes: string[];
+            /**
+             * Ring Decimals
+             * @default 0
+             */
+            ring_decimals: number;
+            /** Competition Time Total S */
+            competition_time_total_s?: string | null;
+            /** Shootoff Until Place */
+            shootoff_until_place?: number | null;
+            /**
+             * Tie Breakers Evaluated
+             * @default []
+             */
+            tie_breakers_evaluated: string[];
+            /** Tie Breakers Manual From */
+            tie_breakers_manual_from?: string | null;
         };
         /** FormHeader */
         FormHeader: {
@@ -4316,6 +4708,23 @@ export interface components {
             /** Message */
             message: string;
         };
+        /** JournalReportOut */
+        JournalReportOut: {
+            /** Applied */
+            applied: number;
+            /** Present */
+            present: number;
+            /** Missing Events */
+            missing_events: number;
+            /** Conflicts */
+            conflicts: number;
+            /** Status Changes */
+            status_changes: number;
+            /** Recomputed Competitions */
+            recomputed_competitions: number;
+            /** Lines */
+            lines: string[];
+        };
         /** JournalStatusOut */
         JournalStatusOut: {
             /** Pending */
@@ -4347,6 +4756,21 @@ export interface components {
             /** Fehler */
             fehler: components["schemas"]["KatalogFehlerOut"][];
         };
+        /** KeysCheckOut */
+        KeysCheckOut: {
+            /**
+             * Field Keys
+             * @enum {string}
+             */
+            field_keys: "same" | "compatible" | "install" | "replace_unused" | "conflict" | "none";
+            /**
+             * Backup Key
+             * @enum {string}
+             */
+            backup_key: "same" | "keep_current" | "install" | "none";
+            /** Message De */
+            message_de: string;
+        };
         /** KlasseOut */
         KlasseOut: {
             /** Verband */
@@ -4369,6 +4793,12 @@ export interface components {
             zusammenlegen_nach_alter: boolean;
             /** Hinweis */
             hinweis: string | null;
+            /** Nummer */
+            nummer: string | null;
+            /** Satz */
+            satz: string | null;
+            /** Hoeher In */
+            hoeher_in: string[];
         };
         /** LaneOut */
         LaneOut: {
@@ -4479,6 +4909,24 @@ export interface components {
             user_id: string;
             /** Pin */
             pin: string;
+        };
+        /** MaintenanceOut */
+        MaintenanceOut: {
+            /** Active */
+            active: boolean;
+            /** Exclusive */
+            exclusive: boolean;
+            /** Message De */
+            message_de: string | null;
+            /** Since */
+            since: string | null;
+        };
+        /** MixTeam */
+        MixTeam: {
+            /** Name */
+            name: string;
+            /** Klassen */
+            klassen: string[];
         };
         /**
          * MoveRequest
@@ -4610,8 +5058,16 @@ export interface components {
             name: string;
             /** Member No */
             member_no?: string | null;
-            /** Club Id */
+            /**
+             * Club Id
+             * @description Vorhandener Verein. Alternativ `club_name` angeben, nicht beides. Beim Ändern entfernt `null` den Verein.
+             */
             club_id?: string | null;
+            /**
+             * Club Name
+             * @description Verein über seinen Namen statt über `club_id` (nicht beides, sonst 422 an diesem Feld). Gesucht wird wie in der Vereinssuche: ohne Groß-/Kleinschreibung, Leerzeichen, Akzente und Umlaut-Schreibweise („schuetzenverein“ findet „Schützenverein“). Gibt es keinen solchen Verein, wird er in derselben Transaktion wie die Person angelegt; scheitert das Speichern der Person, entsteht auch kein Verein. Das Neuanlegen verlangt zusätzlich die Berechtigung `club.edit` (sonst 403); für einen vorhandenen Verein genügt `person.edit`. `null` gilt als nicht angegeben.
+             */
+            club_name?: string | null;
             /**
              * Display Mode
              * @default full
@@ -4667,8 +5123,16 @@ export interface components {
             name?: string | null;
             /** Member No */
             member_no?: string | null;
-            /** Club Id */
+            /**
+             * Club Id
+             * @description Vorhandener Verein. Alternativ `club_name` angeben, nicht beides. Beim Ändern entfernt `null` den Verein.
+             */
             club_id?: string | null;
+            /**
+             * Club Name
+             * @description Verein über seinen Namen statt über `club_id` (nicht beides, sonst 422 an diesem Feld). Gesucht wird wie in der Vereinssuche: ohne Groß-/Kleinschreibung, Leerzeichen, Akzente und Umlaut-Schreibweise („schuetzenverein“ findet „Schützenverein“). Gibt es keinen solchen Verein, wird er in derselben Transaktion wie die Person angelegt; scheitert das Speichern der Person, entsteht auch kein Verein. Das Neuanlegen verlangt zusätzlich die Berechtigung `club.edit` (sonst 403); für einen vorhandenen Verein genügt `person.edit`. `null` gilt als nicht angegeben.
+             */
+            club_name?: string | null;
             /** Display Mode */
             display_mode?: ("full" | "short" | "hidden") | null;
             /** Show Club */
@@ -4700,6 +5164,25 @@ export interface components {
             target: number | null;
             /** Stances */
             stances: components["schemas"]["StanceForm"][];
+        };
+        /**
+         * PracticeExistsOut
+         * @description HTTP 409: Es gibt schon ein Übungsturnier.
+         */
+        PracticeExistsOut: {
+            /** Detail */
+            detail: string;
+            /**
+             * Code
+             * @default practice_exists
+             * @constant
+             */
+            code: "practice_exists";
+            /**
+             * Tournament Id
+             * Format: uuid
+             */
+            tournament_id: string;
         };
         /**
          * PreviewOut
@@ -4922,6 +5405,17 @@ export interface components {
             tied: boolean;
             /** Tie Unresolved */
             tie_unresolved: boolean;
+            /** Tie Reason */
+            tie_reason?: ("missing_data" | "manual" | "shootoff") | null;
+            /** Tie Criterion */
+            tie_criterion?: string | null;
+            /**
+             * Needs Shootoff
+             * @default false
+             */
+            needs_shootoff: boolean;
+            /** Tie Note */
+            tie_note?: string | null;
             /**
              * Group
              * @enum {string}
@@ -5037,6 +5531,162 @@ export interface components {
             reason: string;
             /** Base Seq */
             base_seq?: number | null;
+        };
+        /** RestoreExecuteIn */
+        RestoreExecuteIn: {
+            /** Source Id */
+            source_id: string;
+            /** Passphrase */
+            passphrase?: string | null;
+            /** Confirm */
+            confirm: string;
+            /**
+             * Apply Journal
+             * @default true
+             */
+            apply_journal: boolean;
+            /**
+             * Accept Lockout
+             * @default false
+             */
+            accept_lockout: boolean;
+        };
+        /** RestorePreviewIn */
+        RestorePreviewIn: {
+            /** Source Id */
+            source_id: string;
+            /** Passphrase */
+            passphrase?: string | null;
+        };
+        /** RestorePreviewOut */
+        RestorePreviewOut: {
+            source: components["schemas"]["RestoreSourceOut"];
+            /** Confirm */
+            confirm: string;
+            /** Checksum Ok */
+            checksum_ok: boolean;
+            /** Created At */
+            created_at: string | null;
+            /** App Version */
+            app_version: string | null;
+            /** App Version Current */
+            app_version_current: string;
+            schema_check: components["schemas"]["SchemaCheckOut"];
+            /** Tournaments */
+            tournaments: components["schemas"]["TournamentPreviewOut"][];
+            /** Persons */
+            persons: number | null;
+            comparison: components["schemas"]["ComparisonOut"];
+            keys: components["schemas"]["KeysCheckOut"];
+            access: components["schemas"]["AccessCheckOut"];
+            /** Restorable */
+            restorable: boolean;
+            /** Problems */
+            problems: string[];
+            /** Notes */
+            notes: string[];
+        };
+        /** RestoreResultOut */
+        RestoreResultOut: {
+            /** Database */
+            database: string;
+            /** Previous Database */
+            previous_database: string;
+            /** Pre Restore Backup */
+            pre_restore_backup: string | null;
+            /** Schema Upgraded */
+            schema_upgraded: boolean;
+            journal: components["schemas"]["JournalReportOut"] | null;
+            /** Keys Installed */
+            keys_installed: string[];
+            /** Keys Set Aside */
+            keys_set_aside: string[];
+            /** After Backup Ok */
+            after_backup_ok: boolean | null;
+            /** Notes */
+            notes: string[];
+        };
+        /**
+         * RestoreSourceOut
+         * @description Eine Sicherung, die sich wiederherstellen lässt.
+         */
+        RestoreSourceOut: {
+            /** Id */
+            id: string;
+            /**
+             * Location
+             * @enum {string}
+             */
+            location: "usb" | "local" | "pre_restore";
+            /** File Name */
+            file_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Checksum Present */
+            checksum_present: boolean;
+            /** Encrypted */
+            encrypted: boolean;
+            /** Needs Passphrase */
+            needs_passphrase: boolean;
+            /** Contains Keys */
+            contains_keys: boolean;
+            /** Journal Available */
+            journal_available: boolean;
+        };
+        /** RestoreSourcesOut */
+        RestoreSourcesOut: {
+            /** Usb Present */
+            usb_present: boolean;
+            /** Sources */
+            sources: components["schemas"]["RestoreSourceOut"][];
+            /** Restore Running */
+            restore_running: boolean;
+        };
+        /** RestoreStatusOut */
+        RestoreStatusOut: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "idle" | "running" | "succeeded" | "failed";
+            /** Step */
+            step: ("check" | "maintenance" | "pre_backup" | "load" | "upgrade" | "journal" | "verify" | "swap" | "finish") | null;
+            /** Progress */
+            progress: number;
+            /** Steps */
+            steps: components["schemas"]["RestoreStepOut"][];
+            source: components["schemas"]["RestoreSourceOut"] | null;
+            /** Started At */
+            started_at: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            result: components["schemas"]["RestoreResultOut"] | null;
+            /** Error De */
+            error_de: string | null;
+            /** Maintenance */
+            maintenance: boolean;
+        };
+        /** RestoreStepOut */
+        RestoreStepOut: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "check" | "maintenance" | "pre_backup" | "load" | "upgrade" | "journal" | "verify" | "swap" | "finish";
+            /** Label De */
+            label_de: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "pending" | "running" | "done" | "skipped" | "failed";
+            /** Detail De */
+            detail_de?: string | null;
         };
         /**
          * ResultState
@@ -5251,6 +5901,20 @@ export interface components {
             /** Ids */
             ids: string[];
         };
+        /** SchemaCheckOut */
+        SchemaCheckOut: {
+            /** Backup */
+            backup: string[];
+            /** Current */
+            current: string[];
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "same" | "older" | "newer";
+            /** Message De */
+            message_de: string;
+        };
         /** SectionForm */
         SectionForm: {
             /** Id */
@@ -5280,9 +5944,15 @@ export interface components {
             /** Pause Between Shots S */
             pause_between_shots_s: string | null;
             /** Max Rings */
-            max_rings: number | null;
+            max_rings: string | number | null;
             /** Hints */
             hints: string[];
+            /** Competition Time S */
+            competition_time_s?: string | null;
+            /** Preparation Time S */
+            preparation_time_s?: string | null;
+            /** Sighters */
+            sighters?: number | "unbegrenzt" | null;
         };
         /** SectionResult */
         SectionResult: {
@@ -5293,7 +5963,7 @@ export interface components {
             /** Complete */
             complete: boolean;
             /** Rings */
-            rings: number | null;
+            rings: string | number | null;
             /** Time Cs */
             time_cs: number | null;
             /** Penalty Cs */
@@ -5346,7 +6016,7 @@ export interface components {
             /** Scoring Break After */
             scoring_break_after: boolean;
             /** Max Rings */
-            max_rings: number | null;
+            max_rings: string | number | null;
             /** Hints */
             hints: string[];
         };
@@ -5361,7 +6031,7 @@ export interface components {
             /** Status */
             status: string;
             /** Rings */
-            rings: number | null;
+            rings: string | number | null;
             /** Time Cs */
             time_cs: number | null;
             /** Standing */
@@ -5389,7 +6059,7 @@ export interface components {
             /** Shots Expected */
             shots_expected: number;
             /** Rings */
-            rings: number | null;
+            rings: string | number | null;
             /** Tens */
             tens: number | null;
             /** Inner Tens */
@@ -5404,6 +6074,8 @@ export interface components {
             penalty_cs: number | null;
             /** Total Cs */
             total_cs: number | null;
+            /** Shot Values */
+            shot_values?: (string | number)[] | null;
         };
         /** SetupIn */
         SetupIn: {
@@ -5462,6 +6134,8 @@ export interface components {
             hand: string | null;
             /** Text */
             text: string;
+            /** Aufgelegt */
+            aufgelegt?: boolean | null;
         };
         /** StartBooking */
         StartBooking: {
@@ -5530,6 +6204,70 @@ export interface components {
             updated_at: string;
         };
         /**
+         * Startfelder
+         * @description Startrecht der Klassen eines Satzes. Alle Klassen sind Klassennummern (`Klasse.nummer`).
+         */
+        Startfelder: {
+            /**
+             * Einzel
+             * @default []
+             */
+            einzel: string[];
+            /**
+             * Mannschaft
+             * @default []
+             */
+            mannschaft: string[];
+            /**
+             * Startet Bei
+             * @default {}
+             */
+            startet_bei: {
+                [key: string]: string;
+            };
+            /**
+             * Mannschaft Startet Bei
+             * @default {}
+             */
+            mannschaft_startet_bei: {
+                [key: string]: string;
+            };
+            /**
+             * Olympisch
+             * @default []
+             */
+            olympisch: string[];
+            /**
+             * Startmoeglichkeit 0711
+             * @default []
+             */
+            startmoeglichkeit_0711: string[];
+            /**
+             * Kein Startrecht
+             * @default []
+             */
+            kein_startrecht: string[];
+            /**
+             * Endkampf
+             * @default []
+             */
+            endkampf: string[];
+            /**
+             * Mix Team
+             * @default []
+             */
+            mix_team: components["schemas"]["MixTeam"][];
+            /**
+             * Neu Bei Dm
+             * @default []
+             */
+            neu_bei_dm: string[];
+            /** Hinweis */
+            hinweis?: string | null;
+            /** Offen */
+            offen?: string | null;
+        };
+        /**
          * StartlistScene
          * @description Startliste je Wettbewerb. Ohne Filter: alle Wettbewerbe mit offenen Starts.
          */
@@ -5562,6 +6300,95 @@ export interface components {
              * @default false
              */
             include_finished: boolean;
+        };
+        /**
+         * StartrechtEintrag
+         * @description Startrecht in einem Wettbewerb laut Meisterschaftstabelle des Verbands.
+         */
+        StartrechtEintrag: {
+            /**
+             * Einzel
+             * @default []
+             */
+            einzel: string[];
+            /**
+             * Mannschaft
+             * @default []
+             */
+            mannschaft: string[];
+            /**
+             * Startet Bei
+             * @default {}
+             */
+            startet_bei: {
+                [key: string]: string;
+            };
+            /**
+             * Mannschaft Startet Bei
+             * @default {}
+             */
+            mannschaft_startet_bei: {
+                [key: string]: string;
+            };
+            /**
+             * Olympisch
+             * @default []
+             */
+            olympisch: string[];
+            /**
+             * Startmoeglichkeit 0711
+             * @default []
+             */
+            startmoeglichkeit_0711: string[];
+            /**
+             * Kein Startrecht
+             * @default []
+             */
+            kein_startrecht: string[];
+            /**
+             * Endkampf
+             * @default []
+             */
+            endkampf: string[];
+            /**
+             * Mix Team
+             * @default []
+             */
+            mix_team: components["schemas"]["MixTeam"][];
+            /**
+             * Neu Bei Dm
+             * @default []
+             */
+            neu_bei_dm: string[];
+            /** Hinweis */
+            hinweis?: string | null;
+            /** Offen */
+            offen?: string | null;
+            /** Satz */
+            satz: string | string[];
+            /** Wettbewerb */
+            wettbewerb: string;
+            /** Kennziffer */
+            kennziffer?: string | null;
+            /** Meisterschaft */
+            meisterschaft?: string | null;
+            deutsche_schuelermeisterschaft?: components["schemas"]["Startfelder"] | null;
+        };
+        /**
+         * StartrechtOut
+         * @description Startrecht je Wettbewerb laut Meisterschaftstabelle (Inhalt der startrecht.yaml).
+         */
+        StartrechtOut: {
+            /** Verband */
+            verband: string;
+            /** Stand Tabelle */
+            stand_tabelle: string | null;
+            /** Hinweise */
+            hinweise: string[];
+            /** Startrecht */
+            startrecht: {
+                [key: string]: components["schemas"]["StartrechtEintrag"];
+            };
         };
         /**
          * StationStartOut
@@ -5707,6 +6534,47 @@ export interface components {
             /** Lockout Minutes */
             lockout_minutes: number;
         };
+        /** TemplateCompetitionOut */
+        TemplateCompetitionOut: {
+            /** Catalog Federation */
+            catalog_federation: string;
+            /** Catalog Code */
+            catalog_code: string;
+            /** Name */
+            name: string | null;
+            /** Available */
+            available: boolean;
+        };
+        /** TemplateRangeOut */
+        TemplateRangeOut: {
+            /** Name */
+            name: string;
+            /** Lane Count */
+            lane_count: number;
+        };
+        /**
+         * TournamentCopy
+         * @description Neues Turnier „wie letztes Jahr“: Name und Termin neu, alles andere vom Original.
+         */
+        TournamentCopy: {
+            /** Name */
+            name: string;
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /** Date To */
+            date_to?: string | null;
+            /** Organizer */
+            organizer?: string | null;
+        };
+        /** TournamentCopyOut */
+        TournamentCopyOut: {
+            tournament: components["schemas"]["TournamentOverview"];
+            /** Competitions */
+            competitions: components["schemas"]["CopiedCompetitionOut"][];
+        };
         /** TournamentCreate */
         TournamentCreate: {
             /** Name */
@@ -5727,6 +6595,22 @@ export interface components {
              */
             template: "open" | "club_championship" | "custom";
             settings?: components["schemas"]["TournamentSettingsUpdate"] | null;
+        };
+        /** TournamentFromTemplate */
+        TournamentFromTemplate: {
+            /** Template Id */
+            template_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /** Date To */
+            date_to?: string | null;
+            /** Organizer */
+            organizer?: string | null;
         };
         /** TournamentOut */
         TournamentOut: {
@@ -5760,6 +6644,8 @@ export interface components {
              */
             template: "open" | "club_championship" | "custom";
             settings: components["schemas"]["TournamentSettings"];
+            /** Is Practice */
+            is_practice: boolean;
             /**
              * Created At
              * Format: date-time
@@ -5803,6 +6689,8 @@ export interface components {
              */
             template: "open" | "club_championship" | "custom";
             settings: components["schemas"]["TournamentSettings"];
+            /** Is Practice */
+            is_practice: boolean;
             /**
              * Created At
              * Format: date-time
@@ -5819,6 +6707,26 @@ export interface components {
             classes: components["schemas"]["ClassOut"][];
             /** Competitions */
             competitions: components["schemas"]["CompetitionOut"][];
+        };
+        /** TournamentPreviewOut */
+        TournamentPreviewOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Status */
+            status: string;
+            /** Date From */
+            date_from: string | null;
+            /** Starts */
+            starts: number;
+            /** Final Results */
+            final_results: number;
+            /** Result Events */
+            result_events: number;
         };
         /**
          * TournamentSettings
@@ -5933,6 +6841,29 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /**
+         * TournamentTemplateOut
+         * @description Fertige Vorlage: Stände, Klassen und Wettbewerbe aus dem aktuellen Katalog.
+         */
+        TournamentTemplateOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /**
+             * Template
+             * @enum {string}
+             */
+            template: "open" | "club_championship" | "custom";
+            /** Classes Federation */
+            classes_federation: string | null;
+            /** Ranges */
+            ranges: components["schemas"]["TemplateRangeOut"][];
+            /** Competitions */
+            competitions: components["schemas"]["TemplateCompetitionOut"][];
+        };
         /** TournamentUpdate */
         TournamentUpdate: {
             /** Name */
@@ -6017,6 +6948,8 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+            /** Wettkampfzeit Gesamt S */
+            wettkampfzeit_gesamt_s?: number | null;
             /** Abschnitte */
             abschnitte: components["schemas"]["Abschnitt"][];
         };
@@ -6108,6 +7041,10 @@ export interface components {
             zeit_rundung?: "summe_abrunden" | null;
             /** Unbeendete Serie */
             unbeendete_serie?: "ringe_bis_dahin_zeit_letzter_schuss" | null;
+            /** Zehntelwertung */
+            zehntelwertung?: boolean | null;
+            /** Stechen Bis Platz */
+            stechen_bis_platz?: number | null;
         };
         /**
          * WinnersScene
@@ -6406,6 +7343,44 @@ export interface operations {
             };
         };
     };
+    katalog_startrecht: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                verband: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartrechtOut"];
+                };
+            };
+            /** @description Eintrag nicht im Katalog */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     turnier_list_tournaments: {
         parameters: {
             query?: never;
@@ -6455,6 +7430,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_create_from_template: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TournamentFromTemplate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentOverview"];
+                };
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_create_practice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentOverview"];
+                };
+            };
+            /** @description Es gibt schon ein Übungsturnier */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticeExistsOut"];
                 };
             };
         };
@@ -6622,6 +7666,48 @@ export interface operations {
             };
             /** @description Im aktuellen Zustand nicht möglich */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnier_copy_tournament: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TournamentCopy"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentCopyOut"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7825,6 +8911,26 @@ export interface operations {
             };
         };
     };
+    turnier_list_templates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentTemplateOut"][];
+                };
+            };
+        };
+    };
     teilnehmer_list_clubs: {
         parameters: {
             query?: {
@@ -8133,6 +9239,13 @@ export interface operations {
                     "application/json": components["schemas"]["PersonOut"];
                 };
             };
+            /** @description Der Verein aus `club_name` fehlt, und zum Anlegen fehlt `club.edit` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Conflict */
             409: {
                 headers: {
@@ -8229,6 +9342,13 @@ export interface operations {
             };
             /** @description Datei unbrauchbar */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Die Datei braucht neue Vereine, und zum Anlegen fehlt `club.edit` */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8356,6 +9476,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PersonOut"];
                 };
+            };
+            /** @description Der Verein aus `club_name` fehlt, und zum Anlegen fehlt `club.edit` */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Nicht vorhanden */
             404: {
@@ -10174,6 +11301,55 @@ export interface operations {
             };
         };
     };
+    auth_get_enforcement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnforcementOut"];
+                };
+            };
+        };
+    };
+    auth_enable_enforcement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnforcementOut"];
+                };
+            };
+            /** @description `enforcement_blocked`: Voraussetzungen fehlen (GET /auth/enforcement) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CodedErrorOut"];
+                };
+            };
+        };
+    };
     auth_setup: {
         parameters: {
             query?: never;
@@ -11191,6 +12367,195 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    backup_get_maintenance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaintenanceOut"];
+                };
+            };
+        };
+    };
+    backup_restore_sources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreSourcesOut"];
+                };
+            };
+            /** @description Ungültige Eingabe */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    backup_restore_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestorePreviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestorePreviewOut"];
+                };
+            };
+            /** @description Ungültige Eingabe */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    backup_restore_execute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestoreExecuteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreStatusOut"];
+                };
+            };
+            /** @description Ungültige Eingabe */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    backup_restore_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreStatusOut"];
                 };
             };
         };

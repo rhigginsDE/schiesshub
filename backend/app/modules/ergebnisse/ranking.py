@@ -32,6 +32,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.ergebnisse.models import ResultCurrent
 from app.modules.ergebnisse.recompute import ensure_current
+from app.modules.ergebnisse.rules import scoring_definition
 from app.modules.ergebnisse.schemas import (
     CompetitionSummary,
     LeaderOut,
@@ -49,7 +50,17 @@ from app.modules.starts.models import Entry, Start
 from app.modules.teilnehmer.models import Club, Person
 from app.modules.teilnehmer.names import display_name
 from app.modules.turnier.models import Competition, TournamentClass
-from app.scoring import ComputedResult, Contender, Placement, RankPolicy, best_of, rank
+from app.scoring import (
+    ComputedResult,
+    Contender,
+    DefinitionError,
+    Placement,
+    RankPolicy,
+    TieRules,
+    best_of,
+    rank,
+    tie_rules,
+)
 
 Scope = Literal["final", "live"]
 
@@ -151,6 +162,10 @@ def _row(candidate: Candidate, placement: Placement | None) -> RankingRow:
         place=placement.place if placement is not None else None,
         tied=placement.tied if placement is not None else False,
         tie_unresolved=placement.tie_unresolved if placement is not None else False,
+        tie_reason=placement.tie_reason if placement is not None else None,
+        tie_criterion=placement.tie_criterion if placement is not None else None,
+        needs_shootoff=placement.needs_shootoff if placement is not None else False,
+        tie_note=placement.tie_note if placement is not None else None,
         group=placement.group if placement is not None else "unranked",
         start_id=candidate.start.id,
         entry_id=candidate.entry.id,
@@ -257,6 +272,7 @@ async def _ranking(
     }
     every = await _candidates(session, competition, now)
     rule = competition.multi_start_rule
+    rules = _tie_rules(competition)
 
     # Gruppen gibt es für jede Klasse mit Starts, auch wenn noch kein Ergebnis zählt.
     def group_of(candidate: Candidate) -> uuid.UUID | None:
@@ -287,7 +303,7 @@ async def _ranking(
     )
     for group_key in order:
         members = grouped.get(group_key, [])
-        rows = _rank_group(members, rule, policy)
+        rows = _rank_group(members, rule, policy, rules)
         if competition.combined_ranking and class_id is not None:
             rows = [row for row in rows if row.class_id == class_id]
         group_class = classes.get(group_key) if group_key is not None else None
@@ -318,14 +334,31 @@ async def _ranking(
     )
 
 
-def _rank_group(members: list[Candidate], rule: str, policy: RankPolicy) -> list[RankingRow]:
+def _tie_rules(competition: Competition) -> TieRules | None:
+    """Gleichstandsregel der aktuellen Definition; None, wenn die Wertung sie nicht lesen kann
+    (die Ergebnisse stehen dann ohnehin zum Prüfen an)."""
+    try:
+        return tie_rules(scoring_definition(competition.definition))
+    except DefinitionError, KeyError, TypeError:
+        return None
+
+
+def _rank_group(
+    members: list[Candidate], rule: str, policy: RankPolicy, rules: TieRules | None = None
+) -> list[RankingRow]:
     rankable = [c for c in members if c.rankable]
     unrankable = [c for c in members if not c.rankable]
     contenders = [c.contender() for c in rankable]
     if rule == "best":
         contenders = best_of(contenders, "best", policy)
     by_id = {str(c.start.id): c for c in rankable}
-    rows = [_row(by_id[placement.id], placement) for placement in rank(contenders, policy)]
+    if rules is not None and contenders:
+        # Schlüssel aus einer älteren Definition passen nicht zur Regel: ohne Regel ranken.
+        lengths = {len(c.key or []) for c in contenders if c.key is not None}
+        if lengths and lengths != {1 + len(rules.slots)}:
+            rules = None
+    placements = rank(contenders, policy, rules)
+    rows = [_row(by_id[placement.id], placement) for placement in placements]
     # Nach einer Änderung der Wertung nicht wertbar: ohne Platz, zum Prüfen – vor den
     # Abgebrochenen, die immer am Ende stehen.
     cut = next((i for i, row in enumerate(rows) if row.abort_reason is not None), len(rows))

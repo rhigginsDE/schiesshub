@@ -225,7 +225,7 @@ async def test_unblocked_device_works_again(make_app: AppFactory) -> None:
 
 
 def test_action_texts_for_display_and_console() -> None:
-    assert audit.action_text("user.listed") == "Personen mit Zugang aufgelistet"
+    assert audit.action_text("user.listed") == "Benutzer aufgelistet"
     assert audit.action_text("display.device_assigned") == "Gerät einer Anzeige zugewiesen"
     assert audit.action_text("role.migrated").startswith("Rechte einer Rolle")
     for action in (

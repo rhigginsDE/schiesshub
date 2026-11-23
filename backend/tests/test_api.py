@@ -347,6 +347,9 @@ async def test_classes(client: httpx.AsyncClient, real_catalog_counts: dict[str,
         "zusammenlegen_in": ["alters", "schuetzen"],
         "zusammenlegen_nach_alter": False,
         "hinweis": None,
+        "nummer": None,
+        "satz": None,
+        "hoeher_in": [],
     }
 
 

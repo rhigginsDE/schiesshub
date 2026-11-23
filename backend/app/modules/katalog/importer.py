@@ -100,6 +100,13 @@ async def _import_federation(session: AsyncSession, catalog: FederationCatalog) 
                 "status": head.status,
                 "details": details,
                 "classes_meta": classes_meta,
+                "start_rights": (
+                    catalog.start_rights.model_dump(
+                        mode="json", exclude={"schema_", "verband"}, exclude_defaults=True
+                    )
+                    if catalog.start_rights is not None
+                    else None
+                ),
                 "active": True,
                 "imported_at": func.now(),
             }
@@ -163,6 +170,9 @@ async def _import_federation(session: AsyncSession, catalog: FederationCatalog) 
             "min_starters_dm": klasse.mindeststarter_dm,
             "merge_into": klasse.zusammenlegen_in,
             "merge_by_age": klasse.zusammenlegen_nach_alter,
+            "number": klasse.nummer,
+            "class_set": klasse.satz,
+            "promote_to": klasse.hoeher_in,
             "note": klasse.hinweis,
             "sort_order": index,
             "active": True,

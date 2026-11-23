@@ -1,7 +1,7 @@
 """Ein- und Ausgabeformate der Auth-API (Feldnamen englisch)."""
 
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
@@ -20,6 +20,26 @@ class StrictIn(BaseModel):
 
 
 # --- Status, Ersteinrichtung, Kopplung, Anmeldung ----------------------------
+
+
+class BlockerOut(BaseModel):
+    """Was vor dem Einschalten der Berechtigungsprüfung noch fehlt."""
+
+    # `no_admin_with_pin`, `device_not_paired`, `not_logged_in`, `not_admin`
+    code: str
+    message_de: str
+
+
+class EnforcementOut(BaseModel):
+    # Die Berechtigungsprüfung ist wirksam.
+    enforced: bool
+    # Woher: `env` (AUTH_ENFORCED, nur auf dem Server änderbar), `setting` (in der App
+    # eingeschaltet, ausschalten nur auf der Server-Konsole) oder null (aus).
+    source: Literal["env", "setting"] | None
+    # Diese Anfrage dürfte sie jetzt einschalten (POST /auth/enforcement/enable).
+    can_enable: bool
+    # Leer, wenn eingeschaltet oder nichts fehlt.
+    blockers: list[BlockerOut]
 
 
 class DeviceBrief(BaseModel):
@@ -41,11 +61,11 @@ class RoleBrief(BaseModel):
 class StatusOut(BaseModel):
     # Noch kein aktiver Administrator: POST /auth/setup ist möglich.
     setup_required: bool
-    # Der echte Prüfer ist aktiv (AUTH_ENFORCED).
+    # Die Berechtigungsprüfung ist wirksam (AUTH_ENFORCED oder in der App eingeschaltet).
     auth_enforced: bool
     device: DeviceBrief | None
     user: UserBrief | None
-    # Rolle der angemeldeten Person, sonst die Standardrolle des Geräts.
+    # Rolle des angemeldeten Benutzers, sonst die Standardrolle des Geräts.
     role: RoleBrief | None
     permissions: list[str]
     # Das Geräte-Cookie gehört zu einem gesperrten Gerät (`device` ist dann null). Die Oberfläche
@@ -53,7 +73,7 @@ class StatusOut(BaseModel):
     device_revoked: bool = False
     # Für Formulare und Hinweise; nichts davon ist geheim.
     pin_min_length: int
-    # Nach so vielen Fehlversuchen in Folge wird eine Person gesperrt …
+    # Nach so vielen Fehlversuchen in Folge wird ein Benutzer gesperrt …
     max_failed_logins: int
     # … für so viele Minuten.
     lockout_minutes: float
@@ -154,7 +174,7 @@ class PermissionOut(BaseModel):
     requires: list[str] = []
 
 
-# --- Personen ----------------------------------------------------------------
+# --- Benutzer ----------------------------------------------------------------
 
 
 class UserIn(StrictIn):
@@ -189,7 +209,7 @@ class AuditEntryOut(BaseModel):
     id: UUID
     at: datetime
     user_id: UUID | None
-    # Name der Person bzw. des Geräts zum Zeitpunkt der Abfrage; null, wenn gelöscht oder leer.
+    # Name des Benutzers bzw. des Geräts zum Zeitpunkt der Abfrage; null, wenn gelöscht oder leer.
     user_name: str | None
     device_id: UUID | None
     device_name: str | None

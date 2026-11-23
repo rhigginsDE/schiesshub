@@ -64,8 +64,9 @@ CASES = [
     ),
     (
         PRAEZISION,
-        lambda d: d["scoring"].update(gleichstand=["zehner", "los"]),
-        "scoring.gleichstand[1]: unbekanntes Gleichstandskriterium „los“",
+        # Unbekannte Kriterien sind erlaubt (manuell zu entscheiden), aber nur im ID-Format.
+        lambda d: d["scoring"].update(gleichstand=["zehner", "Los!"]),
+        "scoring.gleichstand[1]: Gleichstandskriterium „Los!“: nur Kleinbuchstaben a–z, Ziffern",
     ),
     (
         PRAEZISION,

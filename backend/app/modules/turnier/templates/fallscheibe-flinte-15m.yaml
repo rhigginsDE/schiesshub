@@ -1,0 +1,17 @@
+# Vorlage für ein neues Turnier (Format: app/modules/turnier/tournament_templates.py).
+# Nur Verweise auf den Katalog: Ablauf und Wertung kommen beim Anlegen aus catalog/bds.
+schema: 1
+id: "fallscheibe-flinte-15m"
+name: "Fallscheibe Flinte 15 m"
+description: "Internes Vereinsturnier auf dem 15-m-Flintenstand mit allen sechs Fallscheiben-Disziplinen für Flinte, ohne feste Startzeiten."
+template: "custom"
+classes: { federation: "bds" }
+ranges:
+  - { key: "flinte", name: "Flintenstand 15 m", lane_count: 2 }
+competitions:
+  - { catalog_federation: "bds", catalog_code: "4401", range: "flinte" }
+  - { catalog_federation: "bds", catalog_code: "4402", range: "flinte" }
+  - { catalog_federation: "bds", catalog_code: "4403", range: "flinte" }
+  - { catalog_federation: "bds", catalog_code: "4404", range: "flinte" }
+  - { catalog_federation: "bds", catalog_code: "4405", range: "flinte" }
+  - { catalog_federation: "bds", catalog_code: "4406", range: "flinte" }

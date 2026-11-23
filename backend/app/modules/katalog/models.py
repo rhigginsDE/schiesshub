@@ -30,6 +30,8 @@ class Federation(Base):
     details: Mapped[dict[str, Any]] = mapped_column(JSONB)
     # Angaben auf Dateiebene der klassen.yaml: quelle, geprueft, stichtag, regeln, unsicher.
     classes_meta: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    # Inhalt der startrecht.yaml (Startrecht je Wettbewerb), sonst leer.
+    start_rights: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
@@ -96,6 +98,11 @@ class CompetitionClass(Base):
     min_starters_dm: Mapped[int | None] = mapped_column(Integer)
     merge_into: Mapped[list[str]] = mapped_column(JSONB)
     merge_by_age: Mapped[bool] = mapped_column(Boolean)
+    # Offizielle Klassennummer (DSB "10" = Herren I), nur innerhalb von class_set eindeutig.
+    number: Mapped[str | None] = mapped_column(String(40))
+    class_set: Mapped[str | None] = mapped_column(String(80))
+    # Klassen-IDs für die Höhermeldung.
+    promote_to: Mapped[list[str]] = mapped_column(JSONB, default=list)
     note: Mapped[str | None] = mapped_column(Text)
     # Reihenfolge wie in der Datei.
     sort_order: Mapped[int] = mapped_column(Integer)

@@ -42,17 +42,40 @@ CONFLICT = {status.HTTP_409_CONFLICT: {"description": "Widerspricht dem Datenbes
 UNPROCESSABLE = {status.HTTP_422_UNPROCESSABLE_CONTENT: {"description": "Ungültige Eingabe"}}
 
 
+FORBIDDEN_NEW_CLUB = {
+    status.HTTP_403_FORBIDDEN: {
+        "description": "Der Verein aus `club_name` fehlt, und zum Anlegen fehlt `club.edit`"
+    }
+}
+
+
 _ERROR_STATUS: dict[type[Exception], int] = {
     service.NotFoundError: status.HTTP_404_NOT_FOUND,
     service.InvalidReferenceError: status.HTTP_422_UNPROCESSABLE_CONTENT,
     service.ConflictError: status.HTTP_409_CONFLICT,
     service.DeletionBlockedError: status.HTTP_409_CONFLICT,
+    service.ClubCreationForbiddenError: status.HTTP_403_FORBIDDEN,
 }
 DomainErrors = tuple(_ERROR_STATUS)
 
 
 def _http(exc: Exception) -> HTTPException:
     return HTTPException(status_code=_ERROR_STATUS[type(exc)], detail=str(exc))
+
+
+def _club_edit_check(request: Request) -> service.ClubCreationCheck:
+    """Prüft `club.edit` erst, wenn ein Verein wirklich neu angelegt würde (`club_name`, Import)."""
+
+    async def may_create_club() -> bool:
+        try:
+            await require("club.edit")(request)
+        except HTTPException as exc:
+            if exc.status_code == status.HTTP_403_FORBIDDEN:
+                return False
+            raise
+        return True
+
+    return may_create_club
 
 
 # --- Vereine -----------------------------------------------------------------
@@ -186,22 +209,30 @@ async def list_persons(
     description=(
         "Gibt es im selben Verein schon eine Person mit gleicher Schreibweise des Namens "
         "(ohne Groß-/Kleinschreibung, Akzente und Umlaut-Schreibweise), kommt 409 mit den "
-        "Kandidaten. Mit `force=true` wird trotzdem angelegt."
+        "Kandidaten. Mit `force=true` wird trotzdem angelegt. Der Verein kommt über `club_id` "
+        "oder über `club_name`: Ein noch fehlender Verein wird dann zusammen mit der Person "
+        "angelegt (braucht zusätzlich `club.edit`, sonst 403) – oder gar nicht, wenn die Person "
+        "nicht gespeichert wird. In einem neuen Verein gibt es keine Dubletten."
     ),
     status_code=status.HTTP_201_CREATED,
     response_model=PersonOut,
-    responses={status.HTTP_409_CONFLICT: {"model": DuplicateOut}} | UNPROCESSABLE,
+    responses={status.HTTP_409_CONFLICT: {"model": DuplicateOut}}
+    | UNPROCESSABLE
+    | FORBIDDEN_NEW_CLUB,
     dependencies=[Depends(require("person.edit"))],
 )
 async def create_person(
     data: PersonCreate,
+    request: Request,
     session: SessionDep,
     index: IndexDep,
     events: EventHubDep,
     force: Annotated[bool, Query(description="Dubletten-Hinweis übergehen")] = False,
 ) -> PersonOut | JSONResponse:
     try:
-        return await service.create_person(session, index, events, data, force=force)
+        return await service.create_person(
+            session, index, events, data, force=force, may_create_club=_club_edit_check(request)
+        )
     except service.DuplicateError as exc:
         body = DuplicateOut(detail=str(exc), candidates=exc.candidates)
         return JSONResponse(
@@ -264,11 +295,17 @@ async def export_persons(session: SessionDep) -> Response:
         "`member_no`/`Mitgliedsnummer`, `display_mode`/`Anzeige`, `show_club`/`Verein anzeigen` "
         "(ohne Rücksicht auf Groß-/Kleinschreibung, Leerzeichen und Umlaut-Schreibweise). Andere "
         "Spalten werden ignoriert, nicht gespeichert und in `ignored_columns` genannt. "
-        "Fehlende Vereine werden angelegt, Dubletten und fehlerhafte Zeilen übersprungen. "
-        "Mit `dry_run=true` wird nur geprüft."
+        "Fehlende Vereine werden angelegt (Vergleich ohne Groß-/Kleinschreibung und "
+        "Umlaut-Schreibweise), Dubletten und fehlerhafte Zeilen übersprungen. Mit "
+        "`dry_run=true` wird nur geprüft; `new_clubs` nennt die Vereine, die angelegt würden. "
+        "Neue Vereine brauchen beim Übernehmen zusätzlich `club.edit`, sonst 403 mit den "
+        "fehlenden Vereinen, und es wird nichts importiert."
     ),
     responses={
         status.HTTP_400_BAD_REQUEST: {"description": "Datei unbrauchbar"},
+        status.HTTP_403_FORBIDDEN: {
+            "description": "Die Datei braucht neue Vereine, und zum Anlegen fehlt `club.edit`"
+        },
         status.HTTP_413_CONTENT_TOO_LARGE: {"description": "Datei zu groß"},
     },
     openapi_extra={
@@ -293,9 +330,18 @@ async def import_persons(
             detail="Die Datei ist größer als 5 MB.",
         )
     try:
-        return await service.import_persons(session, index, events, content, dry_run=dry_run)
+        return await service.import_persons(
+            session,
+            index,
+            events,
+            content,
+            dry_run=dry_run,
+            may_create_club=_club_edit_check(request),
+        )
     except ImportFormatError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except DomainErrors as exc:
+        raise _http(exc) from exc
 
 
 @router.get(
@@ -314,14 +360,25 @@ async def get_person(person_id: UUID, session: SessionDep) -> PersonOut:
 @router.patch(
     "/persons/{person_id}",
     summary="Person ändern",
-    responses=NOT_FOUND | UNPROCESSABLE,
+    description=(
+        "Nur mitgeschickte Felder ändern sich. Verein über `club_id` oder `club_name` wie beim "
+        "Anlegen (ein neuer Verein braucht zusätzlich `club.edit`, sonst 403)."
+    ),
+    responses=NOT_FOUND | UNPROCESSABLE | FORBIDDEN_NEW_CLUB,
     dependencies=[Depends(require("person.edit"))],
 )
 async def update_person(
-    person_id: UUID, data: PersonUpdate, session: SessionDep, index: IndexDep, events: EventHubDep
+    person_id: UUID,
+    data: PersonUpdate,
+    request: Request,
+    session: SessionDep,
+    index: IndexDep,
+    events: EventHubDep,
 ) -> PersonOut:
     try:
-        return await service.update_person(session, index, events, person_id, data)
+        return await service.update_person(
+            session, index, events, person_id, data, may_create_club=_club_edit_check(request)
+        )
     except DomainErrors as exc:
         raise _http(exc) from exc
 

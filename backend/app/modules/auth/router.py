@@ -1,7 +1,7 @@
 """HTTP-Schnittstelle: /auth, /devices, /roles, /users, /audit.
 
 Alle schreibenden Anfragen brauchen den Header `X-Schiesshub-Request` (CSRF-Schutz, siehe
-`identity.py`), unabhängig davon, ob AUTH_ENFORCED gesetzt ist.
+`identity.py`), unabhängig davon, ob die Berechtigungsprüfung an ist (`enforcement.py`).
 """
 
 from collections.abc import Awaitable, Callable
@@ -15,7 +15,7 @@ from app.core.db import SessionDep
 from app.core.errors import CodedErrorOut
 from app.core.events import EventHubDep
 from app.core.security import Actor, require
-from app.modules.auth import audit, service
+from app.modules.auth import audit, enforcement, service
 from app.modules.auth.identity import (
     DEVICE_COOKIE,
     DEVICE_COOKIE_MAX_AGE,
@@ -34,6 +34,7 @@ from app.modules.auth.schemas import (
     AuditPageOut,
     DeviceOut,
     DeviceUpdateIn,
+    EnforcementOut,
     LoginIn,
     PairIn,
     PairingCodeIn,
@@ -55,6 +56,13 @@ from app.modules.auth.settings import AuthSettings, get_auth_settings
 SettingsDep = Annotated[AuthSettings, Depends(get_auth_settings)]
 
 
+def get_enforcement_state(request: Request) -> enforcement.EnforcementState:
+    return enforcement.get_state(request.app)
+
+
+EnforcementDep = Annotated[enforcement.EnforcementState, Depends(get_enforcement_state)]
+
+
 async def current_identity(
     request: Request, session: SessionDep, settings: SettingsDep
 ) -> Identity:
@@ -65,7 +73,7 @@ IdentityDep = Annotated[Identity, Depends(current_identity)]
 
 
 def authorized(permission: str) -> Callable[..., Awaitable[Actor]]:
-    """`require(...)` mit Rückfall für das Audit: Ist der offene Prüfer aktiv (AUTH_ENFORCED aus),
+    """`require(...)` mit Rückfall für das Audit: Ist der offene Prüfer aktiv (Prüfung aus),
     wird der Handelnde trotzdem aus den Cookies bestimmt, soweit vorhanden."""
 
     async def dependency(
@@ -114,7 +122,9 @@ async def _issue(
         issued.session_token or request.cookies.get(SESSION_COOKIE),
         touch=False,
     )
-    return await service.get_status(session, identity, settings)
+    return await service.get_status(
+        session, identity, settings, enforced=enforcement.is_enforced(request)
+    )
 
 
 router = APIRouter(dependencies=[Depends(check_csrf)])
@@ -124,11 +134,53 @@ router = APIRouter(dependencies=[Depends(check_csrf)])
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@auth_router.get("/status", summary="Ersteinrichtung, Gerät, angemeldete Person, Rechte")
+@auth_router.get("/status", summary="Ersteinrichtung, Gerät, angemeldeter Benutzer, Rechte")
 async def get_status(
-    session: SessionDep, identity: IdentityDep, settings: SettingsDep
+    session: SessionDep, identity: IdentityDep, settings: SettingsDep, state: EnforcementDep
 ) -> StatusOut:
-    return await service.get_status(session, identity, settings)
+    return await service.get_status(session, identity, settings, enforced=state.enforced)
+
+
+@auth_router.get(
+    "/enforcement",
+    summary="Berechtigungsprüfung: an oder aus, und was vor dem Einschalten fehlt",
+    description=(
+        "Für jedes Gerät lesbar, auch ungekoppelt. `blockers` nennt, was diese Anfrage noch "
+        "braucht, um die Prüfung einzuschalten (Codes: `no_admin_with_pin`, "
+        "`device_not_paired`, `not_logged_in`, `not_admin`). Ausschalten geht nicht über die "
+        "App, nur auf der Server-Konsole."
+    ),
+)
+async def get_enforcement(
+    session: SessionDep, identity: IdentityDep, state: EnforcementDep
+) -> EnforcementOut:
+    return await service.get_enforcement(session, identity, state)
+
+
+@auth_router.post(
+    "/enforcement/enable",
+    summary="Berechtigungsprüfung einschalten",
+    description=(
+        "Braucht `system.manage`. Zusätzlich muss die Anfrage von einem gekoppelten Gerät kommen, "
+        "an dem ein Benutzer mit vollen Verwaltungsrechten (Rollen, Benutzer, Geräte, System) "
+        "angemeldet ist – auch solange die Prüfung noch aus und sonst alles offen ist. Ist sie "
+        "schon an, ändert sich nichts. Meldet das Ereignis `auth.enforcement_changed`."
+    ),
+    responses={
+        409: {
+            "model": CodedErrorOut,
+            "description": "`enforcement_blocked`: Voraussetzungen fehlen (GET /auth/enforcement)",
+        }
+    },
+)
+async def enable_enforcement(
+    _actor: Annotated[Actor, Depends(authorized("system.manage"))],
+    session: SessionDep,
+    identity: IdentityDep,
+    state: EnforcementDep,
+    events: EventHubDep,
+) -> EnforcementOut:
+    return await service.enable_enforcement(session, identity, state, events)
 
 
 @auth_router.post(
@@ -172,7 +224,7 @@ async def pair(
 
 @auth_router.get(
     "/users",
-    summary="Aktive Personen zur Auswahl bei der Anmeldung",
+    summary="Aktive Benutzer zur Auswahl bei der Anmeldung",
     responses={401: {"model": CodedErrorOut, "description": "Gerät nicht gekoppelt oder gesperrt"}},
 )
 async def login_options(session: SessionDep, identity: IdentityDep) -> list[UserBrief]:
@@ -217,14 +269,14 @@ async def logout(
     "/permissions",
     summary="Alle bekannten Berechtigungen aller Module",
     description=(
-        "Für jedes gekoppelte Gerät lesbar, auch ohne angemeldete Person: Die Namen sind nicht "
+        "Für jedes gekoppelte Gerät lesbar, auch ohne angemeldeten Benutzer: Die Namen sind nicht "
         "geheim, die Oberfläche braucht sie, um Stationen freizugeben. `requires` nennt je "
         "Berechtigung die, ohne die sie an ihrer Station praktisch nichts nützt."
     ),
     responses={401: {"model": CodedErrorOut, "description": "Gerät nicht gekoppelt oder gesperrt"}},
 )
-async def list_permissions(identity: IdentityDep, settings: SettingsDep) -> list[PermissionOut]:
-    if settings.enforced and identity.device is None:
+async def list_permissions(identity: IdentityDep, state: EnforcementDep) -> list[PermissionOut]:
+    if state.enforced and identity.device is None:
         raise unpaired(identity)
     return service.list_permissions()
 
@@ -302,7 +354,7 @@ async def delete_device(
 
 roles_router = APIRouter(prefix="/roles", tags=["roles"])
 RoleManager = Annotated[Actor, Depends(authorized("role.manage"))]
-# Die Rollenliste braucht auch, wer Personen verwaltet (Auswahl der Rolle).
+# Die Rollenliste braucht auch, wer Benutzer verwaltet (Auswahl der Rolle).
 RoleReader = Annotated[Actor, Depends(authorized_any("role.manage", "user.manage"))]
 
 
@@ -347,12 +399,12 @@ users_router = APIRouter(prefix="/users", tags=["users"])
 UserManager = Annotated[Actor, Depends(authorized("user.manage"))]
 
 
-@users_router.get("", summary="Personen mit Zugang")
+@users_router.get("", summary="Benutzer")
 async def list_users(_actor: UserManager, session: SessionDep) -> list[UserOut]:
     return await service.list_users(session)
 
 
-@users_router.post("", summary="Person anlegen", status_code=status.HTTP_201_CREATED)
+@users_router.post("", summary="Benutzer anlegen", status_code=status.HTTP_201_CREATED)
 async def create_user(
     body: UserIn,
     actor: UserManager,
@@ -363,7 +415,7 @@ async def create_user(
     return await service.create_user(session, actor, settings, events, body)
 
 
-@users_router.patch("/{user_id}", summary="Person umbenennen, Rolle ändern, (de)aktivieren")
+@users_router.patch("/{user_id}", summary="Benutzer umbenennen, Rolle ändern, (de)aktivieren")
 async def update_user(
     user_id: UUID, body: UserUpdateIn, actor: UserManager, session: SessionDep, events: EventHubDep
 ) -> UserOut:
@@ -394,9 +446,9 @@ AuditReader = Annotated[Actor, Depends(authorized("system.manage"))]
     "",
     summary="Audit-Protokoll, neueste zuerst",
     description=(
-        "Mit den heutigen Namen von Person und Gerät (gelöscht: null) und einem deutschen "
+        "Mit den heutigen Namen von Benutzer und Gerät (gelöscht: null) und einem deutschen "
         "Kurztext je Aktion. Filter: Zeitraum `since` (einschließlich) bis `until` "
-        "(ausschließlich), Person `user_id`, Gerät `device_id`, Aktion `action` als Name "
+        "(ausschließlich), Benutzer `user_id`, Gerät `device_id`, Aktion `action` als Name "
         "(`role.updated`) oder Bereich (`role.*`)."
     ),
 )

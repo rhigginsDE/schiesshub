@@ -88,4 +88,22 @@ describe("PositionsAblauf", () => {
     );
     expect(screen.getByText("Abweichend vom Sporthandbuch")).toBeInTheDocument();
   });
+
+  it("zeigt Auflage-Anschläge stehend und sitzend mit Auflagebock", () => {
+    const auflage = [
+      {
+        nr: 1,
+        anschlaege: [
+          { haltung: "stehend", aufgelegt: true },
+          { haltung: "sitzend", aufgelegt: true },
+        ],
+      },
+    ] as unknown as Position[];
+    render(<PositionsAblauf label="Auflage" positionen={auflage} />);
+
+    expect(screen.getByText("stehend aufgelegt oder sitzend aufgelegt")).toBeInTheDocument();
+    const sitzend = screen.getByRole("img", { name: "sitzend aufgelegt" });
+    expect(sitzend).toHaveAttribute("data-haltung", "sitzend");
+    expect(sitzend).toHaveAttribute("data-aufgelegt", "true");
+  });
 });

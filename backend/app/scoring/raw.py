@@ -14,7 +14,14 @@
 - `null` in `series` ist eine noch nicht erfasste Serie (nur im Zwischenstand erlaubt).
 - Fehlende Schüsse werden nie als 0 gewertet: Eine 0 zählt nur, wenn sie erfasst wurde.
 - `tens` zählt alle Zehner einschließlich der Innenzehner, `inner_tens` nur die Innenzehner.
-- Mit `ringwerte` im Abschnitt sind nur diese Ringwerte erlaubt.
+- Mit `ringwerte` im Abschnitt sind nur diese Ringwerte erlaubt (auch über 10, Bogen 3D: 11;
+  „X“ nur, wenn es in `ringwerte` steht). Ohne `schuss_je_serie`, aber mit `ziele_je_serie`
+  steht in `shots` ein Wert je Ziel (Wurfscheibe: 1 Treffer, 0 Fehler).
+- **Zehntelwertung** (`scoring.zehntelwertung`): je Schuss 0 oder 1,0 bis 10,9 mit höchstens
+  einer Nachkommastelle, als Zahl (`10.5`) oder Text mit Komma oder Punkt (`"10,5"`). Die
+  Rohwerte werden gespeichert, wie sie kommen; gerechnet wird mit `Decimal`. Seriensumme
+  ebenso (höchstens 10,9 × Schusszahl, 0 oder ab 1,0); `tens` zählt Schüsse ab 10,0;
+  `inner_tens` gibt es nicht (kein „X“).
 - Gestrichene Serien (`serien_gewertet`) dürfen erfasst werden und werden geprüft, sind aber
   nie Pflicht.
 - Zeiten sind ganze Hundertstel größer 0. Braucht der Status der Serie keine gemessene Zeit
@@ -34,19 +41,37 @@ from typing import Any
 
 from app.scoring.definition import Definition, check_capture_mode, load_definition
 from app.scoring.errors import Issue
-from app.scoring.numbers import format_cs, format_seconds_value
-from app.scoring.plan import DEFAULT_RING_VALUES, INNER_TEN, SectionPlan, SeriesPlan
+from app.scoring.numbers import (
+    decimal_places,
+    format_cs,
+    format_number,
+    format_seconds_value,
+    parse_decimal_input,
+    to_tenths,
+)
+from app.scoring.plan import (
+    DEFAULT_RING_VALUES,
+    INNER_TEN,
+    MAX_RING,
+    MAX_TENTHS,
+    MAX_TENTHS_BELOW_TEN,
+    MIN_TENTHS,
+    SectionPlan,
+    SeriesPlan,
+    Shot,
+)
 from app.scoring.status import MALFUNCTION, NORMAL, STATUS_LABELS, UNFINISHED, SeriesStatus
 
 RING_KEYS = ("shots", "sum", "tens", "inner_tens")
 PLAUSIBLE_FACTOR = Decimal(3)
 PLAUSIBLE_MAX_S = Decimal(3600)
+TENTHS_RANGE = "Bei Zehntelwertung sind Werte von 1,0 bis 10,9 oder 0 erlaubt."
 
 
 @dataclass(frozen=True)
 class RawSeries:
-    shots: tuple[int | str, ...] | None = None
-    total: int | None = None
+    shots: tuple[Shot, ...] | None = None
+    total: int | Decimal | None = None
     tens: int | None = None
     inner_tens: int | None = None
     time_cs: int | None = None
@@ -300,22 +325,32 @@ class _Reader:
         path: str,
         label: str,
         status: SeriesStatus,
-    ) -> tuple[int | str, ...]:
+    ) -> tuple[Shot, ...]:
+        unit = "Ziele" if plan.per_target else "Schuss"
         if not isinstance(data, list):
-            self.add(path, f"{label}: Schüsse müssen eine Liste sein")
+            self.add(
+                path, f"{label}: {'Werte' if plan.per_target else 'Schüsse'} müssen eine Liste sein"
+            )
             return ()
         if len(data) > count:
-            self.add(path, f"{label}: höchstens {count} Schuss, erfasst {len(data)}")
+            self.add(path, f"{label}: höchstens {count} {unit}, erfasst {len(data)}")
         elif status == UNFINISHED and len(data) == count:
             self.add(path, f"{label}: als nicht beendet erfasst, aber alle {count} Schuss erfasst")
         elif len(data) < count and not self.partial and status != UNFINISHED:
-            self.add(path, f"{label}: {len(data)} von {count} Schuss erfasst")
+            self.add(path, f"{label}: {len(data)} von {count} {unit} erfasst")
+        if plan.tenths:
+            return self.tenths_shots(data[:count], path, label)
         allowed = plan.ring_values
-        valid: list[int | str] = []
+        valid: list[Shot] = []
         for index, value in enumerate(data[:count]):
             shot = INNER_TEN if value == INNER_TEN else _as_int(value)
             if shot is not None and shot in allowed:
                 valid.append(shot)
+            elif plan.per_target:
+                self.add(
+                    f"{path}[{index}]",
+                    f"{label}, Ziel {index + 1}: Wert {_allowed_text(allowed)}, nicht {value!r}",
+                )
             else:
                 self.add(
                     f"{path}[{index}]",
@@ -324,9 +359,27 @@ class _Reader:
                 )
         return tuple(valid)
 
+    def tenths_shots(self, data: list[Any], path: str, label: str) -> tuple[Shot, ...]:
+        valid: list[Shot] = []
+        for index, value in enumerate(data):
+            number = parse_decimal_input(value)
+            where = f"{label}, Schuss {index + 1}"
+            if number is not None and decimal_places(number) > 1:
+                self.add(
+                    f"{path}[{index}]",
+                    f"{where}: höchstens eine Nachkommastelle. {TENTHS_RANGE} (erfasst: {value!r})",
+                )
+            elif number is None or not (number == 0 or MIN_TENTHS <= number <= MAX_TENTHS):
+                self.add(f"{path}[{index}]", f"{where}: {TENTHS_RANGE} (erfasst: {value!r})")
+            else:
+                valid.append(to_tenths(number))
+        return tuple(valid)
+
     def series_sum(
         self, plan: SectionPlan, data: Mapping[str, Any], count: int, path: str, label: str
     ) -> dict[str, Any]:
+        if plan.tenths:
+            return self.tenths_sum(data, count, path, label)
         total = self.integer(
             data.get("sum"), f"{path}.sum", f"{label}: Seriensumme", count * plan.max_ring
         )
@@ -348,13 +401,62 @@ class _Reader:
                     f"{path}.sum",
                     f"{label}: {best_tens} Zehner ergeben mindestens {best_tens * 10}",
                 )
-            if tens is not None and total > tens * 10 + (count - tens) * 9:
+            # Höchster Wert eines Schusses, der kein Zehner ist (sonst 9; Bogen 3D: 11).
+            others = [v for v in plan.ring_values if v != INNER_TEN and v != MAX_RING]
+            other_max = max((int(v) for v in others), default=0)
+            most = tens * MAX_RING + (count - tens) * other_max if tens is not None else None
+            if most is not None and total > most:
                 self.add(
                     f"{path}.sum",
-                    f"{label}: mit {tens} Zehnern sind höchstens "
-                    f"{tens * 10 + (count - tens) * 9} Ringe möglich",
+                    f"{label}: mit {tens} Zehnern sind höchstens {most} Ringe möglich",
                 )
         return {"total": total, "tens": tens, "inner_tens": inner}
+
+    def tenths_sum(
+        self, data: Mapping[str, Any], count: int, path: str, label: str
+    ) -> dict[str, Any]:
+        """Seriensumme bei Zehntelwertung: Kommazahl, Zehner = Schüsse ab 10,0."""
+        maximum = count * MAX_TENTHS
+        total: Decimal | None = None
+        value = data.get("sum")
+        if value is not None:
+            number = parse_decimal_input(value)
+            if number is None or decimal_places(number) > 1 or number > maximum:
+                self.add(
+                    f"{path}.sum",
+                    f"{label}: Seriensumme mit höchstens einer Nachkommastelle von 0 bis "
+                    f"{format_number(maximum)}",
+                )
+            elif 0 < number < MIN_TENTHS:
+                self.add(
+                    f"{path}.sum", f"{label}: Seriensumme 0 oder mindestens 1,0. {TENTHS_RANGE}"
+                )
+            else:
+                total = to_tenths(number)
+        elif not self.partial:
+            self.add(f"{path}.sum", f"{label}: Seriensumme fehlt")
+        tens = self.integer(data.get("tens"), f"{path}.tens", f"{label}: Zehner", count)
+        if "inner_tens" in data:
+            self.add(
+                f"{path}.inner_tens",
+                f"{label}: Bei Zehntelwertung gibt es keine Innenzehner (Zehner sind alle "
+                "Schüsse ab 10,0)",
+            )
+        if total is not None and tens is not None:
+            least = to_tenths(Decimal(tens * MAX_RING))
+            most = tens * MAX_TENTHS + (count - tens) * MAX_TENTHS_BELOW_TEN
+            if total < least:
+                self.add(
+                    f"{path}.sum",
+                    f"{label}: {tens} Zehner ergeben mindestens {format_number(least)}",
+                )
+            elif total > most:
+                self.add(
+                    f"{path}.sum",
+                    f"{label}: mit {tens} Zehnern sind höchstens {format_number(most)} Ringe "
+                    "möglich",
+                )
+        return {"total": total, "tens": tens, "inner_tens": None}
 
     def integer(self, value: object, path: str, label: str, maximum: int) -> int | None:
         if value is None:

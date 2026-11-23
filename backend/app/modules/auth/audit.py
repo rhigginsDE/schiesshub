@@ -26,6 +26,8 @@ ACTION_TEXTS: dict[str, str] = {
     "auth.login_failed": "Anmeldung fehlgeschlagen",
     "auth.locked": "Wegen Fehlversuchen gesperrt",
     "auth.logout": "Abgemeldet",
+    "auth.enforcement_enabled": "Berechtigungsprüfung eingeschaltet",
+    "auth.enforcement_disabled": "Berechtigungsprüfung ausgeschaltet",
     "device.pairing_code_created": "Kopplungscode erzeugt",
     "device.paired": "Gerät gekoppelt",
     "device.updated": "Gerät geändert",
@@ -37,13 +39,16 @@ ACTION_TEXTS: dict[str, str] = {
     "role.reconciled": "Startrolle an aktuelle Rechte angeglichen",
     "role.permissions_removed": "Veraltete Berechtigungen aus Rolle entfernt",
     "role.migrated": "Rechte einer Rolle bei der Aktualisierung angepasst",
-    "user.created": "Person mit Zugang angelegt",
-    "user.updated": "Person mit Zugang geändert",
-    "user.role_changed": "Rolle einer Person geändert",
+    "user.created": "Benutzer angelegt",
+    "user.updated": "Benutzer geändert",
+    "user.role_changed": "Rolle eines Benutzers geändert",
     "user.pin_reset": "PIN zurückgesetzt",
-    "user.listed": "Personen mit Zugang aufgelistet",
+    "user.listed": "Benutzer aufgelistet",
     # Turnier
+    "tournament.practice_removed": "Übungsturnier entfernt",
     "competition.definition_changed": "Wertung eines Wettbewerbs geändert",
+    # Sicherung
+    "backup.restored": "Sicherung wiederhergestellt",
     # Anmeldung und Starts
     "entry.created": "Anmeldung angelegt",
     "entry.updated": "Anmeldung geändert",
@@ -137,7 +142,7 @@ class AuditRow:
 async def list_audit(
     session: AsyncSession, limit: int, offset: int, filters: AuditFilter | None = None
 ) -> tuple[int, list[AuditRow]]:
-    """Einträge, neueste zuerst, mit den heutigen Namen von Person und Gerät."""
+    """Einträge, neueste zuerst, mit den heutigen Namen von Benutzer und Gerät."""
     filters = filters or AuditFilter()
     total = await session.scalar(filters.apply(select(func.count()).select_from(AuditLog))) or 0
     rows = await session.execute(

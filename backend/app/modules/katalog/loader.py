@@ -4,6 +4,7 @@ Aufbau des Verzeichnisses (siehe catalog/README.md):
 
     <verband>/katalog.yaml
     <verband>/klassen.yaml        (optional)
+    <verband>/startrecht.yaml     (optional, setzt Klassennummern in klassen.yaml voraus)
     <verband>/gruppen/<gruppe>.yaml
 
 Jeder Verband wird für sich geprüft. Hat ein Verband auch nur einen Fehler, wird er als Ganzes
@@ -18,10 +19,17 @@ import yaml
 from pydantic import BaseModel, ValidationError
 
 from app.core.errors import describe_error, format_location
-from app.modules.katalog.fileformat import GruppenDatei, KatalogDatei, KlassenDatei
+from app.modules.katalog.fileformat import (
+    GruppenDatei,
+    KatalogDatei,
+    KlassenDatei,
+    Startfelder,
+    StartrechtDatei,
+)
 
 HEAD_FILE = "katalog.yaml"
 CLASSES_FILE = "klassen.yaml"
+START_RIGHTS_FILE = "startrecht.yaml"
 GROUPS_DIR = "gruppen"
 
 
@@ -61,6 +69,7 @@ class FederationCatalog:
     head: KatalogDatei
     classes: KlassenDatei | None
     groups: list[GroupSource]
+    start_rights: StartrechtDatei | None = None
 
     @property
     def discipline_count(self) -> int:
@@ -132,10 +141,13 @@ class _FederationReader:
         head = self._read_head()
         classes = self._read_classes()
         groups = self._read_groups()
+        start_rights = self._read_start_rights(classes)
         self._report_unknown_files()
         if self.errors or head is None:
             return None
-        return FederationCatalog(key=self.key, head=head, classes=classes, groups=groups)
+        return FederationCatalog(
+            key=self.key, head=head, classes=classes, groups=groups, start_rights=start_rights
+        )
 
     def _read_head(self) -> KatalogDatei | None:
         path = self.directory / HEAD_FILE
@@ -163,14 +175,94 @@ class _FederationReader:
             if klasse.id in known:
                 self._error(path, f"klassen[{index}].id", f"Klasse '{klasse.id}' mehrfach vergeben")
             known.add(klasse.id)
+        numbers: set[tuple[str | None, str]] = set()
         for index, klasse in enumerate(classes.klassen):
-            for position, target in enumerate(klasse.zusammenlegen_in):
-                pfad = f"klassen[{index}].zusammenlegen_in[{position}]"
-                if target not in known:
-                    self._error(path, pfad, f"verweist auf unbekannte Klasse '{target}'")
-                elif target == klasse.id:
-                    self._error(path, pfad, "verweist auf die Klasse selbst")
+            for feld in ("zusammenlegen_in", "hoeher_in"):
+                for position, target in enumerate(getattr(klasse, feld)):
+                    pfad = f"klassen[{index}].{feld}[{position}]"
+                    if target not in known:
+                        self._error(path, pfad, f"verweist auf unbekannte Klasse '{target}'")
+                    elif target == klasse.id:
+                        self._error(path, pfad, "verweist auf die Klasse selbst")
+            if klasse.satz is not None and klasse.satz not in classes.klassensaetze:
+                self._error(
+                    path,
+                    f"klassen[{index}].satz",
+                    f"Klassensatz '{klasse.satz}' ist nicht beschrieben",
+                )
+            if klasse.nummer is not None:
+                if (klasse.satz, klasse.nummer) in numbers:
+                    self._error(
+                        path,
+                        f"klassen[{index}].nummer",
+                        f"Nummer '{klasse.nummer}' im Satz '{klasse.satz}' mehrfach vergeben",
+                    )
+                numbers.add((klasse.satz, klasse.nummer))
         return classes
+
+    def _read_start_rights(self, classes: KlassenDatei | None) -> StartrechtDatei | None:
+        path = self.directory / START_RIGHTS_FILE
+        if not path.is_file():
+            return None
+        content = self._parse(path, StartrechtDatei)
+        if content is None:
+            return None
+        if content.verband != self.key:
+            self._error(
+                path, "verband", f"'{content.verband}' passt nicht zum Verzeichnis '{self.key}'"
+            )
+        if classes is None:
+            self._error(path, None, f"setzt {CLASSES_FILE} mit Klassennummern voraus")
+            return content
+        by_set: dict[str, set[str]] = {}
+        for klasse in classes.klassen:
+            if klasse.satz is not None and klasse.nummer is not None:
+                by_set.setdefault(klasse.satz, set()).add(klasse.nummer)
+        for key, eintrag in content.startrecht.items():
+            pfad = f"startrecht.{key}"
+            sets = [eintrag.satz] if isinstance(eintrag.satz, str) else eintrag.satz
+            if missing := [name for name in sets if name not in by_set]:
+                self._error(
+                    path, f"{pfad}.satz", f"Klassensatz '{missing[0]}' hat keine Klassennummern"
+                )
+                continue
+            known = set().union(*(by_set[name] for name in sets))
+            label = ", ".join(sets)
+            self._check_start_fields(path, pfad, eintrag, known, label)
+            if eintrag.deutsche_schuelermeisterschaft is not None:
+                self._check_start_fields(
+                    path,
+                    f"{pfad}.deutsche_schuelermeisterschaft",
+                    eintrag.deutsche_schuelermeisterschaft,
+                    known,
+                    label,
+                )
+        return content
+
+    def _check_start_fields(
+        self, path: Path, pfad: str, felder: Startfelder, known: set[str], satz: str
+    ) -> None:
+        references: list[tuple[str, str]] = []
+        for name in (
+            "einzel",
+            "mannschaft",
+            "olympisch",
+            "startmoeglichkeit_0711",
+            "kein_startrecht",
+            "endkampf",
+            "neu_bei_dm",
+        ):
+            references += [(f"{pfad}.{name}", nummer) for nummer in getattr(felder, name)]
+        for name in ("startet_bei", "mannschaft_startet_bei"):
+            for source, target in getattr(felder, name).items():
+                references += [(f"{pfad}.{name}.{source}", source), (f"{pfad}.{name}", target)]
+        for index, team in enumerate(felder.mix_team):
+            references += [(f"{pfad}.mix_team[{index}]", nummer) for nummer in team.klassen]
+        for location, nummer in references:
+            if nummer not in known:
+                self._error(
+                    path, location, f"Klassennummer '{nummer}' gibt es im Satz '{satz}' nicht"
+                )
 
     def _read_groups(self) -> list[GroupSource]:
         groups_dir = self.directory / GROUPS_DIR
@@ -219,7 +311,7 @@ class _FederationReader:
     def _report_unknown_files(self) -> None:
         for path in sorted(self.directory.iterdir()):
             is_yaml = path.is_file() and path.suffix in {".yaml", ".yml"}
-            if is_yaml and path.name not in {HEAD_FILE, CLASSES_FILE}:
+            if is_yaml and path.name not in {HEAD_FILE, CLASSES_FILE, START_RIGHTS_FILE}:
                 self._error(path, None, "unbekannte Datei im Verbandsverzeichnis")
         groups_dir = self.directory / GROUPS_DIR
         if groups_dir.is_dir():

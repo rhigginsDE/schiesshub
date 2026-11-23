@@ -4,9 +4,10 @@ Die Werte kommen aus `app.core.config.Settings` (Umgebungsvariablen `AUTH_…`, 
 dokumentiert). `AuthSettings` ist nur die Sicht des Moduls darauf, ohne Präfix; Tests bauen sie
 direkt mit einzelnen abweichenden Werten.
 
-Solange `AUTH_ENFORCED` nicht gesetzt ist, bleibt der offene Prüfer aus `app.core.security`
-aktiv: Alle Endpunkte mit `require(...)` sind dann ohne Anmeldung erreichbar. Kopplung, Anmeldung
-und die Verwaltung funktionieren trotzdem, damit das Frontend sie schon benutzen kann.
+Solange die Berechtigungsprüfung aus ist (weder `AUTH_ENFORCED` noch in der App eingeschaltet,
+siehe `enforcement.py`), bleibt der offene Prüfer aus `app.core.security` aktiv: Alle Endpunkte
+mit `require(...)` sind dann ohne Anmeldung erreichbar. Kopplung, Anmeldung und die Verwaltung
+funktionieren trotzdem, damit das Frontend sie schon benutzen kann.
 """
 
 from typing import Any, Literal, Self
@@ -26,7 +27,10 @@ def _default(name: str) -> Any:
 class AuthSettings(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
+    # Nur die Umgebung (`AUTH_ENFORCED`). Wirksam ist auch der gespeicherte Schalter, siehe
+    # `enforcement.py`; zur Laufzeit gilt `enforcement.is_enforced`.
     enforced: bool = _default("enforced")
+    enforcement_poll_seconds: float = _default("enforcement_poll_seconds")
     pairing_code_minutes: float = _default("pairing_code_minutes")
     pin_min_length: int = _default("pin_min_length")
     max_failed_logins: int = _default("max_failed_logins")

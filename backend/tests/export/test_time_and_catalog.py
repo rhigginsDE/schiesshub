@@ -1,5 +1,5 @@
-"""Siegerliste und Rohexport: Rechenweg bei Wertung mit Zeit, Hinweis „Abweichend vom Katalog“,
-„Startnummer N“ bei Personen ohne Namensanzeige.
+"""Siegerliste und Rohexport: Rechenweg bei Wertung mit Zeit, kein Hinweis „Abweichend vom
+Katalog“ (nur in der Turnierverwaltung), „Startnummer N“ bei Personen ohne Namensanzeige.
 
 Alle Namen sind erfunden.
 """
@@ -186,7 +186,7 @@ async def test_ring_model_has_no_time_columns(api: Api) -> None:
     header = read_csv((await api.get(export(setup, "winners.csv"))).content)[0]
     for column in ("Ringe vor Abzug", "Gesamtzeit", "Sollzeit", "Abzug"):
         assert column not in header
-    assert "Abweichend vom Katalog" in header
+    assert "Abweichend vom Katalog" not in header
     raw_header = read_csv((await api.get(export(setup, "results.csv"))).content)[0]
     assert "Gesamtzeit" not in raw_header
     lines = read_pdf((await api.get(export(setup, "winners.pdf"))).content).text.splitlines()
@@ -194,10 +194,12 @@ async def test_ring_model_has_no_time_columns(api: Api) -> None:
     assert not any("Abweichend vom Katalog" in line for line in lines)
 
 
-# --- Abweichend vom Katalog ------------------------------------------------------------------
+# --- Abweichend vom Katalog: nur in der Turnierverwaltung ------------------------------------
 
 
-async def test_catalog_deviation_in_winners(api: Api) -> None:
+async def test_catalog_deviation_not_in_lists(api: Api) -> None:
+    """Entscheidung vom 22.11.2026: Abweichungen zeigt nur die Turnierverwaltung, nicht die
+    Siegerliste und nicht der Rohexport."""
     tid = await api.tournament()
     range_id = await api.range(tid)
     class_id = await api.klass(tid)
@@ -214,29 +216,20 @@ async def test_catalog_deviation_in_winners(api: Api) -> None:
     series = [{"time_cs": 1000, "standing": 0} for _ in range(4)]
     await api.shoot(tid, sid, {"sections": {"fallscheibe": {"series": series}}})
 
-    expected = "Abschnitt Fallscheibe: 3 von 4 Serien gewertet"
-    (row,) = as_dicts(read_csv((await api.get(export(setup, "winners.csv"))).content))
-    assert row["Abweichend vom Katalog"] == expected
+    # Die Abweichung selbst gibt es (Turnierverwaltung) ...
+    diff = await api.ok("GET", f"/tournaments/{tid}/competitions/{cid}/catalog-diff")
+    assert diff["deviates"] is True
 
-    lines = read_pdf((await api.get(export(setup, "winners.pdf"))).content).text.splitlines()
-    note = f"Abweichend vom Katalog: {expected}"
-    assert note in lines
-    # Unter der Wettbewerbsüberschrift, vor der Tabelle.
-    heading = next(i for i, line in enumerate(lines) if line.startswith("4401 · "))
-    assert heading < lines.index(note) < lines.index("Platz")
-
-
-async def test_catalog_competition_without_deviation(api: Api) -> None:
-    setup = await make_setup(
-        api, catalog_federation="bds", catalog_code="4401", capture_mode="series"
-    )
-    sid = await person_start(api, setup, "Otto Beispiel")
-    series = [{"time_cs": 1000, "standing": 0} for _ in range(4)]
-    await api.shoot(setup.tid, sid, {"sections": {"fallscheibe": {"series": series}}})
-    (row,) = as_dicts(read_csv((await api.get(export(setup, "winners.csv"))).content))
-    assert row["Abweichend vom Katalog"] == ""
-    text = read_pdf((await api.get(export(setup, "winners.pdf"))).content).text
+    # ... aber weder Siegerliste noch Rohexport erwähnen sie.
+    for name in ("winners.csv", "results.csv"):
+        content = (await api.get(export(setup, name))).content
+        header = read_csv(content)[0]
+        assert "Abweichend vom Katalog" not in header, name
+        assert "Serien gewertet" not in content.decode("utf-8-sig"), name
+    text = flat(read_pdf((await api.get(export(setup, "winners.pdf"))).content).text)
     assert "Abweichend vom Katalog" not in text
+    assert "Serien gewertet" not in text
+    assert "4401 · " in text
 
 
 # --- „nicht anzeigen“: Startnummer statt leerem Namen ----------------------------------------

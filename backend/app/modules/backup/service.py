@@ -213,6 +213,18 @@ class BackupService:
         _active = self
         self._task = asyncio.create_task(self._loop(), name="backup-scheduler")
 
+    async def reload_from_database(self) -> None:
+        """Nach dem Tausch der Datenbank: Einstellungen, letzte Läufe und Schlüssel neu lesen."""
+        async with self.session_factory() as session:
+            self.config = await get_setting(session, SETTINGS_KEY, BackupSettings)
+            self._last_local = await self._latest_run(session, TARGET_LOCAL)
+            self._last_usb = await self._latest_run(session, TARGET_USB)
+        self.key = await asyncio.to_thread(crypto.load_key, self.keys_dir)
+        self._mirrored = None
+        self._usb_snapshot_current = False
+        self._catch_up_not_before = _now()
+        self._refresh_status()
+
     def _prepare_local(self) -> None:
         self.snapshot_dir.mkdir(parents=True, exist_ok=True)
         self.work_dir.mkdir(parents=True, exist_ok=True)
@@ -988,13 +1000,28 @@ def _rotate(directory: Path, suffix: str, keep: int) -> None:
 
 
 async def on_startup(app: FastAPI) -> None:
+    # Spät importiert: `guided` baut auf diesem Modul auf.
+    from app.modules.backup import guided, maintenance
+
     service = BackupService(app.state.settings, app.state.session_factory, app.state.events)
     app.state.backup = service
+    state: maintenance.MaintenanceState | None = getattr(app.state, "maintenance", None)
+    if state is None:
+        state = maintenance.MaintenanceState(
+            events=app.state.events,
+            cors_origins=frozenset(app.state.settings.cors_origin_list),
+        )
+        app.state.maintenance = state
+    maintenance.install(app, state)
     await service.start()
+    app.state.backup_restore = guided.RestoreManager(app, service, state)
 
 
 async def on_shutdown(app: FastAPI) -> None:
     """Beendet den Hintergrund-Task, bevor der Kern die Datenbankverbindung schließt."""
+    manager = getattr(app.state, "backup_restore", None)
+    if manager is not None:
+        await manager.stop()
     service: BackupService | None = getattr(app.state, "backup", None)
     if service is not None:
         await service.stop()

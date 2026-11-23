@@ -250,7 +250,7 @@ def test_positions_are_accepted_and_shown_but_do_not_change_the_score() -> None:
         (POSITIONS[:3], "positionen hat 3 Einträge, erwartet werden 4"),
         ([{**POSITIONS[0], "distanz_m": 25}, *POSITIONS[1:]], "positionen[0].distanz_m ist 25"),
         ([{**POSITIONS[0], "anschlaege": []}, *POSITIONS[1:]], "anschlaege"),
-        ([{**POSITIONS[0], "anschlaege": [{"haltung": "sitzend"}]}, *POSITIONS[1:]], "haltung"),
+        ([{**POSITIONS[0], "anschlaege": [{"haltung": "hockend"}]}, *POSITIONS[1:]], "haltung"),
         (
             [
                 {**POSITIONS[0], "anschlaege": [{"haltung": "kniend", "hand": "links"}]},

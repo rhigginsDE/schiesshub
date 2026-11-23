@@ -57,8 +57,6 @@ class CompetitionInfo:
     target_times: tuple[tuple[str, Decimal], ...] = ()
     # `zeit_rundung` der Wertung („summe_abrunden“) oder None.
     time_rounding: str | None = None
-    # Abweichungen vom Katalog als Text (`turnier.service.catalog_diff_of`); leer = keine.
-    deviations: tuple[str, ...] = ()
 
     @property
     def time_model(self) -> bool:
@@ -104,7 +102,7 @@ class SeriesValue:
     number: int
     struck: bool
     status: str
-    rings: int | None
+    rings: Decimal | int | None
     time_cs: int | None
     standing: int | None
     total_cs: int | None
@@ -134,7 +132,7 @@ class TimeScore:
     """
 
     model: str
-    rings: int | None
+    rings: Decimal | int | None
     time_cs: int | None
     # Sollzeit, wenn es genau einen Abschnitt mit Sollzeit gibt.
     target_s: Decimal | None
@@ -166,6 +164,10 @@ class WinnerRow:
     provisional_until: datetime | None
     # Rechenweg bei Wertung mit Zeit; None bei anderen Modellen oder ohne Ergebnis.
     time_score: TimeScore | None = None
+    # Warum ein geteilter Platz offen ist (wie die Rangliste: missing_data, manual, shootoff)
+    # und der Hinweis dazu („Ringgleichheit auf Platz 2: Stechen“).
+    tie_reason: str | None = None
+    tie_note: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel
 
-from app.modules.katalog.fileformat import Variante, Wertung
+from app.modules.katalog.fileformat import Finale, StartrechtEintrag, Variante, Wertung
 
 
 class RegelwerkOut(BaseModel):
@@ -53,6 +53,7 @@ class DisziplinOut(BaseModel):
 class AblaufOut(BaseModel):
     schluessel: str
     beschreibung: str
+    finale: Finale | None = None
     varianten: list[Variante]
 
 
@@ -74,6 +75,20 @@ class KlasseOut(BaseModel):
     zusammenlegen_in: list[str]
     zusammenlegen_nach_alter: bool
     hinweis: str | None
+    # Offizielle Klassennummer und Klassensatz (DSB), sonst leer.
+    nummer: str | None
+    satz: str | None
+    hoeher_in: list[str]
+
+
+class StartrechtOut(BaseModel):
+    """Startrecht je Wettbewerb laut Meisterschaftstabelle (Inhalt der startrecht.yaml)."""
+
+    verband: str
+    stand_tabelle: str | None
+    hinweise: list[str]
+    # Schlüssel = Kennziffer bzw. "<satz>-<kennziffer>"; Klassen als Klassennummern im Satz.
+    startrecht: dict[str, StartrechtEintrag]
 
 
 class KatalogFehlerOut(BaseModel):

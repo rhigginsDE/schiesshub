@@ -32,6 +32,12 @@ const BEKANNTE_FELDER = new Set([
   "zuschlag_stoerung_vor_erstem_schuss_s",
   "serien_gewertet",
   "trefferaufnahme_nach",
+  "wettkampfzeit_s",
+  "vorbereitung_probe_s",
+  "probeschuesse",
+  // Eingabeschutz, keine Angabe für Schützen
+  "zeit_plausibel_faktor",
+  "zeit_plausibel_max_s",
 ]);
 
 function istZahl(wert: unknown): wert is number {
@@ -78,6 +84,19 @@ export function beschreibeAbschnitt(
   }
   if (istZahl(abschnitt.zeit_je_serie_s)) {
     teile.push(dauer(abschnitt.zeit_je_serie_s));
+  }
+  if (istZahl(abschnitt.wettkampfzeit_s)) {
+    teile.push(t("wettkampfzeit", { dauer: dauer(abschnitt.wettkampfzeit_s) }));
+  }
+  if (istZahl(abschnitt.vorbereitung_probe_s)) {
+    teile.push(t("vorbereitung_probe", { dauer: dauer(abschnitt.vorbereitung_probe_s) }));
+  }
+  if (abschnitt.probeschuesse === "unbegrenzt") {
+    teile.push(t("probeschuesse_unbegrenzt"));
+  } else if (abschnitt.probeschuesse === 0) {
+    teile.push(t("probeschuesse_keine"));
+  } else if (istZahl(abschnitt.probeschuesse)) {
+    teile.push(t("probeschuesse", { count: abschnitt.probeschuesse }));
   }
   if (istZahlenliste(abschnitt.zeiten_s)) {
     const sekunden = i18n.t("allgemein:einheit.sekunden", {

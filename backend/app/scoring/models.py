@@ -10,6 +10,7 @@ from app.scoring.numbers import (
     format_seconds_value,
     is_hundredths,
     plural,
+    to_tenths,
 )
 from app.scoring.plan import SectionPlan
 from app.scoring.registry import (
@@ -22,16 +23,31 @@ from app.scoring.registry import (
 from app.scoring.spec import ScoringSpec
 
 RING_TIE_BREAKERS = frozenset({"zehner", "innenzehner", "neuner_abwaerts"})
+# Weitere Kriterien, die nur das reine Ringmodell rechnet (Bedeutung: `ranking.py`).
+RING_DETAIL_TIE_BREAKERS = frozenset(
+    {
+        "letzte_serie_rueckwaerts",
+        "schuesse_rueckwaerts",
+        "ergebnis_zweite_haelfte",
+        "mehr_treffer",
+        "zehntel_gesamt",
+        "elfer",
+        "neuner",
+        "sechser",
+        "fuenfer",
+    }
+)
 
 
 @register_model
 class Rings(ScoringModel):
-    """Summe der Ringe, höher ist besser."""
+    """Summe der Ringe, höher ist besser. Mit `zehntelwertung` mit einer Nachkommastelle."""
 
     name = "ringe"
     direction = "absteigend"
     unit = "Ringe"
-    tie_breakers = RING_TIE_BREAKERS
+    parameters = frozenset({"zehntelwertung"})
+    tie_breakers = RING_TIE_BREAKERS | RING_DETAIL_TIE_BREAKERS
 
     def check_section(self, section: SectionPlan) -> list[str]:
         return [
@@ -44,11 +60,16 @@ class Rings(ScoringModel):
     def evaluate(self, scoring: ScoringSpec, sections: Sequence[SectionInput]) -> Evaluation:
         scores: list[SectionScore] = []
         steps: list[str] = []
+        tenths = bool(scoring.zehntelwertung)
         for section in sections:
             steps.extend(_ring_sum_step(section))
             rings = Decimal(section.rings)
+            if tenths:
+                rings = to_tenths(rings)
             scores.append(SectionScore(subtotal=rings, result=rings))
         score = _sum(score.result for score in scores)
+        if tenths:
+            score = to_tenths(score)
         steps.append(_result_step(sections, scores, score, self.unit))
         return Evaluation(sections=scores, score=score, steps=steps)
 
@@ -91,11 +112,13 @@ class RingsMinusTime(ScoringModel):
             for section in sections
         ]
         rings = sum(section.rings for section in sections)
-        ring_parts = [str(value) for section in sections for value in section.captured_rings]
+        ring_parts = [
+            format_number(value) for section in sections for value in section.captured_rings
+        ]
         times = [s.time_cs for section in sections for s in section.series if s.time_cs is not None]
         time_cs = sum(times)
 
-        steps = [_sum_text("Ringe", ring_parts, str(rings))]
+        steps = [_sum_text("Ringe", ring_parts, format_number(rings))]
         steps.append(_sum_text("Zeit", [format_cs(t) for t in times], format_cs(time_cs)))
         if scoring.zeit_rundung == "summe_abrunden":
             seconds = Decimal(time_cs // 100)
@@ -104,7 +127,8 @@ class RingsMinusTime(ScoringModel):
             seconds = cs_to_seconds(time_cs)
         score = Decimal(rings) - seconds
         steps.append(
-            f"Ergebnis: {rings} − {format_number(seconds)} = {format_number(score)} {self.unit}"
+            f"Ergebnis: {format_number(rings)} − {format_number(seconds)} = "
+            f"{format_number(score)} {self.unit}"
         )
         return Evaluation(sections=scores, score=score, steps=steps)
 
@@ -287,10 +311,13 @@ def _sum_text(label: str, parts: list[str], total: str) -> str:
 
 
 def _ring_sum_step(section: SectionInput) -> list[str]:
-    parts = [str(value) for value in section.captured_rings]
+    parts = [format_number(value) for value in section.captured_rings]
     if len(parts) < 2:
         return []
-    return [_sum_text(section.plan.name, parts, f"{section.rings} Ringe")]
+    rings = section.rings
+    if section.plan.tenths:
+        rings = to_tenths(Decimal(rings))
+    return [_sum_text(section.plan.name, parts, f"{format_number(rings)} Ringe")]
 
 
 def _result_step(

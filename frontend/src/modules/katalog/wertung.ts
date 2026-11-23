@@ -52,6 +52,16 @@ export function beschreibeWertung(
   if (typeof wertung.min_teilergebnis === "number") {
     saetze.push(t("min_teilergebnis", { wert: formatZahl(wertung.min_teilergebnis, {}, sprache) }));
   }
+  const offen = wertung as WertungOffen & {
+    zehntelwertung?: boolean | null;
+    stechen_bis_platz?: number | null;
+  };
+  if (offen.zehntelwertung === true) {
+    saetze.push(t("zehntelwertung"));
+  }
+  if (typeof offen.stechen_bis_platz === "number") {
+    saetze.push(t("stechen_bis_platz", { wert: formatZahl(offen.stechen_bis_platz, {}, sprache) }));
+  }
   if (
     wertung.zeit_rundung &&
     i18n.exists(`katalog:wertung.zeit_rundung.${wertung.zeit_rundung}`, { lng: sprache })
@@ -64,7 +74,7 @@ export function beschreibeWertung(
       ? wertung.gleichstand.map((kriterium) =>
           i18n.exists(`katalog:wertung.gleichstand.kriterium.${kriterium}`, { lng: sprache })
             ? t(`gleichstand.kriterium.${kriterium}`)
-            : kriterium,
+            : kriterium.replaceAll("_", " "),
         )
       : null;
 

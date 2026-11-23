@@ -43,6 +43,24 @@ describe("abschnittAlsText", () => {
     ).toBe("2 Serien · 10 Schuss · 5 Min.");
   });
 
+  it("beschreibt DSB-Gesamtzeit, Vorbereitung und Probeschüsse", () => {
+    expect(
+      abschnittAlsText(
+        abschnitt({
+          serien: 6,
+          schuss_je_serie: 10,
+          wettkampfzeit_s: 4500,
+          vorbereitung_probe_s: 900,
+          probeschuesse: "unbegrenzt",
+        }),
+      ),
+    ).toBe(
+      "6 Serien · 10 Schuss · Wettkampfzeit 75 Min. · 15 Min. Vorbereitung und Probe · Probeschüsse unbegrenzt",
+    );
+    expect(abschnittAlsText(abschnitt({ probeschuesse: 0 }))).toBe("1 Serie · ohne Probeschüsse");
+    expect(abschnittAlsText(abschnitt({ probeschuesse: 5 }))).toBe("1 Serie · 5 Probeschüsse");
+  });
+
   it("nutzt die Einzahl bei einer Serie und einem Ziel", () => {
     expect(abschnittAlsText(abschnitt({ serien: 1, schuss_je_serie: 5, ziele_je_serie: 1 }))).toBe(
       "1 Serie · 5 Schuss · 1 Ziel",

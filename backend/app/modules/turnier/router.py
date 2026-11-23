@@ -4,11 +4,15 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Request, Response, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import SessionDep
 from app.core.events import EventHubDep
 from app.core.security import Actor, require
-from app.modules.turnier import announcement, service
+from app.modules.turnier import announcement, copying, practice, service, tournament_templates
+from app.modules.turnier.models import Competition, Range, Tournament, TournamentClass
 from app.modules.turnier.schemas import (
     Announcement,
     AnnouncementDocument,
@@ -20,16 +24,22 @@ from app.modules.turnier.schemas import (
     CompetitionCreate,
     CompetitionOut,
     CompetitionUpdate,
+    CopiedCompetitionOut,
     DefinitionReset,
     Order,
+    PracticeExistsOut,
     RangeCreate,
     RangeOut,
     RangeUpdate,
     RevisionOut,
     StatusChange,
+    TournamentCopy,
+    TournamentCopyOut,
     TournamentCreate,
+    TournamentFromTemplate,
     TournamentOut,
     TournamentOverview,
+    TournamentTemplateOut,
     TournamentUpdate,
 )
 
@@ -59,6 +69,31 @@ def _competition(item: object) -> CompetitionOut:
     return CompetitionOut.model_validate(item)
 
 
+def _overview(
+    tournament: Tournament,
+    ranges: list[Range],
+    classes: list[TournamentClass],
+    competitions: list[Competition],
+) -> TournamentOverview:
+    return TournamentOverview.model_validate(
+        {
+            **TournamentOut.model_validate(tournament).model_dump(),
+            "ranges": [RangeOut.model_validate(item) for item in ranges],
+            "classes": [ClassOut.model_validate(item) for item in classes],
+            "competitions": [_competition(item) for item in competitions],
+        }
+    )
+
+
+async def _overview_of(session: AsyncSession, tournament_id: UUID) -> TournamentOverview:
+    return _overview(*await service.get_overview(session, tournament_id))
+
+
+def _person_index(request: Request) -> object:
+    """Suchindex der Teilnehmer (Modul `teilnehmer`), für die Übungspersonen."""
+    return request.app.state.person_index
+
+
 # --- Turnier -----------------------------------------------------------------
 
 
@@ -72,6 +107,62 @@ async def create_tournament(
     data: TournamentCreate, session: SessionDep, events: EventHubDep, _: Editor
 ) -> TournamentOut:
     return TournamentOut.model_validate(await service.create_tournament(session, events, data))
+
+
+@router.post(
+    "/from-template",
+    summary="Turnier aus einer fertigen Vorlage anlegen",
+    description=(
+        "Legt ein Turnier im Entwurf aus einer Vorlage von `GET /tournament-templates` an: "
+        "Grundeinstellungen, Stände, Klassen und Wettbewerbe. Die Wettbewerbe entstehen frisch "
+        "aus dem aktuellen Katalog (wie `POST …/competitions`). 422 bei unbekannter Vorlage, "
+        "409, wenn eine Kennziffer der Vorlage im Katalog fehlt (dann wird nichts angelegt). "
+        "Antwort: das Turnier mit Ständen, Klassen und Wettbewerben."
+    ),
+    status_code=status.HTTP_201_CREATED,
+    responses=CONFLICT,
+    **COMPETITION_RESPONSE,
+)
+async def create_from_template(
+    data: TournamentFromTemplate, session: SessionDep, events: EventHubDep, actor: Editor
+) -> TournamentOverview:
+    tournament = await tournament_templates.create_from_template(session, events, actor, data)
+    return await _overview_of(session, tournament.id)
+
+
+@router.post(
+    "/practice",
+    summary="Übungsturnier mit Beispieldaten anlegen",
+    description=(
+        "Legt das Übungsturnier an (`is_practice: true`, Status aktiv, heutiges Datum): zwei "
+        "Stände, drei Wettbewerbe aus dem Katalog (Fallscheibe Flinte 15 m 4401 und 4403 nach "
+        "Reihenfolge, Präzision 1001 nach Zeitplan mit Durchgängen um die aktuelle Uhrzeit), "
+        "zwölf erfundene Personen in drei erfundenen Vereinen (Mitgliedsnummer `ÜBUNG-…`, kein "
+        "Geburtsdatum) und Starts in allen Zuständen mit Ergebnissen, Korrektur und Abbruch – "
+        "alles über die echten Abläufe, also mit Wertung, Ranglisten und Protokoll. Es gibt "
+        "höchstens ein Übungsturnier: Ein zweiter Aufruf antwortet 409 mit `code` "
+        "`practice_exists` und der `tournament_id` des bestehenden. Entfernen mit "
+        "`DELETE /tournaments/{id}`."
+    ),
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        status.HTTP_409_CONFLICT: {
+            "description": "Es gibt schon ein Übungsturnier",
+            "model": PracticeExistsOut,
+        }
+    },
+    response_model=TournamentOverview,
+    **COMPETITION_RESPONSE,
+)
+async def create_practice(
+    request: Request, session: SessionDep, events: EventHubDep, actor: Editor
+) -> TournamentOverview | JSONResponse:
+    try:
+        tournament = await practice.create_practice(session, events, actor, _person_index(request))
+    except practice.PracticeExistsError as exc:
+        body = PracticeExistsOut(detail=str(exc), tournament_id=exc.tournament_id)
+        return JSONResponse(status_code=status.HTTP_409_CONFLICT, content=jsonable_encoder(body))
+    return await _overview_of(session, tournament.id)
 
 
 @router.get(TOURNAMENT, summary="Turnier", responses=NOT_FOUND)
@@ -119,15 +210,75 @@ async def change_status(
 
 @router.delete(
     TOURNAMENT,
-    summary="Turnier löschen (nur im Entwurf)",
+    summary="Turnier löschen (nur im Entwurf) oder Übung entfernen",
+    description=(
+        "Ein echtes Turnier lässt sich nur im Entwurf und ohne Anmeldungen löschen. Das "
+        "Übungsturnier (`is_practice`) wird in jedem Status entfernt, samt Anmeldungen, Starts, "
+        "Durchgängen, Ergebnissen mit Ereignisprotokoll, seinen Audit-Einträgen und den "
+        "Übungspersonen und -vereinen. Übungspersonen, die inzwischen in einem anderen Turnier "
+        "gemeldet sind, und Vereine mit echten Personen bleiben."
+    ),
     status_code=status.HTTP_204_NO_CONTENT,
     responses=WRITE,
 )
 async def delete_tournament(
-    tournament_id: UUID, session: SessionDep, events: EventHubDep, _: Editor
+    tournament_id: UUID, request: Request, session: SessionDep, events: EventHubDep, actor: Editor
 ) -> Response:
-    await service.delete_tournament(session, events, tournament_id)
+    tournament = await service.get_tournament(session, tournament_id)
+    if tournament.is_practice:
+        await practice.remove_practice(
+            session, events, actor, _person_index(request), tournament_id
+        )
+    else:
+        await service.delete_tournament(session, events, tournament_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    f"{TOURNAMENT}/copy",
+    summary="Turnier kopieren („wie letztes Jahr“)",
+    description=(
+        "Neues Turnier im Entwurf mit neuem Namen und Termin. Kopiert: Einstellungen, "
+        "Ausschreibung, Stände, Klassen samt Zusammenlegung, Wettbewerbe mit ihrer Definition "
+        "(auch bewusste Abweichungen vom Katalog), Startgeld und Mehrfachstart. Nicht kopiert: "
+        "Anmeldungen, Starts, Durchgänge, Ergebnisse, Revisionen (jeder Wettbewerb beginnt mit "
+        "Revision 1). Der Meldeschluss der Ausschreibung verschiebt sich um denselben Abstand "
+        "wie der Beginn; ohne `date_to` dauert die Kopie so lange wie das Original, ohne "
+        "`organizer` gilt der des Originals. Je Wettbewerb aus dem Katalog meldet "
+        "`catalog_changed`, ob sich der Katalog seit dem Anlegen im Original geändert hat; die "
+        "Kopie behält trotzdem die Definition des Originals (übernehmen: "
+        "`POST …/competitions/{id}/reset-definition`). Die Kopie eines Übungsturniers ist ein "
+        "normales Turnier ohne Teilnehmer."
+    ),
+    status_code=status.HTTP_201_CREATED,
+    responses=NOT_FOUND,
+    **COMPETITION_RESPONSE,
+)
+async def copy_tournament(
+    tournament_id: UUID,
+    data: TournamentCopy,
+    session: SessionDep,
+    events: EventHubDep,
+    actor: Editor,
+) -> TournamentCopyOut:
+    tournament, copied = await copying.copy_tournament(session, events, actor, tournament_id, data)
+    return TournamentCopyOut(
+        tournament=await _overview_of(session, tournament.id),
+        competitions=[
+            CopiedCompetitionOut(
+                id=item.competition.id,
+                source_id=item.source_id,
+                name=item.competition.name,
+                catalog_federation=item.competition.catalog_federation,
+                catalog_code=item.competition.catalog_code,
+                catalog_changed=item.catalog_changed,
+                catalog_stand_then=item.catalog_stand_then,
+                catalog_stand_now=item.catalog_stand_now,
+                catalog_diff=item.catalog_diff,
+            )
+            for item in copied
+        ],
+    )
 
 
 @router.get(
@@ -137,15 +288,7 @@ async def delete_tournament(
     **COMPETITION_RESPONSE,
 )
 async def get_overview(tournament_id: UUID, session: SessionDep, _: Reader) -> TournamentOverview:
-    tournament, ranges, classes, competitions = await service.get_overview(session, tournament_id)
-    return TournamentOverview.model_validate(
-        {
-            **TournamentOut.model_validate(tournament).model_dump(),
-            "ranges": [RangeOut.model_validate(item) for item in ranges],
-            "classes": [ClassOut.model_validate(item) for item in classes],
-            "competitions": [_competition(item) for item in competitions],
-        }
-    )
+    return await _overview_of(session, tournament_id)
 
 
 # --- Ausschreibung ------------------------------------------------------------
@@ -507,3 +650,28 @@ async def delete_competition(
 ) -> Response:
     await service.delete_competition(session, events, tournament_id, competition_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# --- Vorlagen ----------------------------------------------------------------
+
+templates_router = APIRouter(prefix="/tournament-templates", tags=["turnier"])
+
+
+@templates_router.get(
+    "",
+    summary="Fertige Turnier-Vorlagen",
+    description=(
+        "Vorlagen aus dem Repository (`app/modules/turnier/templates/`) mit Name, einem Satz "
+        "Beschreibung, Ständen und den enthaltenen Wettbewerben (Kennziffer und Name aus dem "
+        "aktuellen Katalog). `available: false`: Die Kennziffer fehlt im Katalog; dann lässt "
+        "sich die Vorlage nicht anlegen. Anlegen mit `POST /tournaments/from-template`."
+    ),
+)
+async def list_templates(session: SessionDep, _: Reader) -> list[TournamentTemplateOut]:
+    return await tournament_templates.list_templates(session)
+
+
+# Router des Moduls: Turniere und Vorlagen.
+module_router = APIRouter()
+module_router.include_router(router)
+module_router.include_router(templates_router)

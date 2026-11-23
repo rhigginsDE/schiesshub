@@ -2,16 +2,26 @@
 
 from collections import Counter
 from collections.abc import Mapping
+from decimal import Decimal
 from typing import Any
 
 from app.scoring.definition import Definition, check_capture_mode, load_definition
 from app.scoring.errors import InvalidRawError, Issue
-from app.scoring.numbers import format_cs, format_number, format_seconds_value, plural
-from app.scoring.plan import INNER_TEN, MAX_RING, SectionPlan, SeriesPlan, ring_value
+from app.scoring.numbers import format_cs, format_number, format_seconds_value, plural, to_tenths
+from app.scoring.plan import (
+    INNER_TEN,
+    MAX_RING,
+    SectionPlan,
+    SeriesPlan,
+    Shot,
+    ring_class,
+    ring_value,
+)
 from app.scoring.raw import RawSeries, read_raw, series_label
 from app.scoring.registry import SectionInput, SectionScore
 from app.scoring.results import ComputedResult, Progress, SectionResult, SeriesResult
 from app.scoring.status import FIXED_TIME, MALFUNCTION, NORMAL, STATUS_LABELS, UNFINISHED
+from app.scoring.tiebreak import criterion_values
 
 TIME_LIMIT_NOTE = (
     "Der Katalog legt dafür keine Wertung fest; die Zeit geht unverändert ein – "
@@ -117,13 +127,7 @@ def compute(
     )
     deductions = [s.deduction for s in evaluation.sections if s.deduction is not None]
     complete = all(s.complete for s in sections)
-    tie_values = {
-        "zehner": tally.tens,
-        "innenzehner": tally.inner_tens,
-        "neuner_abwaerts": tally.ring_counts,
-        "parcours_zeit": parcours_time,
-    }
-    return ComputedResult(
+    result = ComputedResult(
         model=defn.model.name,
         direction=defn.model.direction,
         unit=defn.model.unit,
@@ -138,7 +142,7 @@ def compute(
         penalty_cs=tally.penalty_cs,
         deduction=sum(deductions) if deductions else None,
         parcours_time_cs=parcours_time,
-        tie_breakers_missing=[c for c in defn.tie_breakers if tie_values[c] is None],
+        tie_breakers_missing=[],
         sections=sections,
         progress=Progress(
             shots_entered=sum(s.shots_entered for sec in inputs for s in sec.series),
@@ -150,7 +154,13 @@ def compute(
         ),
         steps=steps,
         warnings=warnings,
+        decimals=1 if defn.tenths else 0,
+        hits=tally.hits,
     )
+    # Gerechnete Gleichstandskriterien, für die Angaben fehlen (z. B. Seriensumme ohne Zehner).
+    evaluated, _ = defn.tie_chain
+    missing = [c for c in evaluated if None in criterion_values(defn, result, c)]
+    return result.model_copy(update={"tie_breakers_missing": missing})
 
 
 def _series_result(
@@ -175,13 +185,20 @@ def _series_result(
             penalty_cs=None,
             total_cs=None,
         )
-    rings = tens = inner_tens = None
+    rings: int | Decimal | None = None
+    tens = inner_tens = None
+    shot_values: list[int | Decimal] | None = None
     entered = 0
     if plan.rings and raw.shots is not None:
-        values = [ring_value(shot) for shot in raw.shots]
-        rings, entered = sum(values), len(values)
-        tens = values.count(MAX_RING)
-        inner_tens = raw.shots.count(INNER_TEN)
+        shot_values = [ring_value(shot) for shot in raw.shots]
+        rings, entered = sum(shot_values, 0), len(shot_values)
+        if plan.tenths:
+            # Zehner: jeder Schuss ab 10,0; Innenzehner gibt es nicht.
+            rings = to_tenths(Decimal(rings))
+            tens = sum(1 for value in shot_values if value >= MAX_RING)
+        else:
+            tens = shot_values.count(MAX_RING)
+            inner_tens = raw.shots.count(INNER_TEN)
     elif plan.rings and raw.total is not None:
         rings, entered, tens, inner_tens = raw.total, expected, raw.tens, raw.inner_tens
 
@@ -224,22 +241,29 @@ def _series_result(
         standing=raw.standing,
         penalty_cs=penalty,
         total_cs=total,
+        shot_values=shot_values,
     )
+
+
+def _shot_text(shot: Shot) -> str:
+    return shot if isinstance(shot, str) else format_number(shot)
 
 
 def _series_text(plan: SectionPlan, raw: RawSeries, result: SeriesResult) -> str:
     parts: list[str] = []
     if plan.rings and result.rings is not None:
+        rings = format_number(result.rings)
         if raw.shots is not None:
-            text = f"{result.rings} Ringe"
+            text = f"{rings} Ringe"
             if len(raw.shots) > 1:
-                text = f"{' + '.join(str(shot) for shot in raw.shots)} = {text}"
+                text = f"{' + '.join(_shot_text(shot) for shot in raw.shots)} = {text}"
             if result.shots_entered < result.shots_expected:
-                text += f" ({result.shots_entered} von {result.shots_expected} Schuss)"
+                unit = "Ziele" if plan.per_target else "Schuss"
+                text += f" ({result.shots_entered} von {result.shots_expected} {unit})"
             if result.status == UNFINISHED:
                 text = f"{STATUS_LABELS[UNFINISHED]} → {text}"
         else:
-            text = f"Seriensumme {result.rings} Ringe"
+            text = f"Seriensumme {rings} Ringe"
             if result.tens is not None:
                 text += f", {result.tens} Zehner"
             if result.inner_tens is not None:
@@ -338,19 +362,33 @@ class _Tally:
     def __init__(self) -> None:
         self.has_rings = False
         self.has_standing = False
-        self._rings = 0
+        self.tenths = False
+        self._rings: int | Decimal = 0
         self._tens: int | None = 0
         self._inner_tens: int | None = 0
         self._counts: Counter[int] | None = Counter()
+        self._hits: int | None = 0
+        self._high_values: set[int] = set()
         self._penalty = 0
 
     def add(self, plan: SectionPlan, raw: RawSeries | None, result: SeriesResult) -> None:
         self.has_rings |= plan.rings
         self.has_standing |= plan.standing
+        self.tenths |= plan.tenths
+        if plan.rings:
+            self._high_values.update(
+                value for value in plan.ring_values if isinstance(value, int) and value > MAX_RING
+            )
+            if plan.tenths:
+                self._inner_tens = None
         self._penalty += result.penalty_cs or 0
         if result.rings is None or raw is None:
             return
         self._rings += result.rings
+        if self._hits is not None and result.shot_values is not None:
+            self._hits += sum(1 for value in result.shot_values if value > 0)
+        else:
+            self._hits = None
         self._tens = None if self._tens is None or result.tens is None else self._tens + result.tens
         self._inner_tens = (
             None
@@ -358,13 +396,19 @@ class _Tally:
             else self._inner_tens + result.inner_tens
         )
         if self._counts is not None and raw.shots is not None:
-            self._counts.update(ring_value(shot) for shot in raw.shots)
+            self._counts.update(ring_class(shot) for shot in raw.shots)
         else:
             self._counts = None
 
     @property
-    def rings(self) -> int | None:
-        return self._rings if self.has_rings else None
+    def rings(self) -> int | Decimal | None:
+        if not self.has_rings:
+            return None
+        return to_tenths(Decimal(self._rings)) if self.tenths else self._rings
+
+    @property
+    def hits(self) -> int | None:
+        return self._hits if self.has_rings else None
 
     @property
     def tens(self) -> int | None:
@@ -378,7 +422,8 @@ class _Tally:
     def ring_counts(self) -> dict[int, int] | None:
         if not self.has_rings or self._counts is None:
             return None
-        return {value: self._counts[value] for value in range(MAX_RING, -1, -1)}
+        keys = [*sorted(self._high_values, reverse=True), *range(MAX_RING, -1, -1)]
+        return {value: self._counts[value] for value in keys}
 
     @property
     def penalty_cs(self) -> int | None:

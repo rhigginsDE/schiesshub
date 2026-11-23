@@ -65,11 +65,16 @@
     },
     "unsicher": "Angabe in der Quelle unsicher, bitte im Regelwerk nachsehen",
     "ablauf": "Ablauf",
-    "ablauf_je_serie": "Schuss-, Ziel- und Zeitangaben gelten je Serie.",
+    "ablauf_je_serie": "Schuss-, Ziel- und Zeitangaben gelten je Serie. Wettkampfzeit und Vorbereitung gelten für den ganzen Abschnitt.",
     "schuss_gesamt": "{{count}} Schuss gesamt",
     "wertung": "Wertung",
     "ungeprueft": "Noch nicht geprüft",
-    "ungeprueft_hinweis": "Ablauf und Wertung dieser Gruppe sind noch nicht mit dem Regelwerk abgeglichen. Vor einem Wettkampf im Sporthandbuch nachsehen.",
+    "finale": {
+      "titel_one": "Finale mit {{count}} Teilnehmer",
+      "titel_other": "Finale mit {{count}} Teilnehmern",
+      "quelle": "Regelwerk: {{abschnitt}}"
+    },
+    "ungeprueft_hinweis": "Ablauf und Wertung dieser Gruppe sind noch nicht mit dem Regelwerk abgeglichen. Vor einem Wettkampf im aktuellen Regelwerk des Verbands nachsehen.",
     "beschreibung": "Ablauf im Wortlaut des Katalogs",
     "kuerzel_titel": "Abkürzungen",
     "kuerzel": {
@@ -111,7 +116,14 @@
     "serien_gewertet_one": "davon {{count}} gewertet",
     "serien_gewertet_other": "davon {{count}} gewertet",
     "trefferaufnahme_nach_one": "Trefferaufnahme nach Serie {{liste}}",
-    "trefferaufnahme_nach_other": "Trefferaufnahme nach den Serien {{liste}}"
+    "trefferaufnahme_nach_other": "Trefferaufnahme nach den Serien {{liste}}",
+    "wettkampfzeit": "Wettkampfzeit {{dauer}}",
+    "vorbereitung_probe": "{{dauer}} Vorbereitung und Probe",
+    "probeschuesse_unbegrenzt": "Probeschüsse unbegrenzt",
+    "probeschuesse_keine": "ohne Probeschüsse",
+    "probeschuesse_one": "{{count}} Probeschuss",
+    "probeschuesse_other": "{{count}} Probeschüsse",
+    "wettkampfzeit_gesamt": "Wettkampfzeit gesamt {{dauer}}"
   },
   "wertung": {
     "modell": {
@@ -143,6 +155,8 @@
     "abzug_one": "Abzug: {{wert}} Ring je voller Sekunde über der Sollzeit.",
     "abzug_other": "Abzug: {{wert}} Ringe je voller Sekunde über der Sollzeit.",
     "min_teilergebnis": "Ein Teilergebnis kann nicht unter {{wert}} fallen.",
+    "zehntelwertung": "Gewertet wird in Zehnteln (0 und 1,0 bis 10,9).",
+    "stechen_bis_platz": "Bei Ringgleichheit auf den Plätzen 1 bis {{wert}} wird gestochen.",
     "zeit_rundung": {
       "summe_abrunden": "Die Summe der Serienzeiten wird vor dem Abzug auf volle Sekunden abgerundet."
     },
@@ -153,7 +167,10 @@
         "zehner": "die höhere Zahl der Zehner",
         "innenzehner": "die höhere Zahl der Innenzehner",
         "neuner_abwaerts": "die höhere Zahl der Neuner, dann der Achter und so weiter",
-        "parcours_zeit": "die niedrigere Parcourszeit"
+        "parcours_zeit": "die niedrigere Parcourszeit",
+        "letzte_serie_rueckwaerts": "das bessere Ergebnis der letzten Zehnerserie, dann der vorletzten und so weiter",
+        "stechen": "ein Stechen",
+        "zehntel_gesamt": "das höhere Ergebnis in Zehnteln"
       }
     }
   },
@@ -161,8 +178,10 @@
     "haltung": {
       "stehend": "stehend",
       "kniend": "kniend",
-      "liegend": "liegend"
+      "liegend": "liegend",
+      "sitzend": "sitzend"
     },
+    "aufgelegt": "aufgelegt",
     "hand": {
       "beidhaendig": "beidhändig",
       "einhaendig": "einhändig (Hand frei wählbar)",

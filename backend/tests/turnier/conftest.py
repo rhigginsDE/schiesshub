@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 import pytest
 
+from app.core import crypto
 from app.core.config import Settings
 from app.core.events import Event
 from app.main import create_app
@@ -49,3 +50,17 @@ async def api(clean_db: None, settings_for: Callable[[Path], Settings]) -> Async
         queue = app.state.events.subscribe()
         yield Api(client=client, events=queue)
         app.state.events.unsubscribe(queue)
+
+
+@pytest.fixture
+async def data_api(
+    clean_db: None, settings_for: Callable[[Path], Settings], tmp_path: Path
+) -> AsyncIterator[Api]:
+    """Wie `api`, aber mit eigenem Datenverzeichnis (Schlüssel für Personen, Mitschrift)."""
+    settings = settings_for(REAL_CATALOG_DIR).model_copy(update={"data_dir": tmp_path / "data"})
+    app = create_app(settings)
+    async with running(app) as client:
+        queue = app.state.events.subscribe()
+        yield Api(client=client, events=queue)
+        app.state.events.unsubscribe(queue)
+    crypto.set_field_cipher(None)

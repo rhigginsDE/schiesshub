@@ -2,7 +2,7 @@
 
 Zwei Cookies, beide HttpOnly und SameSite=Lax:
 - `schiesshub_device`: langlebiges Geräte-Token, gesetzt bei der Kopplung.
-- `schiesshub_session`: Sitzung einer Person auf diesem Gerät, gesetzt bei der Anmeldung.
+- `schiesshub_session`: Sitzung eines Benutzers auf diesem Gerät, gesetzt bei der Anmeldung.
 
 CSRF-Schutz: Schreibende Anfragen (alles außer GET, HEAD, OPTIONS) müssen den Header
 `X-Schiesshub-Request` mitschicken. Ein fremder Browser-Tab kann diesen Header nur nach einer
@@ -98,7 +98,7 @@ class Identity:
     device: Device | None = None
     session: AuthSession | None = None
     user: UserAccount | None = None
-    # Rolle der angemeldeten Person, sonst die Standardrolle des Geräts.
+    # Rolle des angemeldeten Benutzers, sonst die Standardrolle des Geräts.
     role: Role | None = None
     permissions: list[str] = field(default_factory=list)
     # Das Geräte-Token gehört zu einem gesperrten Gerät (`device` bleibt dann leer).
@@ -210,7 +210,7 @@ DEVICE_UNKNOWN_TEXT = (
     "Dieses Gerät ist nicht gekoppelt. Bitte das Gerät über einen QR-Code (neu) koppeln."
 )
 DEVICE_REVOKED_TEXT = (
-    "Dieses Gerät wurde gesperrt. Eine Person mit dem Recht, Geräte zu verwalten, kann es unter "
+    "Dieses Gerät wurde gesperrt. Ein Benutzer mit dem Recht, Geräte zu verwalten, kann es unter "
     "System → Geräte wieder freigeben oder einen neuen QR-Code zum Koppeln erzeugen."
 )
 SESSION_EXPIRED_TEXT = "Die Anmeldung ist abgelaufen. Bitte erneut mit der PIN anmelden."

@@ -1,4 +1,4 @@
-"""Tabellen für Geräte, Personen, Rollen, Sitzungen, Kopplungscodes und das Audit-Protokoll.
+"""Tabellen für Geräte, Benutzer, Rollen, Sitzungen, Kopplungscodes und das Audit-Protokoll.
 
 Geräte-Token, Sitzungs-Token und Kopplungscodes stehen nur als SHA-256-Hash in der Datenbank,
 PINs nur als Argon2id-Hash.
@@ -64,7 +64,7 @@ class Device(UUIDPrimaryKey, Timestamps, Base):
 
 
 class AuthSession(UUIDPrimaryKey, Timestamps, Base):
-    """Anmeldung einer Person an einem Gerät."""
+    """Anmeldung eines Benutzers an einem Gerät."""
 
     __tablename__ = "session"
 

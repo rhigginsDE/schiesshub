@@ -73,7 +73,6 @@ from app.modules.starts.schemas import LaneOut, RangeNowOut, StationStartOut
 from app.modules.starts.views import queue_view, range_now, startlist
 from app.modules.teilnehmer.names import abbreviate_name
 from app.modules.turnier.models import Competition, Range, Tournament
-from app.modules.turnier.service import catalog_diff_of
 
 OPEN_STATUSES = frozenset({"registered", "called"})
 DEFAULT_TITLES: dict[str, str] = {
@@ -104,17 +103,6 @@ class Context:
     provisional: bool = False
     tz: ZoneInfo = field(default_factory=lambda: zone(DEFAULT_TIMEZONE))
     _startlist: list[StationStartOut] | None = None
-    _deviations: dict[uuid.UUID, tuple[bool, list[str]]] = field(default_factory=dict)
-
-    async def deviations(self, competition: Competition) -> tuple[bool, list[str]]:
-        """„Abweichend vom Katalog“ und die Abweichungen als Text (einmal je Wettbewerb)."""
-        if competition.id not in self._deviations:
-            diff = await catalog_diff_of(self.session, competition)
-            self._deviations[competition.id] = (
-                diff.deviates,
-                [item.text for item in diff.differences],
-            )
-        return self._deviations[competition.id]
 
     # --- Namen ---------------------------------------------------------------
 
@@ -274,6 +262,8 @@ def _rank_row(context: Context, row: RankingRow) -> FeedRankRow:
         running=row.status == "running",
         provisional=provisional,
         abort_reason=row.abort_reason,
+        needs_shootoff=row.needs_shootoff,
+        tie_note=row.tie_note,
     )
 
 
@@ -365,7 +355,6 @@ async def _live_ranking(context: Context, scene: LiveRankingScene, pages: Pages)
                 )
             continue
         found = True
-        data.deviates, data.deviations = await context.deviations(competition)
         pages.scenes.append(
             FeedLiveRankingScene(
                 kind="live_ranking",
@@ -411,7 +400,6 @@ async def _winners(context: Context, scene: WinnersScene, pages: Pages) -> None:
                 )
             continue
         found = True
-        data.deviates, data.deviations = await context.deviations(competition)
         pages.scenes.append(
             FeedWinnersScene(
                 kind="winners",
@@ -454,7 +442,6 @@ async def _startlist(context: Context, scene: StartlistScene, pages: Pages) -> N
                 )
             continue
         found = True
-        deviates, deviations = await context.deviations(competition)
         range_ = context.ranges.get(competition.range_id) if competition.range_id else None
         pages.scenes.append(
             FeedStartlistScene(
@@ -472,8 +459,6 @@ async def _startlist(context: Context, scene: StartlistScene, pages: Pages) -> N
                     range_name=range_.name if range_ else None,
                     starts=[context.person(start) for start in starts[: scene.rows]],
                     more=max(len(starts) - scene.rows, 0),
-                    deviates=deviates,
-                    deviations=deviations,
                 ),
             )
         )
@@ -644,8 +629,7 @@ async def _range(context: Context, scene: RangeScene, pages: Pages) -> None:
         for competition_id in running:
             competition = by_id.get(competition_id)
             if competition is not None:
-                diff = await catalog_diff_of(context.session, competition)
-                procedure = build_procedure(competition, diff)
+                procedure = build_procedure(competition)
                 procedure.current = _current_positions(procedure, now.lanes)
                 procedures.append(procedure)
 

@@ -19,7 +19,11 @@ import type {
  */
 export function serienWert(serie: FeedSerie | undefined, sprache: string): string {
   if (!serie) return "–";
-  if (serie.rings != null) return formatZahl(serie.rings, {}, sprache);
+  if (serie.rings != null) {
+    // Zehntelwertung: Ringe mit Nachkommastelle kommen als Text ("20.1").
+    const zehntel = typeof serie.rings === "string";
+    return formatZahl(Number(serie.rings), zehntel ? { nachkommastellen: 1 } : {}, sprache);
+  }
   if (serie.total_cs != null) return formatHundertstel(serie.total_cs, sprache);
   if (serie.time_cs != null) return formatHundertstel(serie.time_cs, sprache);
   return "–";

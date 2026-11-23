@@ -194,7 +194,7 @@ def time_score_text(score: TimeScore) -> str:
 
     Geschützte Leerzeichen halten Zahl und Einheit („93,40 s“), „Sollzeit 80 s“ und „− 13“
     zusammen; muss die Zelle umbrechen, dann nur zwischen diesen Teilen."""
-    rings = str(score.rings) if score.rings is not None else "–"
+    rings = number(score.rings) if score.rings is not None else "–"
     if score.model == "ringe_minus_zeit":
         if score.time_cs is None or score.deduction is None:
             return ""
@@ -232,14 +232,6 @@ def _time_cells(score: TimeScore | None) -> tuple[Cell, ...]:
 
 
 TIME_HEADERS = ("Ringe vor Abzug", "Gesamtzeit", "Sollzeit", "Abzug")
-DEVIATION_LABEL = "Abweichend vom Katalog"
-
-
-def deviation_note(competition: CompetitionInfo) -> str | None:
-    """„Abweichend vom Katalog: Abschnitt Fallscheibe: 3 von 4 Serien gewertet“."""
-    if not competition.deviations:
-        return None
-    return f"{DEVIATION_LABEL}: {'; '.join(competition.deviations)}"
 
 
 # --- Siegerliste: Zuordnung --------------------------------------------------------------
@@ -268,6 +260,8 @@ def _winner_row(
         place=row.place,
         tied=row.tied,
         tie_unresolved=row.tie_unresolved,
+        tie_reason=row.tie_reason,
+        tie_note=row.tie_note,
         group=row.group,
         entry_id=row.entry_id,
         start_number=row.start_number,
@@ -360,7 +354,8 @@ def series_text(value: SeriesValue, *, typographic: bool = True) -> str:
     """Ringe, Zeit (mit Zuschlag) oder beides; gestrichene Serien in Klammern."""
     parts = []
     if value.rings is not None:
-        parts.append(str(value.rings))
+        # Zehntelwertung: „20,1“ (Dezimalkomma); ganze Ringe unverändert.
+        parts.append(number(value.rings))
     time = value.total_cs if value.total_cs is not None else value.time_cs
     if time is not None:
         parts.append(seconds(time, typographic=typographic))
@@ -433,7 +428,12 @@ def _row_notes(
     if row.abort_reason is None:
         notes.extend(_series_status_notes(row.series, headers))
     if row.tie_unresolved:
-        notes.append("Gleichstand nicht auflösbar")
+        # Stechen oder manuell zu entscheiden: der Hinweis der Rangliste; sonst wie bisher.
+        notes.append(
+            row.tie_note
+            if row.tie_reason in ("shootoff", "manual") and row.tie_note
+            else "Gleichstand nicht auflösbar"
+        )
     if mark_provisional and row.status == "provisional":
         notes.append("vorläufig")
     return notes
@@ -541,14 +541,10 @@ def winners_report(meta: Meta, sections: Sequence[WinnerSection]) -> Report:
                     empty_text="Noch keine abgeschlossenen Ergebnisse.",
                 )
             )
-        deviation = deviation_note(competition)
         notes_text = (
-            *((deviation,) if deviation else ()),
-            *(
-                (provisional_note(section.provisional_until, meta),)
-                if section.provisional_until is not None
-                else ()
-            ),
+            (provisional_note(section.provisional_until, meta),)
+            if section.provisional_until is not None
+            else ()
         )
         subtitle = f"Stand: {competition.range_name}" if competition.range_name else None
         out.append(Section(competition.title, subtitle, notes_text, tuple(tables)))
@@ -600,7 +596,6 @@ def winners_sheet(sections: Sequence[WinnerSection], tz: ZoneInfo | None = None)
             "Status",
             "Vorläufig bis",
             "Serienstatus",
-            DEVIATION_LABEL,
         )
     )
     for section in sections:
@@ -642,7 +637,6 @@ def winners_sheet(sections: Sequence[WinnerSection], tz: ZoneInfo | None = None)
                         if row.status == "provisional" and row.provisional_until
                         else None,
                         _series_status_cell(ordered),
-                        "; ".join(competition.deviations) or None,
                     )
                 )
     return sheet

@@ -2,9 +2,20 @@
 
 **Vergleichsschlüssel** (`rank_key`): eine Liste ganzer Zahlen, bei der überall *größer besser*
 ist. Erster Eintrag ist das Ergebnis in Hundertsteln (bei „aufsteigend“ negiert), danach je
-Gleichstandskriterium der Definition ein Wert (`neuner_abwaerts` ergibt neun Werte: Anzahl
-Neuner, Achter, …, Einer; `parcours_zeit` die negierte Parcourszeit in cs). Fehlt die Angabe für
-ein Kriterium (Seriensumme ohne Zehner), steht dort `None`.
+gerechnetem Gleichstandskriterium der Definition seine Werte (`tiebreak.py`; `neuner_abwaerts`
+ergibt neun Werte: Anzahl Neuner, Achter, …, Einer; `parcours_zeit` die negierte Parcourszeit in
+cs). Fehlt die Angabe für ein Kriterium (Seriensumme ohne Zehner), steht dort `None`.
+
+**Nicht gerechnete Kriterien:** `gleichstand` darf IDs enthalten, die die Wertung nicht rechnet
+(z. B. `abstand_letzter_schuss`, `stechen`). Gerechnet wird bis zur ersten solchen ID; bleiben
+Starts danach gleich, teilen sie sich den Platz mit `tie_reason="manual"` und dem Hinweis
+„Gleichstand nach Sportordnung manuell entscheiden“.
+
+**Stechen** (`stechen_bis_platz` N): Gleiches Ergebnis auf einem Platz bis N wird nicht nach
+`gleichstand` getrennt, sondern teilt sich den Platz mit `needs_shootoff` („Ringgleichheit auf
+Platz 2: Stechen“); das Stechen selbst erfasst die Wertung nicht. Maßgeblich ist der Platz, auf
+dem die gleichen Starts beginnen. `stechen` in `gleichstand` wird dann übersprungen, ab Platz
+N+1 gilt der Rest der Kette.
 
 **Gleichstand** (`rank`): Starts mit gleichem Ergebnis werden Kriterium für Kriterium getrennt.
 Fehlt bei einem der noch Gleichen der Wert des nächsten Kriteriums, endet die Trennung dort: Die
@@ -37,12 +48,11 @@ from pydantic import BaseModel, ConfigDict
 from app.scoring.definition import Definition, load_definition
 from app.scoring.numbers import to_hundredths
 from app.scoring.results import ComputedResult
+from app.scoring.tiebreak import criterion_slots, criterion_values
 
 RankKey = list[int | None]
 AbortReason = Literal["dns", "dnf", "dsq"]
 RankGroup = Literal["ranked", "last", "unranked"]
-
-NINES_DOWN = range(9, 0, -1)
 
 
 class _Frozen(BaseModel):
@@ -87,14 +97,38 @@ class RankPolicy(_Frozen):
         )
 
 
+TieReason = Literal["missing_data", "manual", "shootoff"]
+
+
+class TieRules(_Frozen):
+    """Gleichstandsregel einer Definition für `rank` (aus `tie_rules(definition)`)."""
+
+    criteria: list[str] = []
+    """Gerechnete Kriterien in Reihenfolge."""
+    slots: list[str] = []
+    """Kriterium je Stelle des Vergleichsschlüssels nach dem Ergebnis."""
+    manual_from: str | None = None
+    """Erstes Kriterium, das die Wertung nicht rechnet; ab dort manuell entscheiden."""
+    shootoff_until: int | None = None
+    """`stechen_bis_platz`."""
+
+
 class Placement(_Frozen):
     id: str
     place: int | None
     tied: bool
     """Platz wird mit anderen geteilt."""
     tie_unresolved: bool
-    """Geteilt, weil für ein Gleichstandskriterium Angaben fehlen."""
+    """Geteilt, aber nicht entschieden: Angaben fehlen, ein Kriterium ist von Hand zu prüfen
+    oder ein Stechen steht aus (`tie_reason`)."""
     group: RankGroup
+    tie_reason: TieReason | None = None
+    """`missing_data`: für `tie_criterion` fehlen Rohdaten; `manual`: `tie_criterion` rechnet die
+    Wertung nicht (nach Sportordnung entscheiden); `shootoff`: Stechen (`stechen_bis_platz`)."""
+    tie_criterion: str | None = None
+    needs_shootoff: bool = False
+    tie_note: str | None = None
+    """Hinweis für Listen und Anzeige, z. B. „Ringgleichheit auf Platz 2: Stechen“."""
 
 
 def rank_key(
@@ -112,25 +146,37 @@ def rank_key(
         )
     primary = to_hundredths(result.score)
     key: RankKey = [primary if defn.model.direction == "absteigend" else -primary]
-    for criterion in defn.tie_breakers:
-        match criterion:
-            case "zehner":
-                key.append(result.tens)
-            case "innenzehner":
-                key.append(result.inner_tens)
-            case "neuner_abwaerts":
-                counts = result.ring_counts
-                key.extend(None if counts is None else counts[value] for value in NINES_DOWN)
-            case "parcours_zeit":
-                time = result.parcours_time_cs
-                key.append(None if time is None else -time)
-            case _:
-                raise ValueError(f"Gleichstandskriterium „{criterion}“ ohne Vergleichswert")
+    evaluated, _ = defn.tie_chain
+    for criterion in evaluated:
+        key.extend(criterion_values(defn, result, criterion))
     return key
 
 
-def rank(contenders: Sequence[Contender], policy: RankPolicy | None = None) -> list[Placement]:
-    """Platzierungen in Listenreihenfolge (ranked, dann last, dann unranked)."""
+def tie_rules(definition: Mapping[str, Any] | Definition) -> TieRules:
+    """Was `rank` über die Gleichstandsregel der Definition wissen muss."""
+    defn = load_definition(definition)
+    evaluated, manual_from = defn.tie_chain
+    slots = [c for c in evaluated for _ in range(criterion_slots(defn, c))]
+    return TieRules(
+        criteria=evaluated,
+        slots=slots,
+        manual_from=manual_from,
+        shootoff_until=defn.scoring.stechen_bis_platz,
+    )
+
+
+def rank(
+    contenders: Sequence[Contender],
+    policy: RankPolicy | None = None,
+    rules: TieRules | None = None,
+) -> list[Placement]:
+    """Platzierungen in Listenreihenfolge (ranked, dann last, dann unranked).
+
+    Mit `rules` (aus `tie_rules(definition)`) zusätzlich: Stechen auf den Plätzen bis
+    `stechen_bis_platz` (nur reguläre Starts) und Hinweise, warum ein Gleichstand offen bleibt.
+    Ohne `rules` wie bisher (Gleichstand nach dem Schlüssel, `tie_unresolved` bei fehlenden
+    Angaben).
+    """
     policy = policy or RankPolicy()
     groups: dict[str, list[Contender]] = {"ranked": [], "last": [], "unranked": []}
     for contender in contenders:
@@ -142,14 +188,20 @@ def rank(contenders: Sequence[Contender], policy: RankPolicy | None = None) -> l
     placements: list[Placement] = []
     next_place = 1
     for group in ("ranked", "last"):
-        for members, unresolved in _tiers(groups[group], 0):
+        shootoff = rules.shootoff_until if rules is not None and group == "ranked" else None
+        for members, reason, criterion in _tiers(groups[group], 0, rules, next_place, shootoff):
+            tied = len(members) > 1
             placements.extend(
                 Placement(
                     id=member.id,
                     place=next_place,
-                    tied=len(members) > 1,
-                    tie_unresolved=unresolved,
+                    tied=tied,
+                    tie_unresolved=tied and reason is not None,
                     group=group,
+                    tie_reason=reason if tied else None,
+                    tie_criterion=criterion if tied else None,
+                    needs_shootoff=tied and reason == "shootoff",
+                    tie_note=_tie_note(reason, criterion, next_place) if tied else None,
                 )
                 for member in members
             )
@@ -231,19 +283,59 @@ def _check_keys(contenders: list[Contender]) -> None:
         raise ValueError("Vergleichsschlüssel unterschiedlich lang (verschiedene Definitionen?)")
 
 
-def _tiers(members: list[Contender], level: int) -> list[tuple[list[Contender], bool]]:
-    """Teilt Gleiche rekursiv nach dem nächsten Kriterium; liefert Gruppen in Rangfolge."""
-    if len(members) < 2 or level == len(members[0].key or []):
-        return [(members, False)] if members else []
+Tier = tuple[list[Contender], TieReason | None, str | None]
+
+
+def _tiers(
+    members: list[Contender],
+    level: int,
+    rules: TieRules | None = None,
+    first_place: int = 1,
+    shootoff_until: int | None = None,
+) -> list[Tier]:
+    """Teilt Gleiche rekursiv nach dem nächsten Kriterium; liefert Gruppen in Rangfolge mit dem
+    Grund, warum eine Gruppe mit mehreren gleich bleibt (None: alle Kriterien gleich)."""
+    if not members:
+        return []
+    length = len(members[0].key or [])
+    if len(members) < 2:
+        return [(members, None, None)]
+    if level == 1 and shootoff_until is not None and first_place <= shootoff_until:
+        return [(members, "shootoff", None)]
+    if level == length:
+        manual = rules.manual_from if rules is not None else None
+        return [(members, "manual" if manual else None, manual)]
     values = [(member.key or [])[level] for member in members]
     present = [value for value in values if value is not None]
     if len(present) < len(values):
-        return [(members, True)]
-    tiers: list[tuple[list[Contender], bool]] = []
+        slots = rules.slots if rules is not None else []
+        criterion = slots[level - 1] if 0 < level <= len(slots) else None
+        return [(members, "missing_data", criterion)]
+    tiers: list[Tier] = []
+    place = first_place
     for value in sorted(set(present), reverse=True):
         same = [m for m, v in zip(members, values, strict=True) if v == value]
-        tiers.extend(_tiers(same, level + 1))
+        tiers.extend(_tiers(same, level + 1, rules, place, shootoff_until))
+        place += len(same)
     return tiers
+
+
+def _tie_note(reason: TieReason | None, criterion: str | None, place: int) -> str | None:
+    match reason:
+        case "shootoff":
+            return f"Ringgleichheit auf Platz {place}: Stechen"
+        case "manual":
+            return (
+                "Gleichstand nach Sportordnung manuell entscheiden "
+                f"(nächstes Kriterium: {criterion})"
+            )
+        case "missing_data":
+            detail = f" für „{criterion}“" if criterion else ""
+            return (
+                f"Gleichstand nicht auflösbar: Angaben{detail} fehlen (z. B. Seriensumme statt "
+                "Einzelschüssen); nach Sportordnung manuell entscheiden"
+            )
+    return None
 
 
 def _compare(a: Contender, b: Contender, policy: RankPolicy) -> int:

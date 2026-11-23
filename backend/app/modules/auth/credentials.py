@@ -12,7 +12,7 @@ _CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"
 _CODE_LENGTH = 10
 
 _hasher = PasswordHasher()  # Argon2id mit den Standardparametern der Bibliothek
-# Vergleichswert für unbekannte Personen, damit jede falsche Anmeldung gleich lange dauert.
+# Vergleichswert für unbekannte Benutzer, damit jede falsche Anmeldung gleich lange dauert.
 _dummy_hash = _hasher.hash("0000")
 
 
@@ -38,7 +38,7 @@ async def hash_pin(pin: str) -> str:
 
 
 async def verify_pin(pin_hash: str | None, pin: str) -> bool:
-    """Prüft die PIN. Ohne Hash (unbekannte Person) wird gegen einen Platzhalter gerechnet."""
+    """Prüft die PIN. Ohne Hash (unbekannter Benutzer) wird gegen einen Platzhalter gerechnet."""
 
     def verify() -> bool:
         try:

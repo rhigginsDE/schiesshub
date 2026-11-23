@@ -280,6 +280,10 @@ class FeedRankRow(BaseModel):
     running: bool
     provisional: bool
     abort_reason: AbortReason | None
+    # Geteilter Platz, den ein Stechen entscheidet (`stechen_bis_platz`), und der Hinweis
+    # zu einem offenen Gleichstand („Ringgleichheit auf Platz 2: Stechen“), sonst null.
+    needs_shootoff: bool = False
+    tie_note: str | None = None
 
 
 class FeedRankGroup(BaseModel):
@@ -305,9 +309,6 @@ class FeedRanking(BaseModel):
     unit: str | None
     combined: bool
     groups: list[FeedRankGroup]
-    # „abweichend vom Katalog“ (wie `FeedProcedure`): Kennzeichen und Abweichungen als Text.
-    deviates: bool = False
-    deviations: list[str] = []
 
 
 class FeedStartlist(BaseModel):
@@ -322,9 +323,6 @@ class FeedStartlist(BaseModel):
     range_name: str | None
     starts: list[FeedPerson]
     more: int
-    # „abweichend vom Katalog“ (wie `FeedProcedure`): Kennzeichen und Abweichungen als Text.
-    deviates: bool = False
-    deviations: list[str] = []
 
 
 class FeedStance(BaseModel):
@@ -369,8 +367,6 @@ class FeedSection(BaseModel):
     time_measured: bool
     # Kurzbeschreibung, z. B. „2 Serien · je 5 Schuss · je 150 s“.
     summary: str
-    # Abweichungen vom Katalog in diesem Abschnitt (Texte).
-    deviations: list[str]
     series: list[FeedSeriesStep]
 
 
@@ -397,9 +393,6 @@ class FeedProcedure(BaseModel):
     scoring: str
     # Zusätzliche Regeln in Worten, z. B. „−1 Ring je volle Sekunde über der Sollzeit“.
     notes: list[str]
-    # Kennzeichen „abweichend vom Katalog“ und alle Abweichungen als Text.
-    deviates: bool
-    deviations: list[str]
     sections: list[FeedSection]
     # Je belegter Bahn dieses Wettbewerbs die laufende Serie (aus dem Erfassungsfortschritt;
     # aufgerufen ohne Eingabe: erste Serie). Fertig erfasste Bahnen fehlen.

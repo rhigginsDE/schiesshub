@@ -170,7 +170,9 @@ async def test_startlist_first_attempt_before_second(api: Api, setup: Setup) -> 
     assert mine == sorted(mine)
 
 
-async def test_ranking_and_startlist_carry_catalog_deviations(api: Api, setup: Setup) -> None:
+async def test_ranking_and_startlist_without_catalog_deviations(api: Api, setup: Setup) -> None:
+    """Abweichungen vom Katalog zeigt nur die Turnierverwaltung (Entscheidung vom 22.11.2026):
+    Die Feed-Szenen haben keine Felder `deviates`/`deviations` mehr."""
     fall = await api.competition(
         setup.tid,
         setup.range_id,
@@ -199,13 +201,12 @@ async def test_ranking_and_startlist_carry_catalog_deviations(api: Api, setup: S
     seen = set()
     for scene in scenes:
         data = scene.get("ranking") or scene.get("startlist")
-        seen.add((scene["kind"], data["competition_code"], data["deviates"]))
-        if data["competition_code"] == "4401":
-            assert data["deviations"], scene["kind"]
-            assert any("Serien" in text for text in data["deviations"])
-        else:
-            assert data["deviations"] == []
-    assert ("live_ranking", "4401", True) in seen
-    assert ("winners", "4401", True) in seen
-    assert ("startlist", "4401", True) in seen
-    assert ("live_ranking", None, False) in seen
+        seen.add((scene["kind"], data["competition_code"]))
+        assert "deviates" not in data, scene["kind"]
+        assert "deviations" not in data, scene["kind"]
+    assert ("live_ranking", "4401") in seen
+    assert ("winners", "4401") in seen
+    assert ("startlist", "4401") in seen
+    assert ("live_ranking", None) in seen
+    # Die Turnierverwaltung kennt die Abweichung weiterhin.
+    assert (await api.ok("GET", f"{url}/catalog-diff"))["deviates"] is True

@@ -1,7 +1,7 @@
-"""Ablauf einer Disziplin für die Standanzeige: Abschnitte, Serien, Positionen und Abweichungen.
+"""Ablauf einer Disziplin für die Standanzeige: Abschnitte, Serien und Positionen.
 
 Quelle ist die Definition des Wettbewerbs (die Kopie im Turnier, nicht der Katalog). Abweichungen
-vom Katalog liefert `turnier.service.catalog_diff_of`.
+vom Katalog zeigt die Anzeige nicht, nur die Turnierverwaltung (Entscheidung vom 22.11.2026).
 """
 
 from app.modules.anzeige.schemas import (
@@ -13,7 +13,7 @@ from app.modules.anzeige.schemas import (
 )
 from app.modules.katalog.fileformat import Abschnitt, Anschlag, Position, Wertung
 from app.modules.turnier.models import Competition
-from app.modules.turnier.schemas import CatalogDiffOut, CompetitionDefinition
+from app.modules.turnier.schemas import CompetitionDefinition
 
 HAND_TEXT = {
     "beidhaendig": "beidhändig",
@@ -135,13 +135,9 @@ def _notes(scoring: Wertung) -> list[str]:
     return notes
 
 
-def build_procedure(competition: Competition, diff: CatalogDiffOut) -> FeedProcedure:
+def build_procedure(competition: Competition) -> FeedProcedure:
     definition = CompetitionDefinition.model_validate(competition.definition)
     scoring = definition.scoring
-    by_section: dict[str, list[str]] = {}
-    for deviation in diff.differences:
-        if deviation.section_id is not None:
-            by_section.setdefault(deviation.section_id, []).append(deviation.text)
     sections = [
         FeedSection(
             id=section.id,
@@ -153,7 +149,6 @@ def build_procedure(competition: Competition, diff: CatalogDiffOut) -> FeedProce
             target_time_s=section.sollzeit_s,
             time_measured=bool(section.zeit_wird_gemessen),
             summary=_summary(section),
-            deviations=by_section.get(section.id, []),
             series=_series(section),
         )
         for section in definition.variant.abschnitte
@@ -167,7 +162,5 @@ def build_procedure(competition: Competition, diff: CatalogDiffOut) -> FeedProce
         description=definition.ablauf_beschreibung,
         scoring=f"{MODEL_TEXT[scoring.modell]}, {DIRECTION_TEXT[scoring.rangfolge]}",
         notes=_notes(scoring),
-        deviates=diff.deviates,
-        deviations=[deviation.text for deviation in diff.differences],
         sections=sections,
     )

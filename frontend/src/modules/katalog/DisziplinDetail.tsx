@@ -8,11 +8,19 @@ import type { DisziplinDetail as DisziplinDetailDaten, Variante } from "../../ap
 import { PositionsAblauf } from "../../components/anschlag/PositionsAblauf";
 import { Chip } from "../../components/Chip";
 import { Fehlerzustand, Leerzustand } from "../../components/Zustand";
+import { formatDauer } from "../../lib/format";
 import { beschreibeAbschnitt, schussGesamt } from "./ablauf";
 import s from "./katalog.module.css";
 import { verwendeteKuerzel } from "./kuerzel";
 import { AUSHANG_PFAD, KATALOG_PFAD, type KatalogSuche } from "./pfade";
 import { beschreibeWertung } from "./wertung";
+
+/** Finale bzw. Endkampf eines Ablaufs (DSB), nur zur Information. */
+interface Finale {
+  teilnehmer: number;
+  hinweis?: string | null;
+  abschnitt?: string | null;
+}
 
 /** Platzhalter in der Detailspalte, solange keine Disziplin gewählt ist (nur auf breiten Bildschirmen sichtbar). */
 export function KeineAuswahl() {
@@ -83,8 +91,10 @@ function Inhalt({ disziplin }: { disziplin: DisziplinDetailDaten }) {
   const wertung = beschreibeWertung(disziplin.wertung, sprache);
   const unsicher = new Set(disziplin.pruefen ?? []);
   const ungeprueft = !disziplin.wertung.geprueft;
+  const finale = (disziplin.ablauf as { finale?: Finale | null }).finale;
   const kuerzel = verwendeteKuerzel(
     [...STAMMDATEN.map((feld) => disziplin[feld]), disziplin.ablauf.beschreibung].join(" "),
+    disziplin.verband,
   );
 
   return (
@@ -152,6 +162,17 @@ function Inhalt({ disziplin }: { disziplin: DisziplinDetailDaten }) {
             <p className="gedaempft">{t("wertung.gleichstand.keine_regel")}</p>
           )}
         </div>
+        {finale && (
+          <div className={`inset ${s.wertung}`}>
+            <strong>{t("detail.finale.titel", { count: finale.teilnehmer })}</strong>
+            {finale.hinweis && <p>{finale.hinweis}</p>}
+            {finale.abschnitt && (
+              <p className="gedaempft">
+                {t("detail.finale.quelle", { abschnitt: finale.abschnitt })}
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       <section className={s.abschnitt} aria-labelledby="detail-stammdaten">
@@ -245,6 +266,8 @@ function VarianteKarte({ variante, sprache, mitName }: VarianteKarteProps) {
   const { t } = useTranslation("katalog");
   const gesamt = schussGesamt(variante);
   const mitAbschnittName = variante.abschnitte.length > 1;
+  const gesamtzeit = (variante as { wettkampfzeit_gesamt_s?: number | null })
+    .wettkampfzeit_gesamt_s;
 
   return (
     <li className={`inset ${s.variante}`}>
@@ -272,6 +295,11 @@ function VarianteKarte({ variante, sprache, mitName }: VarianteKarteProps) {
           </li>
         ))}
       </ul>
+      {typeof gesamtzeit === "number" && (
+        <p className={s.hinweis}>
+          {t("ablauf.wettkampfzeit_gesamt", { dauer: formatDauer(gesamtzeit, sprache) })}
+        </p>
+      )}
     </li>
   );
 }

@@ -29,11 +29,12 @@ class SectionInput:
     """Name für den Rechenweg; leer, wenn die Variante nur einen Abschnitt hat."""
 
     @property
-    def rings(self) -> int:
-        return sum(series.rings or 0 for series in self.series)
+    def rings(self) -> int | Decimal:
+        """Ringe der gewerteten Serien; bei Zehntelwertung `Decimal`."""
+        return sum((series.rings or 0 for series in self.series), 0)
 
     @property
-    def captured_rings(self) -> list[int]:
+    def captured_rings(self) -> list[int | Decimal]:
         return [s.rings for s in self.series if s.captured and s.rings is not None]
 
 
@@ -72,7 +73,9 @@ class ScoringModel(ABC):
             )
         for parameter in MODEL_PARAMETERS:
             value = getattr(scoring, parameter)
-            if value is not None and parameter not in self.parameters:
+            # `false` ist bei Schaltern die Grundeinstellung und bei jedem Modell erlaubt.
+            given = value is not None and value is not False
+            if given and parameter not in self.parameters:
                 problems.append(
                     f"scoring.{parameter}: wird vom Modell „{self.name}“ nicht ausgewertet"
                 )
@@ -80,13 +83,9 @@ class ScoringModel(ABC):
                 problems.append(f"scoring.{parameter}: Pflichtangabe für Modell „{self.name}“")
         criteria = scoring.gleichstand or []
         for index, criterion in enumerate(criteria):
+            # Unbekannte IDs sind erlaubt (manuell zu entscheiden); bekannte müssen passen.
             path = f"scoring.gleichstand[{index}]"
-            if criterion not in TIE_BREAKERS:
-                problems.append(
-                    f"{path}: unbekanntes Gleichstandskriterium „{criterion}“ "
-                    f"(bekannt: {', '.join(TIE_BREAKERS)})"
-                )
-            elif criterion not in self.tie_breakers:
+            if criterion in TIE_BREAKERS and criterion not in self.tie_breakers:
                 problems.append(
                     f"{path}: „{criterion}“ ist beim Modell „{self.name}“ nicht anwendbar"
                 )

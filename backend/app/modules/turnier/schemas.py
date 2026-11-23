@@ -140,6 +140,9 @@ class TournamentOut(BaseModel):
     status: TournamentStatus
     template: Template
     settings: TournamentSettings
+    # Übungsturnier mit Beispieldaten (`POST /tournaments/practice`); Oberfläche und Exporte
+    # kennzeichnen es als „Übung“.
+    is_practice: bool
     created_at: datetime
     updated_at: datetime
 
@@ -399,6 +402,95 @@ class TournamentOverview(TournamentOut):
     ranges: list[RangeOut]
     classes: list[ClassOut]
     competitions: list[CompetitionOut]
+
+
+# --- Kopieren, Vorlagen, Übung ---------------------------------------------------
+
+
+class TournamentCopy(StrictModel):
+    """Neues Turnier „wie letztes Jahr“: Name und Termin neu, alles andere vom Original."""
+
+    name: Name
+    date_from: IsoDate
+    # Ohne Angabe: so viele Tage wie das Original.
+    date_to: IsoDate | None = None
+    # Ohne Angabe: Veranstalter des Originals; `null` lässt ihn leer.
+    organizer: Name | None = None
+
+
+class CopiedCompetitionOut(BaseModel):
+    """Ein kopierter Wettbewerb und wie er zum aktuellen Katalog steht."""
+
+    id: UUID
+    # Wettbewerb im Original.
+    source_id: UUID
+    name: str
+    catalog_federation: str | None
+    catalog_code: str | None
+    # Der Katalog hat sich geändert, seit der Wettbewerb im Original aus ihm angelegt wurde (oder
+    # es gibt die Disziplin/Variante dort nicht mehr). Die Kopie behält trotzdem die Definition
+    # des Originals; übernehmen geht mit `POST …/competitions/{id}/reset-definition`.
+    # Immer false ohne Katalogherkunft.
+    catalog_changed: bool
+    # Stand des Regelwerks bei der Übernahme ins Original und heute.
+    catalog_stand_then: date | None = None
+    catalog_stand_now: date | None = None
+    # Alle Abweichungen der Kopie vom aktuellen Katalog: bewusste Abweichungen des Originals
+    # und Änderungen des Katalogs (wie `GET …/catalog-diff`).
+    catalog_diff: CatalogDiffOut
+
+
+class TournamentCopyOut(BaseModel):
+    tournament: TournamentOverview
+    competitions: list[CopiedCompetitionOut]
+
+
+class TemplateRangeOut(BaseModel):
+    name: str
+    lane_count: int
+
+
+class TemplateCompetitionOut(BaseModel):
+    catalog_federation: str
+    catalog_code: str
+    # Name aus dem aktuellen Katalog; leer, wenn es die Disziplin dort nicht gibt.
+    name: str | None
+    # false: Die Kennziffer (oder Variante) fehlt im aktuellen Katalog; die Vorlage lässt sich
+    # dann nicht anlegen.
+    available: bool
+
+
+class TournamentTemplateOut(BaseModel):
+    """Fertige Vorlage: Stände, Klassen und Wettbewerbe aus dem aktuellen Katalog."""
+
+    id: str
+    name: str
+    # Ein Satz, was die Vorlage mitbringt.
+    description: str
+    # Grundeinstellungen der Vorlage (siehe `TournamentCreate.template`).
+    template: Template
+    # Verband, dessen Klassen übernommen werden; leer: keine Klassen.
+    classes_federation: str | None
+    ranges: list[TemplateRangeOut]
+    competitions: list[TemplateCompetitionOut]
+
+
+class TournamentFromTemplate(StrictModel):
+    template_id: Annotated[str, Field(min_length=1, max_length=80)]
+    name: Name
+    date_from: IsoDate
+    # Ohne Angabe: eintägig.
+    date_to: IsoDate | None = None
+    organizer: Name | None = None
+
+
+class PracticeExistsOut(BaseModel):
+    """HTTP 409: Es gibt schon ein Übungsturnier."""
+
+    detail: str
+    code: Literal["practice_exists"] = "practice_exists"
+    # Das bestehende Übungsturnier.
+    tournament_id: UUID
 
 
 # --- Ausschreibung -------------------------------------------------------------
