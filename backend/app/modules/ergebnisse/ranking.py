@@ -16,7 +16,12 @@ nur ausgewählt, gruppiert und dargestellt. Personen erscheinen nur so, wie sie 
   Wertungswert (Abbruch im Probeschießen, „AB“) und Abbrüche, deren Ergebnis sich nicht
   vergleichen lässt (`abort_note`). Sie stehen am Ende ihrer Gruppe (`group=unranked`), mit
   `include_aborted=false` gar nicht.
-- Formelle Wörter (Abbruchgrund, Gleichheit) kommen aus `begriffe.py`.
+- Formelle Wörter (Abbruchgrund, Gleichheit, Titel) kommen aus `begriffe.py`, je Wettbewerb nach
+  dem Begriffssatz seines Verbands (`catalog_federation`).
+- `abort_remark`: Bemerkung der Bedienung beim Abbrechen (nur in dieser Rangliste, nicht in
+  Anzeige und Export).
+- Einheit: aus der aktuellen Definition („Treffer“ bei reiner Trefferzählung); ein gespeichertes
+  Ergebnis mit anderer Einheit wird beim Lesen angeglichen.
 - `scope=final`: abgeschlossene Ergebnisse und Abbrüche; ein unvollständiges Ergebnis (nach
   einer Änderung der Wertung) steht ohne Platz da.
 - `scope=live`: zusätzlich laufende Zwischenstände (Status `registered`/`called`/`captured` mit
@@ -38,6 +43,7 @@ from typing import Literal
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.begriffe import Begriffe
 from app.modules.ergebnisse import begriffe
 from app.modules.ergebnisse.models import ResultCurrent
 from app.modules.ergebnisse.recompute import ensure_current
@@ -53,7 +59,12 @@ from app.modules.ergebnisse.schemas import (
     SeriesPart,
     StatusCounts,
 )
-from app.modules.ergebnisse.service import competition_of, is_provisional, server_now
+from app.modules.ergebnisse.service import (
+    abort_remarks,
+    competition_of,
+    is_provisional,
+    server_now,
+)
 from app.modules.starts.common import get_tournament
 from app.modules.starts.models import Entry, Start
 from app.modules.teilnehmer.models import Club, Person
@@ -62,14 +73,17 @@ from app.modules.turnier.models import Competition, TournamentClass
 from app.scoring import (
     ComputedResult,
     Contender,
+    Definition,
     DefinitionError,
     Placement,
     RankPolicy,
     TieRules,
     best_of,
+    load_definition,
     rank,
     tie_rules,
 )
+from app.scoring.numbers import format_number
 
 Scope = Literal["final", "live"]
 
@@ -91,6 +105,8 @@ class Candidate:
     status: RowStatus
     aborted: AbortedEvaluation | None = None
     """Nur bei aufgegebenen Starts (`dnf`): Wertung nach K 1.14 / L 1.12."""
+    abort_remark: str | None = None
+    """Bemerkung beim Abbrechen (Grund des Ereignisses `aborted`)."""
 
     @property
     def abort_placed(self) -> bool:
@@ -178,7 +194,10 @@ def _series(computed: ComputedResult | None) -> list[SeriesPart]:
 
 
 def _row(
-    candidate: Candidate, placement: Placement | None, tie_word: str = begriffe.NEUTRAL_TIE
+    candidate: Candidate,
+    placement: Placement | None,
+    tie_word: str = begriffe.NEUTRAL_TIE,
+    terms: Begriffe | None = None,
 ) -> RankingRow:
     computed = candidate.computed
     person = candidate.person
@@ -213,13 +232,14 @@ def _row(
         status=candidate.status,
         abort_reason=candidate.start.abort_reason,
         provisional_until=candidate.current.provisional_until if candidate.current else None,
-        abort_label=begriffe.abort_label(candidate.start.abort_reason),
+        abort_label=begriffe.abort_label(candidate.start.abort_reason, terms),
         abort_note=candidate.abort_note,
+        abort_remark=candidate.abort_remark if candidate.start.abort_reason else None,
     )
 
 
 async def _candidates(
-    session: AsyncSession, competition: Competition, now: datetime
+    session: AsyncSession, competition: Competition, now: datetime, unit: str | None = None
 ) -> list[Candidate]:
     rows = await session.execute(
         select(Start, Entry, Person, Club.name, TournamentClass, ResultCurrent)
@@ -242,6 +262,10 @@ async def _candidates(
         aborted = aborted_evaluation(competition, start.abort_reason, current)
         if aborted is not None and aborted.placed:
             computed, key = aborted.computed, aborted.rank_keys
+        if computed is not None and unit is not None and computed.unit != unit:
+            computed = computed.model_copy(
+                update={"unit": unit, "score_text": f"{format_number(computed.score)} {unit}"}
+            )
         candidates.append(
             Candidate(
                 start,
@@ -334,10 +358,18 @@ async def _ranking(
             )
         )
     }
-    every = await _candidates(session, competition, now)
+    defn = _definition(competition)
+    unit = defn.unit if defn is not None else None
+    every = await _candidates(session, competition, now, unit)
+    remarks = await abort_remarks(
+        session, [c.start.id for c in every if c.start.abort_reason is not None]
+    )
+    for candidate in every:
+        candidate.abort_remark = remarks.get(candidate.start.id)
     rule = competition.multi_start_rule
-    rules = _tie_rules(competition)
-    word = _tie_word(competition)
+    rules = tie_rules(defn) if defn is not None else None
+    terms = begriffe.terms_for(competition.catalog_federation)
+    word = _tie_word(competition, defn, terms)
 
     # Gruppen gibt es für jede Klasse mit Starts, auch wenn noch kein Ergebnis zählt.
     def group_of(candidate: Candidate) -> uuid.UUID | None:
@@ -368,7 +400,7 @@ async def _ranking(
     )
     for group_key in order:
         members = grouped.get(group_key, [])
-        rows = _rank_group(members, rule, policy, rules, word)
+        rows = _rank_group(members, rule, policy, rules, word, terms)
         if competition.combined_ranking and class_id is not None:
             rows = [row for row in rows if row.class_id == class_id]
         group_class = classes.get(group_key) if group_key is not None else None
@@ -393,25 +425,37 @@ async def _ranking(
         combined=competition.combined_ranking,
         multi_start_rule=rule,
         direction=sample.direction if sample else None,
-        unit=sample.unit if sample else None,
+        unit=(unit or sample.unit) if sample else None,
         generated_at=now,
         groups=groups,
         tie_word=word,
+        federation=_federation(competition),
+        result_list_title=terms.ergebnisliste,
     )
 
 
-def _tie_rules(competition: Competition) -> TieRules | None:
-    """Gleichstandsregel der aktuellen Definition; None, wenn die Wertung sie nicht lesen kann
-    (die Ergebnisse stehen dann ohnehin zum Prüfen an)."""
+def _definition(competition: Competition) -> Definition | None:
+    """Aktuelle Definition der Wertung; None, wenn die Wertung sie nicht lesen kann (die
+    Ergebnisse stehen dann ohnehin zum Prüfen an)."""
     try:
-        return tie_rules(scoring_definition(competition.definition))
+        return load_definition(scoring_definition(competition.definition))
     except DefinitionError, KeyError, TypeError:
         return None
 
 
-def _tie_word(competition: Competition) -> str:
+def _federation(competition: Competition) -> str | None:
+    federation = (competition.catalog_federation or "").strip().lower()
+    return federation or None
+
+
+def _tie_word(competition: Competition, defn: Definition | None, terms: Begriffe) -> str:
     scoring = (competition.definition or {}).get("scoring") or {}
-    return begriffe.tie_word(scoring.get("modell"), scoring.get("gleichstand") or ())
+    return begriffe.tie_word(
+        scoring.get("modell"),
+        scoring.get("gleichstand") or (),
+        terms,
+        hits_only=defn is not None and defn.hits_only,
+    )
 
 
 def _rank_group(
@@ -420,6 +464,7 @@ def _rank_group(
     policy: RankPolicy,
     rules: TieRules | None = None,
     tie_word: str = begriffe.NEUTRAL_TIE,
+    terms: Begriffe | None = None,
 ) -> list[RankingRow]:
     rankable = [c for c in members if c.rankable]
     unrankable = [c for c in members if not c.rankable]
@@ -433,14 +478,14 @@ def _rank_group(
         if lengths and lengths != {1 + len(rules.slots)}:
             rules = None
     placements = rank(contenders, policy, rules)
-    rows = [_row(by_id[placement.id], placement, tie_word) for placement in placements]
+    rows = [_row(by_id[placement.id], placement, tie_word, terms) for placement in placements]
     # Nach einer Änderung der Wertung nicht wertbar: ohne Platz, zum Prüfen – vor den
     # Abgebrochenen ohne Platz, die immer am Ende stehen.
     cut = next(
         (i for i, row in enumerate(rows) if row.abort_reason is not None and row.place is None),
         len(rows),
     )
-    rows[cut:cut] = [_row(candidate, None, tie_word) for candidate in unrankable]
+    rows[cut:cut] = [_row(candidate, None, tie_word, terms) for candidate in unrankable]
     return rows
 
 

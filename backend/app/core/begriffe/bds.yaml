@@ -11,6 +11,8 @@ begriffe:
   # K 1.14 (S. K-6), L 1.12 (S. L-5): „Ergebnislisten“ (das SHB nutzt nur den Plural).
   # „Siegerliste“ kommt nicht vor.
   ergebnisliste: "Ergebnisliste"
+  # K 1.14 (S. K-6), L 1.12 (S. L-5)
+  ergebnislisten: "Ergebnislisten"
   # A 7.02 (S. A-18)
   startliste: "Startliste"
   # L 6.05 (S. L-34)
@@ -26,10 +28,17 @@ begriffe:
   schuetzenstaende: "Schützenstände"
   # A 9.09 (S. A-23)
   durchgang: "Durchgang"
+  # K 3.09 (S. K-15), L 7.08 (S. L-43): „in getrennten Durchgängen“
+  durchgaenge: "Durchgänge"
   # L 11.04 (S. L-61), L 12.04 (S. L-69)
   durchgangszeit: "Durchgangszeit"
   # K 1.10 (S. K-4), K 5.03 (S. K-20), A 9.05 (S. A-23); Kom. S. 77 (Glossar)
   wertungsserie: "Wertungsserie"
+  # K 1.10 (S. K-4), A 9.05 (S. A-23): „Wertungsserien“
+  wertungsserien: "Wertungsserien"
+  # K 3.03 (S. K-14), A 9.05 (S. A-23): „Serie“, „Serien“ („2 Serien Präzision zu je 10 Schuss“)
+  serie: "Serie"
+  serien: "Serien"
   # L 2.08 (S. L-18): „Wertungsschüsse“
   wertungsschuesse: "Wertungsschüsse"
   # A 9.06 (S. A-23), K 1.11 (S. K-4/K-5)
@@ -70,4 +79,6 @@ begriffe:
   startgeld: "Startgeld"
   # A 3.08 (S. A-7/A-8): „Wettbewerbsklassen“; Glossar Kom. S. 77
   klasse: "Wettbewerbsklasse"
+  # A 3.08 (S. A-7/A-8): „Wettbewerbsklassen“
+  klassen: "Wettbewerbsklassen"
   # kennziffer: in bds-begriffe.md nicht belegt → Standard.

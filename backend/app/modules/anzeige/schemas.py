@@ -228,6 +228,8 @@ class FeedHeader(BaseModel):
     tournament_mode: Literal["fixed", "auto"]
     # Ortszeit des Turniers (IANA-Name); die `*_local`-Felder im Feed stehen in dieser Zone.
     timezone: str
+    # Übungsturnier (Kennzeichen „Übung“); false ohne Turnier.
+    is_practice: bool = False
 
 
 class FeedWarning(BaseModel):
@@ -252,6 +254,9 @@ class FeedPerson(BaseModel):
     status: StartStatus
     # Bei `status: aborted`: nicht angetreten (dns), aufgegeben (dnf), disqualifiziert (dsq).
     abort_reason: AbortReason | None = None
+    # Fertiger Text zum Abbruchgrund nach dem Verband des Wettbewerbs („Abbruch (AB)“, „nicht
+    # angetreten“, „disqualifiziert“); null, wenn der Start nicht abgebrochen ist.
+    abort_label: str | None = None
     lane: int | None
     heat_number: int | None
     heat_starts_at: datetime | None
@@ -286,6 +291,13 @@ class FeedRankRow(BaseModel):
     # Geteilter Platz, den ein Stechen entscheidet (`stechen_bis_platz`), und der Hinweis
     # zu einem offenen geteilten Platz („Ringgleichheit auf Platz 2: Stechen“), sonst null.
     needs_shootoff: bool = False
+    # Warum ein Platz geteilt ist (wie `RankingRow.tie_reason`): missing_data, manual, shootoff,
+    # max_score (Höchstergebnis, gleicher Platz nach Regel); null ohne geteilten Platz bzw. wenn
+    # alle Kriterien gerechnet und gleich sind.
+    tie_reason: Literal["missing_data", "manual", "shootoff", "max_score"] | None = None
+    # Geteilt und nicht entschieden (manual, missing_data, shootoff); false bei max_score
+    # (gleicher Platz nach Regel) und ohne geteilten Platz.
+    tie_unresolved: bool = False
     tie_note: str | None = None
     # Fertiger Text zum Abbruchgrund für die Anzeige: „Abbruch (AB)“, „nicht angetreten“,
     # „disqualifiziert“; null ohne Abbruch.
@@ -320,6 +332,11 @@ class FeedRanking(BaseModel):
     unit: str | None
     combined: bool
     groups: list[FeedRankGroup]
+    # Wort für gleiche Ergebnisse dieses Wettbewerbs (wie `RankingOut.tie_word`).
+    tie_word: str = "gleiches Ergebnis"
+    # Verband des Katalogs (`catalog_federation`, klein); null bei eigener Disziplin. Wählt den
+    # Begriffssatz (`GET /system/terms`).
+    federation: str | None = None
 
 
 class FeedStartlist(BaseModel):
@@ -334,6 +351,8 @@ class FeedStartlist(BaseModel):
     range_name: str | None
     starts: list[FeedPerson]
     more: int
+    # Verband des Katalogs (klein); null bei eigener Disziplin.
+    federation: str | None = None
 
 
 class FeedStance(BaseModel):
@@ -405,6 +424,8 @@ class FeedProcedure(BaseModel):
     # Zusätzliche Regeln in Worten, z. B. „−1 Ring je volle Sekunde über der Sollzeit“.
     notes: list[str]
     sections: list[FeedSection]
+    # Verband des Katalogs (klein); null bei eigener Disziplin.
+    federation: str | None = None
     # Je belegter Bahn dieses Wettbewerbs die laufende Serie (aus dem Erfassungsfortschritt;
     # aufgerufen ohne Eingabe: erste Serie). Fertig erfasste Bahnen fehlen.
     current: list[FeedProcedureCurrent] = []

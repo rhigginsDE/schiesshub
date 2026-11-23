@@ -78,7 +78,19 @@ Der Katalog beschreibt je Disziplin den Ablauf (Abschnitte, Serien, Schusszahlen
 | `ringe_mit_zeitabzug` | Ringe, Gesamtzeit | Ringe minus Abzug über Sollzeit |
 | `zeit_plus_zuschlaege` | Zeit und stehende Scheiben je Serie | Zeit plus Zuschläge, niedriger ist besser |
 
-Zeiten werden in Hundertstelsekunden gespeichert. Im Turnier kann jeder Katalogwert überschrieben werden; gespeichert wird dann eine Kopie am Wettbewerb.
+Zeiten werden in Hundertstelsekunden gespeichert. Im Turnier kann jeder Katalogwert überschrieben werden; gespeichert wird dann eine Kopie am Wettbewerb. Zählen die `ringwerte` nur Treffer (alle Werte höchstens 1, z. B. Wurfscheibe `[1, 0]`), heißt die Einheit „Treffer“ statt „Ringe“.
+
+### Gleichstand
+
+Die Kriterien in `wertung.gleichstand` werden der Reihe nach verglichen (`app/scoring/tiebreak.py`, `ranking.py`). Was die Wertung nicht rechnet, ist ab dort „nach Sportordnung manuell zu entscheiden“. Hinweise nennen Kriterien im Klartext (`app/scoring/kriterien.yaml`; jede ID aus `catalog/` braucht dort einen Text, unbekannte IDs werden lesbar gemacht).
+
+- `letzte_serie_rueckwaerts`: letzte Zehnerserie, dann in 10-Schuss-Blöcken rückwärts über alle gewerteten Schüsse (DSB-SpO 0.12.1 Nr. 1, Auflage 9.4.1), unabhängig von der Serienlänge der Disziplin. Aus Seriensummen nur, wenn jede Serie ganz in einem Block liegt (10er-Serien direkt, 5er-Serien paarweise vom Ende her). *Annahme:* Ist die Schusszahl kein Vielfaches von 10, ist der vorderste Block kürzer. Zählen alle Abschnitte nur Treffer (Wurfscheibe), gilt die Serie, wie sie definiert ist (DSB-SpO 3.9.1.2). Der BDS-Katalog nutzt das Kriterium nicht.
+- `hoechstergebnis_gleicher_rang` (nur Modell `ringe`): Wer das erzielbare Höchstergebnis erreicht (je gewerteter Serie Schusszahl × höchster Ringwert; Zehntelwertung 10,9), teilt den Platz ohne Kette, Stechen oder „manuell“ (DSB-SpO 0.12.1 Satz 1; `tie_reason: max_score`, Hinweis „Höchstergebnis: gleicher Platz“).
+- `stechen_bis_platz`: Gleichstand bis Platz N entscheidet ein Stechen, das die Wertung nicht erfasst.
+
+### Formelle Wörter je Verband
+
+Rangliste, Anzeige und Export nutzen den Begriffssatz des Verbands, aus dessen Katalog der Wettbewerb stammt (`app/core/begriffe/<verband>.yaml`, ausgewählt in `app/modules/ergebnisse/begriffe.py`): Titel „Ergebnisliste“, „Schützenstand“/„Schießstand“, das Wort für gleiche Ergebnisse (BDS „Ringgleichheit“/„Treffergleichheit“, DSB „Ergebnisgleichheit“/„Treffergleichheit“) und den Abbruch (BDS „Abbruch (AB)“, DSB ohne Kurzform). Eigene Disziplinen nutzen den Standardsatz. In Listen über mehrere Wettbewerbe gilt je Wettbewerb dessen Satz; für Dokumenttitel und gemeinsame Spaltenköpfe der gemeinsame Satz, bei gemischten Verbänden der Standardsatz. Die Bemerkung der Bedienung beim Abbrechen (`abort_remark`) steht nur in der Rangliste des Moduls `ergebnisse` und am Stand eines Starts, nie in Anzeige und Export.
 
 ### Abbruch durch den Schützen
 
@@ -91,7 +103,7 @@ Wie Sporthandbuch K 1.14 / L 1.12: Wer nach dem Kommando „Feuer“ abbricht (A
 | `zeit_plus_zuschlaege` | wie Abbruch durch den Schützen: `zeit_bei_abbruch_s` plus Zuschlag für jede Scheibe (alle stehen); ohne `zeit_bei_abbruch_s` fehlt die Regel | nicht wertbar (Status der Serie erfassen) |
 | `ringe_minus_zeit` | Regel fehlt (keine Zeit des letzten Schusses) | zählt, wenn die Zeit erfasst ist |
 
-Fehlt eine Regel oder ist eine Serie nicht wertbar, bleibt der Start ohne Platz mit dem Hinweis „Ergebnis nicht vergleichbar: …“. Ohne Platz bleiben außerdem nicht angetreten, disqualifiziert und ein Abbruch ohne Wertungswert (Abbruch im Probeschießen, „AB“). Das gewertete Ergebnis rechnet die Rangliste beim Lesen aus Rohwerten und aktueller Definition; gespeichert bleibt der Zwischenstand der Erfassung. Rangliste, Anzeige und Export nutzen dieselbe Funktion (`ergebnisse.ranking`). Bei Mehrfachstart zählt ein platzierter Abbruch wie ein reguläres Ergebnis. Formelle Wörter der Listen (Ergebnisliste, Abbruch (AB), Ringgleichheit, Schützenstand, Schießstand) stehen in `app/modules/ergebnisse/begriffe.py`.
+Fehlt eine Regel oder ist eine Serie nicht wertbar, bleibt der Start ohne Platz mit dem Hinweis „Ergebnis nicht vergleichbar: …“. Ohne Platz bleiben außerdem nicht angetreten, disqualifiziert und ein Abbruch ohne Wertungswert (Abbruch im Probeschießen, „AB“). Das gewertete Ergebnis rechnet die Rangliste beim Lesen aus Rohwerten und aktueller Definition; gespeichert bleibt der Zwischenstand der Erfassung. Rangliste, Anzeige und Export nutzen dieselbe Funktion (`ergebnisse.ranking`). Bei Mehrfachstart zählt ein platzierter Abbruch wie ein reguläres Ergebnis. Formelle Wörter der Listen: siehe „Formelle Wörter je Verband“.
 
 ## Ablauf am Schießstand
 

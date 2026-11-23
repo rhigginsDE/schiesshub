@@ -16,7 +16,7 @@ Zeitstempel und Sequenznummern vergibt nur der Server.
 """
 
 import uuid
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -240,7 +240,7 @@ async def get_state(
     session: AsyncSession, tournament_id: uuid.UUID, start_id: uuid.UUID
 ) -> tuple[Loaded, ResultState]:
     loaded = await load(session, tournament_id, start_id, lock=False)
-    state = state_of(loaded, await server_now(session))
+    state = await _with_remark(session, loaded, state_of(loaded, await server_now(session)))
     if session.dirty:
         # Stand nach einer Änderung der Definition nachgezogen.
         await session.commit()
@@ -424,12 +424,12 @@ async def finish(
 ) -> ResultState:
     """Bestätigt, meldet und schreibt die Mitschrift. `event` None: Wiederholung, nichts neu."""
     if event is None:
-        return state_of(loaded, await server_now(session))
+        return await _with_remark(session, loaded, state_of(loaded, await server_now(session)))
     await session.flush()
     now = await server_now(session)
     await session.commit()
     await session.refresh(event)
-    state = state_of(loaded, now)
+    state = await _with_remark(session, loaded, state_of(loaded, now))
     for change in loaded.changes:
         publish_status(events, change)
     events.publish(
@@ -671,6 +671,35 @@ async def abort_from_starts(
     `POST …/starts/{id}/result/abort` (Ereignis `aborted` im Protokoll und Statuswechsel);
     die Bemerkung `note` wird zum Grund (`reason`) des Ereignisses."""
     await abort(session, events, actor, tournament_id, start_id, abort_reason, note, None)
+
+
+async def abort_remarks(
+    session: AsyncSession, start_ids: Iterable[uuid.UUID]
+) -> dict[uuid.UUID, str]:
+    """Bemerkung zum Abbruch je Start: der Grund (`reason`) des letzten Ereignisses `aborted`
+    (beim Abbrechen am Schießstand das Feld `note`). Nur Starts mit Bemerkung.
+
+    Nur für die Bedienung (Rangliste des Moduls, Stand eines Starts, Sichten am Stand); nie in
+    öffentlichen Ausgaben (Anzeige, Export)."""
+    ids = list(dict.fromkeys(start_ids))
+    if not ids:
+        return {}
+    rows = await session.execute(
+        select(ResultEvent.start_id, ResultEvent.reason)
+        .where(ResultEvent.start_id.in_(ids), ResultEvent.type == "aborted")
+        .order_by(ResultEvent.start_id, ResultEvent.seq)
+    )
+    latest: dict[uuid.UUID, str | None] = {}
+    for start_id, reason in rows:
+        latest[start_id] = reason.strip() if reason and reason.strip() else None
+    return {start_id: text for start_id, text in latest.items() if text}
+
+
+async def _with_remark(session: AsyncSession, loaded: Loaded, state: ResultState) -> ResultState:
+    if loaded.start.status != "aborted":
+        return state
+    remark = (await abort_remarks(session, [loaded.start.id])).get(loaded.start.id)
+    return state.model_copy(update={"abort_remark": remark}) if remark else state
 
 
 async def starts_with_events(

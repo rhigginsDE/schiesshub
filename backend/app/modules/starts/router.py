@@ -63,8 +63,9 @@ Names = Annotated[
     Literal["public", "full"],
     Query(
         description=(
-            "`public` (Standard): nur nach Anzeige-Einstellung. `full`: zusätzlich `full_name` "
-            "und `full_club` (Berechtigung start.call, result.capture oder entry.read)."
+            "`public` (Standard): nur nach Anzeige-Einstellung. `full`: zusätzlich `full_name`, "
+            "`full_club` und bei abgebrochenen Starts die Bemerkung zum Abbruch (`abort_note`) "
+            "(Berechtigung start.call, result.capture oder entry.read)."
         )
     ),
 ]

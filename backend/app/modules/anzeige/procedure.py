@@ -11,6 +11,7 @@ from app.modules.anzeige.schemas import (
     FeedSeriesStep,
     FeedStance,
 )
+from app.modules.ergebnisse.begriffe import federation_of
 from app.modules.katalog.fileformat import Abschnitt, Anschlag, Position, Wertung
 from app.modules.turnier.models import Competition
 from app.modules.turnier.schemas import CompetitionDefinition
@@ -163,4 +164,5 @@ def build_procedure(competition: Competition) -> FeedProcedure:
         scoring=f"{MODEL_TEXT[scoring.modell]}, {DIRECTION_TEXT[scoring.rangfolge]}",
         notes=_notes(scoring),
         sections=sections,
+        federation=federation_of(competition),
     )

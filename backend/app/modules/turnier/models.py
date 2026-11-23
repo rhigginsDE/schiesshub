@@ -118,6 +118,11 @@ class Competition(UUIDPrimaryKey, Timestamps, Base):
     name: Mapped[str] = mapped_column(String(200))
     # Kopie von Ablauf-Variante und Wertung, nach schemas.CompetitionDefinition.
     definition: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    # Katalogfassung, aus der die Definition stammt (wie `definition`, ohne eigene Änderungen):
+    # gesetzt beim Anlegen aus dem Katalog und beim Übernehmen (`reset-definition`), bei einer
+    # Kopie vom Original. Daran misst sich „Katalog seit der Übernahme geändert“. Leer bei eigenen
+    # Wettbewerben (Migration 0019_wettbewerb_katalogstand).
+    catalog_base: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     capture_mode: Mapped[str] = mapped_column(String(20))
     multi_start: Mapped[bool] = mapped_column(Boolean)
     max_starts: Mapped[int] = mapped_column(Integer)

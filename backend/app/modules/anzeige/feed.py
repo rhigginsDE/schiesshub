@@ -76,10 +76,13 @@ from app.modules.teilnehmer.names import abbreviate_name
 from app.modules.turnier.models import Competition, Range, Tournament
 
 OPEN_STATUSES = frozenset({"registered", "called"})
+# Titel ohne eigenen Szenentitel. Die Ergebnisliste heißt nach dem Begriffssatz des Verbands
+# ihres Wettbewerbs (`RankingOut.result_list_title`), die Startliste nach dem gemeinsamen Satz
+# der gezeigten Wettbewerbe.
 DEFAULT_TITLES: dict[str, str] = {
     "live_ranking": "Live-Wertung",
     "startlist": "Startliste",
-    "winners": begriffe.RESULT_LIST,
+    "winners": "Ergebnisliste",
 }
 
 
@@ -124,8 +127,18 @@ class Context:
                 return competition.catalog_code
         return None
 
+    def federation(self, competition_id: uuid.UUID) -> str | None:
+        for competition in self.competitions:
+            if competition.id == competition_id:
+                return begriffe.federation_of(competition)
+        return None
+
     def person(self, start: StationStartOut) -> FeedPerson:
+        terms = begriffe.terms_for(self.federation(start.competition_id))
         return FeedPerson(
+            abort_label=begriffe.abort_label(start.abort_reason, terms)
+            if start.status == "aborted"
+            else None,
             start_id=start.start_id,
             start_number=start.start_number,
             display_name=self.name(start.display_name),
@@ -207,6 +220,7 @@ def _header(
         tournament_status=tournament.status,  # type: ignore[arg-type]
         tournament_mode=mode,
         timezone=str(zone_of(tournament.settings)),
+        is_practice=bool(tournament.is_practice),
     )
 
 
@@ -265,6 +279,8 @@ def _rank_row(context: Context, row: RankingRow) -> FeedRankRow:
         provisional=provisional,
         abort_reason=row.abort_reason,
         needs_shootoff=row.needs_shootoff,
+        tie_reason=row.tie_reason,
+        tie_unresolved=row.tie_unresolved,
         tie_note=row.tie_note,
         abort_label=row.abort_label,
         abort_note=row.abort_note,
@@ -336,6 +352,8 @@ def _ranking(
         unit=ranking.unit,
         combined=ranking.combined,
         groups=groups,
+        tie_word=ranking.tie_word,
+        federation=ranking.federation,
     )
 
 
@@ -413,7 +431,7 @@ async def _winners(context: Context, scene: WinnersScene, pages: Pages) -> None:
                 kind="winners",
                 scene_id=scene.id,
                 seconds=scene.seconds,
-                title=scene.title or DEFAULT_TITLES[scene.kind],
+                title=scene.title or ranking.result_list_title,
                 part=0,
                 parts=0,
                 ranking=data,
@@ -456,7 +474,7 @@ async def _startlist(context: Context, scene: StartlistScene, pages: Pages) -> N
                 kind="startlist",
                 scene_id=scene.id,
                 seconds=scene.seconds,
-                title=scene.title or DEFAULT_TITLES[scene.kind],
+                title=scene.title or begriffe.terms_for(competition.catalog_federation).startliste,
                 part=0,
                 parts=0,
                 startlist=FeedStartlist(
@@ -467,6 +485,7 @@ async def _startlist(context: Context, scene: StartlistScene, pages: Pages) -> N
                     range_name=range_.name if range_ else None,
                     starts=[context.person(start) for start in starts[: scene.rows]],
                     more=max(len(starts) - scene.rows, 0),
+                    federation=begriffe.federation_of(competition),
                 ),
             )
         )

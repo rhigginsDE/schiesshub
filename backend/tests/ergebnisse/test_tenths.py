@@ -101,9 +101,10 @@ async def test_tenths_full_path(api: Api) -> None:
     # Zwei mit 40,4 auf Platz 1: Stechen. Dahinter Gleichstand, der nach Kette getrennt wird,
     # und einer, der bis „mouchen“ gleich bleibt (manuell).
     await api.shoot(setup.tid, starts[1], raw([10.0, 10.0], [10.2, 10.2]))  # 40,4
-    await api.shoot(setup.tid, starts[2], raw([9.0, 10.0], [10.0, 10.0]))  # 39,0; letzte 20,0
-    await api.shoot(setup.tid, starts[3], raw([10.0, 10.0], [9.0, 10.0]))  # 39,0; letzte 19,0
-    await api.shoot(setup.tid, starts[4], raw([10.0, 10.0], [9.0, 10.0]))  # wie Start 4
+    # 4 Schuss sind ein Zehnerblock (SpO 0.12.1): gleich bei 39,0, dann trennen die Zehner.
+    await api.shoot(setup.tid, starts[2], raw([9.0, 10.0], [10.0, 10.0]))  # 39,0; 3 Zehner
+    await api.shoot(setup.tid, starts[3], raw([9.5, 9.5], [10.0, 10.0]))  # 39,0; 2 Zehner
+    await api.shoot(setup.tid, starts[4], raw([9.5, 9.5], [10.0, 10.0]))  # wie Start 4
 
     ranking = await api.ranking(setup.tid, setup.cid)
     rows = {row["start_id"]: row for row in ranking["groups"][0]["rows"]}

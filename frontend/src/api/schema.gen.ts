@@ -193,7 +193,10 @@ export interface paths {
         /** Alle Turniere */
         get: operations["turnier_list_tournaments"];
         put?: never;
-        /** Turnier anlegen */
+        /**
+         * Turnier anlegen
+         * @description Gibt es schon ein Turnier mit gleichem Namen (ohne Groß-/Kleinschreibung und Leerzeichen am Rand) und gleichem Anfangsdatum, antwortet der Server 409 mit Feldfehler `name` („Ein Turnier mit diesem Namen und Datum gibt es schon.“). Gleicher Name an einem anderen Tag ist erlaubt; das Übungsturnier zählt nicht mit.
+         */
         post: operations["turnier_create_tournament"];
         delete?: never;
         options?: never;
@@ -212,7 +215,7 @@ export interface paths {
         put?: never;
         /**
          * Turnier aus einer fertigen Vorlage anlegen
-         * @description Legt ein Turnier im Entwurf aus einer Vorlage von `GET /tournament-templates` an: Grundeinstellungen, Schießstände, Klassen und Wettbewerbe. Die Wettbewerbe entstehen frisch aus dem aktuellen Katalog (wie `POST …/competitions`). 422 bei unbekannter Vorlage, 409, wenn eine Kennziffer der Vorlage im Katalog fehlt (dann wird nichts angelegt). Antwort: das Turnier mit Schießständen, Klassen und Wettbewerben.
+         * @description Legt ein Turnier im Entwurf aus einer Vorlage von `GET /tournament-templates` an: Grundeinstellungen, Schießstände, Klassen und Wettbewerbe. Die Wettbewerbe entstehen frisch aus dem aktuellen Katalog (wie `POST …/competitions`). 422 bei unbekannter Vorlage. 409 mit `code` `template_unavailable`, wenn der Katalog etwas der Vorlage nicht hat (dann wird nichts angelegt): `missing` nennt je Lücke die Art (`competition`: Kennziffer oder Variante, `classes`: Klassen des Verbands), Verband, Kennziffer, Variante und `message_de`. 409 mit Feldfehler `name`, wenn es ein Turnier mit diesem Namen und Anfangsdatum schon gibt. Antwort: das Turnier mit Schießständen, Klassen und Wettbewerben.
          */
         post: operations["turnier_create_from_template"];
         delete?: never;
@@ -259,7 +262,10 @@ export interface paths {
         delete: operations["turnier_delete_tournament"];
         options?: never;
         head?: never;
-        /** Turnier ändern */
+        /**
+         * Turnier ändern
+         * @description Name oder Anfangsdatum ändern prüft auf Doppel wie das Anlegen. Gibt es schon ein Turnier mit gleichem Namen (ohne Groß-/Kleinschreibung und Leerzeichen am Rand) und gleichem Anfangsdatum, antwortet der Server 409 mit Feldfehler `name` („Ein Turnier mit diesem Namen und Datum gibt es schon.“). Gleicher Name an einem anderen Tag ist erlaubt; das Übungsturnier zählt nicht mit.
+         */
         patch: operations["turnier_update_tournament"];
         trace?: never;
     };
@@ -294,7 +300,7 @@ export interface paths {
         put?: never;
         /**
          * Turnier kopieren („wie letztes Jahr“)
-         * @description Neues Turnier im Entwurf mit neuem Namen und Termin. Kopiert: Einstellungen, Ausschreibung, Schießstände, Klassen samt Zusammenlegung, Wettbewerbe mit ihrer Definition (auch bewusste Abweichungen vom Katalog), Startgeld und Mehrfachstart. Nicht kopiert: Anmeldungen, Starts, Durchgänge, Ergebnisse, Revisionen (jeder Wettbewerb beginnt mit Revision 1). Der Meldeschluss der Ausschreibung verschiebt sich um denselben Abstand wie der Beginn; ohne `date_to` dauert die Kopie so lange wie das Original, ohne `organizer` gilt der des Originals. Je Wettbewerb aus dem Katalog meldet `catalog_changed`, ob sich der Katalog seit dem Anlegen im Original geändert hat; die Kopie behält trotzdem die Definition des Originals (übernehmen: `POST …/competitions/{id}/reset-definition`). Die Kopie eines Übungsturniers ist ein normales Turnier ohne Teilnehmer.
+         * @description Neues Turnier im Entwurf mit neuem Namen und Termin. Kopiert: Einstellungen, Ausschreibung, Schießstände, Klassen samt Zusammenlegung, Wettbewerbe mit ihrer Definition (auch bewusste Abweichungen vom Katalog), Startgeld und Mehrfachstart. Nicht kopiert: Anmeldungen, Starts, Durchgänge, Ergebnisse, Revisionen (jeder Wettbewerb beginnt mit Revision 1). Der Meldeschluss der Ausschreibung verschiebt sich um denselben Abstand wie der Beginn; ohne `date_to` dauert die Kopie so lange wie das Original, ohne `organizer` gilt der des Originals (`organizer: null` lässt ihn leer, ein Text setzt einen neuen). Je Wettbewerb aus dem Katalog meldet `catalog_changed`, ob sich der Katalog seit der Übernahme im Original geändert hat; die Kopie behält trotzdem die Definition des Originals (übernehmen: `POST …/competitions/{id}/reset-definition`), und derselbe Vermerk steht danach an jedem Abruf des kopierten Wettbewerbs. Die Kopie eines Übungsturniers ist ein normales Turnier ohne Teilnehmer. Gibt es schon ein Turnier mit gleichem Namen (ohne Groß-/Kleinschreibung und Leerzeichen am Rand) und gleichem Anfangsdatum, antwortet der Server 409 mit Feldfehler `name` („Ein Turnier mit diesem Namen und Datum gibt es schon.“). Gleicher Name an einem anderen Tag ist erlaubt; das Übungsturnier zählt nicht mit.
          */
         post: operations["turnier_copy_tournament"];
         delete?: never;
@@ -327,7 +333,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Ausschreibung */
+        /**
+         * Ausschreibung
+         * @description Gespeicherte Gliederung und Texte. `missing_default_blocks` nennt Abschnitte der Standardgliederung, die darin fehlen (z. B. „Schießstände“ bei älteren Turnieren), fertig zum Einfügen; beim Speichern wird das Feld ignoriert.
+         */
         get: operations["turnier_get_announcement"];
         /**
          * Ausschreibung speichern
@@ -558,7 +567,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Definition auf den Katalogwert zurücksetzen */
+        /**
+         * Definition auf den Katalogwert zurücksetzen
+         * @description Holt Variante und Wertung neu aus dem aktuellen Katalog („übernehmen“). Danach ist `catalog_changed` false, bis sich der Katalog wieder ändert.
+         */
         post: operations["turnier_reset_definition"];
         delete?: never;
         options?: never;
@@ -2454,6 +2466,8 @@ export interface components {
             lockout_risk: boolean;
             /** Message De */
             message_de: string;
+            /** Reasons */
+            reasons?: components["schemas"]["RestoreMessageOut"][];
         };
         /**
          * Announcement
@@ -2469,6 +2483,11 @@ export interface components {
              * @default []
              */
             blocks: components["schemas"]["AnnouncementBlock"][];
+            /**
+             * Missing Default Blocks
+             * @default []
+             */
+            missing_default_blocks: components["schemas"]["AnnouncementBlock"][];
         };
         /**
          * AnnouncementBlock
@@ -2674,6 +2693,11 @@ export interface components {
              */
             ergebnisliste: string;
             /**
+             * Ergebnislisten
+             * @description Mehrzahl von `ergebnisliste`
+             */
+            ergebnislisten: string;
+            /**
              * Startliste
              * @description Liste der Starts eines Turniers
              */
@@ -2714,15 +2738,35 @@ export interface components {
              */
             durchgang: string;
             /**
+             * Durchgaenge
+             * @description Mehrzahl von `durchgang`
+             */
+            durchgaenge: string;
+            /**
              * Durchgangszeit
              * @description Gemessene Zeit eines Parcours-Durchgangs
              */
             durchgangszeit: string;
             /**
+             * Serie
+             * @description Feste Zahl von Schüssen im Ablauf („6 Serien à 10 Schuss“)
+             */
+            serie: string;
+            /**
+             * Serien
+             * @description Mehrzahl von `serie`
+             */
+            serien: string;
+            /**
              * Wertungsserie
              * @description Serie, die in die Wertung eingeht
              */
             wertungsserie: string;
+            /**
+             * Wertungsserien
+             * @description Mehrzahl von `wertungsserie`
+             */
+            wertungsserien: string;
             /**
              * Wertungsschuesse
              * @description Schüsse, die in die Wertung eingehen
@@ -2819,6 +2863,11 @@ export interface components {
              */
             klasse: string;
             /**
+             * Klassen
+             * @description Mehrzahl von `klasse`
+             */
+            klassen: string;
+            /**
              * Kennziffer
              * @description Nummer einer Disziplin im Regelwerk des Verbands
              */
@@ -2851,7 +2900,7 @@ export interface components {
             /** Called */
             called: components["schemas"]["StartOut"][];
             /** Skipped */
-            skipped: components["schemas"]["SkippedStartOut"][];
+            skipped: components["schemas"]["app__modules__starts__schemas__SkippedStartOut"][];
             /** Held Lanes */
             held_lanes: number[];
             upcoming_heat: components["schemas"]["HeatReservationOut"] | null;
@@ -3160,6 +3209,15 @@ export interface components {
             changeover_minutes: number;
             /** Definition Revision */
             definition_revision: number;
+            /**
+             * Catalog Changed
+             * @default false
+             */
+            catalog_changed: boolean;
+            /** Catalog Stand Then */
+            catalog_stand_then?: string | null;
+            /** Catalog Stand Now */
+            catalog_stand_now?: string | null;
         };
         /** CompetitionSummary */
         CompetitionSummary: {
@@ -3664,6 +3722,8 @@ export interface components {
          * @description Ein Schießstand des Turniers.
          */
         DocumentRange: {
+            /** Range Id */
+            range_id?: string | null;
             /** Name */
             name: string;
             /** Lane Count */
@@ -3871,6 +3931,11 @@ export interface components {
             tournament_mode: "fixed" | "auto";
             /** Timezone */
             timezone: string;
+            /**
+             * Is Practice
+             * @default false
+             */
+            is_practice: boolean;
         };
         /**
          * FeedIdleScene
@@ -4035,6 +4100,8 @@ export interface components {
             status: "registered" | "called" | "captured" | "final" | "aborted";
             /** Abort Reason */
             abort_reason?: ("dns" | "dnf" | "dsq") | null;
+            /** Abort Label */
+            abort_label?: string | null;
             /** Lane */
             lane: number | null;
             /** Heat Number */
@@ -4089,6 +4156,8 @@ export interface components {
             notes: string[];
             /** Sections */
             sections: components["schemas"]["FeedSection"][];
+            /** Federation */
+            federation?: string | null;
             /**
              * Current
              * @default []
@@ -4221,6 +4290,13 @@ export interface components {
              * @default false
              */
             needs_shootoff: boolean;
+            /** Tie Reason */
+            tie_reason?: ("missing_data" | "manual" | "shootoff" | "max_score") | null;
+            /**
+             * Tie Unresolved
+             * @default false
+             */
+            tie_unresolved: boolean;
             /** Tie Note */
             tie_note?: string | null;
             /** Abort Label */
@@ -4247,6 +4323,13 @@ export interface components {
             combined: boolean;
             /** Groups */
             groups: components["schemas"]["FeedRankGroup"][];
+            /**
+             * Tie Word
+             * @default gleiches Ergebnis
+             */
+            tie_word: string;
+            /** Federation */
+            federation?: string | null;
         };
         /** FeedSection */
         FeedSection: {
@@ -4337,6 +4420,8 @@ export interface components {
             starts: components["schemas"]["FeedPerson"][];
             /** More */
             more: number;
+            /** Federation */
+            federation?: string | null;
         };
         /** FeedStartlistScene */
         FeedStartlistScene: {
@@ -4841,6 +4926,25 @@ export interface components {
             /** Number */
             number?: number | null;
         };
+        /**
+         * HintItem
+         * @description Ein Hinweis mit Art, damit das Frontend nicht über den Wortlaut filtern muss.
+         *
+         *     Abschnitt: `target_time` (Sollzeit), `max_total_time` (Abbruchzeit), `competition_time`,
+         *     `preparation_time`, `sighters` – die letzten drei stehen auch als Felder
+         *     (`competition_time_s`, `preparation_time_s`, `sighters`). Serie: `struck`, `position`,
+         *     `distance`, `shots`, `max_shots`, `targets`, `fixed_time`, `time_per_shot`, `max_time`,
+         *     `penalty`, `scoring_break`.
+         */
+        HintItem: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "target_time" | "max_total_time" | "competition_time" | "preparation_time" | "sighters" | "struck" | "position" | "distance" | "shots" | "max_shots" | "targets" | "fixed_time" | "time_per_shot" | "max_time" | "penalty" | "scoring_break";
+            /** Text */
+            text: string;
+        };
         /** ImportReportOut */
         ImportReportOut: {
             /** Dry Run */
@@ -4913,6 +5017,8 @@ export interface components {
             recomputed_competitions: number;
             /** Lines */
             lines: string[];
+            /** Skipped Starts */
+            skipped_starts?: components["schemas"]["app__modules__backup__schemas__SkippedStartOut"][];
         };
         /** JournalStatusOut */
         JournalStatusOut: {
@@ -5590,6 +5696,13 @@ export interface components {
              * @default gleiches Ergebnis
              */
             tie_word: string;
+            /** Federation */
+            federation?: string | null;
+            /**
+             * Result List Title
+             * @default Ergebnisliste
+             */
+            result_list_title: string;
         };
         /** RankingRow */
         RankingRow: {
@@ -5600,7 +5713,7 @@ export interface components {
             /** Tie Unresolved */
             tie_unresolved: boolean;
             /** Tie Reason */
-            tie_reason?: ("missing_data" | "manual" | "shootoff") | null;
+            tie_reason?: ("missing_data" | "manual" | "shootoff" | "max_score") | null;
             /** Tie Criterion */
             tie_criterion?: string | null;
             /**
@@ -5665,6 +5778,8 @@ export interface components {
             abort_label?: string | null;
             /** Abort Note */
             abort_note?: string | null;
+            /** Abort Remark */
+            abort_remark?: string | null;
         };
         /** RankingSummaryOut */
         RankingSummaryOut: {
@@ -5749,6 +5864,17 @@ export interface components {
              */
             accept_lockout: boolean;
         };
+        /**
+         * RestoreMessageOut
+         * @description Hinweis mit fester Kennung: Die Oberfläche unterscheidet an `code` (bleibt gleich), der
+         *     Text `message_de` darf sich ändern. Die Kennungen stehen in `docs/WIEDERHERSTELLUNG.md`.
+         */
+        RestoreMessageOut: {
+            /** Code */
+            code: string;
+            /** Message De */
+            message_de: string;
+        };
         /** RestorePreviewIn */
         RestorePreviewIn: {
             /** Source Id */
@@ -5783,6 +5909,10 @@ export interface components {
             problems: string[];
             /** Notes */
             notes: string[];
+            /** Problem Items */
+            problem_items?: components["schemas"]["RestoreMessageOut"][];
+            /** Note Items */
+            note_items?: components["schemas"]["RestoreMessageOut"][];
         };
         /** RestoreResultOut */
         RestoreResultOut: {
@@ -5803,10 +5933,22 @@ export interface components {
             after_backup_ok: boolean | null;
             /** Notes */
             notes: string[];
+            /** Note Items */
+            note_items?: components["schemas"]["RestoreMessageOut"][];
+            /** Skipped Starts */
+            skipped_starts?: components["schemas"]["app__modules__backup__schemas__SkippedStartOut"][];
         };
         /**
          * RestoreSourceOut
          * @description Eine Sicherung, die sich wiederherstellen lässt.
+         *
+         *     Dieselbe Sicherung (gleicher Zeitpunkt im Dateinamen) liegt oft mehrfach: auf dem Server, als
+         *     Kopie auf dem Stick und, wenn sie vor einer Wiederherstellung entstand, unter `pre_restore`.
+         *     Die Liste zeigt sie einmal. `id`, `location` und die Dateiangaben gehören zur bevorzugten
+         *     Quelle: Stick vor Server vor `pre_restore`, weil nur die Stick-Kopie die Schlüssel enthält.
+         *     `locations` nennt alle Orte, `other_ids` die Kennungen der übrigen Kopien (z. B. vom Server
+         *     ohne Sicherungspasswort, wenn es vergessen ist). Jede dieser Kennungen funktioniert in
+         *     Vorschau und Ausführung.
          */
         RestoreSourceOut: {
             /** Id */
@@ -5816,6 +5958,10 @@ export interface components {
              * @enum {string}
              */
             location: "usb" | "local" | "pre_restore";
+            /** Locations */
+            locations?: ("usb" | "local" | "pre_restore")[];
+            /** Other Ids */
+            other_ids?: string[];
             /** File Name */
             file_name: string;
             /**
@@ -5926,6 +6072,8 @@ export interface components {
             review_reason: string | null;
             /** Definition Revision */
             definition_revision: number;
+            /** Abort Remark */
+            abort_remark?: string | null;
         };
         /** ReturnRequest */
         ReturnRequest: {
@@ -6145,6 +6293,16 @@ export interface components {
             max_rings: string | number | null;
             /** Hints */
             hints: string[];
+            /**
+             * Hint Items
+             * @default []
+             */
+            hint_items: components["schemas"]["HintItem"][];
+            /**
+             * Aufgelegt
+             * @default false
+             */
+            aufgelegt: boolean;
             /** Competition Time S */
             competition_time_s?: string | null;
             /** Preparation Time S */
@@ -6217,6 +6375,11 @@ export interface components {
             max_rings: string | number | null;
             /** Hints */
             hints: string[];
+            /**
+             * Hint Items
+             * @default []
+             */
+            hint_items: components["schemas"]["HintItem"][];
         };
         /** SeriesPart */
         SeriesPart: {
@@ -6283,36 +6446,6 @@ export interface components {
             pin: string;
             /** Device Name */
             device_name: string;
-        };
-        /**
-         * SkippedStartOut
-         * @description Ein Start, der bei „Nächste aufrufen“ übersprungen wurde.
-         */
-        SkippedStartOut: {
-            /**
-             * Start Id
-             * Format: uuid
-             */
-            start_id: string;
-            /**
-             * Entry Id
-             * Format: uuid
-             */
-            entry_id: string;
-            /** Start Number */
-            start_number: number;
-            /**
-             * Competition Id
-             * Format: uuid
-             */
-            competition_id: string;
-            /** Queue Position */
-            queue_position: number | null;
-            /**
-             * Reason
-             * @constant
-             */
-            reason: "on_lane";
         };
         /** SlotRequest */
         SlotRequest: {
@@ -6640,6 +6773,8 @@ export interface components {
             status: "registered" | "called" | "captured" | "final" | "aborted";
             /** Abort Reason */
             abort_reason: ("dns" | "dnf" | "dsq") | null;
+            /** Abort Note */
+            abort_note?: string | null;
             /** Queue Position */
             queue_position: number | null;
             /** Lane */
@@ -6743,12 +6878,49 @@ export interface components {
             /** Available */
             available: boolean;
         };
+        /**
+         * TemplateGapOut
+         * @description Was der aktuelle Katalog für eine Vorlage nicht hat.
+         */
+        TemplateGapOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "competition" | "classes";
+            /** Federation */
+            federation: string;
+            /** Code */
+            code?: string | null;
+            /** Variant Id */
+            variant_id?: string | null;
+            /** Message De */
+            message_de: string;
+        };
         /** TemplateRangeOut */
         TemplateRangeOut: {
             /** Name */
             name: string;
             /** Lane Count */
             lane_count: number;
+        };
+        /**
+         * TemplateUnavailableOut
+         * @description HTTP 409: Die Vorlage passt nicht zum aktuellen Katalog; angelegt wurde nichts.
+         */
+        TemplateUnavailableOut: {
+            /** Detail */
+            detail: string;
+            /**
+             * Code
+             * @default template_unavailable
+             * @constant
+             */
+            code: "template_unavailable";
+            /** Template Id */
+            template_id: string;
+            /** Missing */
+            missing: components["schemas"]["TemplateGapOut"][];
         };
         /**
          * TermsOut
@@ -7254,6 +7426,8 @@ export interface components {
             zehntelwertung?: boolean | null;
             /** Stechen Bis Platz */
             stechen_bis_platz?: number | null;
+            /** Hoechstergebnis Gleicher Rang */
+            hoechstergebnis_gleicher_rang?: boolean | null;
         };
         /**
          * WinnersScene
@@ -7294,6 +7468,57 @@ export interface components {
              * @default false
              */
             show_aborted: boolean;
+        };
+        /**
+         * SkippedStartOut
+         * @description Ein Start, dessen seit der Sicherung erfasste Ergebnisse nicht nachgetragen wurden.
+         */
+        app__modules__backup__schemas__SkippedStartOut: {
+            /** Competition Name */
+            competition_name: string | null;
+            /** Competition Code */
+            competition_code: string | null;
+            /** Start Number */
+            start_number: number | null;
+            /** Attempt */
+            attempt: number | null;
+            /**
+             * Reason Code
+             * @enum {string}
+             */
+            reason_code: "start_not_in_backup" | "does_not_match";
+            /** Message De */
+            message_de: string;
+        };
+        /**
+         * SkippedStartOut
+         * @description Ein Start, der bei „Nächste aufrufen“ übersprungen wurde.
+         */
+        app__modules__starts__schemas__SkippedStartOut: {
+            /**
+             * Start Id
+             * Format: uuid
+             */
+            start_id: string;
+            /**
+             * Entry Id
+             * Format: uuid
+             */
+            entry_id: string;
+            /** Start Number */
+            start_number: number;
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Queue Position */
+            queue_position: number | null;
+            /**
+             * Reason
+             * @constant
+             */
+            reason: "on_lane";
         };
     };
     responses: never;
@@ -7653,6 +7878,13 @@ export interface operations {
                     "application/json": components["schemas"]["TournamentOut"];
                 };
             };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -7686,12 +7918,14 @@ export interface operations {
                     "application/json": components["schemas"]["TournamentOverview"];
                 };
             };
-            /** @description Im aktuellen Zustand nicht möglich */
+            /** @description Vorlage passt nicht zum Katalog (`template_unavailable`) oder Turnier gibt es schon (Feldfehler `name`) */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TemplateUnavailableOut"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -7938,6 +8172,13 @@ export interface operations {
             };
             /** @description Nicht gefunden */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10112,7 +10353,7 @@ export interface operations {
     starts_get_queue: {
         parameters: {
             query?: {
-                /** @description `public` (Standard): nur nach Anzeige-Einstellung. `full`: zusätzlich `full_name` und `full_club` (Berechtigung start.call, result.capture oder entry.read). */
+                /** @description `public` (Standard): nur nach Anzeige-Einstellung. `full`: zusätzlich `full_name`, `full_club` und bei abgebrochenen Starts die Bemerkung zum Abbruch (`abort_note`) (Berechtigung start.call, result.capture oder entry.read). */
                 names?: "public" | "full";
             };
             header?: never;
@@ -10855,7 +11096,7 @@ export interface operations {
             query?: {
                 competition_id?: string | null;
                 range_id?: string | null;
-                /** @description `public` (Standard): nur nach Anzeige-Einstellung. `full`: zusätzlich `full_name` und `full_club` (Berechtigung start.call, result.capture oder entry.read). */
+                /** @description `public` (Standard): nur nach Anzeige-Einstellung. `full`: zusätzlich `full_name`, `full_club` und bei abgebrochenen Starts die Bemerkung zum Abbruch (`abort_note`) (Berechtigung start.call, result.capture oder entry.read). */
                 names?: "public" | "full";
             };
             header?: never;
@@ -10896,7 +11137,7 @@ export interface operations {
     starts_get_range_now: {
         parameters: {
             query?: {
-                /** @description `public` (Standard): nur nach Anzeige-Einstellung. `full`: zusätzlich `full_name` und `full_club` (Berechtigung start.call, result.capture oder entry.read). */
+                /** @description `public` (Standard): nur nach Anzeige-Einstellung. `full`: zusätzlich `full_name`, `full_club` und bei abgebrochenen Starts die Bemerkung zum Abbruch (`abort_note`) (Berechtigung start.call, result.capture oder entry.read). */
                 names?: "public" | "full";
             };
             header?: never;

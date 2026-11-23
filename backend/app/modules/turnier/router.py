@@ -33,6 +33,7 @@ from app.modules.turnier.schemas import (
     RangeUpdate,
     RevisionOut,
     StatusChange,
+    TemplateUnavailableOut,
     TournamentCopy,
     TournamentCopyOut,
     TournamentCreate,
@@ -65,11 +66,27 @@ COMPETITIONS = "/{tournament_id}/competitions"
 COMPETITION = "/{tournament_id}/competitions/{competition_id}"
 
 
-def _competition(item: object) -> CompetitionOut:
-    return CompetitionOut.model_validate(item)
+async def _competition(
+    session: AsyncSession, item: Competition, cache: service.CatalogCache | None = None
+) -> CompetitionOut:
+    """Wettbewerb mit dem je Abruf berechneten Vermerk „Katalog seit der Übernahme geändert“."""
+    status_ = await service.catalog_status(session, item, cache)
+    return CompetitionOut.model_validate(item).model_copy(
+        update={
+            "catalog_changed": status_.changed,
+            "catalog_stand_then": status_.stand_then,
+            "catalog_stand_now": status_.stand_now,
+        }
+    )
 
 
-def _overview(
+async def _competitions(session: AsyncSession, items: list[Competition]) -> list[CompetitionOut]:
+    cache: service.CatalogCache = {}
+    return [await _competition(session, item, cache) for item in items]
+
+
+async def _overview(
+    session: AsyncSession,
     tournament: Tournament,
     ranges: list[Range],
     classes: list[TournamentClass],
@@ -80,13 +97,17 @@ def _overview(
             **TournamentOut.model_validate(tournament).model_dump(),
             "ranges": [RangeOut.model_validate(item) for item in ranges],
             "classes": [ClassOut.model_validate(item) for item in classes],
-            "competitions": [_competition(item) for item in competitions],
+            "competitions": await _competitions(session, competitions),
         }
     )
 
 
 async def _overview_of(session: AsyncSession, tournament_id: UUID) -> TournamentOverview:
-    return _overview(*await service.get_overview(session, tournament_id))
+    return await _overview(session, *await service.get_overview(session, tournament_id))
+
+
+def _template_unavailable(exc: tournament_templates.TemplateUnavailableError) -> JSONResponse:
+    return JSONResponse(status_code=status.HTTP_409_CONFLICT, content=jsonable_encoder(exc.out()))
 
 
 def _person_index(request: Request) -> object:
@@ -102,7 +123,21 @@ async def list_tournaments(session: SessionDep, _: Reader) -> list[TournamentOut
     return [TournamentOut.model_validate(t) for t in await service.list_tournaments(session)]
 
 
-@router.post("", summary="Turnier anlegen", status_code=status.HTTP_201_CREATED)
+DUPLICATE = (
+    "Gibt es schon ein Turnier mit gleichem Namen (ohne Groß-/Kleinschreibung und Leerzeichen am "
+    "Rand) und gleichem Anfangsdatum, antwortet der Server 409 mit Feldfehler `name` („Ein "
+    "Turnier mit diesem Namen und Datum gibt es schon.“). Gleicher Name an einem anderen Tag ist "
+    "erlaubt; das Übungsturnier zählt nicht mit."
+)
+
+
+@router.post(
+    "",
+    summary="Turnier anlegen",
+    description=DUPLICATE,
+    status_code=status.HTTP_201_CREATED,
+    responses=CONFLICT,
+)
 async def create_tournament(
     data: TournamentCreate, session: SessionDep, events: EventHubDep, _: Editor
 ) -> TournamentOut:
@@ -116,18 +151,32 @@ async def create_tournament(
         "Legt ein Turnier im Entwurf aus einer Vorlage von `GET /tournament-templates` an: "
         "Grundeinstellungen, Schießstände, Klassen und Wettbewerbe. Die Wettbewerbe entstehen "
         "frisch "
-        "aus dem aktuellen Katalog (wie `POST …/competitions`). 422 bei unbekannter Vorlage, "
-        "409, wenn eine Kennziffer der Vorlage im Katalog fehlt (dann wird nichts angelegt). "
-        "Antwort: das Turnier mit Schießständen, Klassen und Wettbewerben."
+        "aus dem aktuellen Katalog (wie `POST …/competitions`). 422 bei unbekannter Vorlage. "
+        "409 mit `code` `template_unavailable`, wenn der Katalog etwas der Vorlage nicht hat "
+        "(dann wird nichts angelegt): `missing` nennt je Lücke die Art (`competition`: "
+        "Kennziffer oder Variante, `classes`: Klassen des Verbands), Verband, Kennziffer, "
+        "Variante und `message_de`. 409 mit Feldfehler `name`, wenn es ein Turnier mit diesem "
+        "Namen und Anfangsdatum schon gibt. Antwort: das Turnier mit Schießständen, Klassen und "
+        "Wettbewerben."
     ),
     status_code=status.HTTP_201_CREATED,
-    responses=CONFLICT,
+    responses={
+        status.HTTP_409_CONFLICT: {
+            "description": "Vorlage passt nicht zum Katalog (`template_unavailable`) oder "
+            "Turnier gibt es schon (Feldfehler `name`)",
+            "model": TemplateUnavailableOut,
+        }
+    },
+    response_model=TournamentOverview,
     **COMPETITION_RESPONSE,
 )
 async def create_from_template(
     data: TournamentFromTemplate, session: SessionDep, events: EventHubDep, actor: Editor
-) -> TournamentOverview:
-    tournament = await tournament_templates.create_from_template(session, events, actor, data)
+) -> TournamentOverview | JSONResponse:
+    try:
+        tournament = await tournament_templates.create_from_template(session, events, actor, data)
+    except tournament_templates.TemplateUnavailableError as exc:
+        return _template_unavailable(exc)
     return await _overview_of(session, tournament.id)
 
 
@@ -163,6 +212,8 @@ async def create_practice(
     except practice.PracticeExistsError as exc:
         body = PracticeExistsOut(detail=str(exc), tournament_id=exc.tournament_id)
         return JSONResponse(status_code=status.HTTP_409_CONFLICT, content=jsonable_encoder(body))
+    except tournament_templates.TemplateUnavailableError as exc:
+        return _template_unavailable(exc)
     return await _overview_of(session, tournament.id)
 
 
@@ -171,7 +222,12 @@ async def get_tournament(tournament_id: UUID, session: SessionDep, _: Reader) ->
     return TournamentOut.model_validate(await service.get_tournament(session, tournament_id))
 
 
-@router.patch(TOURNAMENT, summary="Turnier ändern", responses=WRITE)
+@router.patch(
+    TOURNAMENT,
+    summary="Turnier ändern",
+    description="Name oder Anfangsdatum ändern prüft auf Doppel wie das Anlegen. " + DUPLICATE,
+    responses=WRITE,
+)
 async def update_tournament(
     tournament_id: UUID,
     data: TournamentUpdate,
@@ -246,14 +302,15 @@ async def delete_tournament(
         "Anmeldungen, Starts, Durchgänge, Ergebnisse, Revisionen (jeder Wettbewerb beginnt mit "
         "Revision 1). Der Meldeschluss der Ausschreibung verschiebt sich um denselben Abstand "
         "wie der Beginn; ohne `date_to` dauert die Kopie so lange wie das Original, ohne "
-        "`organizer` gilt der des Originals. Je Wettbewerb aus dem Katalog meldet "
-        "`catalog_changed`, ob sich der Katalog seit dem Anlegen im Original geändert hat; die "
-        "Kopie behält trotzdem die Definition des Originals (übernehmen: "
-        "`POST …/competitions/{id}/reset-definition`). Die Kopie eines Übungsturniers ist ein "
-        "normales Turnier ohne Teilnehmer."
+        "`organizer` gilt der des Originals (`organizer: null` lässt ihn leer, ein Text setzt "
+        "einen neuen). Je Wettbewerb aus dem Katalog meldet `catalog_changed`, ob sich der "
+        "Katalog seit der Übernahme im Original geändert hat; die Kopie behält trotzdem die "
+        "Definition des Originals (übernehmen: `POST …/competitions/{id}/reset-definition`), und "
+        "derselbe Vermerk steht danach an jedem Abruf des kopierten Wettbewerbs. Die Kopie eines "
+        "Übungsturniers ist ein normales Turnier ohne Teilnehmer. " + DUPLICATE
     ),
     status_code=status.HTTP_201_CREATED,
-    responses=NOT_FOUND,
+    responses=WRITE,
     **COMPETITION_RESPONSE,
 )
 async def copy_tournament(
@@ -296,7 +353,16 @@ async def get_overview(tournament_id: UUID, session: SessionDep, _: Reader) -> T
 # --- Ausschreibung ------------------------------------------------------------
 
 
-@router.get(f"{TOURNAMENT}/announcement", summary="Ausschreibung", responses=NOT_FOUND)
+@router.get(
+    f"{TOURNAMENT}/announcement",
+    summary="Ausschreibung",
+    description=(
+        "Gespeicherte Gliederung und Texte. `missing_default_blocks` nennt Abschnitte der "
+        "Standardgliederung, die darin fehlen (z. B. „Schießstände“ bei älteren Turnieren), "
+        "fertig zum Einfügen; beim Speichern wird das Feld ignoriert."
+    ),
+    responses=NOT_FOUND,
+)
 async def get_announcement(tournament_id: UUID, session: SessionDep, _: Reader) -> Announcement:
     return await announcement.get_announcement(session, tournament_id)
 
@@ -495,7 +561,7 @@ async def delete_class(
 async def list_competitions(
     tournament_id: UUID, session: SessionDep, _: Reader
 ) -> list[CompetitionOut]:
-    return [_competition(c) for c in await service.list_competitions(session, tournament_id)]
+    return await _competitions(session, await service.list_competitions(session, tournament_id))
 
 
 @router.post(
@@ -518,9 +584,8 @@ async def create_competition(
     events: EventHubDep,
     actor: Editor,
 ) -> CompetitionOut:
-    return _competition(
-        await service.create_competition(session, events, tournament_id, data, actor)
-    )
+    item = await service.create_competition(session, events, tournament_id, data, actor)
+    return await _competition(session, item)
 
 
 @router.put(
@@ -533,7 +598,7 @@ async def reorder_competitions(
     tournament_id: UUID, data: Order, session: SessionDep, events: EventHubDep, _: Editor
 ) -> list[CompetitionOut]:
     items = await service.reorder_competitions(session, events, tournament_id, data.ids)
-    return [_competition(item) for item in items]
+    return await _competitions(session, items)
 
 
 @router.get(
@@ -545,7 +610,8 @@ async def reorder_competitions(
 async def get_competition(
     tournament_id: UUID, competition_id: UUID, session: SessionDep, _: Reader
 ) -> CompetitionOut:
-    return _competition(await service.get_competition(session, tournament_id, competition_id))
+    item = await service.get_competition(session, tournament_id, competition_id)
+    return await _competition(session, item)
 
 
 @router.patch(
@@ -569,16 +635,19 @@ async def update_competition(
     events: EventHubDep,
     actor: Editor,
 ) -> CompetitionOut:
-    return _competition(
-        await service.update_competition(
-            session, events, tournament_id, competition_id, data, actor
-        )
+    item = await service.update_competition(
+        session, events, tournament_id, competition_id, data, actor
     )
+    return await _competition(session, item)
 
 
 @router.post(
     f"{COMPETITIONS}/{{competition_id}}/reset-definition",
     summary="Definition auf den Katalogwert zurücksetzen",
+    description=(
+        "Holt Variante und Wertung neu aus dem aktuellen Katalog („übernehmen“). Danach ist "
+        "`catalog_changed` false, bis sich der Katalog wieder ändert."
+    ),
     responses=WRITE,
     **COMPETITION_RESPONSE,
 )
@@ -591,11 +660,10 @@ async def reset_definition(
     data: DefinitionReset | None = None,
 ) -> CompetitionOut:
     data = data or DefinitionReset()
-    return _competition(
-        await service.reset_definition(
-            session, events, tournament_id, competition_id, data.variant_id, actor, data.reason
-        )
+    item = await service.reset_definition(
+        session, events, tournament_id, competition_id, data.variant_id, actor, data.reason
     )
+    return await _competition(session, item)
 
 
 @router.get(

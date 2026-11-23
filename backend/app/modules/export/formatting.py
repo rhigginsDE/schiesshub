@@ -12,6 +12,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
+from app.core.begriffe import Begriffe
 from app.core.localtime import DEFAULT_TIMEZONE, zone
 from app.modules.ergebnisse import begriffe
 from app.scoring.numbers import cs_to_seconds
@@ -21,8 +22,8 @@ from app.scoring.status import STATUS_LABELS
 LOCAL_TZ: ZoneInfo = zone(DEFAULT_TIMEZONE)
 
 # Formelle Wörter (Ergebnisliste, Abbruch (AB), Schützenstand, Schießstand, Ringgleichheit)
-# stehen an einer Stelle: `app.modules.ergebnisse.begriffe`.
-ABORT_LABELS: dict[str, str] = begriffe.ABORT_LABELS
+# stehen im Begriffssatz des Verbands (`app.core.begriffe`), ausgewählt über
+# `app.modules.ergebnisse.begriffe`.
 
 START_STATUS_LABELS: dict[str, str] = {
     "registered": "angemeldet",
@@ -47,9 +48,10 @@ SERIES_STATUS_LABELS: dict[str, str] = dict(STATUS_LABELS)
 # --- Übersetzungsstelle: interne Schlüssel erscheinen in keiner Liste ------------------
 
 
-def abort_text(reason: str | None) -> str | None:
-    """„dnf“ → „Abbruch (AB)“; unbekannte Schlüssel als „abgebrochen“."""
-    return begriffe.abort_label(reason)
+def abort_text(reason: str | None, terms: Begriffe | None = None) -> str | None:
+    """„dnf“ → „Abbruch (AB)“ (Begriffssatz `terms`, ohne Angabe der Standardsatz); unbekannte
+    Schlüssel als „abgebrochen“."""
+    return begriffe.abort_label(reason, terms)
 
 
 def start_status_text(status: str) -> str:

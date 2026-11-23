@@ -11,10 +11,10 @@ Turnierbeginn (vorher 14 Tage vor dem Turnier, danach auch). Ohne neues Enddatum
 so viele Tage wie das Original.
 
 Zu jedem Wettbewerb aus dem Katalog meldet die Antwort, ob sich der Katalog geändert hat, seit
-der Wettbewerb im Original aus ihm angelegt wurde. Grundlage ist Revision 1 des Originals (die
-Kopie aus dem Katalog beim Anlegen). Wurde das Original später auf den Katalog zurückgesetzt,
-kann der Hinweis auch dann erscheinen, wenn das Original den neuen Stand schon hatte; die Liste
-`catalog_diff` zeigt in jedem Fall, was ein Zurücksetzen ändern würde.
+die Definition im Original aus ihm übernommen wurde (`catalog_base`, beim Anlegen oder beim
+letzten „übernehmen“). Die Kopie übernimmt `catalog_base` des Originals; derselbe Vermerk steht
+deshalb danach an jedem Abruf des kopierten Wettbewerbs (`catalog_changed`), bis er übernimmt.
+Die Liste `catalog_diff` zeigt in jedem Fall, was ein Zurücksetzen ändern würde.
 """
 
 import copy
@@ -22,15 +22,13 @@ import uuid
 from dataclasses import dataclass
 from datetime import date
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.events import EventHub
 from app.core.security import Actor
-from app.modules.turnier import catalog_diff, service
+from app.modules.turnier import service
 from app.modules.turnier.models import (
     Competition,
-    CompetitionRevision,
     Range,
     Tournament,
     TournamentClass,
@@ -38,7 +36,6 @@ from app.modules.turnier.models import (
 from app.modules.turnier.schemas import (
     Announcement,
     CatalogDiffOut,
-    CompetitionDefinition,
     TournamentCopy,
 )
 
@@ -63,37 +60,7 @@ def _shift_announcement(announcement: dict | None, days: int) -> dict | None:
             update={"registration_deadline": date.fromordinal(deadline.toordinal() + days)}
         )
         parsed = parsed.model_copy(update={"facts": facts})
-    return parsed.model_dump(mode="json")
-
-
-async def _catalog_status(
-    session: AsyncSession, original: Competition
-) -> tuple[bool, date | None, date | None]:
-    """Hat sich der Katalog seit dem Anlegen des Originals geändert? Dazu beide Stände."""
-    if original.catalog_federation is None or original.catalog_code is None:
-        return False, None, None
-    first = await session.scalar(
-        select(CompetitionRevision.definition).where(
-            CompetitionRevision.competition_id == original.id, CompetitionRevision.revision == 1
-        )
-    )
-    base = CompetitionDefinition.model_validate(first or original.definition)
-    then = base.source.catalog_stand if base.source is not None else None
-    try:
-        catalog, _ = await service._catalog_definition(
-            session,
-            original.catalog_federation,
-            original.catalog_code,
-            service._source_variant_id(base),
-        )
-    except service.InvalidError:
-        # Disziplin oder Variante gibt es nicht mehr: Das ist auch eine Änderung des Katalogs.
-        return True, then, None
-    now = catalog.source.catalog_stand if catalog.source is not None else None
-    changed = bool(
-        catalog_diff.compare(catalog.variant, catalog.scoring, base.variant, base.scoring)
-    )
-    return changed, then, now
+    return parsed.model_dump(mode="json", exclude={"missing_default_blocks"})
 
 
 async def copy_tournament(
@@ -111,6 +78,7 @@ async def copy_tournament(
         raise service.InvalidError("Das Enddatum liegt vor dem Anfangsdatum.")
     shift = (data.date_from - source.date_from).days
     organizer = data.organizer if "organizer" in data.model_fields_set else source.organizer
+    await service.check_unique(session, data.name, data.date_from)
 
     tournament = Tournament(
         id=uuid.uuid4(),
@@ -172,6 +140,8 @@ async def copy_tournament(
             catalog_code=item.catalog_code,
             name=item.name,
             definition=copy.deepcopy(item.definition),
+            # Gleiche Katalogfassung wie das Original: Der Vermerk „Katalog geändert“ reist mit.
+            catalog_base=copy.deepcopy(item.catalog_base),
             capture_mode=item.capture_mode,
             multi_start=item.multi_start,
             max_starts=item.max_starts,
@@ -200,15 +170,16 @@ async def copy_tournament(
     )
 
     result = []
+    cache: service.CatalogCache = {}
     for original, copy_competition in copies:
-        changed, then, now = await _catalog_status(session, original)
+        status = await service.catalog_status(session, copy_competition, cache)
         result.append(
             CopiedCompetition(
                 competition=copy_competition,
                 source_id=original.id,
-                catalog_changed=changed,
-                catalog_stand_then=then,
-                catalog_stand_now=now,
+                catalog_changed=status.changed,
+                catalog_stand_then=status.stand_then,
+                catalog_stand_now=status.stand_now,
                 catalog_diff=await service.catalog_diff_of(session, copy_competition),
             )
         )

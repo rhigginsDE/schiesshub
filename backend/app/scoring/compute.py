@@ -130,9 +130,9 @@ def compute(
     result = ComputedResult(
         model=defn.model.name,
         direction=defn.model.direction,
-        unit=defn.model.unit,
+        unit=defn.unit,
         score=evaluation.score,
-        score_text=f"{format_number(evaluation.score)} {defn.model.unit}",
+        score_text=f"{format_number(evaluation.score)} {defn.unit}",
         complete=complete,
         rings=tally.rings,
         tens=tally.tens,

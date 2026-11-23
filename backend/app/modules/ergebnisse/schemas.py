@@ -87,6 +87,9 @@ class ResultState(BaseModel):
     needs_review: bool
     review_reason: str | None
     definition_revision: int
+    # Bemerkung beim Abbrechen (Grund des Ereignisses `aborted`, am Schießstand das Feld
+    # `note`); nur bei abgebrochenen Starts, sonst null. Nur für die Bedienung.
+    abort_remark: str | None = None
 
 
 class PreviewOut(BaseModel):
@@ -219,11 +222,15 @@ class RankingRow(BaseModel):
     # Geteilt und nicht entschieden (Grund in `tie_reason`, Text in `tie_note`).
     tie_unresolved: bool
     # missing_data: Rohdaten für `tie_criterion` fehlen; manual: `tie_criterion` rechnet der
-    # Server nicht (nach Sportordnung entscheiden); shootoff: Stechen (`stechen_bis_platz`).
-    tie_reason: Literal["missing_data", "manual", "shootoff"] | None = None
+    # Server nicht (nach Sportordnung entscheiden); shootoff: Stechen (`stechen_bis_platz`);
+    # max_score: Höchstergebnis erreicht, gleicher Platz nach Regel (DSB-SpO 0.12.1) – entschieden,
+    # `tie_unresolved` bleibt false.
+    tie_reason: Literal["missing_data", "manual", "shootoff", "max_score"] | None = None
+    # Interne ID des Kriteriums (zum Auswerten, nicht zum Anzeigen; Klartext steht in `tie_note`).
     tie_criterion: str | None = None
     needs_shootoff: bool = False
-    # Hinweis zum Anzeigen, z. B. „Ringgleichheit auf Platz 2: Stechen“.
+    # Hinweis zum Anzeigen mit dem Wort des Verbands, z. B. „Ringgleichheit auf Platz 2:
+    # Stechen“, „Höchstergebnis: gleicher Platz“; Kriterien im Klartext.
     tie_note: str | None = None
     # ranked: regulär; last: unvollständig (live), hinten; unranked: ohne Platz (abgebrochen,
     # unvollständig in einer endgültigen Liste, prüfen).
@@ -256,6 +263,9 @@ class RankingRow(BaseModel):
     # Warum ein Abbruch mit erfassten Werten ohne Platz bleibt, z. B. „Ergebnis nicht
     # vergleichbar: Regel für nicht geschossene Serien fehlt“; sonst null.
     abort_note: str | None = None
+    # Bemerkung der Bedienung beim Abbrechen (Grund des Ereignisses `aborted`, am Schießstand
+    # das Feld `note`); nur bei abgebrochenen Starts. Steht nicht in Anzeige und Export.
+    abort_remark: str | None = None
 
 
 class RankingGroup(BaseModel):
@@ -282,9 +292,15 @@ class RankingOut(BaseModel):
     unit: str | None
     generated_at: datetime
     groups: list[RankingGroup]
-    # Formelles Wort für gleiche Ergebnisse dieses Wettbewerbs: „Ringgleichheit“,
-    # „Treffergleichheit“ oder „gleiches Ergebnis“ (ohne Wort im Sporthandbuch).
+    # Formelles Wort für gleiche Ergebnisse dieses Wettbewerbs nach seinem Verband: BDS
+    # „Ringgleichheit“/„Treffergleichheit“, DSB „Ergebnisgleichheit“/„Treffergleichheit“, ohne
+    # Wort im Regelwerk „gleiches Ergebnis“.
     tie_word: str = "gleiches Ergebnis"
+    # Verband des Katalogs (`catalog_federation`, klein); null bei eigener Disziplin. Bestimmt
+    # die formellen Wörter (`GET /system/terms`).
+    federation: str | None = None
+    # Titel der Liste nach dem Begriffssatz des Verbands („Ergebnisliste“).
+    result_list_title: str = "Ergebnisliste"
 
 
 class StatusCounts(BaseModel):

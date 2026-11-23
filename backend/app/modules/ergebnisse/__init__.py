@@ -1,7 +1,8 @@
 """Modul `ergebnisse`: Erfassung, unveränderliches Ereignisprotokoll, Wertung, Ranglisten.
 
 Öffentliche Schnittstelle für andere Module: `recompute_competition(session, competition_id,
-actor)` (rechnet alle Ergebnisse eines Wettbewerbs aus den Ereignissen neu, ohne zu bestätigen).
+actor)` (rechnet alle Ergebnisse eines Wettbewerbs aus den Ereignissen neu, ohne zu bestätigen)
+und `abort_remarks(session, start_ids)` (Bemerkung zum Abbruch je Start, nur für die Bedienung).
 Bei einer neuen Revision der Wertung läuft sie automatisch über `turnier.hooks`.
 
 Bei `starts.hooks` meldet sich das Modul dreimal an: als Ergebnisprüfer (Starts mit Ereignissen
@@ -28,12 +29,13 @@ from app.modules.ergebnisse.service import (
     EVENT_PREFIX,
     EVENT_RECOMPUTED,
     abort_from_starts,
+    abort_remarks,
     starts_with_events,
 )
 from app.modules.starts import hooks as start_hooks
 from app.modules.turnier.hooks import register_definition_changed, unregister_definition_changed
 
-__all__ = ["manifest", "recompute_competition"]
+__all__ = ["abort_remarks", "manifest", "recompute_competition"]
 
 register_event_names(*(f"{EVENT_PREFIX}{kind}" for kind in EVENT_LABELS), EVENT_RECOMPUTED)
 

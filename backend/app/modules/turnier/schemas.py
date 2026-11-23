@@ -347,6 +347,17 @@ class CompetitionOut(BaseModel):
     changeover_minutes: int
     # Aktuelle Revision der wertungsrelevanten Felder (siehe `…/revisions`).
     definition_revision: int
+    # Der Katalog hat sich geändert, seit die Definition aus ihm übernommen wurde (Anlegen,
+    # „übernehmen“ per `reset-definition` oder bei einer Kopie die Übernahme im Original), oder
+    # die Disziplin/Variante fehlt dort jetzt. Bewusste Abweichungen im Turnier zählen nicht (die
+    # zeigt `…/catalog-diff`). Berechnet je Abruf, gleich auf jedem Gerät; nach `reset-definition`
+    # false. Immer false ohne Katalogherkunft.
+    catalog_changed: bool = False
+    # Stand des Regelwerks bei der Übernahme und heute (null ohne Katalogherkunft bzw. wenn die
+    # Disziplin fehlt). Gleicher Stand schließt eine Änderung nicht aus: Auch Korrekturen im
+    # Katalog ohne neues Regelwerk zählen.
+    catalog_stand_then: date | None = None
+    catalog_stand_now: date | None = None
 
 
 class RevisionOut(BaseModel):
@@ -485,6 +496,28 @@ class TournamentFromTemplate(StrictModel):
     organizer: Name | None = None
 
 
+class TemplateGapOut(BaseModel):
+    """Was der aktuelle Katalog für eine Vorlage nicht hat."""
+
+    # competition: Kennziffer (oder ihre Variante) fehlt · classes: Klassen des Verbands fehlen
+    kind: Literal["competition", "classes"]
+    federation: str
+    # Nur bei `competition`.
+    code: str | None = None
+    variant_id: str | None = None
+    # Zum Anzeigen, z. B. „Kennziffer 9999 (BDS)“ (DSB: „Kennzahl …“).
+    message_de: str
+
+
+class TemplateUnavailableOut(BaseModel):
+    """HTTP 409: Die Vorlage passt nicht zum aktuellen Katalog; angelegt wurde nichts."""
+
+    detail: str
+    code: Literal["template_unavailable"] = "template_unavailable"
+    template_id: str
+    missing: list[TemplateGapOut]
+
+
 class PracticeExistsOut(BaseModel):
     """HTTP 409: Es gibt schon ein Übungsturnier."""
 
@@ -541,6 +574,11 @@ class Announcement(StrictModel):
     title: Annotated[str, Field(min_length=1, max_length=200)] | None = None
     facts: AnnouncementFacts = AnnouncementFacts()
     blocks: Annotated[list[AnnouncementBlock], Field(max_length=60)] = []
+    # Nur Ausgabe (beim Speichern ignoriert): Abschnitte der Standardgliederung, die in der
+    # gespeicherten Gliederung fehlen, fertig zum Einfügen („Abschnitt hinzufügen“). Automatische
+    # Abschnitte zählen nach `kind`, Textabschnitte nach `id`. Ältere Turniere haben z. B. noch
+    # keinen Abschnitt „Schießstände“ (`kind: ranges`); die App ergänzt ihn nicht ungefragt.
+    missing_default_blocks: Annotated[list[AnnouncementBlock], Field(max_length=60)] = []
 
     @model_validator(mode="after")
     def _check_blocks(self) -> Self:
@@ -625,6 +663,8 @@ class DocumentDates(BaseModel):
 class DocumentRange(BaseModel):
     """Ein Schießstand des Turniers."""
 
+    # ID des Schießstands (wie `RangeOut.id`), damit die Oberfläche den Eintrag zuordnen kann.
+    range_id: UUID | None = None
     name: str
     lane_count: int
     # „6 Schützenstände“, „1 Schützenstand“ (Wörter aus `AnnouncementDocument.terms`).

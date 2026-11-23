@@ -40,6 +40,7 @@ async def test_default_outline_has_headings_only(api: Api) -> None:
         "Termine",
         "Teilnahmeberechtigung",
         "Wettbewerbe",
+        "Schießstände",
         "Klassen",
         "Startgeld",
         "Anmeldung",
@@ -51,6 +52,8 @@ async def test_default_outline_has_headings_only(api: Api) -> None:
         "Kontakt",
     ]
     assert all(b["body"] == "" and b["visible"] for b in body["blocks"])
+    # Neue Turniere haben die ganze Standardgliederung.
+    assert body["missing_default_blocks"] == []
 
 
 async def test_club_championship_outline(api: Api) -> None:
@@ -188,6 +191,8 @@ async def test_document_contains_current_data(api: Api) -> None:
         if item["id"] == "datenschutz":
             item["visible"] = False
     announcement["facts"]["registration_deadline"] = "2027-03-01"
+    # Schießstände ans Ende verschieben, unter eigener ID.
+    announcement["blocks"] = [b for b in announcement["blocks"] if b["kind"] != "ranges"]
     announcement["blocks"].append({"id": "staende", "kind": "ranges", "heading": "Schießstände"})
     assert (await api.client.put(url, json=announcement)).status_code == 200
 
@@ -215,7 +220,12 @@ async def test_document_contains_current_data(api: Api) -> None:
     }
     assert blocks["klassen"]["classes"] == [{"name": "Offene Klasse", "short": "O"}]
     assert blocks["staende"]["ranges"] == [
-        {"name": "Schießstand 25 m", "lane_count": 6, "lanes_text": "6 Schützenstände"}
+        {
+            "range_id": range_["id"],
+            "name": "Schießstand 25 m",
+            "lane_count": 6,
+            "lanes_text": "6 Schützenstände",
+        }
     ]
     assert blocks["startgeld"]["fees"] == {
         "currency": "CHF",
@@ -331,3 +341,28 @@ async def test_unknown_tournament(api: Api) -> None:
     assert (await api.client.get(url)).status_code == 404
     assert (await api.client.get(f"{url}/document")).status_code == 404
     assert (await api.client.put(url, json={})).status_code == 404
+
+
+async def test_older_outline_reports_missing_default_blocks(api: Api) -> None:
+    """Ältere Turniere haben keinen Abschnitt „Schießstände“: Die App ändert die gespeicherte
+    Gliederung nicht, meldet ihn aber zum Hinzufügen."""
+    _tid, url = await tournament(api)
+    announcement = (await api.client.get(url)).json()
+    announcement["blocks"] = [
+        b for b in announcement["blocks"] if b["kind"] != "ranges" and b["id"] != "kontakt"
+    ]
+    # Ein mitgeschicktes `missing_default_blocks` wird beim Speichern ignoriert.
+    saved = await api.client.put(url, json=announcement)
+    assert saved.status_code == 200, saved.text
+
+    body = (await api.client.get(url)).json()
+    assert [(b["id"], b["kind"]) for b in body["missing_default_blocks"]] == [
+        ("schiessstaende", "ranges"),
+        ("kontakt", "text"),
+    ]
+    assert saved.json()["missing_default_blocks"] == body["missing_default_blocks"]
+    assert "schiessstaende" not in [b["id"] for b in body["blocks"]]
+    # Hinzufügen wie angeboten: danach fehlt nichts mehr.
+    body["blocks"] += body["missing_default_blocks"]
+    assert (await api.client.put(url, json=body)).status_code == 200
+    assert (await api.client.get(url)).json()["missing_default_blocks"] == []

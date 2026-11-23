@@ -217,5 +217,59 @@ async def test_template_with_unknown_code_creates_nothing(
 
     assert [c["available"] for c in listed.json()[0]["competitions"]] == [True, False]
     assert response.status_code == 409
-    assert "bds 9999" in response.json()["detail"]
+    body = response.json()
+    assert body["code"] == "template_unavailable"
+    assert body["template_id"] == "kaputt"
+    assert body["detail"] == (
+        "Die Vorlage „Kaputt“ passt nicht zum aktuellen Katalog: Kennziffer 9999 (BDS) gibt es "
+        "dort nicht."
+    )
+    assert body["missing"] == [
+        {
+            "kind": "competition",
+            "federation": "bds",
+            "code": "9999",
+            "variant_id": None,
+            "message_de": "Kennziffer 9999 (BDS)",
+        }
+    ]
     assert (await api.client.get(f"{API}/tournaments")).json() == []
+
+
+async def test_template_unavailable_lists_every_gap(
+    api: Api, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    broken = TournamentTemplate.model_validate(
+        {
+            "schema": 1,
+            "id": "luecken",
+            "name": "Lücken",
+            "description": "Variante und Verband fehlen.",
+            "classes": {"federation": "xyz"},
+            "competitions": [
+                {
+                    "catalog_federation": "bds",
+                    "catalog_code": "1001",
+                    "variant_id": "gibt-es-nicht",
+                },
+                {"catalog_federation": "dsb", "catalog_code": "0.0.0"},
+            ],
+        }
+    )
+    monkeypatch.setattr(tournament_templates, "load_templates", lambda: {"luecken": broken})
+
+    response = await api.client.post(
+        f"{API}/tournaments/from-template",
+        json={"template_id": "luecken", "name": "X", "date_from": "2027-05-01"},
+    )
+
+    assert response.status_code == 409
+    body = response.json()
+    assert body["code"] == "template_unavailable"
+    assert [(m["kind"], m["federation"], m["code"], m["variant_id"]) for m in body["missing"]] == [
+        ("competition", "bds", "1001", "gibt-es-nicht"),
+        ("competition", "dsb", "0.0.0", None),
+        ("classes", "xyz", None, None),
+    ]
+    assert body["missing"][0]["message_de"] == ("Kennziffer 1001 (BDS), Variante „gibt-es-nicht“")
+    assert body["missing"][2]["message_de"] == "Klassen des Verbands XYZ"

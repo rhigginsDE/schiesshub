@@ -58,6 +58,9 @@ class CompetitionInfo:
     target_times: tuple[tuple[str, Decimal], ...] = ()
     # `zeit_rundung` der Wertung („summe_abrunden“) oder None.
     time_rounding: str | None = None
+    # Verband des Katalogs (`catalog_federation`); bestimmt die formellen Wörter der Liste.
+    # None bei eigener Disziplin (Standardsatz).
+    federation: str | None = None
 
     @property
     def time_model(self) -> bool:

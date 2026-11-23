@@ -262,6 +262,17 @@ async def test_apply_skips_gaps_conflicts_and_unknown_starts(
     assert await _count_events(engine) == before
     lines = report.summary()
     assert lines[0].startswith("0 Ereignisse nachgetragen, 2 waren schon in der Sicherung")
+    # Dieselben Starts als Liste für die Oberfläche: erst der unbekannte, dann die unpassenden.
+    skipped = report.skipped_starts()
+    numbers = {a: by_start[a].get("start_number"), b: by_start[b].get("start_number")}
+    assert [(s.reason_code, s.start_number) for s in skipped] == [
+        ("start_not_in_backup", 99),
+        *sorted(("does_not_match", number) for number in numbers.values()),
+    ]
+    # Der Wettbewerb steht in der Datenbank, also kennt die Liste seinen Namen.
+    assert len({s.competition_name for s in skipped}) == 1
+    assert skipped[0].competition_name
+    assert all(s.message_de for s in skipped)
 
 
 async def test_apply_brings_status_and_current_in_line(

@@ -39,15 +39,19 @@ nur auslösen („Jetzt sichern“), nicht einrichten und nicht wiederherstellen
 
 1. **Sicherung wählen.** Die Liste zeigt alle Sicherungen auf dem Stick und dem Server, die
    neueste zuerst, mit Zeitpunkt, Ort, Größe, ob eine Prüfsumme und eine Mitschrift vorliegen.
+   Liegt dieselbe Sicherung an mehreren Orten (Server, Stick, „vor Wiederherstellung“), steht sie
+   nur einmal da. Gewählt wird dann die Kopie vom Stick, weil nur sie die Schlüssel enthält;
+   `locations` nennt alle Orte, `other_ids` die Kennungen der übrigen Kopien (etwa die vom Server,
+   die ohne Sicherungspasswort lesbar ist).
 2. **Prüfen lassen.** Für Sicherungen vom Stick das Sicherungspasswort eingeben. Die App prüft
    Prüfsumme und Passwort und zeigt eine Vorschau:
    - Zeitpunkt der Sicherung, App-Version und Datenbank-Stand. Eine ältere Sicherung wird nach dem
      Einspielen auf den Stand der App gebracht. Eine Sicherung einer **neueren** App wird abgelehnt.
    - die Turniere der Sicherung mit Status, Zahl der Starts und abgeschlossenen Ergebnisse,
-   - den Vergleich mit dem jetzigen Stand: „Seit dieser Sicherung sind N Ergebnis-Ereignisse
-     hinzugekommen; davon stehen M in der Mitschrift und werden nachgetragen, K gehen verloren“,
-     mit Gründen (Start erst nach der Sicherung gebucht, nicht in der Mitschrift) und der Zahl der
-     Starts, die nach der Sicherung gebucht wurden,
+   - den Vergleich mit dem jetzigen Stand: „Seit dieser Sicherung sind N Ergebnis-Einträge
+     hinzugekommen; davon werden M nachgetragen, K gehen verloren“, mit Gründen (Start erst nach
+     der Sicherung gebucht, nicht unter den seit der Sicherung erfassten Ergebnissen gespeichert)
+     und der Zahl der Starts, die nach der Sicherung gebucht wurden,
    - was mit den Schlüsseln geschieht und was mit deinem Zugang geschieht (siehe unten).
 3. **Bestätigen.** Die App führt dann der Reihe nach aus und zeigt jeden Schritt an:
    1. Sicherung erneut prüfen.
@@ -57,12 +61,16 @@ nur auslösen („Jetzt sichern“), nicht einrichten und nicht wiederherstellen
       liegt danach zusätzlich unter `DATA_DIR/backups/pre-restore`.
    4. Abzug in eine **neue** Datenbank einspielen. Die laufende Datenbank bleibt unberührt.
    5. Bei einer älteren Sicherung: die neue Datenbank aktualisieren.
-   6. Mitschrift nachtragen (wie auf der Konsole, Bericht siehe unten).
+   6. Seit der Sicherung erfasste Ergebnisse (Mitschrift) nachtragen, wie auf der Konsole
+      (Bericht siehe unten).
    7. Neue Datenbank prüfen (Datenbank-Stand, Administrator-Rolle, Namen lesbar).
    8. **Datenbank tauschen.** Wenige Sekunden lang antwortet der Server gar nicht. Die bisherige
       Datenbank bleibt unter dem Namen `<name>_pre_restore_<Zeit>` erhalten. Danach laufen alle
       Module wie nach einem Neustart.
-   9. Protokolleintrag „Sicherung wiederhergestellt“, sofort eine neue Sicherung, Eingaben wieder frei.
+   9. Protokolleintrag „Sicherung wiederhergestellt“, sofort eine neue Sicherung, Eingaben wieder
+      frei. Das Ereignis `backup.maintenance` mit `active: false` kommt erst, wenn die neue
+      Datenbank Anfragen beantwortet (Verbindungspool steht, Probeabfrage gelaufen); Geräte, die
+      darauf neu laden, bekommen also gleich Daten.
 
 Schlägt ein Schritt vor dem Tausch fehl (falsches Passwort, beschädigte Datei, kein Platz …),
 wird die neue Datenbank gelöscht. Die laufende ist dann unverändert, auch die Eingaben sind wieder
@@ -70,8 +78,33 @@ frei. Es läuft immer nur eine Wiederherstellung.
 
 **Ergebnisbericht:** wie auf der Konsole („N Ereignisse nachgetragen, K waren schon in der
 Sicherung, M übersprungen …“), dazu der Name der alten Datenbank und der Sicherung „vor
-Wiederherstellung“. Was danach noch fehlt, steht unter
-[Was von Hand nachzutragen ist](#was-von-hand-nachzutragen-ist).
+Wiederherstellung“. Die übersprungenen Starts stehen zusätzlich als Liste in `skipped_starts`
+(Wettbewerb, Kennziffer, Startnummer, Versuch, `reason_code`: `start_not_in_backup` = nach der
+Sicherung gebucht, `does_not_match` = passt nicht zur Sicherung). Was danach noch fehlt, steht
+unter [Was von Hand nachzutragen ist](#was-von-hand-nachzutragen-ist).
+
+**Kennungen der Meldungen** (`code` in `problem_items`, `note_items`, `access.reasons`; die Texte
+in `message_de` dürfen sich ändern, die Kennungen nicht):
+
+| Wo | `code` | Bedeutung |
+|---|---|---|
+| Problem | `schema_newer` | Sicherung einer neueren App-Version |
+| Problem | `schema_missing` | keine Versionsangabe, keine vollständige Sicherung |
+| Problem | `keys_conflict` | andere Schlüssel auf dem Server, nur über die Konsole |
+| Problem | `db_unreachable`, `db_not_found` | Verwaltungs-Datenbank nicht erreichbar bzw. Datenbank fehlt |
+| Problem | `db_no_createdb`, `db_not_owner` | Datenbank-Benutzer darf nicht anlegen bzw. umbenennen |
+| Problem | `restore_running` | es läuft schon eine Wiederherstellung |
+| Hinweis | `no_file_checksum` | Datei ohne Prüfsumme, geprüft wurde die Datenbank darin |
+| Hinweis | `server_copy_without_keys` | Sicherung vom Server, es gelten die Schlüssel des Servers |
+| Hinweis | `other_app_version` | Sicherung von einer anderen App-Version |
+| Hinweis (Ergebnis) | `module_restart_failed` | ein Modul startete nicht neu, Server neu starten |
+| Hinweis (Ergebnis) | `after_backup_failed` | Sicherung des neuen Stands fehlgeschlagen |
+| Zugang | `enforcement_off` | Berechtigungsprüfung aus, Zugang bleibt |
+| Zugang | `enforcement_on_after_restore` | danach eingeschaltet, Anmelden nur mit Konto aus der Sicherung |
+| Zugang | `lockout` | Konto, Administrator-Rolle oder Gerät fehlt in der Sicherung |
+| Zugang | `stays_signed_in` | du bleibst angemeldet |
+| Zugang | `sign_in_again` | danach neu mit der PIN anmelden |
+| Zugang | `pin_changed` | in der Sicherung gilt deine frühere PIN |
 
 ### Was nicht zurückgespielt wird
 

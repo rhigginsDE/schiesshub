@@ -105,6 +105,20 @@ def test_dsb_words_from_sportordnung() -> None:
     assert bds.startzeit == "Starttermin"  # SHB A 7.05
 
 
+def test_plural_forms() -> None:
+    """Mehrzahlformen je Verband (bds-begriffe.md, dsb-begriffe.md)."""
+    bds = begriffe_fuer("bds")
+    assert (bds.klassen, bds.ergebnislisten) == ("Wettbewerbsklassen", "Ergebnislisten")
+    assert (bds.durchgaenge, bds.wertungsserien) == ("Durchgänge", "Wertungsserien")
+    assert (bds.serie, bds.serien) == ("Serie", "Serien")  # SHB K 3.03
+    dsb = begriffe_fuer("dsb")
+    assert (dsb.klassen, dsb.ergebnislisten) == ("Wettkampfklassen", "Ergebnislisten")
+    assert dsb.wertungsserien == "Wettkampfserien"
+    # Im Ablauf sagt die SpO schlicht „Serie“ (0.12.1); „Durchgänge“ ist nicht belegt.
+    assert (dsb.serie, dsb.serien) == ("Serie", "Serien")
+    assert dsb.durchgaenge == begriffe.standard().durchgaenge
+
+
 # --- Prüfung beim Laden ---------------------------------------------------------------
 
 

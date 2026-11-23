@@ -224,6 +224,10 @@ class StationStartOut(BaseModel):
     attempt: int
     status: StartStatus
     abort_reason: AbortReason | None
+    # Bemerkung zum Abbruch (`note` bzw. `reason` beim Abbrechen), nur mit `names=full` und nur
+    # bei abgebrochenen Starts; sonst immer null. Kann Namen oder Gründe enthalten, deshalb nie
+    # in öffentlichen Sichten.
+    abort_note: str | None = None
     queue_position: int | None
     lane: int | None
     # Steht gerade auf `lane` und belegt sie (aufgerufen oder erfasst, noch nicht freigegeben).

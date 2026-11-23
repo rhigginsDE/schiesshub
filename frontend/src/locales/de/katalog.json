@@ -158,6 +158,7 @@
     "zehntelwertung": "Gewertet wird in Zehnteln (0 und 1,0 bis 10,9).",
     "stechen_bis_platz_ringe": "Bei Ringgleichheit auf den Plätzen 1 bis {{wert}} wird gestochen.",
     "stechen_bis_platz_treffer": "Bei Treffergleichheit auf den Plätzen 1 bis {{wert}} wird gestochen.",
+    "hoechstergebnis_gleicher_rang": "Wer das erzielbare Höchstergebnis erreicht, wird ohne Finale nicht unterschieden und erhält den gleichen Rang.",
     "stechen_bis_platz_ergebnis": "Bei Ergebnisgleichheit auf den Plätzen 1 bis {{wert}} wird gestochen.",
     "zeit_rundung": {
       "summe_abrunden": "Die Summe der Serienzeiten wird vor dem Abzug auf volle Sekunden abgerundet."

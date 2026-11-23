@@ -24,6 +24,7 @@ class Api:
 
     client: httpx.AsyncClient
     events: asyncio.Queue[Event]
+    created: int = 0
 
     def drain(self) -> list[Event]:
         received = []
@@ -32,7 +33,10 @@ class Api:
         return received
 
     async def create_tournament(self, **fields: Any) -> dict[str, Any]:
-        body = {"name": "Vereinspokal", "date_from": "2027-03-06", **fields}
+        # Gleicher Name und Tag gilt als Doppel: ab dem zweiten Turnier ohne Namen hochzählen.
+        self.created += 1
+        name = "Vereinspokal" if self.created == 1 else f"Vereinspokal {self.created}"
+        body = {"name": name, "date_from": "2027-03-06", **fields}
         response = await self.client.post(f"{API}/tournaments", json=body)
         assert response.status_code == 201, response.text
         return response.json()

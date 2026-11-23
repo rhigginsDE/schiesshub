@@ -61,6 +61,12 @@ class Api:
     events: asyncio.Queue[Event]
     data_dir: Path
     _counter: list[int] = field(default_factory=lambda: [0])
+    _tournament_names: list[str] = field(default_factory=list)
+
+    def _unique(self, name: str) -> str:
+        count = self._tournament_names.count(name)
+        self._tournament_names.append(name)
+        return name if count == 0 else f"{name} ({count + 1})"
 
     def drain(self) -> list[Event]:
         received = []
@@ -81,7 +87,8 @@ class Api:
     # --- Aufbau ---------------------------------------------------------------
 
     async def tournament(self, **settings: Any) -> str:
-        body: dict[str, Any] = {"name": "Vereinspokal", "date_from": "2027-03-06"}
+        # Name und Datum sind je Turnier eindeutig: Wiederholungen bekommen eine Nummer.
+        body: dict[str, Any] = {"name": self._unique("Vereinspokal"), "date_from": "2027-03-06"}
         if settings:
             body["settings"] = settings
         return (await self.ok("POST", "/tournaments", 201, json=body))["id"]

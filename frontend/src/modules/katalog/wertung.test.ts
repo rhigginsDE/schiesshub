@@ -54,11 +54,15 @@ describe("beschreibeWertung", () => {
         gleichstand: ["stechen", "letzte_serie_rueckwaerts", "zehntel_gesamt"],
         zehntelwertung: true,
         stechen_bis_platz: 3,
+        hoechstergebnis_gleicher_rang: true,
       } as WertungOffen,
       "de",
     );
 
     expect(klartext.saetze).toContain("Gewertet wird in Zehnteln (0 und 1,0 bis 10,9).");
+    expect(klartext.saetze).toContain(
+      "Wer das erzielbare Höchstergebnis erreicht, wird ohne Finale nicht unterschieden und erhält den gleichen Rang.",
+    );
     expect(klartext.saetze).toContain("Bei Ringgleichheit auf den Plätzen 1 bis 3 wird gestochen.");
     expect(klartext.gleichstand).toEqual([
       "ein Stechen",

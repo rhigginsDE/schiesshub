@@ -10,6 +10,7 @@ import sys
 import uuid
 from collections.abc import AsyncIterator
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import httpx
@@ -206,6 +207,36 @@ async def test_maintenance_blocks_writes_then_everything(backup: BackupApp) -> N
     assert names.count(maintenance.EVENT_MAINTENANCE) == 3
 
 
+async def test_maintenance_ends_only_when_database_answers(
+    backup: BackupApp, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Nach dem Tausch: Probeabfrage über den Pool der App, wiederholt, bis sie gelingt."""
+    manager: guided.RestoreManager = backup.app.state.backup_restore
+    real = backup.app.state.session_factory
+    calls: list[int] = []
+
+    def flaky() -> Any:
+        calls.append(1)
+        if len(calls) < 3:
+            raise OSError("Datenbank startet noch")
+        return real()
+
+    def app_with(factory: Any) -> SimpleNamespace:
+        return SimpleNamespace(state=SimpleNamespace(session_factory=factory))
+
+    def down() -> Any:
+        raise OSError("Datenbank weg")
+
+    monkeypatch.setattr(manager, "app", app_with(flaky))
+    monkeypatch.setattr(guided, "READY_INTERVAL_S", 0.01)
+    assert await manager._wait_until_ready() is True
+    assert len(calls) == 3
+
+    monkeypatch.setattr(guided, "READY_TIMEOUT_S", 0.05)
+    monkeypatch.setattr(manager, "app", app_with(down))
+    assert await manager._wait_until_ready() is False
+
+
 async def test_gate_wraps_an_already_built_stack(backup_settings: Any, clean_db: None) -> None:
     """Unter Uvicorn steht der Schichtenstapel schon, bevor die Module starten."""
     from app.main import create_app
@@ -226,9 +257,22 @@ async def test_gate_wraps_an_already_built_stack(backup_settings: Any, clean_db:
 
 
 async def test_restore_round_trip(
-    backup: BackupApp, engine: AsyncEngine, test_database_url: str, leftovers: None
+    backup: BackupApp,
+    engine: AsyncEngine,
+    test_database_url: str,
+    leftovers: None,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     api = _api(backup)
+    manager = backup.app.state.backup_restore
+    probe = manager._wait_until_ready
+    probes: list[bool] = []
+
+    async def recording_probe() -> bool:
+        probes.append(backup.app.state.maintenance.active)
+        return await probe()
+
+    monkeypatch.setattr(manager, "_wait_until_ready", recording_probe)
     setup = await make_setup(api, definition=precision_definition(), capture_mode="shot")
     a = await _start(api, setup, "Alma Vorher")
     b = await _start(api, setup, "Bert Halb")
@@ -249,7 +293,13 @@ async def test_restore_round_trip(
     assert listed[source_id]["needs_passphrase"] is True
     assert listed[source_id]["checksum_present"] is True
     assert listed[source_id]["journal_available"] is True
-    assert any(item["location"] == "local" for item in sources["sources"])
+    # Dieselbe Sicherung auf Stick und Server: ein Eintrag, der Stick zuerst (mit Schlüsseln).
+    local_id = "local:" + source_id.split(":", 1)[1].removesuffix(".shb") + ".dump"
+    assert listed[source_id]["locations"] == ["usb", "local"]
+    assert listed[source_id]["other_ids"] == [local_id]
+    assert local_id not in listed
+    stems = [item["file_name"].rsplit(".", 1)[0] for item in sources["sources"]]
+    assert len(stems) == len(set(stems))
 
     wrong = await backup.client.post(
         f"{API}/backup/restore/preview",
@@ -280,8 +330,18 @@ async def test_restore_round_trip(
     assert comparison["events_lost"] == 2
     assert comparison["lost_start_missing"] == 2
     assert comparison["starts_since_backup"] == 1
-    assert "4 Ergebnis-Ereignisse hinzugekommen" in comparison["summary_de"]
+    assert "4 Ergebnis-Einträge hinzugekommen" in comparison["summary_de"]
+    assert "Mitschrift" not in comparison["summary_de"]
     assert preview["access"]["lockout_risk"] is False, preview["access"]
+    assert [r["code"] for r in preview["access"]["reasons"]] == ["enforcement_off"]
+    assert preview["problem_items"] == []
+    assert preview["notes"] == [item["message_de"] for item in preview["note_items"]]
+    # Die Kopie auf dem Server lässt sich ebenso ansehen (ohne Passwort, ohne Schlüssel).
+    local_preview = (
+        await backup.client.post(f"{API}/backup/restore/preview", json={"source_id": local_id})
+    ).json()
+    assert [n["code"] for n in local_preview["note_items"]] == ["server_copy_without_keys"]
+    assert local_preview["source"]["locations"] == ["local"]
 
     unconfirmed = await backup.client.post(
         f"{API}/backup/restore/execute",
@@ -316,10 +376,21 @@ async def test_restore_round_trip(
     assert result["journal"]["applied"] == 2
     assert result["journal"]["missing_events"] == 2
     assert result["journal"]["lines"][0].startswith("2 Ereignisse nachgetragen")
+    # E wurde nach der Sicherung gebucht: als Liste mit Wettbewerb und Startnummer.
+    (skipped,) = result["skipped_starts"]
+    assert skipped["reason_code"] == "start_not_in_backup"
+    competition = await api.ok("GET", f"/tournaments/{setup.tid}/competitions/{setup.cid}")
+    assert skipped["competition_name"] == competition["name"]
+    assert skipped["start_number"] is not None
+    assert result["journal"]["skipped_starts"] == result["skipped_starts"]
+    journal_step = next(step for step in status["steps"] if step["key"] == "journal")
+    assert "Mitschrift" not in journal_step["label_de"] + (journal_step["detail_de"] or "")
     assert result["previous_database"].startswith(make_url(test_database_url).database)
     assert result["pre_restore_backup"].startswith("pre-restore/")
     assert result["after_backup_ok"] is True
     assert status["maintenance"] is False
+    # Die Wartung endete erst nach der Probeabfrage gegen die neue Datenbank.
+    assert probes == [True]
 
     await engine.dispose()
     after = await _results(engine)
@@ -352,7 +423,7 @@ async def test_restore_round_trip(
     assert audit["source"] == source_id
     assert "passphrase" not in str(audit).lower()
     restored_sources = (await backup.client.get(f"{API}/backup/restore/sources")).json()
-    assert any(item["location"] == "pre_restore" for item in restored_sources["sources"])
+    assert any("pre_restore" in item["locations"] for item in restored_sources["sources"])
 
 
 async def test_broken_file_and_wrong_passphrase_leave_database_alone(
@@ -448,6 +519,8 @@ async def test_older_schema_is_upgraded_newer_is_refused(
     ).json()
     assert newer["restorable"] is False
     assert newer["schema_check"]["state"] == "newer"
+    assert [p["code"] for p in newer["problem_items"]] == ["schema_newer"]
+    assert newer["problems"] == [newer["problem_items"][0]["message_de"]]
 
     await _older_dump(
         test_database_url, snapshots / "snapshot-20260102T100000Z.dump", "0015_auth_rechte"

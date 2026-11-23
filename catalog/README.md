@@ -136,6 +136,7 @@ Weitere Felder unter `wertung`:
 | `gleichstand` | Kriterien bei Ergebnisgleichheit in ihrer Reihenfolge, z. B. `zehner`, `innenzehner`, `neuner_abwaerts`, `parcours_zeit` (niedrigere Parcourszeit gewinnt), `letzte_serie_rueckwaerts` (letzte 10-Schuss-Serie, dann rückwärts), `stechen`, `zehntel_gesamt`. Fehlt, wenn das Regelwerk keine Regel nennt. Was ein Kriterium bedeutet, steht beim jeweiligen Verband in der Gruppendatei als Kommentar. |
 | `zehntelwertung` | `true`: Ringe mit einer Nachkommastelle (0 und 1,0 bis 10,9) |
 | `stechen_bis_platz` | Ringgleichheit auf den Plätzen 1 bis N wird durch Stechen entschieden |
+| `hoechstergebnis_gleicher_rang` | `true`: Wer das erzielbare Höchstergebnis erreicht, wird ohne Finale nicht unterschieden und teilt sich den Rang (DSB SpO 0.12.1). Nur bei `modell: "ringe"` |
 | `abzug_je_voller_sekunde_ueber_sollzeit` | Ringabzug je voller Sekunde über `sollzeit_s` |
 | `min_teilergebnis` | Untergrenze je Teilergebnis vor dem Addieren (Mehrdistanz: 0) |
 | `zeit_rundung` | `summe_abrunden`: Summe der Serienzeiten wird vor dem Abzug auf volle Sekunden abgerundet (Speed) |

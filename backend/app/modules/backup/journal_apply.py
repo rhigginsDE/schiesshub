@@ -125,6 +125,8 @@ class MissingStart:
     events: int
     # Kennziffer und Name, wenn der Wettbewerb in der Sicherung steht; sonst None.
     competition: str | None = None
+    competition_name: str | None = None
+    competition_code: str | None = None
 
     def label(self) -> str:
         number = f"Startnummer {self.start_number}" if self.start_number else "ohne Startnummer"
@@ -138,15 +140,55 @@ class MissingStart:
         return f"Wettbewerb, der in der Sicherung fehlt ({self.competition_id[:8]})"
 
 
+@dataclass(frozen=True, slots=True)
+class SkippedStart:
+    """Ein Start, der nicht (vollständig) nachgetragen wurde, für Listen in der Oberfläche."""
+
+    competition_name: str | None
+    competition_code: str | None
+    start_number: int | None
+    attempt: int | None
+    # start_not_in_backup: nach der Sicherung gebucht · does_not_match: passt nicht zur Sicherung
+    reason_code: str
+    message_de: str
+
+
 @dataclass(slots=True)
 class ApplyReport:
     applied: int = 0
     present: int = 0
     missing_starts: list[MissingStart] = field(default_factory=list)
     conflicts: list[str] = field(default_factory=list)
+    # Dieselben Starts wie `conflicts`, mit Wettbewerb und Startnummer.
+    conflict_starts: list[SkippedStart] = field(default_factory=list)
     status_changes: int = 0
     recomputed_competitions: int = 0
     notes: list[str] = field(default_factory=list)
+
+    def skipped_starts(self) -> list[SkippedStart]:
+        """Alle betroffenen Starts: zuerst die nach der Sicherung gebuchten, dann die
+        unpassenden; je nach Wettbewerb und Startnummer."""
+        missing = [
+            SkippedStart(
+                competition_name=item.competition_name,
+                competition_code=item.competition_code,
+                start_number=item.start_number,
+                attempt=item.attempt,
+                reason_code="start_not_in_backup",
+                message_de="Nach der Sicherung gebucht: bitte Person und Start neu anlegen und "
+                "das Ergebnis vom Startzettel erfassen.",
+            )
+            for item in self.missing_starts
+        ]
+        conflicts = sorted(
+            self.conflict_starts,
+            key=lambda item: (
+                item.competition_name or "",
+                item.start_number or 0,
+                item.attempt or 0,
+            ),
+        )
+        return missing + conflicts
 
     @property
     def missing_events(self) -> int:
@@ -267,6 +309,10 @@ def plan_records(records: list[dict[str, Any]], starts: dict[str, BackupStart]) 
 class _Skip(Exception):
     """Dieser Start passt nicht; seine Änderungen werden zurückgenommen."""
 
+    def __init__(self, message: str, record: dict[str, Any]) -> None:
+        super().__init__(message)
+        self.record = record
+
 
 def _uuid(value: Any) -> uuid.UUID | None:
     return uuid.UUID(str(value)) if value else None
@@ -311,7 +357,8 @@ async def _apply_start(
     ):
         raise _Skip(
             f"{_who(first)}: gehört in der Datenbank zu einer anderen Anmeldung oder einem anderen "
-            "Wettbewerb; nichts nachgetragen."
+            "Wettbewerb; nichts nachgetragen.",
+            first,
         )
     rows = (
         await session.execute(
@@ -327,7 +374,8 @@ async def _apply_start(
             if existing[event_id] != record["seq"]:
                 raise _Skip(
                     f"{_who(record)}: Ereignis {event_id} hat in der Datenbank eine andere Nummer; "
-                    "nichts nachgetragen."
+                    "nichts nachgetragen.",
+                    record,
                 )
             # Zählt auch, wenn der Start danach nicht passt: Diese Ereignisse sind ja da.
             report.present += 1
@@ -336,12 +384,14 @@ async def _apply_start(
         if record["seq"] <= last:
             raise _Skip(
                 f"{_who(record)}: Ereignis Nr. {record['seq']} gibt es in der Datenbank schon mit "
-                f"anderem Inhalt; {remaining} Ereignis(se) nicht nachgetragen."
+                f"anderem Inhalt; {remaining} Ereignis(se) nicht nachgetragen.",
+                record,
             )
         if record["seq"] != last + 1:
             raise _Skip(
                 f"{_who(record)}: Lücke in der Mitschrift, Ereignis Nr. {last + 1} fehlt; "
-                f"{remaining} Ereignis(se) nicht nachgetragen."
+                f"{remaining} Ereignis(se) nicht nachgetragen.",
+                record,
             )
         new.append(record)
         last = record["seq"]
@@ -379,7 +429,8 @@ async def _apply_start(
             except ConflictError as exc:
                 raise _Skip(
                     f"{_who(record)}: Status lässt sich nicht nachziehen ({exc.detail}); nichts "
-                    "nachgetragen."
+                    "nachgetragen.",
+                    record,
                 ) from None
             changes += 1
     await session.flush()
@@ -416,6 +467,8 @@ async def apply_records(
                         attempt=first.get("attempt"),
                         events=len(items),
                         competition=_competition_label(competition),
+                        competition_name=competition.name if competition else None,
+                        competition_code=competition.catalog_code if competition else None,
                     )
                 )
                 continue
@@ -424,6 +477,18 @@ async def apply_records(
                     changed = await _apply_start(session, start, items, report)
             except _Skip as skip:
                 report.conflicts.append(str(skip))
+                competition = await session.get(Competition, start.competition_id)
+                report.conflict_starts.append(
+                    SkippedStart(
+                        competition_name=competition.name if competition else None,
+                        competition_code=competition.catalog_code if competition else None,
+                        start_number=skip.record.get("start_number"),
+                        attempt=skip.record.get("attempt") or start.attempt,
+                        reason_code="does_not_match",
+                        message_de="Passt nicht zum Stand der Sicherung: bitte den Start prüfen "
+                        "und das Ergebnis vom Startzettel nachtragen.",
+                    )
+                )
                 await session.refresh(start)
                 continue
             if changed:

@@ -26,6 +26,8 @@ from app.scoring.results import SeriesResult
 from app.scoring.spec import ScoringSpec
 from app.scoring.status import ABORTED_BY_SHOOTER
 
+RINGS_UNIT = "Ringe"
+HITS_UNIT = "Treffer"
 RING_TIE_BREAKERS = frozenset({"zehner", "innenzehner", "neuner_abwaerts"})
 # Weitere Kriterien, die nur das reine Ringmodell rechnet (Bedeutung: `ranking.py`).
 RING_DETAIL_TIE_BREAKERS = frozenset(
@@ -45,12 +47,14 @@ RING_DETAIL_TIE_BREAKERS = frozenset(
 
 @register_model
 class Rings(ScoringModel):
-    """Summe der Ringe, höher ist besser. Mit `zehntelwertung` mit einer Nachkommastelle."""
+    """Summe der Ringe, höher ist besser. Mit `zehntelwertung` mit einer Nachkommastelle; mit
+    `hoechstergebnis_gleicher_rang` teilen sich alle mit dem Höchstergebnis den Platz
+    (`Definition.max_score`, `ranking.py`)."""
 
     name = "ringe"
     direction = "absteigend"
-    unit = "Ringe"
-    parameters = frozenset({"zehntelwertung"})
+    unit = RINGS_UNIT
+    parameters = frozenset({"zehntelwertung", "hoechstergebnis_gleicher_rang"})
     tie_breakers = RING_TIE_BREAKERS | RING_DETAIL_TIE_BREAKERS
 
     def check_section(self, section: SectionPlan) -> list[str]:
@@ -65,8 +69,9 @@ class Rings(ScoringModel):
         scores: list[SectionScore] = []
         steps: list[str] = []
         tenths = bool(scoring.zehntelwertung)
+        unit = _ring_unit(sections, self.unit)
         for section in sections:
-            steps.extend(_ring_sum_step(section))
+            steps.extend(_ring_sum_step(section, unit))
             rings = Decimal(section.rings)
             if tenths:
                 rings = to_tenths(rings)
@@ -74,7 +79,7 @@ class Rings(ScoringModel):
         score = _sum(score.result for score in scores)
         if tenths:
             score = to_tenths(score)
-        steps.append(_result_step(sections, scores, score, self.unit))
+        steps.append(_result_step(sections, scores, score, unit))
         return Evaluation(sections=scores, score=score, steps=steps)
 
     def unshot_series(self, plan: SectionPlan) -> UnshotRule | None:
@@ -359,14 +364,21 @@ def _sum_text(label: str, parts: list[str], total: str) -> str:
     return f"{label}: {total}"
 
 
-def _ring_sum_step(section: SectionInput) -> list[str]:
+def _ring_unit(sections: Sequence[SectionInput], unit: str) -> str:
+    """„Treffer“, wenn alle Abschnitte nur Treffer zählen (`SectionPlan.hits_only`)."""
+    if sections and all(section.plan.hits_only for section in sections):
+        return HITS_UNIT
+    return unit
+
+
+def _ring_sum_step(section: SectionInput, unit: str = RINGS_UNIT) -> list[str]:
     parts = [format_number(value) for value in section.captured_rings]
     if len(parts) < 2:
         return []
     rings = section.rings
     if section.plan.tenths:
         rings = to_tenths(Decimal(rings))
-    return [_sum_text(section.plan.name, parts, f"{format_number(rings)} Ringe")]
+    return [_sum_text(section.plan.name, parts, f"{format_number(rings)} {unit}")]
 
 
 def _result_step(

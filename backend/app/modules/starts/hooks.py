@@ -14,6 +14,10 @@ So hängt `starts` nicht von `ergebnisse` ab (Muster wie `app.modules.turnier.ho
 - **Fortschritt-Lieferanten** (höchstens einer) bekommen die Start-IDs der belegten
   Schützenstände und liefern je Start den Erfassungsfortschritt (`LaneProgressOut`), soweit
   vorhanden. Die Sichten „Reihenfolge“ und „am Schießstand“ zeigen ihn je Schützenstand.
+- **Abbruch-Bemerkungen** (höchstens ein Lieferant) bekommen die IDs abgebrochener Starts und
+  liefern je Start die Bemerkung zum Abbruch. Die Stand-Sichten zeigen sie mit `names=full` als
+  `abort_note`. Ohne angemeldeten Lieferanten liest `starts` die Bemerkung selbst aus dem
+  Ergebnisprotokoll (`reason` am jüngsten Ereignis `aborted`).
 
 Alle melden sich üblicherweise im `on_startup` ihres Moduls an und im `on_shutdown` ab.
 """
@@ -21,6 +25,7 @@ Alle melden sich üblicherweise im `on_startup` ihres Moduls an und im `on_shutd
 import uuid
 from collections.abc import Awaitable, Callable, Sequence
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.events import EventHub
@@ -39,10 +44,13 @@ AbortHandler = Callable[
 ProgressProvider = Callable[
     [AsyncSession, Sequence[uuid.UUID]], Awaitable[dict[uuid.UUID, LaneProgressOut]]
 ]
+# (session, start_ids) -> {start_id: Bemerkung}; nur Starts, zu denen es eine gibt.
+AbortNoteProvider = Callable[[AsyncSession, Sequence[uuid.UUID]], Awaitable[dict[uuid.UUID, str]]]
 
 _result_checks: list[ResultCheck] = []
 _abort_handler: list[AbortHandler] = []
 _progress_provider: list[ProgressProvider] = []
+_abort_note_provider: list[AbortNoteProvider] = []
 
 
 def register_result_check(check: ResultCheck) -> None:
@@ -89,6 +97,45 @@ def register_progress_provider(provider: ProgressProvider) -> None:
 def unregister_progress_provider(provider: ProgressProvider) -> None:
     if provider in _progress_provider:
         _progress_provider.remove(provider)
+
+
+def register_abort_note_provider(provider: AbortNoteProvider) -> None:
+    """Meldet den Lieferanten der Abbruch-Bemerkungen an; ein zuvor angemeldeter wird ersetzt."""
+    _abort_note_provider[:] = [provider]
+
+
+def unregister_abort_note_provider(provider: AbortNoteProvider) -> None:
+    if provider in _abort_note_provider:
+        _abort_note_provider.remove(provider)
+
+
+async def _abort_notes_from_log(
+    session: AsyncSession, start_ids: Sequence[uuid.UUID]
+) -> dict[uuid.UUID, str]:
+    """Ersatz, solange kein Modul einen Lieferanten anmeldet: die Bemerkung (`reason`) am jüngsten
+    Ereignis `aborted` im Ergebnisprotokoll. Ohne Modul `ergebnisse` gibt es keine."""
+    try:
+        from app.modules.ergebnisse.models import ResultEvent
+    except ImportError:
+        return {}
+    rows = await session.execute(
+        select(ResultEvent.start_id, ResultEvent.reason)
+        .where(ResultEvent.start_id.in_(start_ids), ResultEvent.type == "aborted")
+        .order_by(ResultEvent.start_id, ResultEvent.seq.desc())
+        .distinct(ResultEvent.start_id)
+    )
+    return {start_id: reason for start_id, reason in rows if reason}
+
+
+async def abort_notes(
+    session: AsyncSession, start_ids: Sequence[uuid.UUID]
+) -> dict[uuid.UUID, str]:
+    """Bemerkung zum Abbruch je Start (nur Starts, zu denen es eine gibt)."""
+    if not start_ids:
+        return {}
+    if _abort_note_provider:
+        return await _abort_note_provider[0](session, start_ids)
+    return await _abort_notes_from_log(session, start_ids)
 
 
 async def lane_progress(

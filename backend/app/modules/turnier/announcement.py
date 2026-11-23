@@ -15,9 +15,10 @@ from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.begriffe import Begriffe, begriffe_fuer
+from app.core.begriffe import standard as standard_terms
 from app.core.events import EventHub
 from app.modules.turnier import service
-from app.modules.turnier.announcement_outline import default_announcement
+from app.modules.turnier.announcement_outline import default_announcement, missing_default_blocks
 from app.modules.turnier.models import Competition, Tournament
 from app.modules.turnier.schemas import (
     Announcement,
@@ -48,18 +49,31 @@ def stored_announcement(tournament: Tournament) -> Announcement:
     return Announcement.model_validate(tournament.announcement)
 
 
+def announcement_json(announcement: Announcement) -> dict:
+    """Zum Speichern: ohne das reine Ausgabefeld `missing_default_blocks`."""
+    return announcement.model_dump(mode="json", exclude={"missing_default_blocks"})
+
+
+def with_missing_blocks(announcement: Announcement, template: str) -> Announcement:
+    return announcement.model_copy(
+        update={"missing_default_blocks": missing_default_blocks(announcement, template)}
+    )
+
+
 async def get_announcement(session: AsyncSession, tournament_id: uuid.UUID) -> Announcement:
-    return stored_announcement(await service.get_tournament(session, tournament_id))
+    tournament = await service.get_tournament(session, tournament_id)
+    return with_missing_blocks(stored_announcement(tournament), tournament.template)
 
 
 async def put_announcement(
     session: AsyncSession, events: EventHub, tournament_id: uuid.UUID, data: Announcement
 ) -> Announcement:
     tournament = await service.editable_tournament(session, tournament_id)
-    tournament.announcement = data.model_dump(mode="json")
+    tournament.announcement = announcement_json(data)
+    template = tournament.template
     await session.commit()
     events.publish("tournament.announcement_changed", {"tournament_id": str(tournament_id)})
-    return data
+    return with_missing_blocks(data, template)
 
 
 # --- Druckfassung ------------------------------------------------------------------
@@ -84,10 +98,16 @@ def _number_text(value: Decimal) -> str:
     return format(normalized, "f").replace(".", ",")
 
 
-def _sections(definition: CompetitionDefinition) -> list[DocumentSection]:
+def _sections(
+    definition: CompetitionDefinition, terms: Begriffe | None = None
+) -> list[DocumentSection]:
+    """Ablauf in Kurzform. „Serie“ kommt aus dem Begriffssatz des Verbands (`serie`, `serien`);
+    BDS (SHB K 3.03) und DSB (SpO 0.12.1) sagen im Ablauf beide „Serie“."""
+    terms = terms or standard_terms()
     result = []
     for abschnitt in definition.variant.abschnitte:
-        parts = [f"{abschnitt.serien} Serien"]
+        word = terms.serie if abschnitt.serien == 1 else terms.serien
+        parts = [f"{abschnitt.serien} {word}"]
         if abschnitt.schuss_je_serie is not None:
             parts[0] += f" à {abschnitt.schuss_je_serie} Schuss"
         if abschnitt.zeit_je_serie_s is not None:
@@ -96,7 +116,8 @@ def _sections(definition: CompetitionDefinition) -> list[DocumentSection]:
             parts.append("Zeiten " + ", ".join(duration_text(t) for t in abschnitt.zeiten_s))
         elif abschnitt.max_zeit_je_serie_s is not None:
             # Zeitlimit je Serie (Fallscheibe); nur ohne feste Zeit, sonst stünde es doppelt.
-            parts.append(f"höchstens {duration_text(abschnitt.max_zeit_je_serie_s)} je Serie")
+            limit = duration_text(abschnitt.max_zeit_je_serie_s)
+            parts.append(f"höchstens {limit} je {terms.serie}")
         if abschnitt.zuschlag_je_stehender_scheibe_s is not None:
             penalty = duration_text(abschnitt.zuschlag_je_stehender_scheibe_s)
             parts.append(f"Zuschlag {penalty} je stehender Scheibe")
@@ -155,7 +176,7 @@ def _competitions(
                 group=definition.source.group if definition.source else None,
                 range_name=range_names.get(item.range_id) if item.range_id else None,
                 procedure=definition.ablauf_beschreibung,
-                sections=_sections(definition),
+                sections=_sections(definition, begriffe_fuer(item.catalog_federation)),
                 multi_start=item.multi_start,
                 max_starts=item.max_starts,
                 multi_start_rule=item.multi_start_rule,  # type: ignore[arg-type]
@@ -205,6 +226,7 @@ async def build_document(session: AsyncSession, tournament_id: uuid.UUID) -> Ann
             case "ranges":
                 entry.ranges = [
                     DocumentRange(
+                        range_id=item.id,
                         name=item.name,
                         lane_count=item.lane_count,
                         lanes_text=lanes_text(item.lane_count, terms),

@@ -32,6 +32,7 @@ class Begriffe(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     ergebnisliste: Wort = Field(description="Liste mit Ergebnissen und Platzierungen")
+    ergebnislisten: Wort = Field(description="Mehrzahl von `ergebnisliste`")
     startliste: Wort = Field(description="Liste der Starts eines Turniers")
     startnummer: Wort = Field(description="Nummer des Schützen im Turnier")
     startzeit: Wort = Field(description="Zeitpunkt, zu dem ein Schütze antreten soll")
@@ -40,8 +41,12 @@ class Begriffe(BaseModel):
     schuetzenstand: Wort = Field(description="Platz eines Schützen am Schießstand (nummeriert)")
     schuetzenstaende: Wort = Field(description="Mehrzahl von `schuetzenstand`")
     durchgang: Wort = Field(description="Abgeschlossener Schießblock mit Uhrzeit")
+    durchgaenge: Wort = Field(description="Mehrzahl von `durchgang`")
     durchgangszeit: Wort = Field(description="Gemessene Zeit eines Parcours-Durchgangs")
+    serie: Wort = Field(description="Feste Zahl von Schüssen im Ablauf („6 Serien à 10 Schuss“)")
+    serien: Wort = Field(description="Mehrzahl von `serie`")
     wertungsserie: Wort = Field(description="Serie, die in die Wertung eingeht")
+    wertungsserien: Wort = Field(description="Mehrzahl von `wertungsserie`")
     wertungsschuesse: Wort = Field(description="Schüsse, die in die Wertung eingehen")
     trefferaufnahme: Wort = Field(description="Erfassen und Auswerten der Treffer")
     ergebnisgleichheit: Wort = Field(
@@ -66,6 +71,7 @@ class Begriffe(BaseModel):
     wettkampfleitung: Wort = Field(description="Leitung des Wettkampfs (nicht „Wettkampfleiter“)")
     startgeld: Wort = Field(description="Teilnahmegebühr je Start")
     klasse: Wort = Field(description="Einteilung nach Alter und Geschlecht")
+    klassen: Wort = Field(description="Mehrzahl von `klasse`")
     kennziffer: Wort = Field(description="Nummer einer Disziplin im Regelwerk des Verbands")
 
 

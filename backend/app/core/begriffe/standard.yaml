@@ -12,6 +12,7 @@
 
 begriffe:
   ergebnisliste: "Ergebnisliste"
+  ergebnislisten: "Ergebnislisten"
   startliste: "Startliste"
   startnummer: "Startnummer"
   startzeit: "Starttermin"
@@ -20,8 +21,12 @@ begriffe:
   schuetzenstand: "Schützenstand"
   schuetzenstaende: "Schützenstände"
   durchgang: "Durchgang"
+  durchgaenge: "Durchgänge"
   durchgangszeit: "Durchgangszeit"
+  serie: "Serie"
+  serien: "Serien"
   wertungsserie: "Wertungsserie"
+  wertungsserien: "Wertungsserien"
   wertungsschuesse: "Wertungsschüsse"
   trefferaufnahme: "Trefferaufnahme"
   ergebnisgleichheit: "Ringgleichheit"
@@ -41,6 +46,7 @@ begriffe:
   wettkampfleitung: "Wettkampfleitung"
   startgeld: "Startgeld"
   klasse: "Wettbewerbsklasse"
+  klassen: "Wettbewerbsklassen"
   # Nicht aus dem Sporthandbuch belegt (bds-begriffe.md); Wort der App für die Nummer einer
   # Disziplin im Katalog.
   kennziffer: "Kennziffer"

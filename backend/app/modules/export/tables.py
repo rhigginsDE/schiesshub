@@ -15,7 +15,11 @@ ihrer Gruppe; hier bekommen sie kein Ergebnis, nur den Grund.
 
 Interne Schlüssel (Status, Abbruchgrund, Ablauf einer Serie) erscheinen nie in einer Liste; die
 deutschen Texte kommen aus `formatting.py`, die formellen Wörter (Ergebnisliste, Abbruch (AB),
-Schützenstand, Schießstand, Ringgleichheit) aus `app.modules.ergebnisse.begriffe`.
+Schützenstand, Schießstand, Ringgleichheit) aus dem Begriffssatz des Verbands
+(`app.modules.ergebnisse.begriffe`): je Wettbewerb der seines Verbands
+(`CompetitionInfo.federation`); für Teile über mehrere Wettbewerbe (Dokumenttitel, Spaltenköpfe
+einer gemischten Tabelle, CSV-Kopfzeile) der gemeinsame Satz, bei gemischten Verbänden der
+Standardsatz.
 """
 
 import uuid
@@ -26,6 +30,7 @@ from decimal import Decimal
 from typing import Literal
 from zoneinfo import ZoneInfo
 
+from app.core.begriffe import Begriffe
 from app.modules.ergebnisse import begriffe
 from app.modules.ergebnisse.schemas import RankingOut, RankingRow
 from app.modules.export.formatting import (
@@ -237,6 +242,19 @@ def _time_cells(score: TimeScore | None) -> tuple[Cell, ...]:
 TIME_HEADERS = ("Ringe vor Abzug", "Gesamtzeit", "Sollzeit", "Abzug")
 
 
+# --- Begriffe ------------------------------------------------------------------------------
+
+
+def _terms(competition: CompetitionInfo) -> Begriffe:
+    """Begriffssatz eines Wettbewerbs (sein Verband, sonst Standard)."""
+    return begriffe.terms_for(competition.federation)
+
+
+def document_terms(competitions: Iterable[CompetitionInfo]) -> Begriffe:
+    """Gemeinsamer Satz mehrerer Wettbewerbe (gemischt oder nur eigene: Standard)."""
+    return begriffe.document_terms(competition.federation for competition in competitions)
+
+
 # --- Ergebnisliste: Zuordnung ------------------------------------------------------------
 
 
@@ -442,6 +460,9 @@ def _row_notes(
         notes.append("unvollständig")
     if row.scored:
         notes.extend(_series_status_notes(row.series, headers))
+    if row.tie_reason == "max_score" and row.tie_note:
+        # Höchstergebnis: gleicher Platz nach Regel (entschieden, aber erklärungsbedürftig).
+        notes.append(row.tie_note)
     if row.tie_unresolved:
         # Stechen oder manuell zu entscheiden: der Hinweis der Rangliste; sonst kurz.
         notes.append(
@@ -468,6 +489,7 @@ def winners_report(meta: Meta, sections: Sequence[WinnerSection]) -> Report:
     out: list[Section] = []
     for section in sections:
         competition = section.competition
+        terms = begriffe.terms_for(competition.federation)
         all_rows = [row for table in section.tables for row in table.rows]
         keys = series_keys(competition, (row.series for row in all_rows))
         headers, legend = series_headers(competition, keys)
@@ -565,13 +587,11 @@ def winners_report(meta: Meta, sections: Sequence[WinnerSection]) -> Report:
             else ()
         )
         subtitle = (
-            f"{begriffe.SHOOTING_RANGE}: {competition.range_name}"
-            if competition.range_name
-            else None
+            f"{terms.schiessstand}: {competition.range_name}" if competition.range_name else None
         )
         out.append(Section(competition.title, subtitle, notes_text, tuple(tables)))
     return Report(
-        title=begriffe.RESULT_LIST,
+        title=document_terms(section.competition for section in sections).ergebnisliste,
         meta=meta,
         sections=tuple(out),
         legend=tuple(legends),
@@ -750,11 +770,12 @@ def _startlist_table(
     with_club = any(r.person.club for r in records)
     with_attempt = any(r.competition.multi_start for r in records)
     with_notes = any(r.status == "aborted" for r in records)
+    terms = document_terms(record.competition for record in records)
     columns: list[Column] = []
     if with_heat:
-        columns.append(Column("Durchgang"))
+        columns.append(Column(terms.durchgang))
     if with_lane:
-        columns.append(Column(begriffe.FIRING_POINT, "right"))
+        columns.append(Column(terms.schuetzenstand, "right"))
     columns += [Column("Nr.", "right"), Column("Name", wrap=True)]
     if with_club:
         columns.append(Column("Verein", wrap=True))
@@ -782,7 +803,8 @@ def _startlist_table(
             cells.append(str(record.attempt))
         if with_notes:
             cells.append(
-                abort_text(record.abort_reason) or begriffe.ABORT_FALLBACK
+                abort_text(record.abort_reason, _terms(record.competition))
+                or begriffe.ABORT_FALLBACK
                 if record.status == "aborted"
                 else ""
             )
@@ -804,16 +826,17 @@ def startlist_report(meta: Meta, records: Sequence[StartRecord], sort: Startlist
             groups.setdefault(key, []).append(record)
         for members in groups.values():
             competition = members[0].competition
+            terms = document_terms(record.competition for record in members)
             if sort == "competition":
                 title = competition.title
                 subtitle = (
-                    f"{begriffe.SHOOTING_RANGE}: {competition.range_name}"
+                    f"{terms.schiessstand}: {competition.range_name}"
                     if competition.range_name
                     else None
                 )
                 with_competition = False
             else:
-                title = competition.range_name or begriffe.NO_SHOOTING_RANGE
+                title = competition.range_name or f"Ohne {terms.schiessstand}"
                 subtitle = None
                 with_competition = True
             table = _startlist_table(meta, members, with_competition=with_competition)
@@ -821,12 +844,14 @@ def startlist_report(meta: Meta, records: Sequence[StartRecord], sort: Startlist
             info = f"{count} {'Start' if count == 1 else 'Starts'}"
             subtitle = f"{subtitle} · {info}" if subtitle else info
             sections.append(Section(title, subtitle, tables=(table,)))
-    return Report(title="Startliste", meta=meta, sections=tuple(sections), empty_text=NO_STARTS)
+    title = document_terms(record.competition for record in records).startliste
+    return Report(title=title, meta=meta, sections=tuple(sections), empty_text=NO_STARTS)
 
 
 def startlist_sheet(
     records: Sequence[StartRecord], sort: StartlistSort, tz: ZoneInfo | None = None
 ) -> Sheet:
+    terms = document_terms(record.competition for record in records)
     sheet = Sheet(
         header=(
             "Startnummer",
@@ -836,11 +861,11 @@ def startlist_sheet(
             "Klassenname",
             "Kennziffer",
             "Wettbewerb",
-            begriffe.SHOOTING_RANGE,
+            terms.schiessstand,
             "Versuch",
-            "Durchgang",
+            terms.durchgang,
             "Beginn",
-            begriffe.FIRING_POINT,
+            terms.schuetzenstand,
             "Reihenfolge",
             "Status",
             "Abbruchgrund",
@@ -863,7 +888,7 @@ def startlist_sheet(
                 record.lane,
                 record.queue_position,
                 start_status_text(record.status),
-                abort_text(record.abort_reason),
+                abort_text(record.abort_reason, _terms(record.competition)),
             )
         )
     return sheet
@@ -937,7 +962,7 @@ def results_sheet(records: Sequence[ResultRecord], tz: ZoneInfo | None = None) -
             start.competition.name,
             start.attempt,
             start_status_text(start.status),
-            abort_text(start.abort_reason),
+            abort_text(start.abort_reason, _terms(start.competition)),
             record.score if record.has_result else None,
             record.unit if record.has_result else None,
             ("ja" if record.complete else "nein") if record.has_result else None,

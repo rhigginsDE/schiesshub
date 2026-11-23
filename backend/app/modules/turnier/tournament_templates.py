@@ -18,7 +18,8 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import ConflictError, InputError, summarize, translate_errors
+from app.core.begriffe import begriffe_fuer
+from app.core.errors import InputError, summarize, translate_errors
 from app.core.events import EventHub
 from app.core.security import Actor
 from app.modules.katalog import service as katalog_service
@@ -35,7 +36,9 @@ from app.modules.turnier.schemas import (
     RangeCreate,
     Template,
     TemplateCompetitionOut,
+    TemplateGapOut,
     TemplateRangeOut,
+    TemplateUnavailableOut,
     TournamentCreate,
     TournamentFromTemplate,
     TournamentSettingsUpdate,
@@ -194,19 +197,55 @@ async def list_templates(session: AsyncSession) -> list[TournamentTemplateOut]:
     return [await template_out(session, template) for template in load_templates().values()]
 
 
-async def missing_in_catalog(session: AsyncSession, template: TournamentTemplate) -> list[str]:
-    """Kennziffern (mit Verband) der Vorlage, die der aktuelle Katalog nicht auflöst."""
+async def missing_in_catalog(
+    session: AsyncSession, template: TournamentTemplate
+) -> list[TemplateGapOut]:
+    """Was die Vorlage braucht und der aktuelle Katalog nicht hat (Kennziffern, Klassen)."""
     missing = []
     for item in template.competitions:
         if not (await _competition_out(session, item)).available:
+            federation = item.catalog_federation
+            word = begriffe_fuer(federation).kennziffer
             variant = f", Variante „{item.variant_id}“" if item.variant_id else ""
-            missing.append(f"{item.catalog_federation} {item.catalog_code}{variant}")
+            missing.append(
+                TemplateGapOut(
+                    kind="competition",
+                    federation=federation,
+                    code=item.catalog_code,
+                    variant_id=item.variant_id,
+                    message_de=f"{word} {item.catalog_code} ({federation.upper()}){variant}",
+                )
+            )
     if template.classes is not None:
+        federation = template.classes.federation
         try:
-            await katalog_service.list_classes(session, template.classes.federation)
+            await katalog_service.list_classes(session, federation)
         except katalog_service.NotFoundError:
-            missing.append(f"Klassen des Verbands „{template.classes.federation}“")
+            missing.append(
+                TemplateGapOut(
+                    kind="classes",
+                    federation=federation,
+                    message_de=f"Klassen des Verbands {federation.upper()}",
+                )
+            )
     return missing
+
+
+class TemplateUnavailableError(Exception):
+    """HTTP 409 `template_unavailable`: Die Vorlage passt nicht zum aktuellen Katalog."""
+
+    def __init__(self, template: TournamentTemplate, missing: list[TemplateGapOut]) -> None:
+        super().__init__(
+            f"Die Vorlage „{template.name}“ passt nicht zum aktuellen Katalog: "
+            f"{', '.join(item.message_de for item in missing)} gibt es dort nicht."
+        )
+        self.template_id = template.id
+        self.missing = missing
+
+    def out(self) -> TemplateUnavailableOut:
+        return TemplateUnavailableOut(
+            detail=str(self), template_id=self.template_id, missing=self.missing
+        )
 
 
 # --- Anlegen ------------------------------------------------------------------------
@@ -228,10 +267,7 @@ async def build_from_template(
     angelegte Turnier wieder gelöscht.
     """
     if missing := await missing_in_catalog(session, template):
-        raise ConflictError(
-            f"Die Vorlage „{template.name}“ passt nicht zum aktuellen Katalog: "
-            f"{', '.join(missing)} gibt es dort nicht."
-        )
+        raise TemplateUnavailableError(template, missing)
     tournament = await service.create_tournament(session, events, data, is_practice=is_practice)
     try:
         ranges: dict[str, Range] = {}

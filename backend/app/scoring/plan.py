@@ -147,6 +147,17 @@ class SectionPlan:
         return tuple(self.spec.ringwerte) if self.spec.ringwerte else DEFAULT_RING_VALUES
 
     @property
+    def hits_only(self) -> bool:
+        """Die Werte zählen nur Treffer (`ringwerte` alle höchstens 1, z. B. Wurfscheibe [1, 0]);
+        die Einheit heißt dann „Treffer“ statt „Ringe“."""
+        values = self.spec.ringwerte
+        return (
+            not self.tenths
+            and bool(values)
+            and all(ring_value(value) <= 1 for value in values or ())
+        )
+
+    @property
     def max_ring(self) -> int | Decimal:
         if self.tenths:
             return MAX_TENTHS

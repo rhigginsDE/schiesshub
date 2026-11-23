@@ -17,6 +17,10 @@ Platz 2: Stechen“); das Stechen selbst erfasst die Wertung nicht. Maßgeblich 
 dem die gleichen Starts beginnen. `stechen` in `gleichstand` wird dann übersprungen, ab Platz
 N+1 gilt der Rest der Kette.
 
+**Höchstergebnis** (`hoechstergebnis_gleicher_rang`, DSB-SpO 0.12.1 Satz 1): Wer das erzielbare
+Höchstergebnis (`Definition.max_score`) erreicht, wird nicht unterschieden – alle teilen den
+Platz mit `tie_reason="max_score"`, ohne Gleichstandskette, ohne Stechen und ohne „manuell“.
+
 **Gleichstand** (`rank`): Starts mit gleichem Ergebnis werden Kriterium für Kriterium getrennt.
 Fehlt bei einem der noch Gleichen der Wert des nächsten Kriteriums, endet die Trennung dort: Die
 Gruppe teilt sich den Platz und wird als „nicht auflösbar“ markiert (`tie_unresolved`).
@@ -50,12 +54,14 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from app.scoring.criteria import criterion_text
 from app.scoring.definition import Definition, load_definition
 from app.scoring.numbers import to_hundredths
 from app.scoring.results import ComputedResult
 from app.scoring.tiebreak import criterion_slots, criterion_values
 
 RankKey = list[int | None]
+MAX_SCORE_NOTE = "Höchstergebnis: gleicher Platz"
 AbortReason = Literal["dns", "dnf", "dsq"]
 RankGroup = Literal["ranked", "last", "unranked"]
 
@@ -111,7 +117,7 @@ class RankPolicy(_Frozen):
         )
 
 
-TieReason = Literal["missing_data", "manual", "shootoff"]
+TieReason = Literal["missing_data", "manual", "shootoff", "max_score"]
 
 
 class TieRules(_Frozen):
@@ -125,6 +131,9 @@ class TieRules(_Frozen):
     """Erstes Kriterium, das die Wertung nicht rechnet; ab dort manuell entscheiden."""
     shootoff_until: int | None = None
     """`stechen_bis_platz`."""
+    max_score_key: int | None = None
+    """Höchstergebnis als erster Schlüsselwert (Hundertstel), nur mit
+    `hoechstergebnis_gleicher_rang`: Wer es erreicht, teilt den Platz ohne Kette und Stechen."""
 
 
 class Placement(_Frozen):
@@ -138,7 +147,9 @@ class Placement(_Frozen):
     group: RankGroup
     tie_reason: TieReason | None = None
     """`missing_data`: für `tie_criterion` fehlen Rohdaten; `manual`: `tie_criterion` rechnet die
-    Wertung nicht (nach Sportordnung entscheiden); `shootoff`: Stechen (`stechen_bis_platz`)."""
+    Wertung nicht (nach Sportordnung entscheiden); `shootoff`: Stechen (`stechen_bis_platz`);
+    `max_score`: Höchstergebnis erreicht, gleicher Platz nach Regel (DSB-SpO 0.12.1) – das ist
+    entschieden (`tie_unresolved` bleibt aus)."""
     tie_criterion: str | None = None
     needs_shootoff: bool = False
     tie_note: str | None = None
@@ -171,11 +182,13 @@ def tie_rules(definition: Mapping[str, Any] | Definition) -> TieRules:
     defn = load_definition(definition)
     evaluated, manual_from = defn.tie_chain
     slots = [c for c in evaluated for _ in range(criterion_slots(defn, c))]
+    maximum = defn.max_score if defn.scoring.hoechstergebnis_gleicher_rang else None
     return TieRules(
         criteria=evaluated,
         slots=slots,
         manual_from=manual_from,
         shootoff_until=defn.scoring.stechen_bis_platz,
+        max_score_key=to_hundredths(maximum) if maximum is not None else None,
     )
 
 
@@ -210,7 +223,7 @@ def rank(
                     id=member.id,
                     place=next_place,
                     tied=tied,
-                    tie_unresolved=tied and reason is not None,
+                    tie_unresolved=tied and reason not in (None, "max_score"),
                     group=group,
                     tie_reason=reason if tied else None,
                     tie_criterion=criterion if tied else None,
@@ -316,6 +329,10 @@ def _tiers(
     length = len(members[0].key or [])
     if len(members) < 2:
         return [(members, None, None)]
+    # Höchstergebnis (DSB-SpO 0.12.1 Satz 1): nicht unterschieden – vor Stechen und Kette.
+    maximum = rules.max_score_key if rules is not None else None
+    if level == 1 and maximum is not None and (members[0].key or [None])[0] == maximum:
+        return [(members, "max_score", None)]
     if level == 1 and shootoff_until is not None and first_place <= shootoff_until:
         return [(members, "shootoff", None)]
     if level == length:
@@ -337,16 +354,19 @@ def _tiers(
 
 
 def _tie_note(reason: TieReason | None, criterion: str | None, place: int) -> str | None:
+    """Hinweis ohne Verbandswort; Listen ersetzen ihn durch `ergebnisse.begriffe.tie_note`."""
     match reason:
         case "shootoff":
             return f"Ringgleichheit auf Platz {place}: Stechen"
+        case "max_score":
+            return MAX_SCORE_NOTE
         case "manual":
             return (
                 "Gleichstand nach Sportordnung manuell entscheiden "
-                f"(nächstes Kriterium: {criterion})"
+                f"(nächstes Kriterium: {criterion_text(criterion)})"
             )
         case "missing_data":
-            detail = f" für „{criterion}“" if criterion else ""
+            detail = f" für „{criterion_text(criterion)}“" if criterion else ""
             return (
                 f"Gleichstand nicht auflösbar: Angaben{detail} fehlen (z. B. Seriensumme statt "
                 "Einzelschüssen); nach Sportordnung manuell entscheiden"

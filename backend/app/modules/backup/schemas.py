@@ -128,14 +128,35 @@ class VerifyOut(BaseModel):
 RestoreLocation = Literal["usb", "local", "pre_restore"]
 
 
+class RestoreMessageOut(BaseModel):
+    """Hinweis mit fester Kennung: Die Oberfläche unterscheidet an `code` (bleibt gleich), der
+    Text `message_de` darf sich ändern. Die Kennungen stehen in `docs/WIEDERHERSTELLUNG.md`."""
+
+    code: str
+    message_de: str
+
+
 class RestoreSourceOut(BaseModel):
-    """Eine Sicherung, die sich wiederherstellen lässt."""
+    """Eine Sicherung, die sich wiederherstellen lässt.
+
+    Dieselbe Sicherung (gleicher Zeitpunkt im Dateinamen) liegt oft mehrfach: auf dem Server, als
+    Kopie auf dem Stick und, wenn sie vor einer Wiederherstellung entstand, unter `pre_restore`.
+    Die Liste zeigt sie einmal. `id`, `location` und die Dateiangaben gehören zur bevorzugten
+    Quelle: Stick vor Server vor `pre_restore`, weil nur die Stick-Kopie die Schlüssel enthält.
+    `locations` nennt alle Orte, `other_ids` die Kennungen der übrigen Kopien (z. B. vom Server
+    ohne Sicherungspasswort, wenn es vergessen ist). Jede dieser Kennungen funktioniert in
+    Vorschau und Ausführung.
+    """
 
     # Kennung für Vorschau und Ausführung, z. B. `usb:snapshot-20261122T101500123456Z.shb`.
     id: str
     # `usb`: Stick · `local`: Server (`DATA_DIR/backups/snapshots`) · `pre_restore`: automatisch
     # vor einer früheren Wiederherstellung angelegt.
     location: RestoreLocation
+    # Alle Orte dieser Sicherung, bevorzugter zuerst (z. B. `["usb", "local"]`).
+    locations: list[RestoreLocation] = Field(default_factory=list)
+    # Kennungen derselben Sicherung an den anderen Orten, in der Reihenfolge von `locations`.
+    other_ids: list[str] = Field(default_factory=list)
     file_name: str
     # Zeitpunkt der Sicherung (UTC), aus dem Dateinamen.
     created_at: datetime
@@ -240,6 +261,8 @@ class AccessCheckOut(BaseModel):
     admins_in_backup: int | None
     lockout_risk: bool
     message_de: str
+    # Dieselbe Aussage in Teilen mit Kennung (`message_de` oben = alle Texte hintereinander).
+    reasons: list[RestoreMessageOut] = Field(default_factory=list)
 
 
 class RestorePreviewOut(BaseModel):
@@ -257,8 +280,12 @@ class RestorePreviewOut(BaseModel):
     keys: KeysCheckOut
     access: AccessCheckOut
     restorable: bool
+    # Gründe, warum es nicht geht (`restorable` false), und Hinweise – als Text …
     problems: list[str]
     notes: list[str]
+    # … und mit Kennung (gleiche Reihenfolge und Texte).
+    problem_items: list[RestoreMessageOut] = Field(default_factory=list)
+    note_items: list[RestoreMessageOut] = Field(default_factory=list)
 
 
 RestoreStepKey = Literal[
@@ -273,6 +300,21 @@ class RestoreStepOut(BaseModel):
     detail_de: str | None = None
 
 
+class SkippedStartOut(BaseModel):
+    """Ein Start, dessen seit der Sicherung erfasste Ergebnisse nicht nachgetragen wurden."""
+
+    # Leer, wenn der Wettbewerb in der Sicherung fehlt.
+    competition_name: str | None
+    competition_code: str | None
+    start_number: int | None
+    attempt: int | None
+    # start_not_in_backup: erst nach der Sicherung gebucht (Person und Start neu anlegen, Ergebnis
+    # vom Startzettel erfassen) · does_not_match: passt nicht zum Stand der Sicherung (Start
+    # prüfen und Ergebnis von Hand nachtragen)
+    reason_code: Literal["start_not_in_backup", "does_not_match"]
+    message_de: str
+
+
 class JournalReportOut(BaseModel):
     applied: int
     present: int
@@ -282,6 +324,8 @@ class JournalReportOut(BaseModel):
     recomputed_competitions: int
     # Wie die Konsole sie ausgibt.
     lines: list[str]
+    # Betroffene Starts, nach Wettbewerb und Startnummer sortiert.
+    skipped_starts: list[SkippedStartOut] = Field(default_factory=list)
 
 
 class RestoreResultOut(BaseModel):
@@ -296,6 +340,9 @@ class RestoreResultOut(BaseModel):
     keys_set_aside: list[str]
     after_backup_ok: bool | None
     notes: list[str]
+    note_items: list[RestoreMessageOut] = Field(default_factory=list)
+    # Wie `journal.skipped_starts` (leer ohne Nachtragen).
+    skipped_starts: list[SkippedStartOut] = Field(default_factory=list)
 
 
 class RestoreStatusOut(BaseModel):

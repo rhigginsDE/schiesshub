@@ -27,6 +27,7 @@ from app.modules.ergebnisse.rules import scoring_definition
 from app.modules.katalog.loader import load_catalog
 from app.modules.turnier.schemas import CompetitionDefinition
 from app.scoring import DefinitionError, compute, describe_form, rank_key, validate_raw
+from app.scoring.criteria import criterion_texts
 from app.scoring.form import FormDescription
 
 ROOT = os.environ.get("SCHIESSHUB_CATALOG_CHECK")
@@ -134,3 +135,10 @@ def test_catalog_loads_without_errors() -> None:
 def test_variant_passes_strict_definition_and_form(context: str, stored: dict) -> None:
     problems = check(context, stored)
     assert problems == [], "\n".join(problems)
+
+
+def test_every_criterion_has_a_plain_text() -> None:
+    """Jede Kriterien-ID des Katalogs hat einen Klartext (`app/scoring/kriterien.yaml`)."""
+    used = {c for _, stored in CASES for c in stored.get("scoring", {}).get("gleichstand", [])}
+    missing = sorted(used - set(criterion_texts()))
+    assert missing == [], f"Klartext fehlt in app/scoring/kriterien.yaml: {missing}"

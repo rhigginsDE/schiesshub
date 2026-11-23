@@ -84,6 +84,7 @@ export function beschreibeWertung(
   const offen = wertung as WertungOffen & {
     zehntelwertung?: boolean | null;
     stechen_bis_platz?: number | null;
+    hoechstergebnis_gleicher_rang?: boolean | null;
   };
   if (offen.zehntelwertung === true) {
     saetze.push(t("zehntelwertung"));
@@ -94,6 +95,9 @@ export function beschreibeWertung(
         wert: formatZahl(offen.stechen_bis_platz, {}, sprache),
       }),
     );
+  }
+  if (offen.hoechstergebnis_gleicher_rang === true) {
+    saetze.push(t("hoechstergebnis_gleicher_rang"));
   }
   if (
     wertung.zeit_rundung &&

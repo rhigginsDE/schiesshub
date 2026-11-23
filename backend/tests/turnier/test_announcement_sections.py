@@ -52,3 +52,15 @@ def test_only_values_from_the_definition_are_printed() -> None:
         )
     )
     assert section.summary == "Speed: 2 Serien à 5 Schuss, je 1 Min. 30 s"
+
+
+def test_series_words_come_from_the_federation_terms() -> None:
+    """„Serie“ aus dem Begriffssatz; BDS (SHB K 3.03) und DSB (SpO 0.12.1) sagen im Ablauf
+    beide „Serie“. Eine Serie steht in der Einzahl."""
+    from app.core.begriffe import begriffe_fuer
+
+    single = _definition({"id": "a", "name": "Lauf", "serien": 1, "schuss_je_serie": 10})
+    (section,) = _sections(single, begriffe_fuer("dsb"))
+    assert section.summary == "Lauf: 1 Serie à 10 Schuss"
+    many = _definition({"id": "a", "name": "Lauf", "serien": 6, "schuss_je_serie": 10})
+    assert _sections(many, begriffe_fuer("bds"))[0].summary == "Lauf: 6 Serien à 10 Schuss"

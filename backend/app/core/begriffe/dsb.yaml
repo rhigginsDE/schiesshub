@@ -11,6 +11,8 @@
 begriffe:
   # 0.15 (Teil 0 S. 45): „Ergebnislisten“, „Ergebnisliste“. „Siegerliste“ kommt nicht vor.
   ergebnisliste: "Ergebnisliste"
+  # 0.15 (Teil 0 S. 45): „Ergebnislisten“
+  ergebnislisten: "Ergebnislisten"
   # 0.6.1.2 Nr. 2 (Teil 0 S. 17), 0.6.2.2 (Teil 0 S. 19)
   startliste: "Startliste"
   # 0.15 (Teil 0 S. 45), 0.7.5.1 (Teil 0 S. 25)
@@ -27,6 +29,12 @@ begriffe:
   durchgang: "Durchgang"
   # 0.9.8.2 (Teil 0 S. 36), 0.11.3 (Teil 0 S. 39): „Wettkampfserie“ (nicht „Wertungsserie“)
   wertungsserie: "Wettkampfserie"
+  # Mehrzahl zu „Wettkampfserie“ (0.9.8.2, 0.11.3); die Mehrzahl selbst ist nicht zitiert.
+  wertungsserien: "Wettkampfserien"
+  # 0.12.1 (Teil 0 S. 43), 0.4.3.2 (Teil 0 S. 12): „Serie“, „Serien“, „10-Schuss-Serien“ – im
+  # Ablauf sagt die SpO schlicht „Serie“ (Wettkampfserie nur für die gewertete Serie)
+  serie: "Serie"
+  serien: "Serien"
   # 0.21 Spaltenkopf (Teil 0 S. 76), 0.9.8.3 (Teil 0 S. 36): „Wettkampfschüsse“
   wertungsschuesse: "Wettkampfschüsse"
   # 0.11 (Teil 0 S. 38): „Auswertung“. „Trefferaufnahme“ steht in Teil 0 nur einmal (Bogen).
@@ -37,11 +45,11 @@ begriffe:
   ringgleichheit: "Ringgleichheit"
   # 3.45.6 (Teil 3 S. 65), 7.8.3.5 (Teil 7 S. 11): nur Flinte
   treffergleichheit: "Treffergleichheit"
-  # Offen: Teil 0 regelt keine Aufgabe durch den Schützen; nur 7.7.6.1 (Teil 7 S. 8) „den
-  # Wettkampf abbrechen“ mit Genehmigung. Die SpO kennt keine Kurzform (kein „AB“, DNF nur
-  # sinngemäß in Teil 8). Deshalb neutral „aufgegeben“, auch als Kurzform.
-  abbruch: "aufgegeben"
-  abbruch_kurz: "aufgegeben"
+  # 1.7.8.1 (Teil 1 S. 16): „Wenn ein Schütze den Wettkampf wegen einer Störung abbricht“;
+  # 7.7.6.1 (Teil 7 S. 8): „den Wettkampf abbrechen“. „aufgegeben“ kommt in der SpO nicht vor.
+  # Offen: Die SpO nennt keine Kurzform (kein „AB“) – deshalb ausgeschrieben.
+  abbruch: "abgebrochen"
+  abbruch_kurz: "abgebrochen"
   # 0.15 (Teil 0 S. 45), 15.1.1.4 (Teil 15 S. 5): „nicht angetreten“ (einziger vorgegebener
   # Listenvermerk)
   nicht_angetreten: "nicht angetreten"
@@ -68,11 +76,15 @@ begriffe:
   startgeld: "Startgeld"
   # 0.7.1 (Teil 0 S. 20), 0.14.1 (Teil 0 S. 44): „Wettkampfklasse“
   klasse: "Wettkampfklasse"
+  # 0.7.1 (Teil 0 S. 20), 0.7.2.2 (Teil 0 S. 23): „Wettkampfklassen“
+  klassen: "Wettkampfklassen"
   # 0.9.1 Tabellenkopf (Teil 0 S. 31), 0.21 Spaltenkopf (Teil 0 S. 76 ff.): „Kennzahl“
   # (Teil 1/2: „Wettbewerbsnummer“, Teil 8: „Kennziffer“)
   kennziffer: "Kennzahl"
 
 # Nicht belegt (Rückfall auf standard.yaml):
+#   durchgaenge    – die SpO nennt „Durchgang“, „Durchgangs“, „Durchgangszeiten“, aber keine
+#                    Mehrzahl „Durchgänge“ (dsb-begriffe.md Abschnitt 4)
 #   durchgangszeit – die SpO kennt „Durchgangszeiten“ (0.6.2.2) nur als Zeitplan, nicht als
 #                    gemessene Parcourszeit
 # Offen: abbruch, abbruch_kurz (siehe oben, neutral „aufgegeben“).

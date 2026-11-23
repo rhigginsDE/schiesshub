@@ -4,7 +4,9 @@
 Diese Sichten zeigen Personen nur so, wie sie es gewählt haben (`display_mode`): voll, abgekürzt
 oder gar nicht. Der volle Name erscheint hier nie, wenn die Person ihn nicht freigegeben hat;
 den Verein nur mit `show_club`. Nur mit `full_names=True` (der Router prüft die Berechtigung)
-kommen zusätzlich `full_name` und `full_club` dazu; die öffentlichen Felder bleiben gleich.
+kommen zusätzlich `full_name` und `full_club` dazu, bei abgebrochenen Starts außerdem die
+Bemerkung zum Abbruch (`abort_note`, über `hooks.abort_notes`); die öffentlichen Felder bleiben
+gleich.
 """
 
 import uuid
@@ -53,7 +55,7 @@ async def station_rows(
         .where(*conditions)
         .order_by(*order_by)
     )
-    return [
+    result = [
         StationStartOut(
             start_id=start.id,
             entry_id=start.entry_id,
@@ -93,6 +95,13 @@ async def station_rows(
             heat_starts_at,
         ) in rows
     ]
+    if full_names:
+        # Bemerkung zum Abbruch nur für die Bedienung, wie der volle Name.
+        aborted = [row.start_id for row in result if row.status == "aborted"]
+        notes = await hooks.abort_notes(session, aborted)
+        for row in result:
+            row.abort_note = notes.get(row.start_id)
+    return result
 
 
 async def startlist(

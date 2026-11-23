@@ -342,3 +342,25 @@ async def test_timezone_setting_is_validated(api: Api) -> None:
     assert response.status_code == 200
     settings = response.json()["settings"]
     assert (settings["timezone"], settings["protest_restart_on_correction"]) == ("UTC", False)
+
+
+async def test_module_registers_its_event_names(api: Api) -> None:
+    """`tournament.deleted` (auch beim Entfernen der Übung) steht in `/events/names`, bevor es
+    zum ersten Mal gesendet wurde – angemeldet vom Modul selbst."""
+    import re
+    from pathlib import Path
+
+    from app.core.events import registered_event_names
+    from app.modules import turnier
+
+    names = (await api.client.get(f"{API}/events/names")).json()
+    assert "tournament.deleted" in names
+    assert set(turnier.EVENT_NAMES) <= registered_event_names()
+    # Jeder Name, den das Modul veröffentlicht, ist angemeldet.
+    source = "\n".join(
+        path.read_text(encoding="utf-8") for path in Path(turnier.__file__).parent.glob("*.py")
+    )
+    own = r"(?:tournament|range|class|competition)\.[a-z_]+"
+    published = set(re.findall(rf'publish\(\s*"({own})"', source))
+    assert "tournament.deleted" in published
+    assert published <= set(turnier.EVENT_NAMES), published - set(turnier.EVENT_NAMES)

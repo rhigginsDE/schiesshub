@@ -163,6 +163,15 @@ class Wertung(StrictModel):
     zehntelwertung: bool | None = None
     # Ringgleichheit auf den Plätzen 1 bis N wird durch Stechen entschieden (Kriterium "stechen").
     stechen_bis_platz: PositiveInt | None = None
+    # DSB SpO 0.12.1: Wer ohne Finale das erzielbare Höchstergebnis erreicht, wird nicht
+    # unterschieden (gleicher Rang ohne Gleichstandskette). Nur bei Modell "ringe".
+    hoechstergebnis_gleicher_rang: bool | None = None
+
+    @model_validator(mode="after")
+    def _check_max_score_rule(self) -> Self:
+        if self.hoechstergebnis_gleicher_rang and self.modell != "ringe":
+            raise ValueError("hoechstergebnis_gleicher_rang gibt es nur bei modell 'ringe'")
+        return self
 
 
 class Anschlag(StrictModel):

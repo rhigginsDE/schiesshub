@@ -37,6 +37,7 @@ class Api:
     app: FastAPI
     events: asyncio.Queue[Event]
     _counter: list[int] = field(default_factory=lambda: [0])
+    tournaments: int = 0
 
     def drain(self) -> list[Event]:
         received = []
@@ -57,7 +58,10 @@ class Api:
     # --- Aufbau ---------------------------------------------------------------
 
     async def tournament(self, **settings: Any) -> str:
-        body: dict[str, Any] = {"name": "Vereinspokal", "date_from": "2027-03-06"}
+        # Gleicher Name und Tag gilt als Doppel: ab dem zweiten Turnier hochzählen.
+        self.tournaments += 1
+        name = "Vereinspokal" if self.tournaments == 1 else f"Vereinspokal {self.tournaments}"
+        body: dict[str, Any] = {"name": name, "date_from": "2027-03-06"}
         if settings:
             body["settings"] = settings
         return (await self.ok("POST", "/tournaments", 201, json=body))["id"]

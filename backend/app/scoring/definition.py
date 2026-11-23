@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from app.scoring import models as _models  # noqa: F401  (registriert die Modelle)
 from app.scoring.errors import DefinitionError
+from app.scoring.models import HITS_UNIT, RINGS_UNIT
 from app.scoring.plan import SectionPlan, build_section_plan
 from app.scoring.registry import ScoringModel, get_model
 from app.scoring.spec import CAPTURE_MODES, SHOOTOFF, CaptureMode, DefinitionSpec, ScoringSpec
@@ -36,6 +37,31 @@ class Definition:
     @property
     def tenths(self) -> bool:
         return bool(self.scoring.zehntelwertung)
+
+    @property
+    def hits_only(self) -> bool:
+        """Alle Abschnitte mit Ringen zählen nur Treffer (`SectionPlan.hits_only`)."""
+        ring_sections = [plan for plan in self.sections if plan.rings]
+        return bool(ring_sections) and all(plan.hits_only for plan in ring_sections)
+
+    @property
+    def unit(self) -> str:
+        """Einheit des Ergebnisses: die des Modells, bei reiner Trefferzählung „Treffer“."""
+        if self.model.unit == RINGS_UNIT and self.hits_only:
+            return HITS_UNIT
+        return self.model.unit
+
+    @property
+    def max_score(self) -> Decimal | None:
+        """Im Wettkampf erzielbares Höchstergebnis (DSB-SpO 0.12.1) für `ringe`: Summe über die
+        gewerteten Serien aller Abschnitte, je Schuss der höchste Ringwert (`ringwerte`:
+        deren größter, Zehntelwertung 10,9, sonst 10). None bei anderen Modellen."""
+        if self.model.name != "ringe":
+            return None
+        ring_sections = [plan for plan in self.sections if plan.rings]
+        if not ring_sections:
+            return None
+        return Decimal(sum((plan.max_rings or 0 for plan in ring_sections), 0))
 
     @property
     def tie_chain(self) -> tuple[list[str], str | None]:

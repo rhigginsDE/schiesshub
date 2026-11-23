@@ -261,16 +261,19 @@ def test_shotgun_hits() -> None:
 
 
 def test_dsb_chain_last_series_backwards() -> None:
-    definition = ring_definition(serien=3, schuss=2, gleichstand=DSB_TIES)
+    # SpO 0.12.1: letzte Zehnerserie, dann in 10-Schuss-Serien zurück – auch bei 5er-Serien
+    # (Serie 3+4 sind der letzte Block, Serie 1+2 der vorletzte).
+    definition = ring_definition(serien=4, schuss=5, gleichstand=DSB_TIES)
     raws = {
-        # alle 54 Ringe
-        "a": raw_shots([9, 9], [9, 9], [9, 9]),  # letzte Serie 18
-        "b": raw_shots([10, 10], [8, 8], [9, 9]),  # letzte 18, vorletzte 16
-        "c": raw_shots([8, 8], [10, 8], [10, 10]),  # letzte 20
-        "d": raw_shots([9, 9], [10, 8], [9, 9]),  # wie a bis Serie 1; dann Zehner 1 vs 0
+        # alle 180 Ringe
+        "a": raw_shots([9] * 5, [9] * 5, [9] * 5, [9] * 5),  # Blöcke 90/90, 0 Zehner
+        "b": raw_shots([10] * 5, [8] * 5, [10] * 5, [8] * 5),  # 90/90, 10 Zehner
+        "c": raw_shots([8] * 5, [8] * 5, [10] * 5, [10] * 5),  # letzter Block 100
+        "d": raw_shots([9] * 5, [9] * 5, [10, 10, 10, 8, 8], [9, 9, 9, 8, 9]),  # 90/90, 3 Zehner
     }
     places = ranked(definition, raws)
-    assert [places[i].place for i in "cdab"] == [1, 2, 3, 4]
+    # Nach Serien (5 Schuss) stünde a vor d vor b; nach 10er-Blöcken entscheiden die Zehner.
+    assert [places[i].place for i in "cbda"] == [1, 2, 3, 4]
     assert not any(p.tied for p in places.values())
 
 
@@ -326,9 +329,10 @@ def test_unknown_criterion_stops_with_manual_note() -> None:
     assert places["a"].tie_unresolved
     assert places["a"].tie_reason == "manual"
     assert places["a"].tie_criterion == "abstand_letzter_schuss"
+    # Hinweis im Klartext (`app/scoring/kriterien.yaml`), die ID steht in `tie_criterion`.
     assert places["a"].tie_note == (
         "Gleichstand nach Sportordnung manuell entscheiden (nächstes Kriterium: "
-        "abstand_letzter_schuss)"
+        "Abstand des letzten Schusses vom Zentrum)"
     )
     assert not places["c"].tied
     assert places["c"].tie_note is None

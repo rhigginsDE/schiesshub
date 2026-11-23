@@ -454,7 +454,9 @@ async def test_copy_stays_when_the_catalog_changes(
         after_update = (await client.get(url)).json()
         reset = (await client.post(f"{url}/reset-definition")).json()
 
-    assert after_update == original
+    # Die Definition bleibt; nur der Vermerk meldet die Katalogänderung.
+    assert after_update == original | {"catalog_changed": True}
+    assert reset["catalog_changed"] is False
     assert after_update["definition"]["variant"] == PRAEZISION_VARIANT
     section = reset["definition"]["variant"]["abschnitte"][0]
     assert section["zeit_je_serie_s"] == 240

@@ -64,6 +64,7 @@ Alle Tabellen haben `id` (UUID), `created_at`, `updated_at`. Geld steht in Cent 
 | `catalog_federation`, `catalog_code` | Herkunft aus dem Katalog, leer bei eigener Disziplin |
 | `name` | Anzeigename |
 | `definition` (JSONB) | Kopie von Ablauf-Variante und Wertung aus dem Katalog, im Turnier änderbar |
+| `catalog_base` (JSONB) | die Katalogfassung, aus der `definition` stammt (beim Anlegen, beim Übernehmen per `reset-definition`, bei einer Kopie vom Original); leer bei eigener Disziplin |
 | `capture_mode` | `shot` (Einzelschuss) oder `series` (Seriensumme) |
 | `multi_start`, `max_starts` | Mehrfachstart erlaubt und wie oft |
 | `multi_start_rule` | `best`, `first` oder `all` |
@@ -73,7 +74,7 @@ Alle Tabellen haben `id` (UUID), `created_at`, `updated_at`. Geld steht in Cent 
 | `heat_minutes`, `changeover_minutes` | Dauer und Wechselzeit bei Zeitplan |
 | `definition_revision` | aktuelle Revision der wertungsrelevanten Felder |
 
-`definition` ist eine Kopie, kein Verweis. Ein späteres Katalog-Update ändert laufende Turniere nicht. Jeder Wert ist im Turnier änderbar, auch nach dem Start. `source.variant_id` nennt die kopierte Katalog-Variante; damit lassen sich Abweichungen vom Katalog anzeigen („abweichend vom Sporthandbuch“). `serien_gewertet` in einem Abschnitt heißt: nur die ersten N Serien zählen, die übrigen gelten als gestrichen.
+`definition` ist eine Kopie, kein Verweis. Ein späteres Katalog-Update ändert laufende Turniere nicht; die API meldet es aber an jedem Wettbewerb (`catalog_changed`, je Abruf aus `catalog_base` und dem aktuellen Katalog berechnet). Bewusste Abweichungen im Turnier zählen dabei nicht. Jeder Wert ist im Turnier änderbar, auch nach dem Start. `source.variant_id` nennt die kopierte Katalog-Variante; damit lassen sich Abweichungen vom Katalog anzeigen („abweichend vom Sporthandbuch“). `serien_gewertet` in einem Abschnitt heißt: nur die ersten N Serien zählen, die übrigen gelten als gestrichen.
 
 **`competition_revision`** (nur Einfügen): `competition_id`, `revision` (fortlaufend ab 1, eindeutig je Wettbewerb), `definition` (JSONB), `capture_mode`, `multi_start`, `max_starts`, `multi_start_rule`, `combined_ranking`, `changed_by`, `device_id`, `reason`, `created_at`. Jede Änderung an diesen Feldern legt eine Revision an, schreibt einen Audit-Eintrag und meldet `competition.definition_changed`. Ist das Turnier `active`, ist `reason` Pflicht.
 

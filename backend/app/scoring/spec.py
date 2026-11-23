@@ -71,6 +71,7 @@ MODEL_PARAMETERS = (
     "zeit_rundung",
     "unbeendete_serie",
     "zehntelwertung",
+    "hoechstergebnis_gleicher_rang",
 )
 
 
@@ -199,6 +200,10 @@ class ScoringSpec(_Strict):
     stechen_bis_platz: PositiveInt | None = None
     """Gleichstand im Ergebnis auf den Plätzen 1 bis N entscheidet ein Stechen (nicht die
     Wertung); die übrigen Plätze trennt `gleichstand` ohne `stechen`."""
+    hoechstergebnis_gleicher_rang: bool | None = None
+    """Wer das erzielbare Höchstergebnis erreicht, wird bei Ergebnisgleichheit nicht
+    unterschieden (DSB-SpO 0.12.1 Satz 1): gleicher Platz ohne Gleichstandskette und ohne
+    Stechen. Nur Modell `ringe`."""
 
 
 class DefinitionSpec(_Strict):

@@ -10,12 +10,14 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.scoring.criteria import criterion_text
 from app.scoring.definition import Definition, check_capture_mode, load_definition
-from app.scoring.numbers import TENTH, format_seconds_value, plural, to_tenths
+from app.scoring.numbers import TENTH, format_number, format_seconds_value, plural
 from app.scoring.plan import MAX_TENTHS, MIN_TENTHS, SectionPlan, SeriesPlan
 from app.scoring.raw import plausible_max_s
 from app.scoring.spec import CaptureMode, Direction, PositionSpec
 from app.scoring.status import ABORTED, NORMAL, STATUS_LABELS, UNFINISHED, SeriesStatus
+from app.scoring.tiebreak import series_sums_fit_blocks
 
 HAND = {
     "beidhaendig": "beidhändig",
@@ -80,6 +82,53 @@ class FieldSpec(_Frozen):
     """Ein Wert je Ziel (Wurfscheibe: 1 Treffer, 0 Fehler) statt je Schuss."""
 
 
+HintKind = Literal[
+    "target_time",
+    "max_total_time",
+    "competition_time",
+    "preparation_time",
+    "sighters",
+    "struck",
+    "position",
+    "distance",
+    "shots",
+    "max_shots",
+    "targets",
+    "fixed_time",
+    "time_per_shot",
+    "max_time",
+    "penalty",
+    "scoring_break",
+]
+
+
+class HintItem(_Frozen):
+    """Ein Hinweis mit Art, damit das Frontend nicht über den Wortlaut filtern muss.
+
+    Abschnitt: `target_time` (Sollzeit), `max_total_time` (Abbruchzeit), `competition_time`,
+    `preparation_time`, `sighters` – die letzten drei stehen auch als Felder
+    (`competition_time_s`, `preparation_time_s`, `sighters`). Serie: `struck`, `position`,
+    `distance`, `shots`, `max_shots`, `targets`, `fixed_time`, `time_per_shot`, `max_time`,
+    `penalty`, `scoring_break`."""
+
+    kind: HintKind
+    text: str
+
+
+class _Hints:
+    """Sammelt Hinweise als Text (`hints`, wie bisher) und mit Art (`hint_items`)."""
+
+    def __init__(self) -> None:
+        self.items: list[HintItem] = []
+
+    def add(self, kind: HintKind, text: str, *, first: bool = False) -> None:
+        self.items.insert(0 if first else len(self.items), HintItem(kind=kind, text=text))
+
+    @property
+    def texts(self) -> list[str]:
+        return [item.text for item in self.items]
+
+
 class StanceForm(_Frozen):
     haltung: str
     hand: str | None
@@ -116,6 +165,8 @@ class SeriesForm(_Frozen):
     max_rings: Decimal | int | None
     """Höchste Seriensumme; bei Zehntelwertung `Decimal` (JSON: Text „32.7“)."""
     hints: list[str]
+    hint_items: list[HintItem] = []
+    """Dieselben Hinweise wie `hints` (gleiche Reihenfolge), mit Art (`HintItem.kind`)."""
 
 
 class SectionForm(_Frozen):
@@ -136,6 +187,14 @@ class SectionForm(_Frozen):
     pause_between_shots_s: Decimal | None
     max_rings: Decimal | int | None
     hints: list[str]
+    """Hinweise als Text. Wettkampfzeit, Vorbereitung/Probe und Probeschüsse stehen hier und als
+    Feld (`competition_time_s`, `preparation_time_s`, `sighters`); wer die Felder zeigt, filtert
+    über `hint_items[].kind`, nicht über den Wortlaut."""
+    hint_items: list[HintItem] = []
+    """Dieselben Hinweise wie `hints` (gleiche Reihenfolge), mit Art (`HintItem.kind`)."""
+    aufgelegt: bool = False
+    """Alle Anschläge aller Positionen des Abschnitts sind aufgelegt (Auflageschießen); False
+    ohne Positionen oder wenn ein Anschlag frei ist."""
     competition_time_s: Decimal | None = None
     """`wettkampfzeit_s`: Gesamtzeit aller Wertungsschüsse des Abschnitts (Hinweis)."""
     preparation_time_s: Decimal | None = None
@@ -186,6 +245,11 @@ def describe_form(definition: Mapping[str, Any] | Definition, capture_mode: str)
             notes.append(
                 "Bei Seriensumme lässt sich ein Gleichstand nicht nach Neunern abwärts auflösen."
             )
+        if "letzte_serie_rueckwaerts" in evaluated and not series_sums_fit_blocks(defn):
+            notes.append(
+                "Bei Seriensumme lässt sich ein Gleichstand nicht nach Zehnerserien auflösen "
+                "(die Serien ergeben keine 10-Schuss-Blöcke)."
+            )
         shot_only = [c for c in evaluated if c in SHOT_ONLY_CRITERIA]
         if shot_only:
             notes.append(
@@ -202,13 +266,18 @@ def describe_form(definition: Mapping[str, Any] | Definition, capture_mode: str)
         notes.append(
             f"Gemeinsame Wettkampfzeit aller Abschnitte: {_duration(defn.competition_time_total_s)}"
         )
+    if defn.scoring.hoechstergebnis_gleicher_rang and defn.max_score is not None:
+        notes.append(
+            f"Höchstergebnis ({format_number(defn.max_score)} {defn.unit}): bei "
+            "Ergebnisgleichheit gleicher Platz, ohne Gleichstandsregel und ohne Stechen."
+        )
     if defn.scoring.stechen_bis_platz is not None:
         notes.append(
             f"Gleichstand bis Platz {defn.scoring.stechen_bis_platz} entscheidet ein Stechen."
         )
     if manual_from is not None:
         notes.append(
-            f"Gleichstand ab „{manual_from}“ nach Sportordnung manuell entscheiden "
+            f"Gleichstand ab „{criterion_text(manual_from)}“ nach Sportordnung manuell entscheiden "
             "(rechnet der Server nicht)."
         )
     return FormDescription(
@@ -216,7 +285,7 @@ def describe_form(definition: Mapping[str, Any] | Definition, capture_mode: str)
         variant_name=defn.variant_name,
         model=defn.model.name,
         direction=defn.model.direction,
-        unit=defn.model.unit,
+        unit=defn.unit,
         capture_mode=mode,
         tie_breakers=defn.tie_breakers,
         sections=sections,
@@ -238,21 +307,29 @@ def _section_form(defn: Definition, plan: SectionPlan, mode: CaptureMode) -> Sec
     spec = plan.spec
     path = f"sections.{plan.id}"
     fields = []
-    hints = []
+    hints = _Hints()
     if plan.section_time:
         fields.append(_time_field("Gesamtzeit", plausible_max_s(plan, spec.max_gesamtzeit_s)))
     if spec.sollzeit_s is not None:
-        hints.append(f"Sollzeit {_s(spec.sollzeit_s)}")
+        hints.add("target_time", f"Sollzeit {_s(spec.sollzeit_s)}")
     if spec.max_gesamtzeit_s is not None:
-        hints.append(f"Abbruchzeit {_s(spec.max_gesamtzeit_s)}")
+        hints.add("max_total_time", f"Abbruchzeit {_s(spec.max_gesamtzeit_s)}")
     if spec.wettkampfzeit_s is not None:
-        hints.append(f"Wettkampfzeit {_duration(spec.wettkampfzeit_s)}")
+        hints.add("competition_time", f"Wettkampfzeit {_duration(spec.wettkampfzeit_s)}")
     if spec.vorbereitung_probe_s is not None:
-        hints.append(f"Vorbereitung und Probe {_duration(spec.vorbereitung_probe_s)}")
+        hints.add(
+            "preparation_time", f"Vorbereitung und Probe {_duration(spec.vorbereitung_probe_s)}"
+        )
     if spec.probeschuesse == "unbegrenzt":
-        hints.append("Probeschüsse unbegrenzt")
+        hints.add("sighters", "Probeschüsse unbegrenzt")
     elif spec.probeschuesse is not None:
-        hints.append(plural(spec.probeschuesse, "Probeschuss", "Probeschüsse"))
+        hints.add("sighters", plural(spec.probeschuesse, "Probeschuss", "Probeschüsse"))
+    stances = [
+        stance
+        for series in plan.series
+        if series.position is not None
+        for stance in series.position.anschlaege
+    ]
     return SectionForm(
         id=plan.id,
         name=plan.name,
@@ -268,7 +345,9 @@ def _section_form(defn: Definition, plan: SectionPlan, mode: CaptureMode) -> Sec
         time_per_shot_s=spec.zeit_je_schuss_s,
         pause_between_shots_s=spec.pause_zwischen_schuessen_s,
         max_rings=plan.max_rings,
-        hints=hints,
+        hints=hints.texts,
+        hint_items=hints.items,
+        aufgelegt=bool(stances) and all(stance.aufgelegt for stance in stances),
         competition_time_s=spec.wettkampfzeit_s,
         preparation_time_s=spec.vorbereitung_probe_s,
         sighters=spec.probeschuesse,
@@ -329,8 +408,11 @@ def _series_form(
                     required=True,
                     decimals=1,
                     step=TENTH,
-                    value_min=to_tenths(Decimal(0)),
+                    # Eine Seriensumme ist 0 oder mindestens 1,0 (jeder Treffer zählt 1,0 bis
+                    # 10,9; `validate_raw` lehnt 0,1–0,9 ab): Bereich plus `zero_allowed`.
+                    value_min=MIN_TENTHS,
                     value_max=shots * MAX_TENTHS,
+                    zero_allowed=True,
                 )
             )
         else:
@@ -381,37 +463,39 @@ def _series_form(
             )
         )
 
-    hints = []
+    hints = _Hints()
     position = _position_form(series.position) if series.position else None
     if position is not None:
-        hints.append(_position_text(position))
+        hints.add("position", _position_text(position))
     if series.distance_m is not None:
-        hints.append(f"Distanz {format_seconds_value(series.distance_m)} m")
+        hints.add("distance", f"Distanz {format_seconds_value(series.distance_m)} m")
     if shots is not None and plan.per_target:
-        hints.append(f"{shots} Ziele, ein Wert je Ziel")
+        hints.add("shots", f"{shots} Ziele, ein Wert je Ziel")
     elif shots is not None:
-        hints.append(f"{shots} Schuss")
+        hints.add("shots", f"{shots} Schuss")
     if spec.max_schuss_je_serie is not None:
-        hints.append(f"höchstens {spec.max_schuss_je_serie} Schuss")
+        hints.add("max_shots", f"höchstens {spec.max_schuss_je_serie} Schuss")
     if plan.targets is not None:
-        hints.append(f"{plan.targets} Scheiben")
+        hints.add("targets", f"{plan.targets} Scheiben")
     if series.fixed_time_s is not None:
-        hints.append(f"Schießzeit {_s(series.fixed_time_s)}")
+        hints.add("fixed_time", f"Schießzeit {_s(series.fixed_time_s)}")
     if spec.zeit_je_schuss_s is not None or spec.pause_zwischen_schuessen_s is not None:
         parts = []
         if spec.zeit_je_schuss_s is not None:
             parts.append(f"{_s(spec.zeit_je_schuss_s)} Sicht")
         if spec.pause_zwischen_schuessen_s is not None:
             parts.append(f"{_s(spec.pause_zwischen_schuessen_s)} Pause")
-        hints.append(f"je Schuss {', '.join(parts)}")
+        hints.add("time_per_shot", f"je Schuss {', '.join(parts)}")
     if series.max_time_s is not None:
-        hints.append(f"Zeitlimit {_s(series.max_time_s)}")
+        hints.add("max_time", f"Zeitlimit {_s(series.max_time_s)}")
     if spec.zuschlag_je_stehender_scheibe_s is not None:
-        hints.append(f"{_s(spec.zuschlag_je_stehender_scheibe_s)} Zuschlag je stehender Scheibe")
+        hints.add(
+            "penalty", f"{_s(spec.zuschlag_je_stehender_scheibe_s)} Zuschlag je stehender Scheibe"
+        )
     if series.scoring_break_after:
-        hints.append("danach Trefferaufnahme")
+        hints.add("scoring_break", "danach Trefferaufnahme")
     if series.struck:
-        hints.insert(0, "gestrichen (nicht gewertet)")
+        hints.add("struck", "gestrichen (nicht gewertet)", first=True)
         fields = [field.model_copy(update={"required": False}) for field in fields]
 
     prefix = f"{plan.name}, " if defn.multi_section else ""
@@ -429,7 +513,8 @@ def _series_form(
         struck=series.struck,
         scoring_break_after=series.scoring_break_after,
         max_rings=shots * plan.max_ring if shots is not None else None,
-        hints=hints,
+        hints=hints.texts,
+        hint_items=hints.items,
     )
 
 

@@ -291,6 +291,21 @@ def test_dsb_fields_are_accepted(minimal_catalog: Path) -> None:
     assert errors_of(minimal_catalog) == []
 
 
+def test_max_score_rule_only_for_rings(minimal_catalog: Path) -> None:
+    def rings(data: dict) -> None:
+        data["wertung"]["hoechstergebnis_gleicher_rang"] = True
+
+    edit_yaml(minimal_catalog / GROUP_FILE, rings)
+    assert errors_of(minimal_catalog) == []
+
+    def other_model(data: dict) -> None:
+        data["wertung"]["modell"] = "ringe_minus_zeit"
+
+    edit_yaml(minimal_catalog / GROUP_FILE, other_model)
+    errors = errors_of(minimal_catalog)
+    assert any("hoechstergebnis_gleicher_rang" in error.meldung for error in errors)
+
+
 def test_sighting_shots_must_be_a_count_or_unlimited(minimal_catalog: Path) -> None:
     _edit_section(minimal_catalog, probeschuesse="beliebig")
 

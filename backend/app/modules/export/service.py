@@ -132,6 +132,7 @@ async def competitions(
             model=model,
             target_times=_target_times(competition.definition),
             time_rounding=rounding,
+            federation=competition.catalog_federation,
         )
     return result
 

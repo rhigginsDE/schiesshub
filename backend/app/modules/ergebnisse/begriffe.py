@@ -1,79 +1,116 @@
-"""Formelle Begriffe der Ergebnislisten – die eine Stelle für Rangliste, Anzeige und Export.
+"""Formelle Wörter der Ergebnislisten – die eine Stelle für Rangliste, Anzeige und Export.
 
-Was formell gedruckt oder angezeigt wird (Ergebnisliste, Aushang, Anzeige), muss dem
-Sporthandbuch entsprechen (Entscheidungen vom 23.11.2026). Die Wörter stehen deshalb nur hier;
-Rangliste (`ranking.py`), Anzeige (`anzeige.feed`) und Export (`export.formatting`,
-`export.tables`) holen sie von hier. Formelle Begriffe werden später je Verband gepflegt; dann
-wird nur dieses Modul auf den Begriffssatz des Verbands umgestellt.
+Was formell gedruckt oder angezeigt wird (Ergebnisliste, Aushang, Anzeige), nutzt die Wörter des
+Verbands, aus dessen Katalog der Wettbewerb stammt (Entscheidung vom 23.11.2026). Die Wörter
+selbst stehen im Begriffssatz je Verband (`app.core.begriffe`, YAML-Dateien mit Fundstellen);
+hier wird nur ausgewählt und zusammengesetzt:
 
-Fundstellen (BDS-Sporthandbuch, Fassung 30.06.2026):
+- `terms_for(competition.catalog_federation)`: Satz eines Wettbewerbs (eigene Disziplin oder
+  Verband ohne eigene Datei: Standardsatz).
+- `document_terms(...)`: Satz für Teile über mehrere Wettbewerbe (Dokumenttitel, Dateiname):
+  der gemeinsame Verband, sonst (gemischt oder nur eigene Disziplinen) der Standardsatz.
+- `abort_label`: „Abbruch (AB)“ (BDS: `abbruch` mit `abbruch_kurz`), beim DSB nur das Wort ohne
+  Kurzform, dazu „nicht angetreten“, „disqualifiziert“.
+- `tie_word`: Wort für gleiche Ergebnisse je Wertungsmodell (unten).
 
-- „Ergebnisliste“ (nicht „Siegerliste“): K 1.14, L 1.12.
-- „Abbruch (AB)“: K 1.07 / L 1.05 (Abbruch im Probeschießen), K 1.14 / L 1.12 (nach „Feuer“).
-- „Ringgleichheit“: A 9.03; „Treffergleichheit“ (Mehrdistanz Flinte und Büchse, entschieden
-  über die Durchgangszeit): L 11.04, L 12.04. Für Fallscheibe und Speed nennt das Sporthandbuch
-  kein Wort; dort steht neutral „gleiches Ergebnis“.
-- „Schützenstand“ (nicht „Bahn“), „Schießstand“ (die Anlage, nicht „Stand“).
+Fundstellen der BDS-Wörter: `app/core/begriffe/bds.yaml` (Ergebnisliste K 1.14 / L 1.12,
+„Abbruch (AB)“ K 1.07 / L 1.05, Ringgleichheit A 9.03, Treffergleichheit L 11.04 / L 12.04);
+DSB: `dsb.yaml` (Ergebnisgleichheit 0.12, Treffergleichheit 3.45.6 Flinte).
 """
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 
-RESULT_LIST = "Ergebnisliste"
-"""Titel der Liste mit Ergebnissen und Plätzen (PDF, CSV, Dateiname, Anzeige)."""
-RESULT_LIST_FILE = "Ergebnisliste"
-"""Teil des Dateinamens („Vereinspokal_Ergebnisliste_2027-03-06.pdf“)."""
+from app.core.begriffe import Begriffe, begriffe_fuer
+from app.scoring.criteria import criterion_text
+from app.scoring.ranking import MAX_SCORE_NOTE
 
-FIRING_POINT = "Schützenstand"
-"""Der Platz des Schützen (bisher „Bahn“)."""
-SHOOTING_RANGE = "Schießstand"
-"""Die Anlage (bisher „Stand“), z. B. „Schießstand 25 m“."""
-NO_SHOOTING_RANGE = "Ohne Schießstand"
-
-ABORT_LABELS: dict[str, str] = {
-    "dns": "nicht angetreten",
-    "dnf": "Abbruch (AB)",
-    "dsq": "disqualifiziert",
-}
 ABORT_FALLBACK = "abgebrochen"
+"""Unbekannter Abbruchgrund (sollte nicht vorkommen)."""
 
-RING_TIE = "Ringgleichheit"
-HIT_TIE = "Treffergleichheit"
 NEUTRAL_TIE = "gleiches Ergebnis"
+"""Kein Wort im Regelwerk (Fallscheibe, Speed): neutral."""
 
 NOT_COMPARABLE = "Ergebnis nicht vergleichbar"
 
+RING_MODELS = frozenset({"ringe", "ringe_mit_zeitabzug"})
 
-def abort_label(reason: str | None) -> str | None:
+RESULT_LIST_FILE = "Ergebnisliste"
+"""Teil des Dateinamens („Vereinspokal_Ergebnisliste_2027-03-06.pdf“); bleibt ASCII-fest."""
+
+
+def terms_for(federation: str | None) -> Begriffe:
+    """Begriffssatz eines Wettbewerbs nach `catalog_federation`."""
+    return begriffe_fuer(federation)
+
+
+def document_terms(federations: Iterable[str | None]) -> Begriffe:
+    """Ein gemeinsamer Verband aller Katalog-Wettbewerbe → sein Satz; sonst der Standardsatz."""
+    found = {item.strip().lower() for item in federations if item and item.strip()}
+    return begriffe_fuer(found.pop() if len(found) == 1 else None)
+
+
+def abort_word(terms: Begriffe | None = None) -> str:
+    """„Abbruch (AB)“; ohne eigene Kurzform (DSB) nur das Wort."""
+    terms = terms or begriffe_fuer(None)
+    if terms.abbruch_kurz.strip().lower() == terms.abbruch.strip().lower():
+        return terms.abbruch
+    return f"{terms.abbruch} ({terms.abbruch_kurz})"
+
+
+def abort_label(reason: str | None, terms: Begriffe | None = None) -> str | None:
     """„dnf“ → „Abbruch (AB)“; unbekannte Schlüssel als „abgebrochen“; ohne Grund None."""
     if reason is None:
         return None
-    return ABORT_LABELS.get(reason, ABORT_FALLBACK)
+    terms = terms or begriffe_fuer(None)
+    match reason:
+        case "dnf":
+            return abort_word(terms)
+        case "dns":
+            return terms.nicht_angetreten
+        case "dsq":
+            return terms.disqualifiziert
+    return ABORT_FALLBACK
 
 
-def tie_word(model: str | None, criteria: Sequence[str] = ()) -> str:
-    """Wort für gleiche Ergebnisse je Wertungsmodell (Fundstellen oben).
+def tie_word(
+    model: str | None,
+    criteria: Sequence[str] = (),
+    terms: Begriffe | None = None,
+    *,
+    hits_only: bool = False,
+) -> str:
+    """Wort für gleiche Ergebnisse je Wertungsmodell.
 
-    Mehrdistanz mit der Durchgangszeit als Kriterium (Flinte, Büchse) → „Treffergleichheit“;
-    sonst bei Ringwertung „Ringgleichheit“; bei Zeitwertung (Fallscheibe) und Ringe minus Zeit
-    (Speed) nennt das Sporthandbuch kein Wort → „gleiches Ergebnis“."""
-    if model == "ringe_mit_zeitabzug" and "parcours_zeit" in criteria:
-        return HIT_TIE
-    if model in ("ringe", "ringe_mit_zeitabzug"):
-        return RING_TIE
+    - Trefferwertung: Mehrdistanz mit der Durchgangszeit als Kriterium (BDS L 11.04 / L 12.04)
+      oder Werte, die nur Treffer zählen (Wurfscheibe, DSB 3.45.6) → `treffergleichheit`;
+    - sonst bei Ringwertung → `ergebnisgleichheit` (BDS und Standard „Ringgleichheit“, DSB
+      „Ergebnisgleichheit“);
+    - Zeitwertung (Fallscheibe) und Ringe minus Zeit (Speed): Das Sporthandbuch nennt kein Wort
+      → „gleiches Ergebnis“."""
+    terms = terms or begriffe_fuer(None)
+    if model in RING_MODELS and (
+        hits_only or (model == "ringe_mit_zeitabzug" and "parcours_zeit" in criteria)
+    ):
+        return terms.treffergleichheit
+    if model in RING_MODELS:
+        return terms.ergebnisgleichheit
     return NEUTRAL_TIE
 
 
 def tie_note(reason: str | None, criterion: str | None, place: int | None, word: str) -> str | None:
-    """Hinweis zu einem offenen geteilten Platz für Listen und Anzeige."""
+    """Hinweis zu einem geteilten Platz für Listen und Anzeige; Kriterien im Klartext."""
     match reason:
+        case "max_score":
+            return MAX_SCORE_NOTE
         case "shootoff":
             return f"{word} auf Platz {place}: Stechen"
         case "manual":
             return (
-                f"{word}: nach Sportordnung manuell entscheiden (nächstes Kriterium: {criterion})"
+                f"{word}: nach Sportordnung manuell entscheiden "
+                f"(nächstes Kriterium: {criterion_text(criterion)})"
             )
         case "missing_data":
-            detail = f" für „{criterion}“" if criterion else ""
+            detail = f" für „{criterion_text(criterion)}“" if criterion else ""
             return (
                 f"{word} nicht auflösbar: Angaben{detail} fehlen (z. B. Seriensumme statt "
                 "Einzelschüssen); nach Sportordnung manuell entscheiden"
@@ -107,3 +144,9 @@ def _join(labels: Sequence[str]) -> str:
     if len(labels) == 1:
         return labels[0]
     return f"{', '.join(labels[:-1])} und {labels[-1]}"
+
+
+def federation_of(competition: object) -> str | None:
+    """`catalog_federation` eines Wettbewerbs, klein geschrieben; None bei eigener Disziplin."""
+    value = getattr(competition, "catalog_federation", None) or ""
+    return value.strip().lower() or None

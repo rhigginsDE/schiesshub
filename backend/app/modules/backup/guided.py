@@ -20,7 +20,18 @@ Ablauf von `execute` (Hintergrundauftrag, Fortschritt unter `GET /backup/restore
                 Verbindungen schließen, `ALTER DATABASE … RENAME` (alt →
                 `<name>_pre_restore_<Zeit>`, neu → `<name>`), Verbindungspool neu aufbauen,
                 Module neu starten.
-9. finish       Audit-Eintrag `backup.restored`, Sicherung des neuen Stands, Wartung beenden.
+9. finish       Audit-Eintrag `backup.restored`, Sicherung des neuen Stands. Die Wartung endet
+                (`backup.maintenance` mit `active: false`) erst, wenn die Datenbank wieder
+                Anfragen beantwortet: Der Verbindungspool steht und eine Probeabfrage ist
+                gelaufen (`_wait_until_ready`). Erst dann laden die Geräte neu.
+
+Sicherungen in der Liste (`list_sources`): Dieselbe Sicherung liegt oft auf Server, Stick und
+unter `pre-restore`; die Liste zeigt sie einmal, mit der bevorzugten Quelle als `id` (Stick vor
+Server vor `pre_restore`: nur die Stick-Kopie enthält die Schlüssel), allen Orten in `locations`
+und den übrigen Kennungen in `other_ids`.
+
+Meldungen der Vorschau und des Ergebnisses haben feste Kennungen (`code`, siehe
+`docs/WIEDERHERSTELLUNG.md`); die Texte vermeiden Technikwörter.
 
 Schlägt ein Schritt vor dem Tausch fehl, wird die neue Datenbank gelöscht; die laufende ist
 unverändert. Die alte Datenbank wird nach dem Tausch nie gelöscht, ihr Name steht im Ergebnis.
@@ -75,6 +86,7 @@ from app.modules.backup.schemas import (
     JournalReportOut,
     KeysCheckOut,
     RestoreExecuteIn,
+    RestoreMessageOut,
     RestorePreviewIn,
     RestorePreviewOut,
     RestoreResultOut,
@@ -84,6 +96,7 @@ from app.modules.backup.schemas import (
     RestoreStepOut,
     RunOut,
     SchemaCheckOut,
+    SkippedStartOut,
     TournamentPreviewOut,
 )
 from app.modules.backup.service import (
@@ -112,6 +125,11 @@ RESTORE_TIMEOUT_S = 3600.0
 MIGRATION_TIMEOUT_S = 900.0
 RENAME_ATTEMPTS = 40
 MAX_IDENTIFIER = 63
+# So lange wartet das Ende der Wartung darauf, dass die Datenbank wieder antwortet.
+READY_TIMEOUT_S = 30.0
+READY_INTERVAL_S = 0.25
+# Reihenfolge der Quellen derselben Sicherung: Stick (mit Schlüsseln) vor Server.
+LOCATION_PREFERENCE = ("usb", "local", "pre_restore")
 
 _NAME = re.compile(r"^snapshot-(\d{8}T\d{6})(\d{0,6})Z\.(shb|tar|dump)$")
 _SUFFIXES = {
@@ -126,7 +144,7 @@ STEPS: list[tuple[str, str]] = [
     ("pre_backup", "Jetzigen Stand sichern"),
     ("load", "In neue Datenbank einspielen"),
     ("upgrade", "Datenbank auf den Stand der App bringen"),
-    ("journal", "Mitschrift nachtragen"),
+    ("journal", "Seit der Sicherung erfasste Ergebnisse nachtragen"),
     ("verify", "Neue Datenbank prüfen"),
     ("swap", "Datenbank tauschen"),
     ("finish", "Abschließen"),
@@ -142,6 +160,14 @@ CONSOLE_HINT = (
 
 class RestoreFailed(Exception):
     """Abbruch mit einer Meldung für Anwender. Die laufende Datenbank ist unverändert."""
+
+
+def _message(code: str, text: str) -> RestoreMessageOut:
+    return RestoreMessageOut(code=code, message_de=text)
+
+
+def _texts(items: list[RestoreMessageOut]) -> list[str]:
+    return [item.message_de for item in items]
 
 
 def _now() -> datetime:
@@ -274,7 +300,7 @@ def schema_check(revisions: list[str], current: list[str] | None = None) -> Sche
             backup=[],
             current=current,
             state="newer",
-            message_de="Im Abzug fehlt der Stand der Datenbank-Migrationen; das ist keine "
+            message_de="In der Sicherung fehlt die Versionsangabe der Datenbank; das ist keine "
             "vollständige Schiesshub-Sicherung.",
         )
     unknown = [revision for revision in revisions if revision not in known]
@@ -472,7 +498,7 @@ class _Opened:
     keys_dir: Path | None
     manifest: dict[str, Any] | None
     checksum_ok: bool
-    notes: list[str]
+    notes: list[RestoreMessageOut]
 
 
 @dataclass(slots=True)
@@ -488,8 +514,8 @@ class _Analysis:
     tournaments: list[TournamentPreviewOut]
     persons: int | None
     records: list[dict[str, Any]]
-    problems: list[str]
-    notes: list[str]
+    problems: list[RestoreMessageOut]
+    notes: list[RestoreMessageOut]
 
 
 class RestoreManager:
@@ -540,6 +566,7 @@ class RestoreManager:
             needs_passphrase=source.encrypted,
             contains_keys=source.contains_keys,
             journal_available=any(item >= day for item in days),
+            locations=[source.location],  # type: ignore[list-item]
         )
 
     async def list_sources(self) -> RestoreSourcesOut:
@@ -547,13 +574,29 @@ class RestoreManager:
         before = await asyncio.to_thread(_scan, self.pre_restore_dir, "pre_restore")
         stick = await self._usb_sources()
         days = await asyncio.to_thread(_journal_days, self._journal_dirs())
-        sources = sorted(
-            [*stick, *local, *before], key=lambda item: (item.created_at, item.id), reverse=True
-        )
+        # Dieselbe Sicherung (gleicher Dateiname ohne Endung) an mehreren Orten: ein Eintrag.
+        groups: dict[str, list[Source]] = {}
+        for source in [*stick, *local, *before]:
+            groups.setdefault(source.path.stem, []).append(source)
         described = []
-        for source in sources:
-            with contextlib.suppress(OSError):
-                described.append(await asyncio.to_thread(self._describe, source, days))
+        for group in groups.values():
+            group.sort(key=lambda item: LOCATION_PREFERENCE.index(item.location))
+            for source in group:
+                try:
+                    primary = await asyncio.to_thread(self._describe, source, days)
+                except OSError:
+                    continue
+                others = [item for item in group if item is not source]
+                described.append(
+                    primary.model_copy(
+                        update={
+                            "locations": [source.location, *(item.location for item in others)],
+                            "other_ids": [item.id for item in others],
+                        }
+                    )
+                )
+                break
+        described.sort(key=lambda item: (item.created_at, item.id), reverse=True)
         return RestoreSourcesOut(
             usb_present=self.backup.usb.present,
             sources=described,
@@ -609,15 +652,19 @@ class RestoreManager:
             raise BackupError(f"Die Sicherung ist nicht lesbar: {exc.strerror or exc}") from None
         if not contents.database_sha256_ok or contents.database_file is None:
             raise BackupError(
-                "Die Sicherung ist beschädigt: Die Prüfsumme des Datenbank-Abzugs weicht ab."
+                "Die Sicherung ist beschädigt: Die Prüfsumme der Datenbank in der Sicherung "
+                "weicht ab."
             )
         notes = []
         if fsutil.checksum_path(source.path).is_file() and not file_ok:
             raise BackupError("Die Sicherung ist beschädigt: Die Prüfsumme der Datei weicht ab.")
         if not file_ok:
             notes.append(
-                "Zur Datei liegt keine Prüfsumme (.sha256); geprüft wurde die Prüfsumme des "
-                "Abzugs im Archiv."
+                _message(
+                    "no_file_checksum",
+                    "Zur Datei liegt keine Prüfsumme; geprüft wurde die Prüfsumme der Datenbank "
+                    "in der Sicherung.",
+                )
             )
         return _Opened(
             dump=contents.database_file,
@@ -631,20 +678,25 @@ class RestoreManager:
     def _copy_dump(path: Path, work: Path) -> _Opened:
         expected = fsutil.read_checksum(path)
         if expected is None:
-            raise BackupError("Zu diesem Abzug fehlt die Prüfsumme (.sha256).")
+            raise BackupError("Zu dieser Sicherung fehlt die Prüfsumme.")
         target = work / archive.DATABASE_NAME
         with path.open("rb") as source, target.open("wb") as out:
             writer = fsutil.HashingWriter(out)
             shutil.copyfileobj(source, writer)
         if writer.hexdigest() != expected:
             target.unlink(missing_ok=True)
-            raise BackupError("Der Abzug ist beschädigt: Die Prüfsumme weicht ab.")
+            raise BackupError("Die Sicherung ist beschädigt: Die Prüfsumme weicht ab.")
         return _Opened(
             dump=target,
             keys_dir=None,
             manifest=None,
             checksum_ok=True,
-            notes=["Abzug vom Server ohne Schlüssel: Es gelten die Schlüssel des Servers."],
+            notes=[
+                _message(
+                    "server_copy_without_keys",
+                    "Sicherung vom Server ohne Schlüssel: Es gelten die Schlüssel des Servers.",
+                )
+            ],
         )
 
     def _read_journals(self, passphrase: str | None) -> tuple[list[dict[str, Any]], int, list[str]]:
@@ -764,12 +816,19 @@ class RestoreManager:
         )
         if actor.user_id is None:
             risk = enforced_after and not enforced_now
-            message = (
-                "Nach der Wiederherstellung ist die Berechtigungsprüfung eingeschaltet (so stand "
-                "es in der Sicherung). Anmelden geht dann nur mit einem Konto und einem Gerät "
-                f"aus der Sicherung ({admins} Administrator(en) mit PIN). " + CONSOLE_HINT
+            reason = (
+                _message(
+                    "enforcement_on_after_restore",
+                    "Nach der Wiederherstellung ist die Berechtigungsprüfung eingeschaltet (so "
+                    "stand es in der Sicherung). Anmelden geht dann nur mit einem Konto und einem "
+                    f"Gerät aus der Sicherung ({admins} Administrator(en) mit PIN). "
+                    + CONSOLE_HINT,
+                )
                 if risk
-                else "Die Berechtigungsprüfung ist aus; der Zugang ändert sich nicht."
+                else _message(
+                    "enforcement_off",
+                    "Die Berechtigungsprüfung ist aus; der Zugang ändert sich nicht.",
+                )
             )
             return AccessCheckOut(
                 enforced_now=enforced_now,
@@ -781,7 +840,8 @@ class RestoreManager:
                 pin_changed=None,
                 admins_in_backup=admins if info.rows("user_account") is not None else None,
                 lockout_risk=risk,
-                message_de=message,
+                message_de=reason.message_de,
+                reasons=[reason],
             )
         user = users.get(str(actor.user_id))
         account = user is not None and _is_true(user.get("active"))
@@ -800,9 +860,14 @@ class RestoreManager:
             else user.get("pin_hash") != live["pin_hash"]
         )
         risk = enforced_after and not (account and admin and device)
-        parts: list[str] = []
+        parts: list[RestoreMessageOut] = []
         if not enforced_after:
-            parts.append("Die Berechtigungsprüfung ist aus; der Zugang ändert sich nicht.")
+            parts.append(
+                _message(
+                    "enforcement_off",
+                    "Die Berechtigungsprüfung ist aus; der Zugang ändert sich nicht.",
+                )
+            )
         elif risk:
             missing = []
             if not account:
@@ -812,17 +877,31 @@ class RestoreManager:
             if not device:
                 missing.append("dieses Gerät")
             parts.append(
-                "In der Sicherung fehlt " + " und ".join(missing) + ". Nach der Wiederherstellung "
-                "kommst du an diesem Gerät nicht mehr in die Verwaltung. " + CONSOLE_HINT
+                _message(
+                    "lockout",
+                    "In der Sicherung fehlt " + " und ".join(missing) + ". Nach der "
+                    "Wiederherstellung kommst du an diesem Gerät nicht mehr in die Verwaltung. "
+                    + CONSOLE_HINT,
+                )
             )
         elif session_ok:
-            parts.append("Konto und Gerät sind in der Sicherung; du bleibst angemeldet.")
+            parts.append(
+                _message(
+                    "stays_signed_in",
+                    "Konto und Gerät sind in der Sicherung; du bleibst angemeldet.",
+                )
+            )
         else:
             parts.append(
-                "Konto und Gerät sind in der Sicherung. Danach bitte neu mit der PIN anmelden."
+                _message(
+                    "sign_in_again",
+                    "Konto und Gerät sind in der Sicherung. Danach bitte neu mit der PIN anmelden.",
+                )
             )
         if enforced_after and pin_changed:
-            parts.append("Achtung: In der Sicherung gilt deine frühere PIN.")
+            parts.append(
+                _message("pin_changed", "Achtung: In der Sicherung gilt deine frühere PIN.")
+            )
         return AccessCheckOut(
             enforced_now=enforced_now,
             enforced_after=enforced_after,
@@ -833,7 +912,8 @@ class RestoreManager:
             pin_changed=pin_changed,
             admins_in_backup=admins,
             lockout_risk=risk,
-            message_de=" ".join(parts),
+            message_de=" ".join(_texts(parts)),
+            reasons=parts,
         )
 
     @staticmethod
@@ -907,9 +987,8 @@ class RestoreManager:
         lost_not_in_journal = len(lost) - lost_missing - lost_conflict
         starts_since = len(live["starts"] - set(starts))
         summary = (
-            f"Seit dieser Sicherung sind {len(since)} Ergebnis-Ereignisse hinzugekommen; davon "
-            f"stehen {len(applied)} in der Mitschrift und werden nachgetragen, {len(lost)} gehen "
-            "verloren."
+            f"Seit dieser Sicherung sind {len(since)} Ergebnis-Einträge hinzugekommen; davon "
+            f"werden {len(applied)} nachgetragen, {len(lost)} gehen verloren."
         )
         reasons = []
         if lost_missing:
@@ -917,7 +996,10 @@ class RestoreManager:
                 f"{lost_missing} gehören zu Starts, die erst nach der Sicherung gebucht wurden"
             )
         if lost_not_in_journal:
-            reasons.append(f"{lost_not_in_journal} stehen nicht in der Mitschrift")
+            reasons.append(
+                f"{lost_not_in_journal} sind nicht unter den seit der Sicherung erfassten "
+                "Ergebnissen gespeichert"
+            )
         if lost_conflict:
             reasons.append(f"{lost_conflict} passen nicht zur Sicherung")
         if reasons:
@@ -929,7 +1011,7 @@ class RestoreManager:
         extra = len(plan.applied - since - backup_ids)
         if extra:
             summary += (
-                f" Zusätzlich trägt die Mitschrift {extra} Ereignisse nach, die heute fehlen."
+                f" Zusätzlich werden {extra} Ergebnis-Einträge nachgetragen, die heute fehlen."
             )
         return ComparisonOut(
             events_now=len(live_ids),
@@ -950,13 +1032,18 @@ class RestoreManager:
             summary_de=summary,
         )
 
-    async def _privileges(self) -> list[str]:
+    async def _privileges(self) -> list[RestoreMessageOut]:
         """Darf der Datenbank-Benutzer der App Datenbanken anlegen und die laufende umbenennen?"""
         target = pgtools.PgTarget.from_url(self.backup.settings.database_url)
         try:
             admin = await _connect(target, "postgres")
         except (OSError, asyncpg.PostgresError) as exc:
-            return [f"Keine Verbindung zur Verwaltungs-Datenbank „postgres“: {exc}"]
+            return [
+                _message(
+                    "db_unreachable",
+                    f"Keine Verbindung zur Verwaltungs-Datenbank „postgres“: {exc}",
+                )
+            ]
         try:
             row = await admin.fetchrow(
                 "SELECT r.rolsuper, r.rolcreatedb, pg_get_userbyid(d.datdba) = current_user "
@@ -968,17 +1055,25 @@ class RestoreManager:
             await admin.close()
         problems = []
         if row is None:
-            return [f"Die Datenbank „{target.database}“ wurde nicht gefunden."]
+            return [
+                _message("db_not_found", f"Die Datenbank „{target.database}“ wurde nicht gefunden.")
+            ]
         if not (row["rolsuper"] or row["rolcreatedb"]):
             problems.append(
-                f"Der Datenbank-Benutzer „{target.user}“ darf keine Datenbanken anlegen "
-                "(CREATEDB fehlt). Bitte über die Konsole wiederherstellen oder das Recht "
-                "vergeben."
+                _message(
+                    "db_no_createdb",
+                    f"Der Datenbank-Benutzer „{target.user}“ darf keine Datenbanken anlegen "
+                    "(CREATEDB fehlt). Bitte über die Konsole wiederherstellen oder das Recht "
+                    "vergeben.",
+                )
             )
         if not (row["rolsuper"] or row["owner"]):
             problems.append(
-                f"Der Datenbank-Benutzer „{target.user}“ ist nicht Eigentümer der Datenbank "
-                f"„{target.database}“ und kann sie nicht umbenennen."
+                _message(
+                    "db_not_owner",
+                    f"Der Datenbank-Benutzer „{target.user}“ ist nicht Eigentümer der Datenbank "
+                    f"„{target.database}“ und kann sie nicht umbenennen.",
+                )
             )
         return problems
 
@@ -989,7 +1084,7 @@ class RestoreManager:
         try:
             info = await dumpinfo.read_dump(opened.dump)
         except pgtools.PgToolError as exc:
-            raise BackupError(f"Der Datenbank-Abzug ist nicht lesbar: {exc}") from None
+            raise BackupError(f"Die Datenbank in der Sicherung ist nicht lesbar: {exc}") from None
         live = await self._live(actor)
         records, files, unreadable = await asyncio.to_thread(self._read_journals, passphrase)
         schema = schema_check(
@@ -998,19 +1093,23 @@ class RestoreManager:
         keys = await asyncio.to_thread(
             plan_keys, opened.keys_dir, self.backup.keys_dir, live["persons"]
         )
-        problems: list[str] = []
+        problems: list[RestoreMessageOut] = []
         if schema.state == "newer":
-            problems.append(schema.message_de)
+            code = "schema_newer" if info.schema_revisions else "schema_missing"
+            problems.append(_message(code, schema.message_de))
         if keys.conflicts:
-            problems.append(keys.message())
+            problems.append(_message("keys_conflict", keys.message()))
         problems.extend(await self._privileges())
         persons = info.rows("person")
         manifest = opened.manifest or {}
         notes = list(opened.notes)
         if manifest.get("app_version") and manifest["app_version"] != __version__:
             notes.append(
-                f"Die Sicherung stammt von App-Version {manifest['app_version']}, laufend ist "
-                f"{__version__}."
+                _message(
+                    "other_app_version",
+                    f"Die Sicherung stammt von App-Version {manifest['app_version']}, laufend ist "
+                    f"{__version__}.",
+                )
             )
         return _Analysis(
             opened=opened,
@@ -1043,7 +1142,7 @@ class RestoreManager:
         manifest = analysis.opened.manifest or {}
         problems = list(analysis.problems)
         if self.running:
-            problems.append("Es läuft bereits eine Wiederherstellung.")
+            problems.append(_message("restore_running", "Es läuft bereits eine Wiederherstellung."))
         return RestorePreviewOut(
             source=described,
             confirm=described.id,
@@ -1058,8 +1157,10 @@ class RestoreManager:
             keys=analysis.keys.out(),
             access=analysis.access,
             restorable=not problems,
-            problems=problems,
-            notes=analysis.notes,
+            problems=_texts(problems),
+            notes=_texts(analysis.notes),
+            problem_items=problems,
+            note_items=analysis.notes,
         )
 
     # --- Ausführen -----------------------------------------------------------------
@@ -1175,7 +1276,7 @@ class RestoreManager:
                 except BackupError as exc:
                     raise RestoreFailed(str(exc)) from None
                 if analysis.problems:
-                    raise RestoreFailed(" ".join(analysis.problems))
+                    raise RestoreFailed(" ".join(_texts(analysis.problems)))
                 if analysis.access.lockout_risk and not job.accept_lockout:
                     raise RestoreFailed(
                         analysis.access.message_de
@@ -1238,16 +1339,21 @@ class RestoreManager:
                 if not job.apply_journal:
                     self._set(job, "journal", "skipped", "Nachtragen abgewählt.")
                 elif not analysis.records:
-                    self._set(job, "journal", "skipped", "Keine Ereignisse in der Mitschrift.")
+                    self._set(
+                        job,
+                        "journal",
+                        "skipped",
+                        "Seit der Sicherung wurden keine Ergebnisse erfasst.",
+                    )
                 else:
                     report = await self._apply_journal(staging_url, analysis.records)
-                    self._set(job, "journal", "running", report.summary()[0])
+                    self._set(job, "journal", "running", _journal_detail(report))
 
             async with self._step(job, "verify"):
                 await self._verify_and_carry_over(staging_url, analysis)
 
             moved: list[tuple[Path, Path]] = []
-            restart_notes: list[str] = []
+            restart_notes: list[RestoreMessageOut] = []
             async with self._step(job, "swap"), self.backup._snapshot_lock:
                 self.maintenance.set_exclusive(True)
                 await self.maintenance.drained(DRAIN_READS_S, reads=True)
@@ -1283,19 +1389,25 @@ class RestoreManager:
                 after_ok = bool(after) and after[0].ok
                 if not after_ok:
                     notes.append(
-                        "Die Sicherung des wiederhergestellten Stands ist fehlgeschlagen; bitte "
-                        "unter System → Sicherung „Jetzt sichern“."
+                        _message(
+                            "after_backup_failed",
+                            "Die Sicherung des wiederhergestellten Stands ist fehlgeschlagen; "
+                            "bitte unter System → Sicherung „Jetzt sichern“.",
+                        )
                     )
+                journal_out = _journal_out(report)
                 job.result = RestoreResultOut(
                     database=target.database,
                     previous_database=previous,
                     pre_restore_backup=pre_name,
                     schema_upgraded=upgraded,
-                    journal=_journal_out(report),
+                    journal=journal_out,
                     keys_installed=list(analysis.keys.install),
                     keys_set_aside=[aside.name for _target, aside in moved],
                     after_backup_ok=after_ok,
-                    notes=notes,
+                    notes=_texts(notes),
+                    note_items=notes,
+                    skipped_starts=journal_out.skipped_starts if journal_out else [],
                 )
             job.state = "succeeded"
             logger.warning(
@@ -1320,10 +1432,30 @@ class RestoreManager:
                 with contextlib.suppress(Exception):
                     await self._drop_database(target, staging)
             await asyncio.to_thread(shutil.rmtree, work, True)
+            if self.maintenance.active:
+                # Geräte laden bei `active: false` neu: erst, wenn die Datenbank antwortet.
+                await self._wait_until_ready()
             self.maintenance.end()
             self._publish(job)
 
     # --- Bausteine der Ausführung ------------------------------------------------------
+
+    async def _wait_until_ready(self) -> bool:
+        """Wartet, bis die (neue) Datenbank über den Verbindungspool der App Anfragen
+        beantwortet: eine Probeabfrage auf `alembic_version`. False nach `READY_TIMEOUT_S`; die
+        Wartung endet dann trotzdem, damit der Server nicht gesperrt bleibt."""
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + READY_TIMEOUT_S
+        while True:
+            try:
+                async with self.app.state.session_factory() as session:
+                    await session.execute(text("SELECT count(*) FROM alembic_version"))
+                return True
+            except Exception as exc:
+                if loop.time() >= deadline:
+                    logger.warning("Datenbank antwortet nach der Wiederherstellung nicht: %s", exc)
+                    return False
+            await asyncio.sleep(READY_INTERVAL_S)
 
     def _keep_pre_restore(self, file_name: str) -> str:
         """Kopiert den Abzug „vor Wiederherstellung“ aus der Rotation heraus."""
@@ -1478,7 +1610,7 @@ class RestoreManager:
                 except Exception:
                     logger.exception("Modul %s ließ sich nicht anhalten.", module.name)
 
-    async def _start_modules(self) -> list[str]:
+    async def _start_modules(self) -> list[RestoreMessageOut]:
         """Startet die übrigen Module neu, wie nach einem Neustart des Servers."""
         notes = []
         for module in self._other_modules():
@@ -1488,8 +1620,11 @@ class RestoreManager:
                 except Exception:
                     logger.exception("Modul %s ließ sich nicht neu starten.", module.name)
                     notes.append(
-                        f"Das Modul „{module.title}“ ließ sich nicht neu starten; bitte den Server "
-                        "neu starten."
+                        _message(
+                            "module_restart_failed",
+                            f"Das Modul „{module.title}“ ließ sich nicht neu starten; bitte den "
+                            "Server neu starten.",
+                        )
                     )
         return notes
 
@@ -1537,6 +1672,15 @@ class RestoreManager:
             record_audit(session, job.actor, "backup.restored", "backup", None, details)
 
 
+def _journal_detail(report: journal_apply.ApplyReport) -> str:
+    """Kurzfassung für den Schritt, ohne Technikwörter."""
+    skipped = len(report.missing_starts) + len(report.conflicts)
+    text = f"{report.applied} Ergebnis-Einträge nachgetragen"
+    if skipped:
+        text += f"; {skipped} Start(s) übersprungen, siehe Liste"
+    return text + "."
+
+
 def _journal_out(report: journal_apply.ApplyReport | None) -> JournalReportOut | None:
     if report is None:
         return None
@@ -1548,6 +1692,17 @@ def _journal_out(report: journal_apply.ApplyReport | None) -> JournalReportOut |
         status_changes=report.status_changes,
         recomputed_competitions=report.recomputed_competitions,
         lines=report.summary(),
+        skipped_starts=[
+            SkippedStartOut(
+                competition_name=item.competition_name,
+                competition_code=item.competition_code,
+                start_number=item.start_number,
+                attempt=item.attempt,
+                reason_code=item.reason_code,  # type: ignore[arg-type]
+                message_de=item.message_de,
+            )
+            for item in report.skipped_starts()
+        ],
     )
 
 

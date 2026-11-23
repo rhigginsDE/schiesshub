@@ -64,6 +64,12 @@ class Api:
     client: httpx.AsyncClient
     _clubs: dict[str, str] = field(default_factory=dict)
     _counter: list[int] = field(default_factory=lambda: [0])
+    _tournament_names: list[str] = field(default_factory=list)
+
+    def _unique(self, name: str) -> str:
+        count = self._tournament_names.count(name)
+        self._tournament_names.append(name)
+        return name if count == 0 else f"{name} ({count + 1})"
 
     async def ok(self, method: str, path: str, status: int = 200, **kwargs: Any) -> Any:
         response = await self.client.request(method, f"{API}{path}", **kwargs)
@@ -76,8 +82,9 @@ class Api:
         return response
 
     async def tournament(self, name: str = "Vereinspokal 2027", **settings: Any) -> str:
+        # Name und Datum sind je Turnier eindeutig: Wiederholungen bekommen eine Nummer.
         body: dict[str, Any] = {
-            "name": name,
+            "name": self._unique(name),
             "organizer": "SV Musterstadt",
             "date_from": "2027-03-06",
         }

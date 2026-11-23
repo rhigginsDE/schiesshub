@@ -12,6 +12,8 @@ im laufenden Turnier, dann aber nur mit Grund.
 
 import uuid
 from collections.abc import Awaitable, Callable, Sequence
+from dataclasses import dataclass
+from datetime import date
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -20,6 +22,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import ConflictError as FieldConflictError
 from app.core.errors import InputError, translate_errors
 from app.core.events import EventHub
 from app.core.security import Actor
@@ -214,6 +217,29 @@ def template_settings(template: str) -> dict[str, Any]:
     return {**TournamentSettings().model_dump(mode="json"), **TEMPLATE_SETTINGS[template]}
 
 
+DUPLICATE_TOURNAMENT = "Ein Turnier mit diesem Namen und Datum gibt es schon."
+
+
+async def check_unique(
+    session: AsyncSession, name: str, date_from: date, own_id: uuid.UUID | None = None
+) -> None:
+    """Kein zweites Turnier mit gleichem Namen (ohne Groß-/Kleinschreibung und Leerzeichen am
+    Rand) und gleichem Anfangsdatum. Gleicher Name an einem anderen Tag bleibt erlaubt.
+
+    Das Übungsturnier zählt nicht mit; es ist gekennzeichnet und höchstens einmal da. Eine
+    Datenbank-Regel gibt es dafür bewusst nicht: Ältere Installationen könnten schon Doppel haben.
+    """
+    statement = select(Tournament.id).where(
+        func.lower(func.btrim(Tournament.name)) == name.strip().lower(),
+        Tournament.date_from == date_from,
+        Tournament.is_practice.is_(False),
+    )
+    if own_id is not None:
+        statement = statement.where(Tournament.id != own_id)
+    if await session.scalar(statement.limit(1)) is not None:
+        raise FieldConflictError(DUPLICATE_TOURNAMENT, field="name")
+
+
 async def list_tournaments(session: AsyncSession) -> list[Tournament]:
     rows = await session.scalars(
         select(Tournament).order_by(Tournament.date_from.desc(), Tournament.name)
@@ -227,6 +253,8 @@ async def create_tournament(
     date_to = data.date_to or data.date_from
     if date_to < data.date_from:
         raise InvalidError("Das Enddatum liegt vor dem Anfangsdatum.")
+    if not is_practice:
+        await check_unique(session, data.name, data.date_from)
     tournament = Tournament(
         name=data.name,
         organizer=data.organizer,
@@ -235,7 +263,9 @@ async def create_tournament(
         status="draft",
         template=data.template,
         settings=_merge_settings(template_settings(data.template), data.settings),
-        announcement=default_announcement(data.template).model_dump(mode="json"),
+        announcement=default_announcement(data.template).model_dump(
+            mode="json", exclude={"missing_default_blocks"}
+        ),
         is_practice=is_practice,
     )
     session.add(tournament)
@@ -251,10 +281,13 @@ async def update_tournament(
     tournament = await editable_tournament(session, tournament_id)
     changes = data.model_dump(exclude_unset=True, exclude={"settings"})
     _reject_nulls(changes, nullable={"organizer"})
-    for key, value in changes.items():
-        setattr(tournament, key, value)
-    if tournament.date_to < tournament.date_from:
-        raise InvalidError("Das Enddatum liegt vor dem Anfangsdatum.")
+    with session.no_autoflush:
+        for key, value in changes.items():
+            setattr(tournament, key, value)
+        if tournament.date_to < tournament.date_from:
+            raise InvalidError("Das Enddatum liegt vor dem Anfangsdatum.")
+        if not tournament.is_practice and ({"name", "date_from"} & changes.keys()):
+            await check_unique(session, tournament.name, tournament.date_from, tournament.id)
     if "settings" in data.model_fields_set:
         if data.settings is None:
             raise InputError.single("settings", "Das Feld „settings“ darf nicht leer sein.")
@@ -798,6 +831,8 @@ async def create_competition(
         catalog_code=data.catalog_code,
         name=name,
         definition=_store(definition),
+        # Aus dem Katalog: die übernommene Fassung merken (Vermerk „Katalog geändert“).
+        catalog_base=_store(definition) if data.definition is None else None,
         capture_mode=data.capture_mode or defaults.default_capture_mode,
         multi_start=multi_start,
         max_starts=max_starts,
@@ -898,6 +933,8 @@ async def reset_definition(
     )
     before = _scoring_state(item)
     item.definition = _store(definition)
+    # Übernommen: Der Vermerk „Katalog geändert“ misst ab jetzt an dieser Fassung.
+    item.catalog_base = _store(definition)
     revision = await _record_scoring_change(session, tournament, item, actor, before, reason)
     await session.commit()
     _publish_change(events, tournament_id, item, revision)
@@ -912,6 +949,55 @@ def _source_variant_id(definition: CompetitionDefinition) -> str:
     if definition.source is not None and definition.source.variant_id is not None:
         return definition.source.variant_id
     return definition.variant.id
+
+
+@dataclass(frozen=True, slots=True)
+class CatalogStatus:
+    """Wie die Katalogfassung, aus der ein Wettbewerb stammt, zum aktuellen Katalog steht."""
+
+    changed: bool = False
+    stand_then: date | None = None
+    stand_now: date | None = None
+
+
+# Katalog-Definition je (Verband, Kennziffer, Variante) innerhalb eines Abrufs; None: fehlt.
+CatalogCache = dict[tuple[str, str, str], CompetitionDefinition | None]
+
+
+async def catalog_status(
+    session: AsyncSession, item: Competition, cache: CatalogCache | None = None
+) -> CatalogStatus:
+    """Hat sich der Katalog geändert, seit die Definition aus ihm übernommen wurde?
+
+    Verglichen wird `catalog_base` (die übernommene Fassung) mit der aktuellen Katalog-Variante
+    – nicht die Definition, damit bewusste Abweichungen im Turnier nicht als Änderung zählen.
+    Fehlen Disziplin oder Variante im Katalog, gilt das auch als Änderung.
+    """
+    if item.catalog_federation is None or item.catalog_code is None:
+        return CatalogStatus()
+    try:
+        base = CompetitionDefinition.model_validate(item.catalog_base or item.definition)
+    except ValidationError:
+        # Übernommene Fassung passt nicht mehr zum Format des Katalogs: sicher eine Änderung.
+        return CatalogStatus(changed=True)
+    then = base.source.catalog_stand if base.source is not None else None
+    key = (item.catalog_federation, item.catalog_code, _source_variant_id(base))
+    if cache is not None and key in cache:
+        catalog = cache[key]
+    else:
+        try:
+            catalog, _ = await _catalog_definition(session, *key)
+        except InvalidError:
+            catalog = None
+        if cache is not None:
+            cache[key] = catalog
+    if catalog is None:
+        return CatalogStatus(changed=True, stand_then=then)
+    changed = bool(
+        catalog_diff.compare(catalog.variant, catalog.scoring, base.variant, base.scoring)
+    )
+    now = catalog.source.catalog_stand if catalog.source is not None else None
+    return CatalogStatus(changed=changed, stand_then=then, stand_now=now)
 
 
 async def get_catalog_diff(
