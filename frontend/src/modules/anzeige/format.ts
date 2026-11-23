@@ -1,5 +1,5 @@
 import type { Position } from "../../components/anschlag/typen";
-import { formatHundertstel, formatUhrzeit, formatZahl } from "../../lib/format";
+import { formatDezimalText, formatHundertstel, formatUhrzeit, formatZahl } from "../../lib/format";
 import type {
   FeedAblauf,
   FeedAbschnitt,
@@ -20,13 +20,33 @@ import type {
 export function serienWert(serie: FeedSerie | undefined, sprache: string): string {
   if (!serie) return "–";
   if (serie.rings != null) {
-    // Zehntelwertung: Ringe mit Nachkommastelle kommen als Text ("20.1").
-    const zehntel = typeof serie.rings === "string";
-    return formatZahl(Number(serie.rings), zehntel ? { nachkommastellen: 1 } : {}, sprache);
+    // Zehntelwertung: Ringe mit Nachkommastelle kommen als Text ("20.1") und behalten ihre
+    // Stellen; ganze Ringe bleiben ganz. Nichts wird umgerechnet.
+    return formatDezimalText(serie.rings, sprache) ?? formatZahl(Number(serie.rings), {}, sprache);
   }
   if (serie.total_cs != null) return formatHundertstel(serie.total_cs, sprache);
   if (serie.time_cs != null) return formatHundertstel(serie.time_cs, sprache);
   return "–";
+}
+
+/** Warum ein geteilter Platz offen ist: Stechen oder von Hand zu entscheiden. */
+export type GleichstandHinweis = "stechen" | "manuell";
+
+/**
+ * Hinweis zu einem geteilten Platz, wie der Server ihn meldet (die Reihenfolge rechnet allein der
+ * Server): `needs_shootoff` → Stechen; ein anderer offener Gleichstand (`tie_reason` „manual“ oder
+ * „missing_data“, im Feed nur am `tie_note` erkennbar) → von Hand entscheiden. Sonst nichts.
+ */
+export function gleichstandHinweis(zeile: {
+  needs_shootoff?: boolean | null;
+  tie_note?: string | null;
+  tie_reason?: string | null;
+  tied?: boolean;
+}): GleichstandHinweis | null {
+  if (zeile.needs_shootoff || zeile.tie_reason === "shootoff") return "stechen";
+  if (zeile.tie_reason === "manual" || zeile.tie_reason === "missing_data") return "manuell";
+  if (zeile.tied !== false && zeile.tie_note) return "manuell";
+  return null;
 }
 
 /** So viele Serienspalten braucht die Rangliste (die längste Zeile zählt). */

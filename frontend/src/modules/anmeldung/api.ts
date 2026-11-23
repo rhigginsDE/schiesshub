@@ -199,11 +199,24 @@ export function useStartStornieren(turnierId: string) {
   );
 }
 
+/** Längste Bemerkung zum Abbruch, die der Server annimmt. */
+export const ABBRUCH_BEMERKUNG_MAX = 500;
+
+/** Inhalt für `POST …/starts/{id}/abort`; eine leere Bemerkung wird nicht mitgeschickt. */
+export function abbruchInhalt(grund: Abbruchgrund, bemerkung = "") {
+  const note = bemerkung.trim().slice(0, ABBRUCH_BEMERKUNG_MAX);
+  return note ? { abort_reason: grund, note } : { abort_reason: grund };
+}
+
 export function useStartAbbrechen(turnierId: string) {
   return useStartsSchreiben(
     turnierId,
-    ({ startId, grund }: { startId: string; grund: Abbruchgrund }) =>
-      apiSenden<Start>("POST", `${pfad.start(turnierId, startId)}/abort`, { abort_reason: grund }),
+    ({ startId, grund, bemerkung }: { startId: string; grund: Abbruchgrund; bemerkung?: string }) =>
+      apiSenden<Start>(
+        "POST",
+        `${pfad.start(turnierId, startId)}/abort`,
+        abbruchInhalt(grund, bemerkung),
+      ),
   );
 }
 

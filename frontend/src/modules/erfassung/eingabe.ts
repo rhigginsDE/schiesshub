@@ -12,8 +12,14 @@
  * - Rück löscht nur im aktiven Feld; in einem leeren Feld passiert nichts (kein Sprung zurück).
  * - Zeiten: Sekunden mit Komma („12,84“), an den Server in Hundertstelsekunden (1284).
  * - Schüsse: erlaubte Werte als Tasten; auf der Tastatur „1“ „0“ für 10 und „x“ für den Innenzehner.
+ * - Kommazahlen (Zehntelwertung: Schüsse mit `decimals`, Seriensumme `decimal`): Komma, Punkt oder
+ *   Komma des Ziffernblocks; Grenzen aus `value_min`/`value_max`/`zero_allowed`. Gerechnet wird in
+ *   ganzen Einheiten (Zehnteln), an den Server geht Text mit Punkt („10.4“), nie eine
+ *   Gleitkommazahl. Weiter geht es erst, wenn keine Ziffer den Wert mehr ändern kann (nach der
+ *   Zehntelstelle oder nach einer „0“, die nur 0 bleiben kann). Passt eine Ziffer nur hinter das
+ *   Komma („9“ „8“ bei höchstens 10,9), steht das Komma von selbst: „9,8“.
  */
-import { formatHundertstel } from "../../lib/format";
+import { formatDezimal, formatHundertstel } from "../../lib/format";
 import type { FeldBeschreibung } from "./api";
 import type { Schusswert } from "./rohwerte";
 
@@ -45,12 +51,15 @@ export const ANGEKOMMEN: ZahlEingabe = { text: "", frisch: true, angekommen: tru
  * Kurzer Hinweis am Ziffernfeld: warum eine Taste nicht passt, oder („naechstes_belegt“) warum das
  * Terminal nicht selbst weitergeschaltet hat.
  */
-export type Ablehnung = "zu_gross" | "leer" | "unpassend" | "naechstes_belegt";
+export type Ablehnung = "zu_gross" | "zu_klein" | "leer" | "unpassend" | "naechstes_belegt";
 
 export interface ZahlErgebnis {
   eingabe: ZahlEingabe;
-  /** Neuer Wert des Feldes (`undefined` = leer); nur gesetzt, wenn `geaendert` */
-  wert?: number;
+  /**
+   * Neuer Wert des Feldes (`undefined` = leer); nur gesetzt, wenn `geaendert`. Zahl bei ganzen
+   * Zahlen und Zeiten, Text mit Punkt („10.4“) bei Kommazahlen.
+   */
+  wert?: number | string;
   geaendert: boolean;
   /**
    * Zum nächsten Feld weiterschalten; `eingabe` ist dann die Eingabe für das neue Feld
@@ -84,15 +93,188 @@ export function ganzAusText(text: string): number | undefined {
   return /^\d+$/.test(text) ? Number(text) : undefined;
 }
 
+// --- Kommazahlen ---------------------------------------------------------------------------------
+
+/**
+ * Ob ein Feld Kommazahlen nimmt: Seriensumme `decimal` oder Schüsse mit Nachkommastellen ohne
+ * feste Ringwerte (Zehntelwertung). Ganze Ringe (BDS) sind es nie.
+ */
+export function istKommaFeld(feld: FeldBeschreibung): boolean {
+  if (feld.kind === "decimal") return true;
+  return (
+    feld.kind === "shots" && (feld.decimals ?? 0) > 0 && (feld.allowed_values ?? []).length === 0
+  );
+}
+
+/** Ein Wert je Ziel (Treffer 1, Fehler 0) statt Ringen je Schuss. */
+export function istJeZiel(feld: FeldBeschreibung): boolean {
+  return feld.kind === "shots" && feld.per_target === true;
+}
+
+/** Nachkommastellen eines Kommafelds (Zehntelwertung: 1). */
+export function stellenVon(feld: FeldBeschreibung): number {
+  return Math.max(0, feld.decimals ?? (feld.kind === "decimal" ? 1 : 0));
+}
+
+/**
+ * Kommazahl als ganze Zahl in Einheiten der letzten Stelle („10,4“ bei 1 Stelle → 104). Nimmt Text
+ * mit Komma oder Punkt und Zahlen; mehr Nachkommastellen als erlaubt (außer Nullen), negativ oder
+ * unlesbar → `undefined`. So wird nie mit Gleitkommazahlen gerechnet.
+ */
+export function einheitenAus(wert: unknown, stellen: number): number | undefined {
+  if (typeof wert === "number") {
+    if (!Number.isFinite(wert) || wert < 0) return undefined;
+    const einheiten = Math.round(wert * 10 ** stellen);
+    return Math.abs(einheiten - wert * 10 ** stellen) < 1e-6 ? einheiten : undefined;
+  }
+  if (typeof wert !== "string") return undefined;
+  const treffer = /^(\d*)(?:[.,](\d*))?$/.exec(wert.trim());
+  if (!treffer) return undefined;
+  const ganz = treffer[1] ?? "";
+  const nach = (treffer[2] ?? "").replace(/0+$/, "");
+  if (ganz === "" && (treffer[2] ?? "") === "") return undefined;
+  if (nach.length > stellen) return undefined;
+  return Number(ganz || "0") * 10 ** stellen + Number(nach.padEnd(stellen, "0") || "0");
+}
+
+/** Einheiten → Text für den Server: 104 → „10.4“, 0 → „0.0“ (bei 1 Stelle). */
+export function einheitenRoh(einheiten: number, stellen: number): string {
+  if (stellen === 0) return String(einheiten);
+  const teiler = 10 ** stellen;
+  return `${Math.floor(einheiten / teiler)}.${String(einheiten % teiler).padStart(stellen, "0")}`;
+}
+
+/** Einheiten → Anzeige in der Schreibweise der Sprache: 104 → „10,4“, 10909 → „1.090,9“. */
+export function einheitenText(einheiten: number, stellen: number): string {
+  return formatDezimal(einheiten / 10 ** stellen, stellen);
+}
+
+/** Summe von Kommazahlen in Einheiten (ganzzahlig, ohne Gleitkommafehler); Unlesbares zählt nicht. */
+export function summeEinheiten(werte: readonly unknown[], stellen: number): number {
+  return werte.reduce<number>((summe, wert) => summe + (einheitenAus(wert, stellen) ?? 0), 0);
+}
+
+export interface KommaGrenzen {
+  stellen: number;
+  /** Untergrenze in Einheiten (ohne die 0, die `null` zusätzlich erlaubt) */
+  min: number | null;
+  max: number | null;
+  /** 0 ist zusätzlich zum Bereich erlaubt (Fehlschuss) */
+  null: boolean;
+}
+
+export function kommaGrenzen(feld: FeldBeschreibung): KommaGrenzen {
+  const stellen = stellenVon(feld);
+  const lesen = (wert: string | null | undefined) =>
+    wert == null ? null : (einheitenAus(String(wert), stellen) ?? null);
+  return {
+    stellen,
+    min: lesen(feld.value_min),
+    max: lesen(feld.value_max),
+    null: feld.zero_allowed === true,
+  };
+}
+
+function imBereich(einheiten: number, g: KommaGrenzen): boolean {
+  if (g.max !== null && einheiten > g.max) return false;
+  if (g.null && einheiten === 0) return true;
+  return g.min === null || einheiten >= g.min;
+}
+
+/** Grenzen als Text für Hinweise: `{ min: "1,0", max: "10,9", null: true }`. */
+export function kommaBereich(feld: FeldBeschreibung): {
+  min: string | null;
+  max: string | null;
+  null: boolean;
+} {
+  const g = kommaGrenzen(feld);
+  return {
+    min: g.min === null ? null : einheitenText(g.min, g.stellen),
+    max: g.max === null ? null : einheitenText(g.max, g.stellen),
+    // „0 oder 1,0 bis 10,9“ nur, wenn die 0 nicht ohnehin im Bereich liegt.
+    null: g.null && (g.min ?? 0) > 0,
+  };
+}
+
+/** Ziffer an eine Kommazahl hängen; `null`, wenn keine Stelle mehr frei ist. */
+function kommaAnhaengen(text: string, ziffer: string, g: KommaGrenzen): string | null {
+  if (/[.,]/.test(text)) {
+    const nach = text.split(/[.,]/)[1] ?? "";
+    return nach.length >= g.stellen ? null : text + ziffer;
+  }
+  // „05“ ist keine Zahl: Nach einer „0“ kann nur das Komma kommen.
+  if (text === "0") return g.stellen > 0 ? `0,${ziffer}` : null;
+  const kandidat = text + ziffer;
+  // Passt die Ziffer nur hinter das Komma (9 + 8 bei höchstens 10,9), steht das Komma von selbst.
+  const einheiten = einheitenAus(kandidat, g.stellen);
+  if (
+    text !== "" &&
+    g.stellen > 0 &&
+    g.max !== null &&
+    einheiten !== undefined &&
+    einheiten > g.max
+  ) {
+    return `${text},${ziffer}`;
+  }
+  return kandidat;
+}
+
+function kommaVollstaendig(text: string, g: KommaGrenzen): boolean {
+  return (text.split(/[.,]/)[1] ?? "").length >= g.stellen && /[.,]/.test(text);
+}
+
+/**
+ * Ob eine weitere Taste (Ziffer oder Komma mit Ziffer) den Wert noch ändern kann. Sonst ist er
+ * fertig, und das Feld schaltet weiter: nach der Zehntelstelle, nach „0“ bei „0 oder 1,0 bis 10,9“.
+ */
+function kommaKannWachsen(text: string, g: KommaGrenzen): boolean {
+  const jetzt = einheitenAus(text, g.stellen);
+  const moeglich = (kandidat: string | null) => {
+    if (kandidat === null) return false;
+    const einheiten = einheitenAus(kandidat, g.stellen);
+    if (einheiten === undefined || einheiten === jetzt) return false;
+    if (g.max !== null && einheiten > g.max) return false;
+    return !kommaVollstaendig(kandidat, g) || imBereich(einheiten, g);
+  };
+  for (let ziffer = 0; ziffer <= 9; ziffer++) {
+    if (moeglich(kommaAnhaengen(text, String(ziffer), g))) return true;
+    if (g.stellen > 0 && !/[.,]/.test(text) && moeglich(`${text || "0"},${ziffer}`)) return true;
+  }
+  return false;
+}
+
+/** Wert zum Speichern aus dem Eingabetext: Text mit Punkt, oder `undefined` (leer, noch kein Wert). */
+function kommaWert(text: string, g: KommaGrenzen): string | undefined {
+  // „0,“ oder „,“ allein ist noch keine Zahl: kein Fehlschuss, nur weil das Komma getippt wurde.
+  if (/^0?[.,]$/.test(text)) return undefined;
+  const einheiten = einheitenAus(text, g.stellen);
+  if (einheiten === undefined || !imBereich(einheiten, g)) return undefined;
+  return einheitenRoh(einheiten, g.stellen);
+}
+
+// --- Anzeige und Text der Felder -----------------------------------------------------------------
+
 /** Anzeigetext eines Feldwerts. */
 export function wertText(feld: FeldBeschreibung, wert: unknown): string {
   if (wert === undefined || wert === null) return "";
   if (feld.kind === "time" && typeof wert === "number") return zeitText(wert);
+  if (istKommaFeld(feld)) {
+    const einheiten = einheitenAus(wert, stellenVon(feld));
+    return einheiten === undefined ? String(wert) : einheitenText(einheiten, stellenVon(feld));
+  }
   return String(wert);
 }
 
-function textAus(feld: FeldBeschreibung, wert: number | undefined): string {
-  if (wert === undefined) return "";
+function textAus(feld: FeldBeschreibung, wert: unknown): string {
+  if (wert === undefined || wert === null) return "";
+  if (istKommaFeld(feld)) {
+    const einheiten = einheitenAus(wert, stellenVon(feld));
+    // Zum Bearbeiten ohne Tausenderpunkte, mit Komma.
+    return einheiten === undefined
+      ? ""
+      : einheitenRoh(einheiten, stellenVon(feld)).replace(".", ",");
+  }
+  if (typeof wert !== "number") return "";
   // Zum Bearbeiten ohne Tausenderpunkte, Komma bleibt.
   return feld.kind === "time" ? zeitText(wert).replace(/\./g, "") : String(wert);
 }
@@ -123,10 +305,11 @@ function weitereZifferMoeglich(feld: FeldBeschreibung, wert: number): boolean {
 export function zahlTaste(
   feld: FeldBeschreibung,
   eingabe: ZahlEingabe,
-  aktuell: number | undefined,
+  aktuell: unknown,
   taste: Taste,
   naechstesBelegt = false,
 ): ZahlErgebnis {
+  if (istKommaFeld(feld)) return kommaTaste(feld, eingabe, aktuell, taste, naechstesBelegt);
   const zeit = feld.kind === "time";
   switch (taste.art) {
     case "weiter":
@@ -191,6 +374,75 @@ export function zahlTaste(
             ? { text, frisch: false, voll: true }
             : { text, frisch: false },
         wert,
+        geaendert: true,
+        weiter,
+        ...(fertig && naechstesBelegt ? { grund: "naechstes_belegt" as const } : {}),
+      });
+    }
+  }
+}
+
+/** Eine Taste in einem Kommafeld (Zehntelwertung); Ablauf wie bei ganzen Zahlen. */
+function kommaTaste(
+  feld: FeldBeschreibung,
+  eingabe: ZahlEingabe,
+  aktuell: unknown,
+  taste: Taste,
+  naechstesBelegt: boolean,
+): ZahlErgebnis {
+  const g = kommaGrenzen(feld);
+  switch (taste.art) {
+    case "weiter":
+      if (eingabe.angekommen) return ergebnis({ eingabe: FRISCH });
+      return ergebnis({ eingabe: FRISCH, weiter: true });
+    case "zurueck":
+      return ergebnis({ eingabe: FRISCH, zurueck: true });
+    case "loeschen": {
+      const basis = eingabe.frisch ? textAus(feld, aktuell) : eingabe.text;
+      if (basis === "") return ergebnis({ eingabe: FRISCH, abgelehnt: true, grund: "leer" });
+      const text = basis.slice(0, -1);
+      return ergebnis({
+        eingabe: { text, frisch: false },
+        wert: kommaWert(text, g),
+        geaendert: true,
+      });
+    }
+    case "komma": {
+      if (g.stellen === 0) return ergebnis({ eingabe, abgelehnt: true, grund: "unpassend" });
+      if (eingabe.voll) return ergebnis({ eingabe, abgelehnt: true, grund: "naechstes_belegt" });
+      const basis = eingabe.frisch ? "" : eingabe.text;
+      if (/[.,]/.test(basis)) return ergebnis({ eingabe, abgelehnt: true, grund: "unpassend" });
+      const text = `${basis || "0"},`;
+      return ergebnis({
+        eingabe: { text, frisch: false },
+        wert: kommaWert(text, g),
+        geaendert: true,
+      });
+    }
+    case "ziffer": {
+      if (!/^\d$/.test(taste.ziffer)) return ergebnis({ eingabe, abgelehnt: true });
+      if (eingabe.voll) return ergebnis({ eingabe, abgelehnt: true, grund: "naechstes_belegt" });
+      const basis = eingabe.frisch ? "" : eingabe.text;
+      const text = kommaAnhaengen(basis, taste.ziffer, g);
+      if (text === null) return ergebnis({ eingabe, abgelehnt: true, grund: "unpassend" });
+      const einheiten = einheitenAus(text, g.stellen);
+      if (einheiten === undefined) return ergebnis({ eingabe, abgelehnt: true });
+      if (g.max !== null && einheiten > g.max) {
+        return ergebnis({ eingabe, abgelehnt: true, grund: "zu_gross" });
+      }
+      const fertig = !kommaKannWachsen(text, g);
+      // Unter der Untergrenze (z. B. „0,5“ bei „0 oder 1,0 bis 10,9“) und nicht mehr zu retten.
+      if (!imBereich(einheiten, g) && (fertig || kommaVollstaendig(text, g))) {
+        return ergebnis({ eingabe, abgelehnt: true, grund: "zu_klein" });
+      }
+      const weiter = fertig && !naechstesBelegt;
+      return ergebnis({
+        eingabe: weiter
+          ? ANGEKOMMEN
+          : fertig && naechstesBelegt
+            ? { text, frisch: false, voll: true }
+            : { text, frisch: false },
+        wert: kommaWert(text, g),
         geaendert: true,
         weiter,
         ...(fertig && naechstesBelegt ? { grund: "naechstes_belegt" as const } : {}),

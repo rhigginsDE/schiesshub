@@ -129,6 +129,78 @@ describe("Bildschirm", () => {
     expect(alle.slice(-2)).toEqual(ohne);
   });
 
+  it("Zehntelwertung und Stechen: Ringe mit Komma, geteilter Platz mit dezentem Hinweis", () => {
+    const zehntel = (nr: number, rings: string) => ({
+      section_id: "wertung",
+      number: nr,
+      struck: false,
+      status: "normal",
+      rings,
+      time_cs: null,
+      standing: null,
+      total_cs: null,
+    });
+    const basis = rangliste();
+    const ranking = {
+      ...basis,
+      groups: [
+        {
+          class_id: "k1",
+          class_name: "Schützenklasse",
+          class_short: "S",
+          more: 0,
+          unplaced: [],
+          // Reihenfolge und Plätze wie vom Server: nichts wird im Frontend neu sortiert.
+          rows: [
+            zeile({
+              start_id: "z1",
+              place: 1,
+              tied: true,
+              needs_shootoff: true,
+              tie_note: "Ringgleichheit auf Platz 1: Stechen",
+              display_name: "Hanna Zehntel",
+              score_text: "208,4 Ringe",
+              series: [zehntel(1, "104.3"), zehntel(2, "104.1")],
+            }),
+            zeile({
+              start_id: "z2",
+              place: 1,
+              tied: true,
+              needs_shootoff: true,
+              tie_note: "Ringgleichheit auf Platz 1: Stechen",
+              display_name: "Ida Zehntel",
+              score_text: "208,4 Ringe",
+              series: [zehntel(1, "103.9"), zehntel(2, "104.5")],
+            }),
+            zeile({
+              start_id: "z3",
+              place: 3,
+              tied: true,
+              tie_note: "Gleichstand nach Sportordnung manuell entscheiden (nächstes Kriterium: x)",
+              display_name: "Jan Zehntel",
+              score_text: "201,0 Ringe",
+              series: [zehntel(1, "100.0"), zehntel(2, "101.0")],
+            }),
+          ],
+        },
+      ],
+    };
+    const live = szenen.live_ranking as SzeneVon<"live_ranking">;
+    zeige(beispielFeed({ scenes: [{ ...live, ranking }] }));
+    const liste = screen.getByRole("region", { name: "Live-Wertung" });
+    expect(within(liste).getByText("104,3")).toBeVisible();
+    expect(within(liste).getByText("101,0")).toBeVisible();
+    expect(within(liste).getAllByText("208,4")).toHaveLength(2);
+    expect(within(liste).getAllByText("Stechen")).toHaveLength(2);
+    expect(within(liste).getByText("manuell entscheiden")).toBeVisible();
+    const namen = Array.from(liste.querySelectorAll("[data-gruppe] b")).map((b) => b.textContent);
+    expect(namen.map((n) => n?.replace(/^\d+/, ""))).toEqual([
+      "Hanna Zehntel",
+      "Ida Zehntel",
+      "Jan Zehntel",
+    ]);
+  });
+
   it("Siegerliste: Abgebrochene nie auf dem Podest, sondern mit Grund danach", () => {
     const basis = rangliste();
     const ranking = {

@@ -30,6 +30,10 @@
     "laeuft": "läuft",
     "nur_startnummer": "Startnummer {{nummer}}",
     "geteilt": "geteilt",
+    "gleichstand": {
+      "stechen": "Stechen",
+      "manuell": "manuell entscheiden"
+    },
     "versuch": "{{nr}}. Start",
     "vorlaeufig": "vorläufig",
     "weitere_one": "+ {{count}} weiterer Platz",

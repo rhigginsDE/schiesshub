@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { healthAbfrage } from "../api/abfragen";
+import { istWartungsFehler } from "../api/client";
 import type { Health } from "../api/typen";
 
 /**
@@ -8,8 +9,15 @@ import type { Health } from "../api/typen";
  * - `eingeschraenkt`: Server läuft, der Katalog wurde aber nicht vollständig eingelesen
  * - `gestoert`: Server antwortet, erreicht aber seine Datenbank nicht
  * - `getrennt`: keine Antwort vom Server
+ * - `wartung`: Der Server schaltet nach einer Wiederherstellung gerade auf die neuen Daten um
  */
-export type Verbindung = "pruefe" | "verbunden" | "eingeschraenkt" | "gestoert" | "getrennt";
+export type Verbindung =
+  | "pruefe"
+  | "verbunden"
+  | "eingeschraenkt"
+  | "gestoert"
+  | "getrennt"
+  | "wartung";
 
 function nutzbar(verbindung: Verbindung): boolean {
   return verbindung === "verbunden" || verbindung === "eingeschraenkt";
@@ -32,7 +40,9 @@ export function useServerStatus(): ServerStatus {
     abfrage.status === "pending"
       ? "pruefe"
       : abfrage.status === "error"
-        ? "getrennt"
+        ? istWartungsFehler(abfrage.error)
+          ? "wartung"
+          : "getrennt"
         : abfrage.data.status === "ok"
           ? "verbunden"
           : abfrage.data.status === "eingeschraenkt"

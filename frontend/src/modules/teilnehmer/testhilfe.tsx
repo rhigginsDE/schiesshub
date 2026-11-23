@@ -101,7 +101,7 @@ export function renderAnsicht(inhalt: () => ReactNode) {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   const ergebnis = render(
-    <MantineProvider theme={theme}>
+    <MantineProvider theme={theme} env="test">
       <QueryClientProvider client={queryClient}>
         <ModulProvider value={MODULE}>
           <RouterProvider router={router} />

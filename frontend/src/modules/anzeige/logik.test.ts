@@ -6,6 +6,7 @@ import {
   bahnFortschritt,
   feedUhrzeit,
   gesamtTeile,
+  gleichstandHinweis,
   hauptSerie,
   laengstesWort,
   laufendeSerien,
@@ -241,6 +242,45 @@ describe("Formatierung", () => {
     expect(serienWert({ ...basis, time_cs: 1420 }, "de")).toBe("14,20");
     expect(serienWert(basis, "de")).toBe("–");
     expect(serienWert(undefined, "de")).toBe("–");
+  });
+
+  it("Zehntelwertung: Ringe als Text behalten ihre Nachkommastelle, mit Dezimalkomma", () => {
+    const basis = {
+      section_id: "a",
+      number: 1,
+      struck: false,
+      status: "normal",
+      rings: null,
+      time_cs: null,
+      standing: null,
+      total_cs: null,
+    };
+    expect(serienWert({ ...basis, rings: "20.1" }, "de")).toBe("20,1");
+    expect(serienWert({ ...basis, rings: "104.0" }, "de")).toBe("104,0");
+    expect(serienWert({ ...basis, rings: "0.3" }, "de")).toBe("0,3");
+    expect(serienWert({ ...basis, rings: "104.7" }, "en")).toBe("104.7");
+  });
+});
+
+describe("Gleichstand (Stechen, von Hand)", () => {
+  it("folgt den Angaben des Servers", () => {
+    expect(gleichstandHinweis({ tied: true, needs_shootoff: true, tie_note: "x" })).toBe("stechen");
+    expect(gleichstandHinweis({ tied: true, tie_reason: "shootoff" })).toBe("stechen");
+    expect(gleichstandHinweis({ tied: true, tie_reason: "manual", tie_note: "x" })).toBe("manuell");
+    expect(gleichstandHinweis({ tied: true, tie_reason: "missing_data" })).toBe("manuell");
+    // Feed: kein `tie_reason`, nur der Hinweistext.
+    expect(
+      gleichstandHinweis({
+        tied: true,
+        needs_shootoff: false,
+        tie_note: "Gleichstand nach Sportordnung manuell entscheiden",
+      }),
+    ).toBe("manuell");
+  });
+
+  it("ein geteilter Platz ohne offene Frage (z. B. Fallscheibe) bleibt ohne Hinweis", () => {
+    expect(gleichstandHinweis({ tied: true, needs_shootoff: false, tie_note: null })).toBeNull();
+    expect(gleichstandHinweis({ tied: false, needs_shootoff: false })).toBeNull();
   });
 
   it("richtet die Serienspalten nach dem längsten Wert und lässt sie weg, wenn sie nicht passen", () => {

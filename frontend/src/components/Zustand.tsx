@@ -1,8 +1,8 @@
 import { Button } from "@mantine/core";
-import { type LucideIcon, RefreshCw, SearchX, ServerCrash, Unplug } from "lucide-react";
+import { Hourglass, type LucideIcon, RefreshCw, SearchX, ServerCrash, Unplug } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { ApiFehler } from "../api/client";
+import { ApiFehler, istWartungsFehler } from "../api/client";
 import s from "./Zustand.module.css";
 
 interface LeerzustandProps {
@@ -49,11 +49,20 @@ interface FehlerzustandProps {
 /** Laden fehlgeschlagen: sagt, was los ist und was zu tun ist. */
 export function Fehlerzustand({ fehler, onErneut, eigene, children }: FehlerzustandProps) {
   const { t } = useTranslation();
-  const art = fehler instanceof ApiFehler ? fehler.art : "unbekannt";
-  const eigener = art === "unbekannt" ? undefined : eigene?.[art];
-  const Icon = art === "netzwerk" ? Unplug : art === "nicht_gefunden" ? SearchX : ServerCrash;
-  const technisch =
-    fehler instanceof ApiFehler
+  // Wiederherstellung läuft (503, `code: maintenance`): kein Fehler, nur kurz warten.
+  const wartung = istWartungsFehler(fehler);
+  const art = wartung ? "wartung" : fehler instanceof ApiFehler ? fehler.art : "unbekannt";
+  const eigener = art === "unbekannt" || art === "wartung" ? undefined : eigene?.[art];
+  const Icon = wartung
+    ? Hourglass
+    : art === "netzwerk"
+      ? Unplug
+      : art === "nicht_gefunden"
+        ? SearchX
+        : ServerCrash;
+  const technisch = wartung
+    ? ""
+    : fehler instanceof ApiFehler
       ? [fehler.status, fehler.detail, fehler.pfad].filter(Boolean).join(" · ")
       : fehler instanceof Error
         ? fehler.message

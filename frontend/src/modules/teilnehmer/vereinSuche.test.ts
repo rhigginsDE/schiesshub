@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ApiFehler } from "../../api/client";
-import { vereinSichern, vereinTreffer } from "./vereinSuche";
+import { vereinFehlerAus } from "./PersonFormular";
+import { vereinTreffer } from "./vereinSuche";
 
 const vereine = [
   { id: "1", name: "SSV Hubertus Altdorf", short: "SSV Altdorf" },
@@ -42,54 +43,33 @@ describe("vereinTreffer", () => {
   });
 });
 
-describe("vereinSichern", () => {
-  const neu = { id: "9", name: "SG Probe 1920", short: null };
+describe("vereinFehlerAus", () => {
+  const OHNE_RECHT = "Du darfst keine neuen Vereine anlegen.";
 
-  it("nimmt einen vorhandenen Verein gleichen Namens, statt einen zweiten anzulegen", async () => {
-    const anlegen = vi.fn();
-    const verein = await vereinSichern("sv tell musterstadt", {
-      vorhandene: vereine,
-      anlegen,
-      neuLaden: async () => vereine,
-    });
-    expect(verein.id).toBe("2");
-    expect(anlegen).not.toHaveBeenCalled();
+  it("meldet 403 beim Speichern mit neuem Verein am Feld", () => {
+    const fehler = new ApiFehler("verboten", "/persons", 403, "Zum Anlegen fehlt club.edit.");
+    expect(vereinFehlerAus(fehler, true, OHNE_RECHT)).toBe(OHNE_RECHT);
   });
 
-  it("legt einen unbekannten Namen an", async () => {
-    const anlegen = vi.fn(async () => neu);
+  it("lässt 403 ohne neuen Verein nicht am Vereinsfeld erscheinen", () => {
+    const fehler = new ApiFehler("verboten", "/persons", 403, "Berechtigung fehlt.");
+    expect(vereinFehlerAus(fehler, false, OHNE_RECHT)).toBeUndefined();
+  });
+
+  it("nimmt die Meldung des Servers am Feld club_name", () => {
+    const fehler = new ApiFehler("anfrage", "/persons", 422, "Bitte prüfen.", undefined, [
+      { feld: "name", meldung: "Name fehlt." },
+      { feld: "club_name", meldung: "Bitte entweder club_id oder club_name angeben." },
+    ]);
+    expect(vereinFehlerAus(fehler, true, OHNE_RECHT)).toBe(
+      "Bitte entweder club_id oder club_name angeben.",
+    );
+  });
+
+  it("gibt für andere Fehler nichts zurück", () => {
     expect(
-      await vereinSichern("SG Probe 1920", {
-        vorhandene: vereine,
-        anlegen,
-        neuLaden: async () => [],
-      }),
-    ).toBe(neu);
-    expect(anlegen).toHaveBeenCalledWith("SG Probe 1920");
-  });
-
-  it("nimmt bei „gibt es schon“ den inzwischen angelegten Verein", async () => {
-    const konflikt = new ApiFehler("konflikt", "/clubs", 409, "Gibt es schon.");
-    const verein = await vereinSichern("SG Probe 1920", {
-      vorhandene: vereine,
-      anlegen: async () => {
-        throw konflikt;
-      },
-      neuLaden: async () => [...vereine, neu],
-    });
-    expect(verein).toBe(neu);
-  });
-
-  it("gibt andere Fehler weiter", async () => {
-    const fehler = new ApiFehler("server", "/clubs", 500);
-    await expect(
-      vereinSichern("SG Probe 1920", {
-        vorhandene: vereine,
-        anlegen: async () => {
-          throw fehler;
-        },
-        neuLaden: async () => [...vereine, neu],
-      }),
-    ).rejects.toBe(fehler);
+      vereinFehlerAus(new ApiFehler("server", "/persons", 500), true, OHNE_RECHT),
+    ).toBeUndefined();
+    expect(vereinFehlerAus(new Error("x"), true, OHNE_RECHT)).toBeUndefined();
   });
 });

@@ -217,6 +217,7 @@ export const VERWALTUNGSRECHTE = [
   "device.manage",
   "system.manage",
   "backup.manage",
+  "backup.restore",
 ] as const;
 
 export function taugtAlsStandardrolle(rolle: Pick<Rolle, "is_system" | "permissions">): boolean {

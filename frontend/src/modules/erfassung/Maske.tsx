@@ -1,10 +1,10 @@
 import { Select } from "@mantine/core";
-import { ChevronDown, ChevronUp, CircleAlert, Flag, TriangleAlert } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, CircleAlert, Flag, TriangleAlert, X } from "lucide-react";
 import type { CSSProperties, MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { PositionsAblauf } from "../../components/anschlag/PositionsAblauf";
 import type { Position } from "../../components/anschlag/typen";
-import { formatWert, formatZeit, serienAnzeige } from "./anzeige";
+import { abschnittsHinweise, feldBereich, formatWert, formatZeit, serienAnzeige } from "./anzeige";
 import type {
   AbschnittForm,
   AbschnittWertung,
@@ -13,7 +13,14 @@ import type {
   SerieForm,
   Wertung,
 } from "./api";
-import { wertText, type ZahlEingabe } from "./eingabe";
+import {
+  einheitenAus,
+  istJeZiel,
+  istKommaFeld,
+  stellenVon,
+  wertText,
+  type ZahlEingabe,
+} from "./eingabe";
 import s from "./erfassung.module.css";
 import {
   type Entwurf,
@@ -55,15 +62,19 @@ export function Maske(props: MaskeProps) {
   const mehrere = form.sections.length > 1;
   return (
     <div className={s.maske}>
-      {form.sections.map((abschnitt) => (
-        <Abschnitt
-          key={abschnitt.id}
-          {...props}
-          abschnitt={abschnitt}
-          wertungAbschnitt={wertung?.sections.find((w) => w.id === abschnitt.id)}
-          mitKopf={mehrere || abschnitt.fields.length > 0 || abschnitt.hints.length > 0}
-        />
-      ))}
+      {form.sections.map((abschnitt) => {
+        const hinweise = abschnittsHinweise(form, abschnitt.id);
+        return (
+          <Abschnitt
+            key={abschnitt.id}
+            {...props}
+            abschnitt={abschnitt}
+            hinweise={hinweise}
+            wertungAbschnitt={wertung?.sections.find((w) => w.id === abschnitt.id)}
+            mitKopf={mehrere || abschnitt.fields.length > 0 || hinweise.length > 0}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -89,13 +100,15 @@ function positionenAus(abschnitt: AbschnittForm): { positionen: Position[]; seri
 
 interface AbschnittProps extends MaskeProps {
   abschnitt: AbschnittForm;
+  /** Hinweise des Servers ohne die, die als Vorgabe schon im Kopf stehen */
+  hinweise: string[];
   wertungAbschnitt: AbschnittWertung | undefined;
   mitKopf: boolean;
 }
 
 function Abschnitt(props: AbschnittProps) {
   const { t } = useTranslation("erfassung");
-  const { abschnitt, wertungAbschnitt, mitKopf, aktivId, form } = props;
+  const { abschnitt, hinweise, wertungAbschnitt, mitKopf, aktivId, form } = props;
   const { positionen, serien } = positionenAus(abschnitt);
   const aktiveSerie = abschnitt.series.find((serie) =>
     aktivId?.startsWith(`${serienPfad(abschnitt.id, serie.index)}.`),
@@ -110,9 +123,7 @@ function Abschnitt(props: AbschnittProps) {
       {mitKopf && (
         <header className={s.abschnittKopf}>
           <h3 className="h-section">{abschnitt.name}</h3>
-          {abschnitt.hints.length > 0 && (
-            <p className={s.hinweise}>{abschnitt.hints.join(" · ")}</p>
-          )}
+          {hinweise.length > 0 && <p className={s.hinweise}>{hinweise.join(" · ")}</p>}
           {wertungAbschnitt && form.sections.length > 1 && (
             <p className={`${s.abschnittWert} num`}>
               {t("abschnitt.ergebnis", { wert: formatWert(wertungAbschnitt.result) })}
@@ -335,10 +346,8 @@ function Feldknopf({
   // Der Name beginnt mit dem sichtbaren Text (Feld, Wert, Einheit, Bereich), damit Sprachsteuerung
   // trifft; dazu „leer“ und ein Fehler am Feld.
   const einheit = aktiv && feld.kind === "time" && text !== "" ? ` ${t("einheit.sekunden")}` : "";
-  const bereich =
-    aktiv && feld.max != null && feld.kind === "integer"
-      ? `, ${t("feld.bereich", { min: feld.min ?? 0, max: feld.max })}`
-      : "";
+  const bereichText = aktiv ? feldBereich(feld, t) : null;
+  const bereich = bereichText ? `, ${bereichText}` : "";
   const freiwillig = !feld.required && aktiv ? ` · ${t("feld.freiwillig")}` : "";
   const wertName = !aktiv ? t("feld.entfaellt") : text || t("feld.leer");
   const fehlerName = feldFehler.map((m) => `, ${t("feld.fehler")}: ${m.meldung}`).join("");
@@ -370,11 +379,7 @@ function Feldknopf({
           <span className={s.einheit}>{t("einheit.sekunden")}</span>
         )}
       </span>
-      {aktiv && feld.max != null && feld.kind === "integer" && (
-        <span className={s.feldBereich}>
-          {t("feld.bereich", { min: feld.min ?? 0, max: feld.max })}
-        </span>
-      )}
+      {bereichText && <span className={s.feldBereich}>{bereichText}</span>}
     </button>
   );
 }
@@ -391,6 +396,7 @@ function Schussreihe({
   aktivFeld,
   entwurf,
   aktivId,
+  eingabe,
   schussPuffer,
   bearbeitbar,
   onFeld,
@@ -400,6 +406,18 @@ function Schussreihe({
   const schuesse = schuesseAus(serieAus(entwurf, abschnitt.id, serie.index));
   const anzahl = feld.count ?? 0;
   const spalten = Math.min(anzahl, 10);
+  const komma = istKommaFeld(feld);
+  const jeZiel = istJeZiel(feld);
+  const stellen = stellenVon(feld);
+  /** Ringe des Schusses zum Einfärben (Zehner, Fehlschuss); bei Zehnteln ab 10,0 ein Zehner. */
+  const ringeVon = (wert: unknown): number | null => {
+    if (wert === "X") return 10;
+    if (komma) {
+      const einheiten = einheitenAus(wert, stellen);
+      return einheiten === undefined ? null : Math.floor(einheiten / 10 ** stellen);
+    }
+    return typeof wert === "number" ? wert : null;
+  };
   return (
     <div className={s.schussFeld}>
       <span className={s.feldName}>
@@ -410,15 +428,22 @@ function Schussreihe({
         className={s.schuesse}
         style={{ "--spalten": spalten } as CSSProperties}
         data-viele={spalten > 5 || undefined}
-        aria-label={t("schuss.reihe", { serie: serie.label })}
+        aria-label={t(jeZiel ? "schuss.reihe_ziele" : "schuss.reihe", { serie: serie.label })}
       >
         {Array.from({ length: anzahl }, (_, index) => {
           const id = feldId(abschnitt.id, serie.index, feld.key, index);
           const wert = schuesse[index];
           const istAktiv = aktivFeld && aktivId === id;
           const text =
-            istAktiv && schussPuffer ? schussPuffer : wert !== undefined ? String(wert) : "";
-          const ringe = wert === "X" ? 10 : typeof wert === "number" ? wert : null;
+            istAktiv && komma && !eingabe.frisch
+              ? eingabe.text
+              : istAktiv && schussPuffer
+                ? schussPuffer
+                : wertText(feld, wert);
+          const ringe = ringeVon(wert);
+          // Treffer je Ziel: Zeichen statt 1/0, im Namen „Treffer“ oder „Fehler“.
+          const zielText =
+            jeZiel && text !== "" ? (ringe === 0 ? t("ziel.fehler") : t("ziel.treffer")) : null;
           return (
             <li key={id}>
               <button
@@ -427,14 +452,18 @@ function Schussreihe({
                 data-feld={id}
                 data-aktiv={istAktiv || undefined}
                 data-leer={text === "" || undefined}
-                data-zehn={ringe === 10 || undefined}
+                data-zehn={
+                  (!jeZiel && ringe !== null && (komma ? ringe >= 10 : ringe === 10)) || undefined
+                }
                 data-null={ringe === 0 || undefined}
+                data-treffer={(jeZiel && ringe !== null && ringe > 0) || undefined}
+                data-zehntel={komma || undefined}
                 data-fehler={meldungenFuer(fehler, id).length > 0 || undefined}
                 disabled={!aktivFeld || !bearbeitbar}
                 aria-pressed={istAktiv}
-                aria-label={t("schuss.beschriftung", {
+                aria-label={t(jeZiel ? "schuss.beschriftung_ziel" : "schuss.beschriftung", {
                   nr: index + 1,
-                  wert: text || t("feld.leer"),
+                  wert: zielText ?? (text || t("feld.leer")),
                 })}
                 onMouseDown={ohneFokus}
                 onClick={() =>
@@ -448,7 +477,15 @@ function Schussreihe({
                   })
                 }
               >
-                {text}
+                {zielText !== null && ringe !== null ? (
+                  ringe === 0 ? (
+                    <X aria-hidden className={s.zielZeichen} />
+                  ) : (
+                    <Check aria-hidden className={s.zielZeichen} />
+                  )
+                ) : (
+                  text
+                )}
               </button>
             </li>
           );

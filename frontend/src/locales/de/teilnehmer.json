@@ -67,7 +67,7 @@
     "nicht_gefunden_titel": "Diese Person gibt es nicht mehr",
     "nicht_gefunden_text": "Sie wurde gelöscht, vielleicht an einem anderen Gerät.",
     "fehler_speichern": "Speichern hat nicht geklappt.",
-    "fehler_verein": "Nicht gespeichert: Der neue Verein ließ sich nicht anlegen. Namen prüfen und noch einmal speichern."
+    "fehler_verein": "Nicht gespeichert: Beim Verein passt etwas nicht – siehe Hinweis am Feld Verein."
   },
   "dublette": {
     "titel": "Gibt es diese Person schon?",
@@ -98,7 +98,7 @@
     "aehnlich": "Ähnliche Vereine – meinst du einen davon?",
     "laedt": "Vereine werden geladen …",
     "vorgemerkt": "Neuer Verein – wird beim Speichern der Person angelegt.",
-    "fehler": "Der Verein konnte nicht angelegt werden."
+    "fehler_recht": "Du darfst keine neuen Vereine anlegen – wähle einen vorhandenen oder frag die Turnierleitung."
   },
   "vereine": {
     "titel": "Vereine",

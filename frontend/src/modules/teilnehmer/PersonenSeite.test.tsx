@@ -193,11 +193,10 @@ describe("Personen", () => {
   const posts = <A extends { methode: string; pfad: string }>(aufrufe: A[], pfad: string) =>
     aufrufe.filter((a) => a.methode === "POST" && a.pfad === pfad);
 
-  it("merkt einen neuen Verein nur vor und legt ihn erst beim Speichern der Person an", async () => {
+  it("merkt einen neuen Verein nur vor und schickt ihn als club_name mit der Person", async () => {
     const aufrufe = serverAttrappe({
       [LISTE]: { inhalt: [] },
       "GET /clubs": VEREINE,
-      "POST /clubs": { status: 201, inhalt: NEUER_VEREIN },
       "POST /persons": { status: 201, inhalt: DEMIR },
       [`GET /persons/${DEMIR.id}`]: { inhalt: DEMIR },
     });
@@ -210,26 +209,25 @@ describe("Personen", () => {
     ).toBeInTheDocument();
     const vorschau = screen.getByText("So erscheint die Person").closest("figure") as HTMLElement;
     expect(within(vorschau).getByText("SG Probe 1920")).toBeInTheDocument();
-    // Vormerken legt nichts an
-    expect(posts(aufrufe, "/clubs")).toHaveLength(0);
+    // Vormerken legt nichts an (die Dublettenprüfung schreibt nichts)
+    expect(aufrufe.filter((a) => a.methode === "POST" && a.pfad !== "/persons/check")).toHaveLength(
+      0,
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Person anlegen" }));
     expect(await screen.findByText("Person angelegt.")).toBeInTheDocument();
-    expect(posts(aufrufe, "/clubs").map((a) => a.inhalt)).toEqual([{ name: "SG Probe 1920" }]);
+    // Ein Schritt: kein eigener Aufruf für den Verein
+    expect(posts(aufrufe, "/clubs")).toHaveLength(0);
     const anlegen = posts(aufrufe, "/persons");
     expect(anlegen).toHaveLength(1);
-    expect(anlegen[0]?.inhalt).toMatchObject({ name: "Aylin Demir", club_id: NEUER_VEREIN.id });
-    // Reihenfolge: erst der Verein, dann die Person
-    expect(aufrufe.findIndex((a) => a.pfad === "/clubs" && a.methode === "POST")).toBeLessThan(
-      aufrufe.findIndex((a) => a.pfad === "/persons" && a.methode === "POST"),
-    );
+    expect(anlegen[0]?.inhalt).toMatchObject({ name: "Aylin Demir", club_name: "SG Probe 1920" });
+    expect(anlegen[0]?.inhalt).not.toHaveProperty("club_id");
   });
 
-  it("legt keinen Verein an, wenn die Person verworfen oder ein vorhandener Verein gewählt wird", async () => {
+  it("schickt einen vorhandenen Verein als club_id und verwirft ohne Aufruf", async () => {
     const aufrufe = serverAttrappe({
       [LISTE]: { inhalt: [] },
       "GET /clubs": VEREINE,
-      "POST /clubs": { status: 201, inhalt: NEUER_VEREIN },
       "POST /persons": ({ inhalt }) => ({
         status: 201,
         inhalt: { ...DEMIR, ...(inhalt as object) },
@@ -250,40 +248,65 @@ describe("Personen", () => {
     await userEvent.click(screen.getByRole("button", { name: "Schließen" }));
     const dialog = await screen.findByRole("dialog");
     await userEvent.click(within(dialog).getByRole("button", { name: /verwerfen/i }));
-    expect(posts(aufrufe, "/clubs")).toHaveLength(0);
-    expect(posts(aufrufe, "/persons")).toHaveLength(0);
+    expect(aufrufe.filter((a) => a.methode === "POST" && a.pfad !== "/persons/check")).toHaveLength(
+      0,
+    );
   });
 
-  it("speichert die Person nicht, wenn der Verein nicht angelegt werden kann", async () => {
+  it("meldet am Feld, wenn neue Vereine nicht angelegt werden dürfen (403)", async () => {
     const aufrufe = serverAttrappe({
       [LISTE]: { inhalt: [] },
       "GET /clubs": VEREINE,
-      "POST /clubs": { status: 422, inhalt: { detail: "Der Name ist zu lang." } },
-      "POST /persons": { status: 201, inhalt: DEMIR },
+      "POST /persons": {
+        status: 403,
+        inhalt: { detail: "Zum Anlegen eines neuen Vereins fehlt die Berechtigung." },
+      },
     });
     renderAnsicht(() => <Seite start={{ neu: true }} />);
 
     await neuenVereinVormerken();
     await userEvent.click(screen.getByRole("button", { name: "Person anlegen" }));
-    expect(await screen.findByText("Der Name ist zu lang.")).toBeInTheDocument();
     expect(
-      screen.getByText(/Nicht gespeichert: Der neue Verein ließ sich nicht anlegen/),
+      await screen.findByText(
+        "Du darfst keine neuen Vereine anlegen – wähle einen vorhandenen oder frag die Turnierleitung.",
+      ),
     ).toBeInTheDocument();
-    expect(posts(aufrufe, "/persons")).toHaveLength(0);
-    // Eingaben bleiben stehen
+    expect(
+      screen.getByText(/Nicht gespeichert: Beim Verein passt etwas nicht/),
+    ).toBeInTheDocument();
+    expect(posts(aufrufe, "/persons")).toHaveLength(1);
+    // Eingaben bleiben stehen, der Verein ist weiter nur vorgemerkt
     expect(vereinsFeld()).toHaveValue("SG Probe 1920");
+    expect(
+      screen.getByText("Neuer Verein – wird beim Speichern der Person angelegt."),
+    ).toBeInTheDocument();
   });
 
-  it("legt beim erneuten Speichern keinen zweiten Verein an, wenn die Person scheiterte", async () => {
+  it("zeigt einen Prüffehler zu club_name am Vereinsfeld (422)", async () => {
+    serverAttrappe({
+      [LISTE]: { inhalt: [] },
+      "GET /clubs": VEREINE,
+      "POST /persons": {
+        status: 422,
+        inhalt: {
+          detail: "Bitte die Eingaben prüfen.",
+          errors: [{ field: "club_name", message: "Der Vereinsname ist zu lang." }],
+        },
+      },
+    });
+    renderAnsicht(() => <Seite start={{ neu: true }} />);
+
+    await neuenVereinVormerken();
+    await userEvent.click(screen.getByRole("button", { name: "Person anlegen" }));
+    expect(await screen.findByText("Der Vereinsname ist zu lang.")).toBeInTheDocument();
+    expect(vereinsFeld()).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("schickt den neuen Verein auch beim zweiten Versuch nur als Namen mit", async () => {
     let versuch = 0;
-    let vereine = VEREINE.inhalt;
     const aufrufe = serverAttrappe({
       [LISTE]: { inhalt: [] },
-      "GET /clubs": () => ({ inhalt: vereine }),
-      "POST /clubs": () => {
-        vereine = [...vereine, NEUER_VEREIN];
-        return { status: 201, inhalt: NEUER_VEREIN };
-      },
+      "GET /clubs": VEREINE,
       "POST /persons": () => {
         versuch += 1;
         return versuch === 1
@@ -297,20 +320,17 @@ describe("Personen", () => {
     await neuenVereinVormerken();
     await userEvent.click(screen.getByRole("button", { name: "Person anlegen" }));
     expect(await screen.findByText("Der Server ist gerade nicht erreichbar.")).toBeInTheDocument();
-    // Der Verein ist jetzt angelegt und gewählt, nicht mehr nur vorgemerkt
-    await waitFor(() =>
-      expect(
-        screen.queryByText("Neuer Verein – wird beim Speichern der Person angelegt."),
-      ).toBeNull(),
-    );
-    expect(vereinsFeld()).toHaveValue("SG Probe 1920");
+    // Gescheitert heißt: kein Verein angelegt, weiter nur vorgemerkt
+    expect(
+      screen.getByText("Neuer Verein – wird beim Speichern der Person angelegt."),
+    ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Person anlegen" }));
     expect(await screen.findByText("Person angelegt.")).toBeInTheDocument();
-    expect(posts(aufrufe, "/clubs")).toHaveLength(1);
+    expect(posts(aufrufe, "/clubs")).toHaveLength(0);
     const anlegen = posts(aufrufe, "/persons");
     expect(anlegen).toHaveLength(2);
-    expect(anlegen[1]?.inhalt).toMatchObject({ club_id: NEUER_VEREIN.id });
+    expect(anlegen[1]?.inhalt).toMatchObject({ club_name: "SG Probe 1920" });
   });
 
   it("fragt nicht nach ungespeicherten Änderungen, während die neue Person gespeichert wird", async () => {

@@ -1,15 +1,25 @@
 import { describe, expect, it } from "vitest";
 import type { FeldBeschreibung } from "./api";
 import {
+  einheitenAus,
+  einheitenRoh,
+  einheitenText,
   FRISCH,
+  istJeZiel,
+  istKommaFeld,
+  kommaBereich,
+  kommaGrenzen,
   schussPufferAbschliessen,
   schussTaste,
+  summeEinheiten,
   type Taste,
   tasteAusTastatur,
+  wertText,
   type ZahlEingabe,
   zahlTaste,
   zeitAusText,
   zeitText,
+  zifferErlaubt,
 } from "./eingabe";
 
 const ZEIT: FeldBeschreibung = { key: "time_cs", label: "Zeit", kind: "time", required: true };
@@ -30,9 +40,9 @@ const SUMME: FeldBeschreibung = {
   max: 100,
 };
 
-function tippen(feld: FeldBeschreibung, tasten: string, aktuell?: number) {
+function tippen(feld: FeldBeschreibung, tasten: string, aktuell?: number | string) {
   let eingabe: ZahlEingabe = FRISCH;
-  let wert = aktuell;
+  let wert: number | string | undefined = aktuell;
   let weiter = false;
   for (const zeichen of tasten) {
     const taste: Taste =
@@ -103,9 +113,14 @@ describe("Zahlen", () => {
  * das aktive Feld genau so, wie `Terminal.tsx` es mit dem Ergebnis von `zahlTaste` tut.
  * Tasten: Ziffern, „,“ Komma, „>“ Weiter/Enter, „<“ Rück, „^“ zurück.
  */
-function folge(serien: number, tasten: string, start: (number | undefined)[] = []) {
-  const felder = Array.from({ length: serien }, () => [ZEIT, STEHEND]).flat();
-  const werte = felder.map((_, i) => start[i]);
+function folge(
+  serien: number,
+  tasten: string,
+  start: (number | string | undefined)[] = [],
+  jeSerieFelder: FeldBeschreibung[] = [ZEIT, STEHEND],
+) {
+  const felder = Array.from({ length: serien }, () => jeSerieFelder).flat();
+  const werte: (number | string | undefined)[] = felder.map((_, i) => start[i]);
   let index: number | null = 0;
   let eingabe: ZahlEingabe = FRISCH;
   const besucht: (number | null)[] = [0];
@@ -131,9 +146,12 @@ function folge(serien: number, tasten: string, start: (number | undefined)[] = [
     else if (ergebnis.zurueck) index = Math.max(0, index - 1);
     if (ergebnis.weiter || ergebnis.zurueck) besucht.push(index);
   }
-  /** Werte je Serie: [Zeit, stehend] */
-  const jeSerie = Array.from({ length: serien }, (_, i) => [werte[2 * i], werte[2 * i + 1]]);
-  return { jeSerie, index, besucht };
+  /** Werte je Serie: [Zeit, stehend] (bzw. die Felder aus `jeSerieFelder`) */
+  const breite = jeSerieFelder.length;
+  const jeSerie = Array.from({ length: serien }, (_, i) =>
+    werte.slice(breite * i, breite * i + breite),
+  );
+  return { jeSerie, werte, index, besucht };
 }
 
 describe("Feldfolge stehende Scheiben (Befund Probelauf 2)", () => {
@@ -286,5 +304,185 @@ describe("Schüsse auf der Tastatur", () => {
     expect(tasteAusTastatur(",")).toEqual({ art: "komma" });
     expect(tasteAusTastatur("x")).toEqual({ art: "zeichen", zeichen: "x" });
     expect(tasteAusTastatur("Shift")).toBeNull();
+  });
+});
+
+// --- Zehntelwertung (DSB) -------------------------------------------------------------------------
+
+/** Wie `GET …/form` es für Luftgewehr mit Zehntelwertung liefert (Einzelschuss). */
+const SCHUSS_ZEHNTEL: FeldBeschreibung = {
+  key: "shots",
+  label: "Schüsse",
+  kind: "shots",
+  required: true,
+  count: 10,
+  allowed_values: null,
+  decimals: 1,
+  step: "0.1",
+  value_min: "1.0",
+  value_max: "10.9",
+  zero_allowed: true,
+};
+/** Seriensumme bei Zehntelwertung (10 Schuss). */
+const SUMME_ZEHNTEL: FeldBeschreibung = {
+  key: "sum",
+  label: "Seriensumme",
+  kind: "decimal",
+  required: true,
+  decimals: 1,
+  step: "0.1",
+  value_min: "0.0",
+  value_max: "109.0",
+};
+/** Treffer je Ziel (Trap): ein Wert je Ziel, 1 oder 0. */
+const ZIELE: FeldBeschreibung = {
+  key: "shots",
+  label: "Treffer je Ziel",
+  kind: "shots",
+  required: true,
+  count: 25,
+  allowed_values: [1, 0],
+  per_target: true,
+};
+const BDS_SCHUSS: FeldBeschreibung = {
+  key: "shots",
+  label: "Schüsse",
+  kind: "shots",
+  required: true,
+  count: 5,
+  allowed_values: ["X", 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
+};
+
+describe("Zehntel: Kommazahlen lesen und schreiben", () => {
+  it("erkennt Kommafelder nur bei Nachkommastellen ohne feste Ringwerte", () => {
+    expect(istKommaFeld(SCHUSS_ZEHNTEL)).toBe(true);
+    expect(istKommaFeld(SUMME_ZEHNTEL)).toBe(true);
+    expect(istKommaFeld(BDS_SCHUSS)).toBe(false);
+    expect(istKommaFeld(SUMME)).toBe(false);
+    expect(istKommaFeld(ZIELE)).toBe(false);
+    expect(istJeZiel(ZIELE)).toBe(true);
+    expect(istJeZiel(BDS_SCHUSS)).toBe(false);
+  });
+
+  it("liest Komma, Punkt und Zahlen als ganze Zehntel", () => {
+    expect(einheitenAus("10,4", 1)).toBe(104);
+    expect(einheitenAus("10.4", 1)).toBe(104);
+    expect(einheitenAus("10.40", 1)).toBe(104);
+    expect(einheitenAus(10.4, 1)).toBe(104);
+    expect(einheitenAus("10", 1)).toBe(100);
+    expect(einheitenAus("0", 1)).toBe(0);
+    expect(einheitenAus("10.45", 1)).toBeUndefined();
+    expect(einheitenAus("-1", 1)).toBeUndefined();
+    expect(einheitenAus("zehn", 1)).toBeUndefined();
+    expect(einheitenAus(null, 1)).toBeUndefined();
+  });
+
+  it("schreibt für den Server Text mit Punkt, für die Anzeige mit Komma", () => {
+    expect(einheitenRoh(104, 1)).toBe("10.4");
+    expect(einheitenRoh(0, 1)).toBe("0.0");
+    expect(einheitenRoh(1090, 1)).toBe("109.0");
+    expect(einheitenText(104, 1)).toBe("10,4");
+    expect(einheitenText(10909, 1)).toBe("1.090,9");
+    expect(wertText(SCHUSS_ZEHNTEL, "9.8")).toBe("9,8");
+    expect(wertText(SCHUSS_ZEHNTEL, 10)).toBe("10,0");
+    expect(wertText(SUMME_ZEHNTEL, "104.3")).toBe("104,3");
+    // Ganze Ringe bleiben, wie sie sind.
+    expect(wertText(BDS_SCHUSS, "X")).toBe("X");
+    expect(wertText(BDS_SCHUSS, 9)).toBe("9");
+  });
+
+  it("summiert in ganzen Zehnteln ohne Gleitkommafehler", () => {
+    // 0,1 + 0,2 ergäbe als Gleitkommazahl 0,30000000000000004.
+    expect(summeEinheiten([0.1, 0.2], 1)).toBe(3);
+    expect(einheitenRoh(summeEinheiten([0.1, 0.2], 1), 1)).toBe("0.3");
+    const serie = ["10.4", "9.8", 10.1, "10,9", "0.0", "9.9", "10.0", "8.7", "10.3", "9.6"];
+    expect(summeEinheiten(serie, 1)).toBe(897);
+    expect(einheitenText(summeEinheiten(serie, 1), 1)).toBe("89,7");
+    // Zehnmal 10,9 ist genau die Höchstsumme 109,0.
+    expect(einheitenRoh(summeEinheiten(Array(10).fill("10.9"), 1), 1)).toBe("109.0");
+  });
+
+  it("nennt die Grenzen aus der Formularbeschreibung", () => {
+    expect(kommaGrenzen(SCHUSS_ZEHNTEL)).toEqual({ stellen: 1, min: 10, max: 109, null: true });
+    expect(kommaBereich(SCHUSS_ZEHNTEL)).toEqual({ min: "1,0", max: "10,9", null: true });
+    expect(kommaBereich(SUMME_ZEHNTEL)).toEqual({ min: "0,0", max: "109,0", null: false });
+  });
+});
+
+describe("Zehntel: Eingabe am Feld", () => {
+  it("„10,4“ mit Komma oder Punkt ergibt „10.4“ und schaltet weiter", () => {
+    expect(tippen(SCHUSS_ZEHNTEL, "10,4")).toMatchObject({ wert: "10.4", weiter: true });
+    // Punkt und Komma des Ziffernblocks kommen als Taste „komma“ an.
+    expect(tasteAusTastatur(".")).toEqual({ art: "komma" });
+    expect(tasteAusTastatur("Decimal")).toEqual({ art: "komma" });
+  });
+
+  it("springt nicht nach der ersten Ziffer, solange ein Komma folgen kann", () => {
+    expect(tippen(SCHUSS_ZEHNTEL, "1")).toMatchObject({ wert: "1.0", weiter: false });
+    expect(tippen(SCHUSS_ZEHNTEL, "9")).toMatchObject({ wert: "9.0", weiter: false });
+    expect(tippen(SCHUSS_ZEHNTEL, "10")).toMatchObject({ wert: "10.0", weiter: false });
+    expect(tippen(SCHUSS_ZEHNTEL, "9,")).toMatchObject({ wert: "9.0", weiter: false });
+  });
+
+  it("setzt das Komma selbst, wenn die Ziffer nur dahinter passt", () => {
+    expect(tippen(SCHUSS_ZEHNTEL, "98")).toMatchObject({ wert: "9.8", weiter: true });
+    expect(tippen(SCHUSS_ZEHNTEL, "104")).toMatchObject({ wert: "10.4", weiter: true });
+    expect(tippen(SCHUSS_ZEHNTEL, "100")).toMatchObject({ wert: "10.0", weiter: true });
+  });
+
+  it("„0“ ist ein Fehlschuss und schaltet sofort weiter", () => {
+    expect(tippen(SCHUSS_ZEHNTEL, "0")).toMatchObject({ wert: "0.0", weiter: true });
+  });
+
+  it("lehnt Werte zwischen 0 und 1,0 mit Hinweis ab", () => {
+    const komma = zahlTaste(SCHUSS_ZEHNTEL, FRISCH, undefined, { art: "komma" });
+    const fuenf = zahlTaste(SCHUSS_ZEHNTEL, komma.eingabe, undefined, {
+      art: "ziffer",
+      ziffer: "5",
+    });
+    expect(fuenf).toMatchObject({ abgelehnt: true, grund: "zu_klein" });
+  });
+
+  it("lehnt Werte über dem Höchstwert mit Hinweis ab (Seriensumme)", () => {
+    // 109 ist die Höchstsumme: fertig, weiter.
+    expect(tippen(SUMME_ZEHNTEL, "109")).toMatchObject({ wert: "109.0", weiter: true });
+    const zuViel = zahlTaste(SUMME_ZEHNTEL, { text: "109,", frisch: false }, "109.0", {
+      art: "ziffer",
+      ziffer: "5",
+    });
+    expect(zuViel).toMatchObject({ abgelehnt: true, grund: "zu_gross" });
+    expect(tippen(SUMME_ZEHNTEL, "104,3")).toMatchObject({ wert: "104.3", weiter: true });
+    // Bei der Summe kann „0“ noch „0,5“ werden: kein selbsttätiges Weiter.
+    expect(tippen(SUMME_ZEHNTEL, "0")).toMatchObject({ wert: "0.0", weiter: false });
+  });
+
+  it("Ziffernfeld sperrt nur, was nicht passt", () => {
+    const zehnKomma = tippen(SCHUSS_ZEHNTEL, "10,").eingabe;
+    expect(zifferErlaubt(SCHUSS_ZEHNTEL, zehnKomma, "9")).toBe(true);
+    const nullKomma = tippen(SCHUSS_ZEHNTEL, ",").eingabe;
+    expect(zifferErlaubt(SCHUSS_ZEHNTEL, nullKomma, "0")).toBe(true);
+    expect(zifferErlaubt(SCHUSS_ZEHNTEL, nullKomma, "5")).toBe(false);
+  });
+
+  it("Rück bearbeitet den gespeicherten Wert", () => {
+    expect(tippen(SCHUSS_ZEHNTEL, "<", "10.4")).toMatchObject({ wert: "10.0" });
+    expect(tippen(SCHUSS_ZEHNTEL, "<<<<", "10.4").wert).toBeUndefined();
+  });
+
+  it("eine Serie Zehntel in einem Zug: jede Zahl schaltet selbst weiter", () => {
+    const felder = Array.from({ length: 5 }, () => SCHUSS_ZEHNTEL);
+    const { werte, index } = folge(1, "10,498010>9,9", [], felder);
+    expect(werte).toEqual(["10.4", "9.8", "0.0", "10.0", "9.9"]);
+    // Nach dem letzten Schuss ist kein Feld mehr aktiv.
+    expect(index).toBeNull();
+  });
+});
+
+describe("Treffer je Ziel", () => {
+  it("1 und 0 gehen ohne Warten", () => {
+    const erlaubt = ZIELE.allowed_values ?? [];
+    expect(schussTaste(erlaubt, "", "1")).toEqual({ puffer: "", werte: [1] });
+    expect(schussTaste(erlaubt, "", "0")).toEqual({ puffer: "", werte: [0] });
+    expect(schussTaste(erlaubt, "", "5")).toEqual({ puffer: "", werte: [] });
   });
 });

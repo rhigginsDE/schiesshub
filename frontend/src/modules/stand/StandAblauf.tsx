@@ -1,4 +1,4 @@
-import { Button, Skeleton } from "@mantine/core";
+import { Button, Skeleton, Textarea } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, CalendarClock, PlayCircle } from "lucide-react";
@@ -11,6 +11,7 @@ import { zeigeMeldung } from "../../components/Meldungen";
 import { Fehlerzustand } from "../../components/Zustand";
 import { formatUhrzeit } from "../../lib/format";
 import {
+  ABBRUCH_BEMERKUNG_MAX,
   type Abbruchgrund,
   type Durchgang,
   type DurchgangVorhalt,
@@ -91,6 +92,7 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
 
   const [freigabe, setFreigabe] = useState<{ start: StationStart; bahn: number } | null>(null);
   const [abbruch, setAbbruch] = useState<{ start: StationStart; grund: Abbruchgrund } | null>(null);
+  const [bemerkung, setBemerkung] = useState("");
   const [loeschen, setLoeschen] = useState<Durchgang | null>(null);
   const [serieOffen, setSerieOffen] = useState(false);
   const [aendern, setAendern] = useState<Durchgang | null>(null);
@@ -398,16 +400,18 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
         fehler={abbrechen.isError ? fehlerText(abbrechen.error) : undefined}
         onSchliessen={() => {
           setAbbruch(null);
+          setBemerkung("");
           abbrechen.reset();
         }}
         onBestaetigen={() => {
           if (!abbruch) return;
           const { start, grund } = abbruch;
           abbrechen.mutate(
-            { startId: start.start_id, grund },
+            { startId: start.start_id, grund, bemerkung },
             {
               onSuccess: () => {
                 setAbbruch(null);
+                setBemerkung("");
                 zeigeMeldung({
                   ton: "erfolg",
                   titel: t("abbruch.gemacht", {
@@ -419,7 +423,20 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
             },
           );
         }}
-      />
+      >
+        <Textarea
+          label={t("abbruch.bemerkung")}
+          description={t("abbruch.bemerkung_hilfe", {
+            anzahl: bemerkung.length,
+            max: ABBRUCH_BEMERKUNG_MAX,
+          })}
+          value={bemerkung}
+          onChange={(ereignis) => setBemerkung(ereignis.currentTarget.value)}
+          maxLength={ABBRUCH_BEMERKUNG_MAX}
+          rows={2}
+          disabled={abbrechen.isPending}
+        />
+      </Bestaetigung>
 
       <Bestaetigung
         offen={freigabe !== null}

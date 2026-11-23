@@ -315,7 +315,8 @@ export function feldText(
       ? (feld.options?.find((o) => o.key === NORMAL)?.label ?? t("feld.leer_wert"))
       : t("feld.leer_wert");
   }
-  if (Array.isArray(wert)) return wert.map(String).join(" ");
+  // Schüsse als Reihe; Zehntel mit Komma („10,4 9,8“).
+  if (Array.isArray(wert)) return wert.map((einzeln) => wertText(feld, einzeln)).join(" ");
   if (feld.kind === "choice")
     return feld.options?.find((o) => o.key === wert)?.label ?? String(wert);
   const text = wertText(feld, wert);

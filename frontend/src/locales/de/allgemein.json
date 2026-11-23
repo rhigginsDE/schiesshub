@@ -54,6 +54,10 @@
       "titel": "Unlesbare Antwort",
       "text": "Der Server hat geantwortet, aber nicht im erwarteten Format. Oberfläche und Server haben vermutlich unterschiedliche Versionen."
     },
+    "wartung": {
+      "titel": "Die Daten werden gerade wiederhergestellt",
+      "text": "Das dauert ein paar Minuten. Du musst nichts tun: Sobald es fertig ist, lädt die Seite von selbst neu."
+    },
     "unbekannt": {
       "titel": "Etwas ist schiefgegangen",
       "text": "Ein unerwarteter Fehler ist aufgetreten. Bitte die Seite neu laden."

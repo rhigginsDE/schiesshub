@@ -48,6 +48,7 @@ import {
   naechsteAufgabe,
 } from "./sicherungEinrichtung";
 import s from "./system.module.css";
+import { WiederherstellenEinstieg } from "./Wiederherstellen";
 
 const PASSWORT_MIN = 12;
 const PASSWORT_FELD = "sicherung-passwort-neu";
@@ -70,6 +71,7 @@ export function SicherungBereich() {
           <PasswortPanel gesetzt={status.data.passphrase_set} />
         </>
       )}
+      <WiederherstellenEinstieg />
       <EinstellungenPanel />
       <LaeufePanel />
     </>
@@ -83,6 +85,8 @@ function StatusPanel({ status }: { status: SicherungsStatus }) {
   const queryClient = useQueryClient();
   const fehlerText = useFehlerText();
   const darfVerwalten = useDarf("backup.manage");
+  // „Jetzt sichern“ und „Stick erneut prüfen“: `backup.run` (Turnierleitung) oder `backup.manage`.
+  const darfSichern = useDarf(["backup.run", "backup.manage"]);
   const einstellungen = useQuery(sicherungsEinstellungenAbfrage());
   const laeufe = useQuery(sicherungsLaeufeAbfrage());
   const [stickFrage, setStickFrage] = useState(false);
@@ -131,7 +135,11 @@ function StatusPanel({ status }: { status: SicherungsStatus }) {
   // Dieselbe Meldung steht schon im Banner unter der Kopfzeile: hier nicht noch einmal.
   const bannerZeigtWarnung = useSicherungsLage(false).warnung !== null;
   const aufgaben = einrichtungsAufgaben(status, einstellungen.data, laeufe.data);
-  const haupt = hauptaktion(status, einstellungen.data, aufgaben);
+  // Einrichten (Stick, Passwort) bleibt bei `backup.manage`; wer nur sichern darf, sichert.
+  const erlaubt = (aktion: Hauptaktion) =>
+    aktion === "sichern" || aktion === "stick_pruefen" ? darfSichern : darfVerwalten;
+  const vorschlag = hauptaktion(status, einstellungen.data, aufgaben);
+  const haupt: Hauptaktion | null = erlaubt(vorschlag) ? vorschlag : darfSichern ? "sichern" : null;
 
   const zumPasswort = () => {
     const feld = document.getElementById(PASSWORT_FELD);
@@ -173,7 +181,8 @@ function StatusPanel({ status }: { status: SicherungsStatus }) {
   };
   // Weitere Aktionen: „Neuen Stick einrichten“ nur, solange kein Stick erkannt ist.
   const weitere = (["sichern", "stick_pruefen", "stick_einrichten"] as const).filter(
-    (aktion) => aktion !== haupt && (aktion !== "stick_einrichten" || !usb.present),
+    (aktion) =>
+      aktion !== haupt && erlaubt(aktion) && (aktion !== "stick_einrichten" || !usb.present),
   );
   const knopf = (aktion: Hauptaktion, gruen: boolean) => {
     const k = knoepfe[aktion];
@@ -292,14 +301,17 @@ function StatusPanel({ status }: { status: SicherungsStatus }) {
         <p className={s.laufFehler}>{kopie.error}</p>
       )}
 
-      {darfVerwalten ? (
+      {haupt ? (
         <>
           <div className={s.aktionen}>
             {knopf(haupt, true)}
             {weitere.map((aktion) => knopf(aktion, false))}
           </div>
-          {!usb.present && haupt !== "stick_einrichten" && (
+          {darfVerwalten && !usb.present && haupt !== "stick_einrichten" && (
             <p className={s.hinweis}>{t("sicherung.stick_neu_hinweis")}</p>
+          )}
+          {vorschlag !== haupt && (
+            <p className={s.hinweis}>{t("sicherung.einrichten_nur_admin")}</p>
           )}
         </>
       ) : (

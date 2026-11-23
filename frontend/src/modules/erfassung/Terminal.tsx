@@ -30,7 +30,7 @@ import { zeigeMeldung } from "../../components/Meldungen";
 import { Fehlerzustand } from "../../components/Zustand";
 import { formatUhrzeit } from "../../lib/format";
 import type { StationStart } from "../anmeldung/api";
-import { formatWert, formatZeit, fortschrittText, restText } from "./anzeige";
+import { formatWert, formatZeit, fortschrittText, restText, vorgaben } from "./anzeige";
 import {
   type Abbruchgrund,
   type AbschnittForm,
@@ -58,6 +58,8 @@ import {
 import {
   type Ablehnung,
   FRISCH,
+  istJeZiel,
+  istKommaFeld,
   schussPufferAbschliessen,
   schussTaste,
   type Taste,
@@ -417,7 +419,8 @@ function Flaeche({
       if (!aktiv) return;
       const schussPuffer = pufferRef.current;
       const eingabe = eingabeRef.current;
-      if (aktiv.feld.kind === "shots") {
+      // Schüsse mit festen Ringwerten (ganze Ringe, Treffer je Ziel); Zehntel gehen wie Zahlen.
+      if (aktiv.feld.kind === "shots" && !istKommaFeld(aktiv.feld)) {
         const erlaubt = aktiv.feld.allowed_values ?? [];
         if (schussTimer.current) clearTimeout(schussTimer.current);
         if (eingang.art === "ziffer" || eingang.art === "zeichen") {
@@ -456,14 +459,18 @@ function Flaeche({
       }
       if (eingang.art === "zeichen") return;
       const e = sitzung.lesen().entwurf;
-      const aktuell = wertAus(e, aktiv);
+      // Zehntel-Schüsse stehen in einer Liste ohne Lücken: Ein Tipp hinter die erste Lücke
+      // schreibt in die Lücke.
+      const ziel = aktiv.schuss !== undefined ? erreichbar(e, aktiv) : aktiv;
+      if (ziel.id !== aktiv.id) setAktivId(ziel.id);
+      const aktuell = wertAus(e, ziel);
       // Selbsttätig weiter nur in ein leeres Feld: ein vorhandener Wert wird nie überschrieben,
       // ohne dass jemand das Feld ausdrücklich ansteuert.
-      const folgend = naechstes(refs, aktiv.id);
+      const folgend = naechstes(refs, ziel.id);
       const ergebnis = zahlTaste(
-        aktiv.feld,
+        ziel.feld,
         eingabe,
-        typeof aktuell === "number" ? aktuell : undefined,
+        aktuell,
         eingang,
         folgend !== null && hatWert(e, folgend),
       );
@@ -474,14 +481,33 @@ function Flaeche({
       setHinweis(ergebnis.grund ?? null);
       let neu = e;
       if (ergebnis.geaendert) {
-        neu = setzeWert(e, aktiv, ergebnis.wert);
-        sitzung.aendern(neu);
+        // Ein Schuss mitten in der Reihe wird beim Leeren nicht entfernt (sonst fielen die
+        // folgenden mit weg); er behält seinen Wert, bis ein neuer gültiger Wert dasteht.
+        const anzahl =
+          ziel.schuss !== undefined && ziel.serie !== null
+            ? schuesseAus(serieAus(e, ziel.abschnitt, ziel.serie)).length
+            : 0;
+        const mitten = ziel.schuss !== undefined && ziel.schuss < anzahl - 1;
+        if (ergebnis.wert !== undefined || !mitten) {
+          neu = setzeWert(e, ziel, ergebnis.wert);
+          sitzung.aendern(neu);
+        }
       }
-      if (ergebnis.weiter) weiterVon(aktiv.id, neu, ergebnis.eingabe);
-      else if (ergebnis.zurueck) gehe(voriges(refs, aktiv.id));
+      if (ergebnis.weiter) weiterVon(ziel.id, neu, ergebnis.eingabe);
+      else if (ergebnis.zurueck) gehe(voriges(refs, ziel.id));
       else setEingabe(ergebnis.eingabe);
     },
-    [liste, sitzung, gehe, weiterVon, schussEintragen, schussLoeschen, setEingabe, setSchussPuffer],
+    [
+      liste,
+      sitzung,
+      gehe,
+      weiterVon,
+      schussEintragen,
+      schussLoeschen,
+      setAktivId,
+      setEingabe,
+      setSchussPuffer,
+    ],
   );
 
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -1158,7 +1184,9 @@ function feldTitel(
   const serie = ref.serie !== null ? abschnitt?.series.find((x) => x.index === ref.serie) : null;
   const ort = serie?.label ?? abschnitt?.name ?? "";
   const was =
-    ref.schuss !== undefined ? t("tasten.schuss", { nr: ref.schuss + 1 }) : ref.feld.label;
+    ref.schuss !== undefined
+      ? t(istJeZiel(ref.feld) ? "tasten.ziel" : "tasten.schuss", { nr: ref.schuss + 1 })
+      : ref.feld.label;
   return `${ort} · ${was}`;
 }
 
@@ -1173,6 +1201,7 @@ function Kopf({
 }) {
   const { t } = useTranslation("erfassung");
   const kopf = maske.header;
+  const vorgabenListe = vorgaben(maske.form);
   const zeile = [
     kopf.club,
     kopf.lane != null ? t("kopf.bahn", { bahn: kopf.lane }) : t("kopf.ohne_bahn"),
@@ -1216,9 +1245,16 @@ function Kopf({
           <span className="gedaempft">
             {maske.form.variant_name !== "Standard" ? `${maske.form.variant_name} · ` : ""}
             {maske.form.max_rings != null
-              ? t("kopf.max_ringe", { max: maske.form.max_rings })
+              ? t("kopf.max_ringe", { max: formatWert(maske.form.max_rings) })
               : t(`kopf.richtung.${maske.form.direction}`)}
           </span>
+          {vorgabenListe.length > 0 && (
+            <ul className={s.vorgaben} aria-label={t("vorgaben.titel")}>
+              {vorgabenListe.map((vorgabe) => (
+                <li key={vorgabe.art}>{t(`vorgaben.${vorgabe.art}`, { wert: vorgabe.wert })}</li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
       {basis.needs_review && (

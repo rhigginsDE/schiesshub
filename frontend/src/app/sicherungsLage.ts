@@ -94,6 +94,8 @@ export function useSicherungsLage(istAnzeige: boolean) {
   const queryClient = useQueryClient();
   const darfLesen = useDarf("backup.read");
   const darfVerwalten = useDarf("backup.manage");
+  // „Stick erneut prüfen“ erlaubt der Server mit `backup.run` (Turnierleitung) oder `backup.manage`.
+  const darfPruefen = useDarf(["backup.run", "backup.manage"]);
   const status = useQuery({ ...sicherungsStatusAbfrage({ still: true }), enabled: darfLesen });
   const warnLage = useQuery(sicherungsWarnungAbfrage());
   const [stumm, setStumm] = useLocalStorage<Stummschaltung | null>({
@@ -112,10 +114,10 @@ export function useSicherungsLage(istAnzeige: boolean) {
     return () => clearTimeout(timer);
   }, [stumm]);
 
-  // Ohne `backup.manage` kann die Station nur nachfragen, ob der Server den Stick inzwischen sieht.
+  // Ohne Recht kann die Station nur nachfragen, ob der Server den Stick inzwischen sieht.
   const pruefen = useMutation({
     mutationFn: async (): Promise<SicherungsStatus | undefined> => {
-      if (!darfVerwalten) {
+      if (!darfPruefen) {
         await warnLage.refetch();
         return undefined;
       }

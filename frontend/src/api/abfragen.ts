@@ -1,5 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
-import { apiGet } from "./client";
+import { ApiFehler, apiGet } from "./client";
 import type { Disziplin, DisziplinDetail, Gruppe, Health, Klasse, Verband } from "./typen";
 import type {
   AuditSeite,
@@ -59,7 +59,16 @@ export const healthAbfrage = () =>
   queryOptions({
     queryKey: schluessel.health,
     // 503 heißt hier: Server läuft, aber die Datenbank fehlt. Der Inhalt sagt, was los ist.
-    queryFn: ({ signal }) => apiGet<Health>("/health", { signal, auchBeiStatus: [503] }),
+    // Ausnahme: 503 mit `code: maintenance` beim Umschalten nach einer Wiederherstellung.
+    queryFn: async ({ signal }) => {
+      const antwort = await apiGet<Health>("/health", { signal, auchBeiStatus: [503] });
+      const { code, detail } = antwort as { code?: unknown; detail?: unknown };
+      if (code === "maintenance") {
+        const text = typeof detail === "string" ? detail : undefined;
+        throw new ApiFehler("netzwerk", "/health", 503, text, undefined, [], antwort, code);
+      }
+      return antwort;
+    },
     refetchInterval: HEALTH_INTERVALL_MS,
     retry: false,
     staleTime: 0,

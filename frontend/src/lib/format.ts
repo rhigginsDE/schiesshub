@@ -47,6 +47,22 @@ export function formatDezimal(
   return formatZahl(wert, { nachkommastellen }, sprache);
 }
 
+/**
+ * Dezimalzahl, wie der Server sie als Text schickt („20.1“, „218.0“, „187“), mit genau so vielen
+ * Nachkommastellen: „20,1“, „218,0“, „187“ (de). Gerechnet wird nichts; die Zahl wird nur anders
+ * geschrieben. Zahlen (ganze Ringe) bleiben ohne Nachkommastellen. Leer oder unlesbar: `null`.
+ */
+export function formatDezimalText(
+  wert: string | number | null | undefined,
+  sprache: string = aktiveSprache(),
+): string | null {
+  if (wert === null || wert === undefined) return null;
+  const text = String(wert).trim();
+  if (!/^-?\d+(\.\d+)?$/.test(text)) return null;
+  const stellen = text.includes(".") ? (text.split(".")[1]?.length ?? 0) : 0;
+  return formatDezimal(Number(text), stellen, sprache);
+}
+
 /** Zeiten kommen vom Server in Hundertstelsekunden: `1234` → „12,34“ (de). */
 export function formatHundertstel(hundertstel: number, sprache: string = aktiveSprache()): string {
   return formatDezimal(hundertstel / 100, 2, sprache);

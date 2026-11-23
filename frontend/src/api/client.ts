@@ -102,9 +102,28 @@ export function beiApiFehler(rueckruf: FehlerBeobachter): () => void {
   return () => beobachter.delete(rueckruf);
 }
 
+/** 503 mit `code: maintenance`: Der Server stellt gerade eine Sicherung wieder her. */
+export function istWartungsFehler(fehler: unknown): fehler is ApiFehler {
+  return fehler instanceof ApiFehler && fehler.status === 503 && fehler.code === "maintenance";
+}
+
+const wartungsBeobachter = new Set<() => void>();
+
+/**
+ * Meldet jede Antwort „Wartung“ (503, `code: maintenance`) an die App-Shell, damit sie auf allen
+ * Geräten einen ruhigen Hinweis zeigt statt einzelner Fehler. Gibt eine Funktion zum Abmelden zurück.
+ */
+export function beiWartung(rueckruf: () => void): () => void {
+  wartungsBeobachter.add(rueckruf);
+  return () => wartungsBeobachter.delete(rueckruf);
+}
+
 function melden(fehler: ApiFehler, optionen: AnfrageOptionen): ApiFehler {
   if (!optionen.still && (fehler.art === "nicht_angemeldet" || fehler.art === "verboten")) {
     for (const rueckruf of beobachter) rueckruf(fehler);
+  }
+  if (istWartungsFehler(fehler)) {
+    for (const rueckruf of wartungsBeobachter) rueckruf();
   }
   return fehler;
 }

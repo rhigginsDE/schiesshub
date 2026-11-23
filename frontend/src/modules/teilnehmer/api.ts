@@ -116,18 +116,29 @@ export type AnlegenErgebnis =
   | { art: "angelegt"; person: Person }
   | { art: "dublette"; dublette: Dublette };
 
+/**
+ * Mit einem neuen Verein (`club_name`) meldet das Formular 403 selbst am Vereinsfeld; die App-Shell
+ * soll dann nicht zusätzlich „Berechtigung fehlt“ zeigen.
+ */
+function stillBeiNeuemVerein(daten: { club_name?: string | null }): boolean {
+  return daten.club_name != null;
+}
+
 /** `POST /persons`. 409 mit Kandidaten ist kein Fehler, sondern ein Hinweis auf eine Dublette. */
 export async function personAnlegen(daten: PersonNeu, trotzdem = false): Promise<AnlegenErgebnis> {
   const antwort = await apiSenden<Person | Dublette>("POST", "/persons", daten, {
     parameter: { force: trotzdem ? true : undefined },
     auchBeiStatus: [409],
+    still: stillBeiNeuemVerein(daten),
   });
   if ("candidates" in antwort) return { art: "dublette", dublette: antwort };
   return { art: "angelegt", person: antwort };
 }
 
 export function personAendern(id: string, daten: PersonAenderung): Promise<Person> {
-  return apiSenden<Person>("PATCH", `/persons/${encodeURIComponent(id)}`, daten);
+  return apiSenden<Person>("PATCH", `/persons/${encodeURIComponent(id)}`, daten, {
+    still: stillBeiNeuemVerein(daten),
+  });
 }
 
 export function personLoeschen(id: string): Promise<void> {

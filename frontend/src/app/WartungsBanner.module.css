@@ -1,0 +1,37 @@
+/* Hinweis während einer Wiederherstellung: Info-Ton, kein Alarm. */
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--sh-info);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-info-flaeche);
+}
+
+.symbol {
+  flex: none;
+  margin-top: 2px;
+}
+
+.text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  font-size: 15px;
+  color: var(--sh-text-weich);
+  overflow-wrap: anywhere;
+}
+
+.titel {
+  font-size: var(--sh-fz-text);
+  color: var(--sh-text);
+}
+
+@media (max-width: 640px) {
+  .banner {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+}

@@ -1,8 +1,9 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RechteProvider } from "../../app/berechtigungen";
 import { Meldungen, meldungenLeeren } from "../../components/Meldungen";
+import { abbruchInhalt } from "../anmeldung/api";
 import {
   type Aufruf,
   renderAnsicht,
@@ -145,6 +146,26 @@ afterEach(() => {
 });
 
 // Menüs und Dialoge brauchen unter Last (alle Tests parallel) länger als die üblichen 5 s.
+/**
+ * Öffnet das Abbrechen-Menü der Bahn 1 und gibt den Menüpunkt zurück. Zeichnet die Liste nach
+ * einem Nachladen neu, geht der erste Klick ins Leere; dann wird noch einmal geklickt.
+ */
+async function abbruchPunkt(benutzer: ReturnType<typeof userEvent.setup>, name: string) {
+  await screen.findByRole("listitem", { name: "Bahn 1" });
+  return waitFor(
+    async () => {
+      const punkt = screen.queryByRole("menuitem", { name });
+      if (punkt) return punkt;
+      const bahn1 = screen.getByRole("listitem", { name: "Bahn 1" });
+      const knopf = within(bahn1).getByRole("button", { name: /Abbrechen/ });
+      // Nur klicken, solange das Menü zu ist; ein zweiter Klick würde es wieder schließen.
+      if (knopf.getAttribute("aria-expanded") !== "true") await benutzer.click(knopf);
+      return screen.getByRole("menuitem", { name });
+    },
+    { timeout: 10_000, interval: 250 },
+  );
+}
+
 describe("Stand", { timeout: 15000 }, () => {
   it("zeigt die Bahnen und ruft mit dem einen Hauptknopf die Nächsten auf", async () => {
     const aufrufe = routen(["queue"], {
@@ -295,11 +316,8 @@ describe("Stand", { timeout: 15000 }, () => {
     const benutzer = userEvent.setup();
     renderAnsicht(() => <StandSeite suche={{}} onSuche={() => {}} />);
 
-    const bahn1 = await screen.findByRole("listitem", { name: "Bahn 1" });
-    await benutzer.click(within(bahn1).getByRole("button", { name: /Abbrechen/ }));
-    // Unter Last braucht das Menü länger als die übliche Sekunde.
-    const geduld = { timeout: 5000 };
-    await benutzer.click(await screen.findByRole("menuitem", { name: "Aufgegeben" }, geduld));
+    const geduld = { timeout: 10_000 };
+    await benutzer.click(await abbruchPunkt(benutzer, "Aufgegeben"));
 
     const dialog = await screen.findByRole("dialog", {}, geduld);
     expect(within(dialog).getByText("Startnummer 8: Aufgegeben?")).toBeInTheDocument();
@@ -308,6 +326,38 @@ describe("Stand", { timeout: 15000 }, () => {
     await benutzer.click(within(dialog).getByRole("button", { name: "Start abbrechen" }));
     const abbruch = aufrufe.find((a) => a.pfad.endsWith("/abort"));
     expect(abbruch?.inhalt).toEqual({ abort_reason: "dnf" });
+  }, 15_000);
+
+  it("schickt eine freiwillige Bemerkung zum Abbruch mit", async () => {
+    const aufrufe = routen(["queue"], {
+      [`POST /tournaments/${T}/starts/s-2/abort`]: {
+        inhalt: { ...aufgerufen, status: "aborted" },
+      },
+    });
+    const benutzer = userEvent.setup();
+    renderAnsicht(() => <StandSeite suche={{}} onSuche={() => {}} />);
+
+    const geduld = { timeout: 10_000 };
+    await benutzer.click(await abbruchPunkt(benutzer, "Aufgegeben"));
+
+    const dialog = await screen.findByRole("dialog", {}, geduld);
+    const feld = within(dialog).getByRole("textbox", { name: "Bemerkung (freiwillig)" });
+    expect(feld).toHaveAttribute("maxlength", "500");
+    await benutzer.type(feld, "  Waffenstörung, nicht behebbar  ");
+    expect(within(dialog).getByText(/33 von 500 Zeichen/)).toBeInTheDocument();
+
+    await benutzer.click(within(dialog).getByRole("button", { name: "Start abbrechen" }));
+    await waitFor(() => expect(aufrufe.some((a) => a.pfad.endsWith("/abort"))).toBe(true));
+    const abbruch = aufrufe.find((a) => a.pfad.endsWith("/abort"));
+    expect(abbruch?.inhalt).toEqual({
+      abort_reason: "dnf",
+      note: "Waffenstörung, nicht behebbar",
+    });
+  }, 15_000);
+
+  it("schickt nur Leerzeichen nicht als Bemerkung", () => {
+    expect(abbruchInhalt("dns", "   ")).toEqual({ abort_reason: "dns" });
+    expect(abbruchInhalt("dsq", "x".repeat(600)).note).toHaveLength(500);
   });
 
   it("zeigt intern den vollen Namen, den der Server mit names=full liefert", async () => {

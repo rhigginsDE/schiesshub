@@ -3,6 +3,7 @@ import {
   formatDatum,
   formatDauer,
   formatDezimal,
+  formatDezimalText,
   formatHundertstel,
   formatSekunden,
   formatUhrzeit,
@@ -31,6 +32,28 @@ describe("formatDezimal", () => {
     expect(formatDezimal(6, 2)).toBe("6,00");
     expect(formatDezimal(98.7, 1)).toBe("98,7");
     expect(formatDezimal(12.345, 2, "en")).toBe("12.35");
+  });
+});
+
+describe("formatDezimalText", () => {
+  it("schreibt Ringe mit Nachkommastelle aus dem Server-Text mit Dezimalkomma", () => {
+    expect(formatDezimalText("20.1")).toBe("20,1");
+    expect(formatDezimalText("218.0")).toBe("218,0");
+    expect(formatDezimalText("1090.9")).toBe("1.090,9");
+  });
+
+  it("lässt ganze Ringe ohne Nachkommastelle und rechnet nicht um", () => {
+    expect(formatDezimalText(187)).toBe("187");
+    expect(formatDezimalText("187")).toBe("187");
+    // Kein Gleitkommafehler beim Schreiben: 0,1 + 0,2 kommt als Text „0.3“.
+    expect(formatDezimalText("0.3")).toBe("0,3");
+    expect(formatDezimalText("104.7", "en")).toBe("104.7");
+  });
+
+  it("gibt bei leer oder unlesbar null zurück", () => {
+    expect(formatDezimalText(null)).toBeNull();
+    expect(formatDezimalText("")).toBeNull();
+    expect(formatDezimalText("zehn")).toBeNull();
   });
 });
 

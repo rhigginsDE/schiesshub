@@ -8,9 +8,12 @@ import { SYSTEM_BERECHTIGUNG } from "./bereiche";
 import { GeraeteBereich } from "./Geraete";
 import { PersonenBereich } from "./Personen";
 import { ProtokollBereich } from "./Protokoll";
+import { PRUEFUNG_SCHLUESSEL } from "./Pruefung";
 import { ServerBereich } from "./Server";
 import { SicherungBereich } from "./Sicherung";
 import { SystemSeite } from "./SystemSeite";
+import { WiederherstellenBereich } from "./Wiederherstellen";
+import { WIEDERHERSTELLEN_SCHLUESSEL } from "./wiederherstellenAblauf";
 
 const ID = "system";
 const PFAD = "/system";
@@ -32,6 +35,13 @@ const sicherungRoute = createRoute({
   getParentRoute: () => systemRoute,
   path: "sicherung",
   component: SicherungBereich,
+});
+
+/** Geführte Wiederherstellung; die Seite prüft `backup.restore` selbst. */
+const wiederherstellenRoute = createRoute({
+  getParentRoute: () => systemRoute,
+  path: "sicherung/wiederherstellen",
+  component: WiederherstellenBereich,
 });
 
 const geraeteRoute = createRoute({
@@ -75,9 +85,15 @@ const serverRoute = createRoute({
   component: ServerBereich,
 });
 
-const geraete = [schluessel.auth.geraete, schluessel.auth.protokollAlle];
-const personen = [schluessel.auth.personen, schluessel.auth.rollen, schluessel.auth.protokollAlle];
-const rollen = [schluessel.auth.rollen, schluessel.auth.protokollAlle];
+// Geräte, Benutzer und Rollen entscheiden mit, ob Koppeln und PIN eingeschaltet werden dürfen.
+const geraete = [schluessel.auth.geraete, schluessel.auth.protokollAlle, PRUEFUNG_SCHLUESSEL];
+const personen = [
+  schluessel.auth.personen,
+  schluessel.auth.rollen,
+  schluessel.auth.protokollAlle,
+  PRUEFUNG_SCHLUESSEL,
+];
+const rollen = [schluessel.auth.rollen, schluessel.auth.protokollAlle, PRUEFUNG_SCHLUESSEL];
 
 /** Live-Aktualisierung; die Sicherung (`backup.*`) lädt die App-Shell selbst neu. */
 const ereignisse: EreignisZuordnung = {
@@ -94,6 +110,9 @@ const ereignisse: EreignisZuordnung = {
   "auth.setup": personen,
   "auth.login": [schluessel.auth.protokollAlle],
   "auth.logout": [schluessel.auth.protokollAlle],
+  "auth.enforcement_changed": [PRUEFUNG_SCHLUESSEL, schluessel.auth.protokollAlle],
+  // Fortschritt einer Wiederherstellung (Zustand und Schritt; Einzelheiten holt die Seite selbst)
+  "backup.restore": [WIEDERHERSTELLEN_SCHLUESSEL.status],
 };
 
 export const system: ModulManifest = {
@@ -105,6 +124,7 @@ export const system: ModulManifest = {
     systemRoute.addChildren([
       startRoute,
       sicherungRoute,
+      wiederherstellenRoute,
       geraeteRoute,
       personenRoute,
       protokollRoute,

@@ -19,18 +19,18 @@ import {
   personAnlegen,
   personLoeschen,
   teilnehmerSchluessel,
-  type Verein,
-  vereinAnlegen,
   vereineAbfrage,
 } from "./api";
 import s from "./teilnehmer.module.css";
 import { VereinFeld } from "./VereinFeld";
-import { vereinSichern } from "./vereinSuche";
 
 export interface Werte {
   name: string;
   club_id: string | null;
-  /** Vorgemerkter neuer Verein; er wird erst beim Speichern angelegt (dann steht seine ID in `club_id`). */
+  /**
+   * Vorgemerkter neuer Verein. Er geht als `club_name` mit der Person an den Server, der ihn in
+   * derselben Transaktion anlegt: Scheitert die Person, entsteht auch kein Verein.
+   */
   club_neu: string | null;
   member_no: string;
   display_mode: Anzeigeart;
@@ -48,13 +48,6 @@ export function werteAus(person: Person | undefined, vorschlag = ""): Werte {
   };
 }
 
-/** Der vorgemerkte Verein ließ sich nicht anlegen; die Person wurde deshalb nicht gespeichert. */
-class VereinFehler extends Error {
-  constructor(readonly ursache: unknown) {
-    super("Verein nicht angelegt");
-  }
-}
-
 /** Nur die geänderten Felder, bereinigt; leere Mitgliedsnummer = entfernen. */
 export function aenderungen(basis: Werte, werte: Werte): PersonAenderung {
   const diff: PersonAenderung = {};
@@ -62,7 +55,8 @@ export function aenderungen(basis: Werte, werte: Werte): PersonAenderung {
   if (name !== bereinigen(basis.name)) diff.name = name;
   const nr = werte.member_no.trim();
   if (nr !== basis.member_no.trim()) diff.member_no = nr || null;
-  if (werte.club_id !== basis.club_id) diff.club_id = werte.club_id;
+  if (werte.club_neu !== null) diff.club_name = werte.club_neu;
+  else if (werte.club_id !== basis.club_id) diff.club_id = werte.club_id;
   if (werte.display_mode !== basis.display_mode) diff.display_mode = werte.display_mode;
   if (werte.show_club !== basis.show_club) diff.show_club = werte.show_club;
   return diff;
@@ -71,7 +65,8 @@ export function aenderungen(basis: Werte, werte: Werte): PersonAenderung {
 function neuAus(werte: Werte): PersonNeu {
   return {
     name: bereinigen(werte.name),
-    club_id: werte.club_id,
+    // Entweder ein vorhandener Verein oder der Name eines neuen, nie beides (sonst 422).
+    ...(werte.club_neu !== null ? { club_name: werte.club_neu } : { club_id: werte.club_id }),
     member_no: werte.member_no.trim() || null,
     display_mode: werte.display_mode,
     show_club: werte.show_club,
@@ -164,45 +159,14 @@ export function PersonFormular({
     speichern.reset();
   };
 
-  /**
-   * Legt den vorgemerkten Verein an, direkt vor dem Speichern der Person, und gibt die Werte mit
-   * seiner ID zurück. Die ID wird sofort in die Eingaben übernommen: Scheitert danach die Person,
-   * nimmt der nächste Versuch denselben Verein, statt einen zweiten anzulegen.
-   */
-  const mitVerein = async (stand: Werte): Promise<Werte> => {
-    const name = stand.club_neu;
-    if (name === null) return stand;
-    let verein: Verein;
-    try {
-      verein = await vereinSichern(name, {
-        vorhandene: queryClient.getQueryData<Verein[]>(teilnehmerSchluessel.vereine()) ?? [],
-        anlegen: (n) => vereinAnlegen({ name: n }),
-        neuLaden: () => queryClient.fetchQuery({ ...vereineAbfrage(), staleTime: 0 }),
-      });
-    } catch (fehler) {
-      throw new VereinFehler(fehler);
-    }
-    queryClient.setQueryData<Verein[]>(teilnehmerSchluessel.vereine(), (alt) =>
-      [...(alt ?? []).filter((v) => v.id !== verein.id), verein].sort((a, b) =>
-        a.name.localeCompare(b.name, "de", { sensitivity: "base" }),
-      ),
-    );
-    void queryClient.invalidateQueries({ queryKey: teilnehmerSchluessel.vereine() });
-    setWerte((alt) =>
-      alt.club_neu === name ? { ...alt, club_id: verein.id, club_neu: null } : alt,
-    );
-    return { ...stand, club_id: verein.id, club_neu: null };
-  };
-
   const merken = (neu: Person) => {
     queryClient.setQueryData(teilnehmerSchluessel.person(neu.id), neu);
     void queryClient.invalidateQueries({ queryKey: teilnehmerSchluessel.alle });
   };
 
   const speichern = useMutation({
-    // Ein vorgemerkter Verein wird zuerst angelegt; scheitert das, wird die Person nicht gespeichert.
-    mutationFn: async ({ trotzdem, stand: eingabe }: { trotzdem: boolean; stand: Werte }) => {
-      const stand = await mitVerein(eingabe);
+    // Ein vorgemerkter Verein reist als `club_name` mit; der Server legt beides gemeinsam an.
+    mutationFn: async ({ trotzdem, stand }: { trotzdem: boolean; stand: Werte }) => {
       if (!basis)
         return { neu: true as const, ergebnis: await personAnlegen(neuAus(stand), trotzdem) };
       return {
@@ -292,10 +256,11 @@ export function PersonFormular({
   const vorschauVerein =
     basis && !ungespeichert ? basis.display_club : werte.show_club ? vereinName : null;
 
-  const vereinFehler =
-    speichern.error instanceof VereinFehler
-      ? (fehlertext(speichern.error.ursache) ?? t("vereinfeld.fehler"))
-      : undefined;
+  const vereinFehler = vereinFehlerAus(
+    speichern.error,
+    speichern.variables?.stand.club_neu != null,
+    t("vereinfeld.fehler_recht"),
+  );
   const speicherFehler = !speichern.isError
     ? null
     : vereinFehler
@@ -558,4 +523,21 @@ export function PersonFormular({
       />
     </article>
   );
+}
+
+/**
+ * Fehler, der zum Vereinsfeld gehört: 403 beim Speichern mit neuem Verein heißt, dass er nicht
+ * angelegt werden darf; 422 am Feld `club_name` oder `club_id` nennt der Server selbst.
+ * Sonst `undefined`.
+ */
+export function vereinFehlerAus(
+  fehler: unknown,
+  mitNeuemVerein: boolean,
+  ohneRecht: string,
+): string | undefined {
+  if (!(fehler instanceof ApiFehler)) return undefined;
+  // Ohne neuen Verein heißt 403: Personen ändern ist nicht erlaubt; das gehört nicht ans Feld.
+  if (fehler.art === "verboten") return mitNeuemVerein ? ohneRecht : undefined;
+  return fehler.felder.find((feld) => feld.feld === "club_name" || feld.feld === "club_id")
+    ?.meldung;
 }

@@ -267,6 +267,11 @@
   color: var(--sh-warn);
 }
 
+/* Geteilter Platz, offen (Stechen oder von Hand): dezent, kein Alarm. */
+.gleichstand {
+  color: var(--sh-info);
+}
+
 .puls {
   display: inline-block;
   flex: none;
@@ -675,6 +680,11 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.stufeName span.gleichstand {
+  font-weight: 600;
+  color: var(--sh-info);
 }
 
 .sockel {

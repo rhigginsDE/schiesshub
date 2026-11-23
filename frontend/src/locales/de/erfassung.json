@@ -123,18 +123,38 @@
     "entfaellt": "entfällt",
     "freiwillig": "freiwillig",
     "bereich": "{{min}} bis {{max}}",
+    "bereich_null": "0 oder {{min}} bis {{max}}",
     "leer_wert": "leer",
     "fehler": "Fehler",
     "zeit_zu_gross": "Diese Zeit ist nicht plausibel: höchstens {{grenze}} s. Bitte mit dem Startzettel vergleichen."
   },
   "schuss": {
     "reihe": "Schüsse {{serie}}",
-    "beschriftung": "Schuss {{nr}}: {{wert}}"
+    "beschriftung": "Schuss {{nr}}: {{wert}}",
+    "reihe_ziele": "Ziele {{serie}}",
+    "beschriftung_ziel": "Ziel {{nr}}: {{wert}}"
+  },
+  "ziel": {
+    "treffer": "Treffer",
+    "fehler": "Fehler"
+  },
+  "vorgaben": {
+    "titel": "Vorgaben des Wettbewerbs",
+    "probe": "Probeschüsse: {{wert}}",
+    "probe_unbegrenzt": "Probeschüsse: unbegrenzt",
+    "vorbereitung": "Vorbereitung und Probe: {{wert}}",
+    "wettkampfzeit": "Wettkampfzeit: {{wert}}",
+    "wettkampfzeit_gesamt": "Wettkampfzeit gesamt: {{wert}}",
+    "aufgelegt": "aufgelegt"
   },
   "tasten": {
     "titel": "Ziffernfeld",
     "kein_feld": "Kein Feld aktiv. Feld antippen.",
     "schuss": "Schuss {{nr}}",
+    "ziel": "Ziel {{nr}}",
+    "erlaubt": "Erlaubt: {{bereich}}",
+    "tastatur_komma": "Tastatur: Zahl mit Komma oder Punkt tippen (10,4), Enter = weiter, Rück = im Feld löschen, Pfeil links = zurück.",
+    "tastatur_ziel": "Tastatur: 1 = Treffer, 0 = Fehler, Rück = löschen, Pfeil links = zurück.",
     "innenzehner": "Innenzehner",
     "fehler": "Fehler",
     "korrektur": "Korrektur",
@@ -145,6 +165,7 @@
     "tastatur_x": "Tastatur: Ziffern tippen, x = Innenzehner, Enter = weiter, Rück = löschen, Pfeil links = zurück.",
     "abgelehnt": {
       "zu_gross": "Höchstens {{max}}.",
+      "zu_klein": "Erlaubt ist {{bereich}}.",
       "leer": "Das Feld ist leer. Ein anderes Feld erreichst du durch Antippen.",
       "unpassend": "Diese Taste passt hier nicht.",
       "naechstes_belegt": "Eingetragen. Das nächste Feld hat schon einen Wert – weiter mit Enter oder durch Antippen."

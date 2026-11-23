@@ -1,0 +1,474 @@
+/* Geführte Wiederherstellung: eine Aufgabe je Schritt, Text höchstens 75 Zeichen breit. */
+
+.kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+/* ---------- Schrittleiste ---------- */
+.leiste {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: schritt;
+}
+
+.leistenSchritt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-m);
+  font-size: 14px;
+  color: var(--sh-text-gedaempft);
+}
+
+.leistenNr {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--sh-linie-stark);
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.leistenText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leistenSchritt[data-zustand="erledigt"] {
+  color: var(--sh-text-weich);
+}
+
+.leistenSchritt[data-zustand="erledigt"] .leistenNr {
+  border-color: var(--sh-akzent);
+  color: var(--sh-akzent-text);
+}
+
+.leistenSchritt[data-zustand="aktiv"] {
+  border-color: var(--sh-linie-stark);
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text);
+  font-weight: 600;
+}
+
+.leistenSchritt[data-zustand="aktiv"] .leistenNr {
+  border-color: var(--sh-text);
+  color: var(--sh-text);
+}
+
+/* Handy: nur die Nummern, der aktuelle Schritt steht ausgeschrieben darunter. */
+.leisteKurz {
+  display: none;
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
+@media (max-width: 760px) {
+  .leistenSchritt {
+    justify-content: center;
+    padding: 6px;
+  }
+
+  .leistenText {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .leisteKurz {
+    display: block;
+  }
+}
+
+/* ---------- Inhalt eines Schritts ---------- */
+.schritt {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.text {
+  max-width: 75ch;
+  color: var(--sh-text-weich);
+}
+
+.klein {
+  max-width: 75ch;
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
+.aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.formular {
+  display: grid;
+  gap: 14px;
+  max-width: 520px;
+}
+
+/* ---------- Auswahl der Sicherung ---------- */
+.quellen {
+  display: grid;
+  gap: 8px;
+}
+
+.quelle {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 4px 12px;
+  min-height: 56px;
+  padding: 12px 14px;
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-flaeche);
+}
+
+/* Auswahl ohne grüne Fläche: Grün gehört der Hauptaktion. */
+.quelle[data-checked] {
+  border-color: var(--sh-text-weich);
+  background: var(--sh-flaeche-2);
+}
+
+.quelleIndikator {
+  margin-top: 2px;
+}
+
+.quelleInhalt {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.quelleZeile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.quelleZeit {
+  font-size: var(--sh-fz-text);
+  font-weight: 600;
+  color: var(--sh-text);
+}
+
+.quelleWann {
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
+.quelleMerkmale {
+  font-size: 13px;
+  color: var(--sh-text-weich);
+}
+
+/* ---------- Kästen ---------- */
+.kasten {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-flaeche-2);
+  font-size: 15px;
+}
+
+.kasten > svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--sh-text-gedaempft);
+}
+
+.kastenInhalt {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  max-width: 75ch;
+  overflow-wrap: anywhere;
+}
+
+.kastenInhalt strong {
+  color: var(--sh-text);
+}
+
+.kastenInhalt ul {
+  display: grid;
+  list-style: disc;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.krit {
+  border-color: var(--sh-krit-linie);
+  background: var(--sh-krit-flaeche);
+}
+
+.krit > svg {
+  color: var(--sh-krit);
+}
+
+.warn {
+  border-color: var(--sh-warn-linie);
+  background: var(--sh-warn-flaeche);
+}
+
+.warn > svg {
+  color: var(--sh-warn);
+}
+
+.gut {
+  border-color: var(--sh-akzent);
+  background: var(--sh-akzent-flaeche);
+}
+
+.gut > svg {
+  color: var(--sh-akzent-text);
+}
+
+.info {
+  border-color: var(--sh-info);
+  background: var(--sh-info-flaeche);
+}
+
+.info > svg {
+  color: var(--sh-info);
+}
+
+/* ---------- Vorschau ---------- */
+.abschnitt {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.abschnittTitel {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--sh-text);
+}
+
+.turniere {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.turnier {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sh-linie);
+  font-size: 15px;
+}
+
+.turnier:last-child {
+  border-bottom: 0;
+}
+
+.turnierName {
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: break-word;
+}
+
+/* Schmal: Name über Status und Datum, damit lange Namen nicht mitten im Wort brechen. */
+@media (max-width: 760px) {
+  .turnier {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.turnierZahlen {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
+.liste {
+  display: grid;
+  list-style: disc;
+  gap: 6px;
+  max-width: 75ch;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--sh-text-weich);
+}
+
+.liste ul {
+  list-style: circle;
+  margin-top: 4px;
+  padding-left: 18px;
+}
+
+.schlecht {
+  color: var(--sh-krit);
+  font-weight: 600;
+}
+
+.einzelheiten summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--sh-text-weich);
+}
+
+.einzelheiten summary > svg {
+  transition: transform 0.15s ease;
+}
+
+.einzelheiten[open] summary > svg {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .einzelheiten summary > svg {
+    transition: none;
+  }
+}
+
+.einzelheiten ul {
+  display: grid;
+  list-style: disc;
+  gap: 4px;
+  max-width: 75ch;
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+  overflow-wrap: anywhere;
+}
+
+/* Gefährliche Hauptaktion: Meldefarbe „kritisch“, nie grün. */
+.gefahr.gefahr {
+  --button-bg: var(--sh-krit);
+  --button-hover: var(--sh-krit);
+  --button-color: var(--sh-bg);
+  background: var(--sh-krit);
+  color: var(--sh-bg);
+}
+
+.gefahr:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+/* ---------- Fortschritt ---------- */
+.schritte {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lauf {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 2px 12px;
+  padding: 8px 10px;
+  border-radius: var(--sh-radius-m);
+  font-size: 15px;
+  color: var(--sh-text-gedaempft);
+}
+
+.laufSymbol {
+  margin-top: 2px;
+  font-size: 18px;
+}
+
+.laufText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.laufText small {
+  font-size: 13px;
+  color: var(--sh-text-weich);
+  overflow-wrap: anywhere;
+}
+
+.laufZustand {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.lauf[data-zustand="done"] .laufSymbol,
+.lauf[data-zustand="done"] .laufZustand {
+  color: var(--sh-akzent-text);
+}
+
+.lauf[data-zustand="running"] {
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text);
+  font-weight: 600;
+}
+
+.lauf[data-zustand="failed"] {
+  background: var(--sh-krit-flaeche);
+  color: var(--sh-text);
+}
+
+.lauf[data-zustand="failed"] .laufSymbol,
+.lauf[data-zustand="failed"] .laufZustand {
+  color: var(--sh-krit);
+}
+
+@keyframes drehen {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.lauf[data-zustand="running"] .laufSymbol {
+  animation: drehen 1.2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lauf[data-zustand="running"] .laufSymbol {
+    animation: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .lauf {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .laufZustand {
+    grid-column: 2;
+  }
+}

@@ -44,11 +44,15 @@ import { useSeitenbreite } from "./seitenbreite";
 import { modulZuPfad, useSeitentitel } from "./seitentitel";
 import { useServerStatus } from "./serverStatus";
 import { bannerAktion, useSicherungsLage, WARNUNG_SCHLUESSEL } from "./sicherungsLage";
+import { WartungsBanner } from "./WartungsBanner";
+import { WARTUNG_SCHLUESSEL } from "./wartung";
 
 /** Ereignisse, auf die die Shell selbst hört: Anmelde-Zustand und Sicherung. */
 const SHELL_EREIGNISSE: EreignisZuordnung = {
-  [EREIGNIS_VERBUNDEN]: [schluessel.auth.status, schluessel.sicherung.alle],
+  [EREIGNIS_VERBUNDEN]: [schluessel.auth.status, schluessel.sicherung.alle, WARTUNG_SCHLUESSEL],
   "auth.setup": [schluessel.auth.status],
+  // Koppeln und PIN wurden Pflicht: Rechte und Anmelde-Lage ändern sich auf jedem Gerät.
+  "auth.enforcement_changed": [schluessel.auth.status],
   "device.updated": [schluessel.auth.status],
   "device.deleted": [schluessel.auth.status],
   "role.updated": [schluessel.auth.status],
@@ -57,6 +61,8 @@ const SHELL_EREIGNISSE: EreignisZuordnung = {
   "backup.status": [schluessel.sicherung.status, WARNUNG_SCHLUESSEL],
   "backup.completed": [schluessel.sicherung.alle],
   "backup.failed": [schluessel.sicherung.alle],
+  // Wiederherstellung: Hinweis auf allen Geräten (WartungsBanner)
+  "backup.maintenance": [WARTUNG_SCHLUESSEL],
 };
 
 /** Rahmen jeder Seite: Kopfzeile mit Wortmarke, Stationen, Status, Anmeldung, Farbschema und Uhr. */
@@ -115,6 +121,7 @@ function Rahmen() {
             <Uhr />
           </div>
         </header>
+        <WartungsBanner />
         <main className={s.inhalt} id={INHALT_ID} tabIndex={-1}>
           {anmeldeSeite ? <Outlet /> : lage.pflicht && <PflichtSeite seite={lage.pflicht} />}
         </main>
@@ -140,6 +147,7 @@ function Rahmen() {
         </header>
         {/* Nur der Bildschirm (`/anzeige/schirm…`) folgt „auf der Anzeige warnen“; die Verwaltung
             unter `/anzeige` ist eine Station wie jede andere. */}
+        <WartungsBanner />
         <SicherungsBanner istAnzeige={pfad.startsWith("/anzeige/schirm")} />
       </div>
       <main className={s.inhalt} id={INHALT_ID} tabIndex={-1}>
@@ -244,6 +252,7 @@ function Statusanzeige() {
       eingeschraenkt: "warn",
       gestoert: "krit",
       getrennt: "krit",
+      wartung: "info",
     } as const
   )[verbindung];
   const hinweis = t(`status.hinweis_${verbindung}`, { version: health?.version ?? "?" });

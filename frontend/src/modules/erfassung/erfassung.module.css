@@ -594,6 +594,18 @@
   color: var(--sh-text);
 }
 
+/* Vorgaben des Wettbewerbs (Probeschüsse, Zeiten, aufgelegt): ruhig, nur zur Information. */
+.vorgaben {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 14px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
 .meldungen svg {
   margin-top: 2px;
 }
@@ -965,6 +977,22 @@
   color: var(--sh-krit);
 }
 
+/* Zehntel („10,4“): vier Zeichen müssen in die Zelle passen. */
+.schuss[data-zehntel] {
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+
+.schuss[data-treffer] {
+  color: var(--sh-akzent-text);
+}
+
+.zielZeichen {
+  width: 26px;
+  height: 26px;
+  stroke-width: 2.5;
+}
+
 .schuss[data-aktiv] {
   border: 2px solid var(--sh-akzent);
   background: var(--sh-akzent-flaeche);
@@ -1331,6 +1359,31 @@
   min-height: 56px;
   background: transparent;
   font: 600 15px / 1 var(--sh-font-text);
+}
+
+/* Treffer je Ziel: zwei große Tasten nebeneinander. */
+.tastenZiel {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tasteZiel {
+  min-height: 112px;
+  gap: 6px;
+  font: 700 19px / 1.1 var(--sh-font-text);
+}
+
+.tasteZiel[data-art] svg {
+  width: 32px;
+  height: 32px;
+  stroke-width: 2.5;
+}
+
+.tasteZiel[data-art="treffer"] svg {
+  color: var(--sh-akzent-text);
+}
+
+.tasteZiel[data-art="fehler"] svg {
+  color: var(--sh-krit);
 }
 
 .aktionen {

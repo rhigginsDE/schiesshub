@@ -20,7 +20,15 @@
     "hinweis_verbunden": "Server-Version {{version}}",
     "hinweis_eingeschraenkt": "Der Server läuft, hat den Disziplin-Katalog aber nicht vollständig eingelesen. Einzelheiten stehen im Disziplin-Katalog.",
     "hinweis_gestoert": "Der Server antwortet, erreicht aber seine Datenbank nicht. Bitte den Server prüfen; es wird alle paar Sekunden erneut versucht.",
-    "hinweis_getrennt": "Der Server antwortet nicht. Es wird alle paar Sekunden erneut versucht."
+    "hinweis_getrennt": "Der Server antwortet nicht. Es wird alle paar Sekunden erneut versucht.",
+    "wartung": "Daten werden wiederhergestellt",
+    "wartung_kurz": "Bitte warten",
+    "hinweis_wartung": "Der Server schaltet gerade auf die wiederhergestellten Daten um. In wenigen Sekunden geht es weiter."
+  },
+  "wartung": {
+    "titel": "Die Daten werden gerade wiederhergestellt.",
+    "text": "Eingaben sind für einige Minuten gesperrt. Du musst nichts tun: Sobald es fertig ist, verschwindet dieser Hinweis und die Seite zeigt den neuen Stand.",
+    "text_umschalten": "Gleich geschafft: Der Server schaltet auf die wiederhergestellten Daten um und ist ein paar Sekunden nicht erreichbar."
   },
   "breite": {
     "zu_zentriert": "Schmale Ansicht",

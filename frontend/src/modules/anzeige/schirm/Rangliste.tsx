@@ -2,6 +2,7 @@ import { type CSSProperties, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   gesamtTeile,
+  gleichstandHinweis,
   laengstesWort,
   mitErgebnis,
   mitWeiterenPlaetzen,
@@ -52,6 +53,21 @@ function Platz({ zeile }: { zeile: FeedZeile }) {
   );
 }
 
+/** Offener Gleichstand (Stechen, von Hand), dezent hinter Verein und Zusätzen. */
+function Gleichstand({ zeile }: { zeile: FeedZeile }) {
+  const { t } = useTranslation("anzeige");
+  const hinweis = zeile.place !== null ? gleichstandHinweis(zeile) : null;
+  if (!hinweis) return null;
+  return (
+    <>
+      {" "}
+      <em className={s.gleichstand} title={zeile.tie_note ?? undefined}>
+        {t(`schirm.gleichstand.${hinweis}`)}
+      </em>
+    </>
+  );
+}
+
 function Unterzeile({ zeile }: { zeile: FeedZeile }) {
   const { t } = useTranslation("anzeige");
   const teile: string[] = [];
@@ -60,6 +76,7 @@ function Unterzeile({ zeile }: { zeile: FeedZeile }) {
   return (
     <span className={s.unter}>
       {teile.join(" · ")}
+      <Gleichstand zeile={zeile} />
       {/* Leerzeichen vor jedem Zusatz: Vorlesen und Kopieren trennen „e. V.“ und „aufgegeben“. */}
       {zeile.running && (
         <>
@@ -244,6 +261,7 @@ function PodestStufe({
   rang: number;
   einheit: string | null;
 }) {
+  const { t } = useTranslation("anzeige");
   const name = useName();
   const teile = gesamtTeile(zeile.score_text, einheit);
   const text = name(zeile);
@@ -257,6 +275,11 @@ function PodestStufe({
       <div className={s.stufeName} style={{ "--wort": laengstesWort(text) } as CSSProperties}>
         <b className={s.stufeNameText}>{text}</b>
         {zeile.club && <span>{zeile.club}</span>}
+        {gleichstandHinweis(zeile) && (
+          <span className={s.gleichstand} title={zeile.tie_note ?? undefined}>
+            {t(`schirm.gleichstand.${gleichstandHinweis(zeile)}`)}
+          </span>
+        )}
       </div>
       <div className={s.sockel} style={{ "--zeichen": teile.wert.length } as CSSProperties}>
         <span className={`num ${s.sockelPlatz}`}>{zeile.place ?? "–"}</span>
@@ -292,7 +315,12 @@ function WeitereListe({
             <span className={`num ${s.platz}`}>{zeile.place ?? "–"}</span>
             <span className={s.wer}>
               <b className={s.weitereName}>{name(zeile)}</b>
-              {zeile.club && <span className={s.unter}>{zeile.club}</span>}
+              {(zeile.club || gleichstandHinweis(zeile)) && (
+                <span className={s.unter}>
+                  {zeile.club}
+                  <Gleichstand zeile={zeile} />
+                </span>
+              )}
             </span>
             <span className={`num ${s.gesamt} ${s.gesamtKlein}`}>
               {gesamtTeile(zeile.score_text, einheit).wert}

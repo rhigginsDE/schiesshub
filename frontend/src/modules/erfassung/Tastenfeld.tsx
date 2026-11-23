@@ -1,7 +1,17 @@
-import { ArrowRight, Delete } from "lucide-react";
+import { ArrowRight, Check, Delete, X } from "lucide-react";
 import type { MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { type Ablehnung, type Taste, wertText, type ZahlEingabe, zifferErlaubt } from "./eingabe";
+import { feldBereich } from "./anzeige";
+import {
+  type Ablehnung,
+  istJeZiel,
+  istKommaFeld,
+  kommaBereich,
+  type Taste,
+  wertText,
+  type ZahlEingabe,
+  zifferErlaubt,
+} from "./eingabe";
 import s from "./erfassung.module.css";
 import type { FeldRef, Schusswert } from "./rohwerte";
 
@@ -25,7 +35,15 @@ const ohneFokus = (ereignis: MouseEvent) => ereignis.preventDefault();
 
 const ZIFFERN = ["1", "2", "3", "4", "5", "6", "7", "8", "9"] as const;
 
-/** Großes Ziffernfeld passend zum aktiven Feld: erlaubte Ringwerte, Ziffern oder Zeit mit Komma. */
+/** Treffer je Ziel mit genau „1“ und „0“: zwei große Tasten „Treffer“ und „Fehler“. */
+function trefferFehler(erlaubt: readonly Schusswert[]): boolean {
+  return erlaubt.length === 2 && erlaubt.includes(1) && erlaubt.includes(0);
+}
+
+/**
+ * Großes Ziffernfeld passend zum aktiven Feld: erlaubte Ringwerte, Treffer/Fehler je Ziel, Ziffern
+ * oder Zahl mit Komma (Zeit, Zehntelwertung).
+ */
 export function Tastenfeld({
   aktiv,
   titel,
@@ -40,15 +58,42 @@ export function Tastenfeld({
   const { t } = useTranslation("erfassung");
   const feld = aktiv?.feld ?? null;
   const aus = gesperrt || feld === null;
+  const komma = feld !== null && istKommaFeld(feld);
+  // Schüsse mit festen Werten als eigene Tasten; Zehntel wie eine Zahl mit Komma.
+  const wertTasten = feld?.kind === "shots" && !komma;
+  const erlaubt = feld?.allowed_values ?? [];
+  const jeZiel = feld !== null && istJeZiel(feld) && trefferFehler(erlaubt);
 
   const anzeige =
     feld === null
       ? ""
-      : feld.kind === "shots"
+      : wertTasten
         ? schussPuffer || wertText(feld, wert)
         : eingabe.frisch
           ? wertText(feld, wert)
           : eingabe.text;
+
+  const hinweisText = (() => {
+    if (!hinweis || !feld) return null;
+    if (komma) {
+      const bereich = kommaBereich(feld);
+      if (hinweis === "zu_gross") return t("tasten.abgelehnt.zu_gross", { max: bereich.max ?? "" });
+      if (hinweis === "zu_klein")
+        return t("tasten.abgelehnt.zu_klein", { bereich: feldBereich(feld, t) ?? "" });
+    }
+    return t(`tasten.abgelehnt.${hinweis}`, {
+      max: feld.max ?? "",
+      bereich: feldBereich(feld, t) ?? "",
+    });
+  })();
+
+  const tastaturHilfe = jeZiel
+    ? t("tasten.tastatur_ziel")
+    : komma
+      ? t("tasten.tastatur_komma")
+      : wertTasten && erlaubt.includes("X")
+        ? t("tasten.tastatur_x")
+        : t("tasten.tastatur");
 
   return (
     <section className={`panel ${s.tastenPanel}`} aria-label={t("tasten.titel")}>
@@ -57,17 +102,54 @@ export function Tastenfeld({
         <strong className={s.tastenTitel} aria-live="polite" data-leer={!titel || undefined}>
           {titel ?? t("tasten.kein_feld")}
         </strong>
-        {feld && feld.kind !== "shots" && (
+        {feld && !wertTasten && (
           <output className={`${s.tastenAnzeige} num`} aria-live="polite">
-            {anzeige || " "}
+            {anzeige || " "}
             {feld.kind === "time" && <span className={s.einheit}>{t("einheit.sekunden")}</span>}
           </output>
         )}
       </div>
 
-      {feld?.kind === "shots" ? (
+      {jeZiel ? (
+        <div className={`${s.tasten} ${s.tastenZiel}`}>
+          <button
+            type="button"
+            onMouseDown={ohneFokus}
+            className={`${s.taste} ${s.tasteZiel}`}
+            data-art="treffer"
+            disabled={aus}
+            onClick={() => onSchuss(1)}
+          >
+            <Check aria-hidden />
+            {t("ziel.treffer")}
+            <small className="num">1</small>
+          </button>
+          <button
+            type="button"
+            onMouseDown={ohneFokus}
+            className={`${s.taste} ${s.tasteZiel}`}
+            data-art="fehler"
+            disabled={aus}
+            onClick={() => onSchuss(0)}
+          >
+            <X aria-hidden />
+            {t("ziel.fehler")}
+            <small className="num">0</small>
+          </button>
+          <button
+            type="button"
+            onMouseDown={ohneFokus}
+            className={`${s.taste} ${s.tasteBreit}`}
+            disabled={aus}
+            onClick={() => onTaste({ art: "loeschen" })}
+          >
+            <Delete aria-hidden />
+            {t("tasten.korrektur")}
+          </button>
+        </div>
+      ) : wertTasten ? (
         <div className={s.tasten}>
-          {(feld.allowed_values ?? []).map((ring) => (
+          {erlaubt.map((ring) => (
             <button
               key={String(ring)}
               type="button"
@@ -107,7 +189,7 @@ export function Tastenfeld({
               {ziffer}
             </button>
           ))}
-          {feld?.kind === "time" ? (
+          {feld?.kind === "time" || komma ? (
             <button
               type="button"
               onMouseDown={ohneFokus}
@@ -153,16 +235,15 @@ export function Tastenfeld({
           </button>
         </div>
       )}
-      {hinweis && feld && (
+      {hinweisText && (
         <p className={s.tastenHinweis} role="status">
-          {t(`tasten.abgelehnt.${hinweis}`, { max: feld.max ?? "" })}
+          {hinweisText}
         </p>
       )}
-      <p className={s.klein}>
-        {feld?.kind === "shots" && (feld.allowed_values ?? []).includes("X")
-          ? t("tasten.tastatur_x")
-          : t("tasten.tastatur")}
-      </p>
+      {komma && feld && feldBereich(feld, t) && (
+        <p className={s.klein}>{t("tasten.erlaubt", { bereich: feldBereich(feld, t) })}</p>
+      )}
+      <p className={s.klein}>{tastaturHilfe}</p>
     </section>
   );
 }
