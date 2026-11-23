@@ -22,6 +22,7 @@ wertung:
   rangfolge: "absteigend"
   zehntelwertung: false
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
   geprueft: false
 ablaeufe:
   kk-30:

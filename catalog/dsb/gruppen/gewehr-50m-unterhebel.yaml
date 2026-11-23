@@ -23,6 +23,7 @@ wertung:
   zehntelwertung: false
   # 1.7.7 verweist auf 0.12.1 ("letzte Zehnerserie" – hier zwei 5er-Serien je Zehnerblock, siehe Notiz).
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
   geprueft: false
 ablaeufe:
   unterhebel-40:

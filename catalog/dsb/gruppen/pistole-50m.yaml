@@ -18,6 +18,7 @@ wertung:
   rangfolge: "absteigend"
   zehntelwertung: false
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]   # SpO 0.12.1
+  hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
   # geprüft 2026-11-22: alle Angaben gegen SpO 2027 (Teil 2 S. 15, 23–25; Teil 0 S. 43, 65, 80) bestätigt, keine Korrektur.
   #   Nicht abbildbar: Höchstergebnis (600) wird ohne Finale nicht unterschieden (0.12.1).
   geprueft: true
