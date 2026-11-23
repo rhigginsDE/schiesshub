@@ -1,7 +1,7 @@
 import { ActionIcon, Button, Skeleton } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { CalendarPlus, type LucideIcon, Trash2, Trophy } from "lucide-react";
+import { CalendarPlus, Copy, type LucideIcon, Trash2, Trophy } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDarf } from "../../app/berechtigungen";
@@ -17,6 +17,8 @@ import { StatusAktionen, StatusChip } from "./Status";
 import { TurnierAnlegen } from "./TurnierAnlegen";
 import s from "./turnier.module.css";
 import type { Turnier } from "./typen";
+import { UebungChip, UebungLoeschen, UebungStarten } from "./Uebung";
+import v from "./vorlagen.module.css";
 
 interface TurnierSeiteProps {
   station: string;
@@ -75,7 +77,9 @@ export function TurnierSeite({ station, icon: Icon }: TurnierSeiteProps) {
             icon={Trophy}
             titel={t("turnier:liste.leer_titel")}
             text={t("turnier:liste.leer_text")}
-          />
+          >
+            <UebungStarten />
+          </Leerzustand>
         ) : (
           <ul className={s.turnierListe}>
             {turniere.data.map((turnier) => (
@@ -115,6 +119,8 @@ function TurnierZeile({ turnier }: { turnier: Turnier }) {
   const loeschen = useTurnierLoeschen();
   const darfBearbeiten = useDarf("tournament.edit");
   const [frage, setFrage] = useState(false);
+  const [kopieren, setKopieren] = useState(false);
+  const uebung = turnier.is_practice;
 
   return (
     <li className={s.turnierZeile}>
@@ -133,7 +139,10 @@ function TurnierZeile({ turnier }: { turnier: Turnier }) {
           {` · ${t(`vorlage.${turnier.template}.name`)}`}
         </span>
       </div>
-      <StatusChip status={turnier.status} />
+      <span className={v.chips}>
+        <StatusChip status={turnier.status} />
+        {uebung && <UebungChip />}
+      </span>
       <div className={s.zeilenAktionen}>
         <Button
           variant="default"
@@ -143,8 +152,19 @@ function TurnierZeile({ turnier }: { turnier: Turnier }) {
         >
           {t("liste.oeffnen")}
         </Button>
+        {darfBearbeiten && (
+          <Button
+            variant="default"
+            leftSection={<Copy aria-hidden />}
+            aria-label={t("liste.kopieren_lang", { name: turnier.name })}
+            title={t("liste.kopieren_lang", { name: turnier.name })}
+            onClick={() => setKopieren(true)}
+          >
+            {t("liste.kopieren")}
+          </Button>
+        )}
         <StatusAktionen turnier={turnier} darstellung="menue" />
-        {turnier.status === "draft" && darfBearbeiten && (
+        {(turnier.status === "draft" || uebung) && darfBearbeiten && (
           <ActionIcon
             variant="subtle"
             color="gray"
@@ -160,18 +180,25 @@ function TurnierZeile({ turnier }: { turnier: Turnier }) {
           </ActionIcon>
         )}
       </div>
-      <Bestaetigung
-        offen={frage}
-        titel={t("liste.loeschen_titel", { name: turnier.name })}
-        text={<p>{t("liste.loeschen_text")}</p>}
-        bestaetigen={t("liste.loeschen_knopf")}
-        abbrechen={t("aktion.abbrechen")}
-        ton="gefahr"
-        laedt={loeschen.isPending}
-        fehler={loeschen.isError ? fehlerText(loeschen.error) : undefined}
-        onSchliessen={() => setFrage(false)}
-        onBestaetigen={() => loeschen.mutate(turnier.id, { onSuccess: () => setFrage(false) })}
-      />
+      {kopieren && (
+        <TurnierAnlegen offen vorbild={turnier.id} onSchliessen={() => setKopieren(false)} />
+      )}
+      {uebung ? (
+        <UebungLoeschen turnierId={turnier.id} offen={frage} onSchliessen={() => setFrage(false)} />
+      ) : (
+        <Bestaetigung
+          offen={frage}
+          titel={t("liste.loeschen_titel", { name: turnier.name })}
+          text={<p>{t("liste.loeschen_text")}</p>}
+          bestaetigen={t("liste.loeschen_knopf")}
+          abbrechen={t("aktion.abbrechen")}
+          ton="gefahr"
+          laedt={loeschen.isPending}
+          fehler={loeschen.isError ? fehlerText(loeschen.error) : undefined}
+          onSchliessen={() => setFrage(false)}
+          onBestaetigen={() => loeschen.mutate(turnier.id, { onSuccess: () => setFrage(false) })}
+        />
+      )}
     </li>
   );
 }

@@ -78,6 +78,8 @@ describe("Turnierliste", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Turnier anlegen" }));
     const dialog = await screen.findByRole("dialog");
+    // Erst die Frage, wie das Turnier beginnt.
+    await userEvent.click(within(dialog).getByRole("button", { name: /Leer beginnen/ }));
     await userEvent.type(within(dialog).getByLabelText(/Name/), "Herbstpokal");
     // Nur Name, Datum und Art: Veranstalter und Enddatum fragt der Dialog nicht ab.
     expect(within(dialog).queryByLabelText(/Veranstalter/)).not.toBeInTheDocument();

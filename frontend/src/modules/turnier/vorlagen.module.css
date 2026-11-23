@@ -1,0 +1,282 @@
+/* Drei Wege zum neuen Turnier, Übungsturnier, Hinweis nach dem Kopieren. */
+
+.frage {
+  margin: 0;
+  font-size: var(--sh-fz-text);
+  font-weight: 600;
+  color: var(--sh-text);
+}
+
+.wege {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.weg {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 14px;
+  width: 100%;
+  min-height: 72px;
+  padding: 14px 16px;
+  border: 1px solid var(--sh-linie-stark);
+  border-radius: var(--sh-radius-m);
+  background: transparent;
+  color: var(--sh-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.weg:hover {
+  background: var(--sh-flaeche-2);
+  border-color: var(--sh-text-gedaempft);
+}
+
+.weg:focus-visible {
+  outline: 2px solid var(--sh-fokus);
+  outline-offset: 2px;
+}
+
+.wegSymbol {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-flaeche-2);
+  color: var(--sh-text);
+}
+
+.wegSymbol svg {
+  width: 22px;
+  height: 22px;
+}
+
+.wegText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wegText strong {
+  font-weight: 600;
+  font-size: var(--sh-fz-text);
+}
+
+.wegText span {
+  font-size: 14px;
+  color: var(--sh-text-weich);
+}
+
+.wegPfeil {
+  color: var(--sh-text-gedaempft);
+}
+
+.unten {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.leiste {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rechts {
+  margin-left: auto;
+}
+
+/* Was mitkommt und was nicht: zwei ruhige Spalten, ab schmal untereinander. */
+.umfang {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.umfangTeil {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--sh-linie);
+  border-radius: var(--sh-radius-m);
+  font-size: 14px;
+  color: var(--sh-text-weich);
+}
+
+.umfangTeil > svg {
+  grid-row: span 2;
+  margin-top: 2px;
+  color: var(--sh-text-gedaempft);
+}
+
+.umfangTeil[data-art="mit"] > svg {
+  color: var(--sh-akzent-text);
+}
+
+.umfangTeil strong {
+  color: var(--sh-text);
+  font-weight: 600;
+}
+
+.vorlageZeile {
+  font-size: 14px;
+  color: var(--sh-text-weich);
+}
+
+.vorlageFehlt {
+  font-size: 14px;
+  color: var(--sh-warn);
+}
+
+.hilfe {
+  margin: 0;
+  font-size: 14px;
+  color: var(--sh-text-weich);
+}
+
+.fehler {
+  margin: 0;
+  font-size: 14px;
+  color: var(--sh-krit);
+}
+
+/* Übungsturnier */
+
+.uebungStarten {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}
+
+.uebungBanner,
+.kopieHinweis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--sh-info);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-info-flaeche);
+}
+
+.bannerSymbol {
+  flex: none;
+  margin-top: 2px;
+  color: var(--sh-info);
+}
+
+.bannerText {
+  display: grid;
+  gap: 2px;
+  flex: 1 1 280px;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--sh-text-weich);
+}
+
+.bannerText strong {
+  color: var(--sh-text);
+  font-size: var(--sh-fz-text);
+  font-weight: 600;
+}
+
+.gefahrKnopf {
+  color: var(--sh-krit);
+  border-color: var(--sh-krit-linie);
+}
+
+.gefahrKnopf:hover {
+  background: var(--sh-krit-flaeche);
+}
+
+/* Hinweis nach dem Kopieren */
+
+.kopieListe {
+  display: grid;
+  gap: 8px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kopieEintrag {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--sh-linie);
+}
+
+.kopieEintragText {
+  display: grid;
+  gap: 2px;
+  flex: 1 1 240px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.kopieEintragText strong {
+  color: var(--sh-text);
+  font-weight: 600;
+}
+
+.kopieAktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.umbruch {
+  flex-wrap: wrap;
+}
+
+.fuellen {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Langer Text darf am Handy umbrechen, statt aus dem Kasten zu laufen. */
+.mehrzeilig.mehrzeilig {
+  height: auto;
+  min-height: 44px;
+  max-width: 100%;
+  padding-block: 8px;
+}
+
+.mehrzeiligInnen {
+  height: auto;
+}
+
+.mehrzeiligText {
+  white-space: normal;
+  text-align: left;
+  overflow: visible;
+  height: auto;
+}

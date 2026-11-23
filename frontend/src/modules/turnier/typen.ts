@@ -15,6 +15,14 @@ export type TurnierAenderung = Schemas["TournamentUpdate"];
 export type TurnierStatus = Turnier["status"];
 export type Vorlage = Turnier["template"];
 
+/** „Wie ein früheres Turnier“: `POST /tournaments/{id}/copy` */
+export type TurnierKopie = Schemas["TournamentCopy"];
+export type KopieErgebnis = Schemas["TournamentCopyOut"];
+export type KopierterWettbewerb = Schemas["CopiedCompetitionOut"];
+/** Fertige Vorlage: `GET /tournament-templates`, `POST /tournaments/from-template` */
+export type TurnierVorlage = Schemas["TournamentTemplateOut"];
+export type VorlagenAnlage = Schemas["TournamentFromTemplate"];
+
 export type Stand = Schemas["RangeOut"];
 export type StandAnlage = Schemas["RangeCreate"];
 export type StandAenderung = Schemas["RangeUpdate"];

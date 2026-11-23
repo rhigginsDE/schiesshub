@@ -7,6 +7,7 @@ import { useDarf } from "../app/berechtigungen";
 import { formatDatum } from "../lib/format";
 import { TurnierAnlegen } from "../modules/turnier/TurnierAnlegen";
 import type { Turnier } from "../modules/turnier/typen";
+import { UebungChip, UebungStarten } from "../modules/turnier/Uebung";
 import { Chip, type ChipTon } from "./Chip";
 import s from "./TurnierWahl.module.css";
 import { type AktivesTurnier, useAktivesTurnier } from "./useAktivesTurnier";
@@ -103,6 +104,7 @@ export function TurnierAuswahl({
           <Button component={Link} to="/turnier" variant="default">
             {t("leer_link")}
           </Button>
+          {darfAnlegen && <UebungStarten darstellung="leise" />}
         </Leerzustand>
       ) : (
         <ul className={s.liste}>
@@ -123,7 +125,10 @@ export function TurnierAuswahl({
                     <span className="num">{zeitraum(turnier, i18n.language)}</span>
                   </span>
                 </span>
-                <TurnierStatusChip status={turnier.status} />
+                <span className={s.chips}>
+                  <TurnierStatusChip status={turnier.status} />
+                  {turnier.is_practice && <UebungChip />}
+                </span>
                 <ArrowRight className={s.pfeil} aria-hidden />
               </button>
             </li>
@@ -162,6 +167,7 @@ export function TurnierWechsel({ turnier, onWechseln }: TurnierWechselProps) {
         <strong>{turnier.name}</strong>
       </span>
       {turnier.status !== "active" && <TurnierStatusChip status={turnier.status} />}
+      {turnier.is_practice && <UebungChip />}
       <Button
         variant="subtle"
         color="gray"

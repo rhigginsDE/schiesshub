@@ -25,10 +25,14 @@ export function merkeTurnier(id: string): void {
 
 const STATUS_RANG: Record<Turnier["status"], number> = { active: 0, draft: 1, closed: 2 };
 
-/** Aktive zuerst, dann Entwürfe, dann abgeschlossene; je Gruppe das jüngste Datum zuerst. */
+/**
+ * Aktive zuerst, dann Entwürfe, dann abgeschlossene; je Gruppe das jüngste Datum zuerst. Das
+ * Übungsturnier steht ganz unten, damit niemand es am Turniertag versehentlich wählt.
+ */
 export function sortiereTurniere(turniere: readonly Turnier[]): Turnier[] {
   return [...turniere].sort(
     (a, b) =>
+      Number(Boolean(a.is_practice)) - Number(Boolean(b.is_practice)) ||
       STATUS_RANG[a.status] - STATUS_RANG[b.status] ||
       b.date_from.localeCompare(a.date_from) ||
       a.name.localeCompare(b.name, "de"),
@@ -43,7 +47,8 @@ export interface TurnierBestimmung {
 
 /**
  * Welches Turnier die Station bearbeitet: die gespeicherte Wahl, solange es das Turnier gibt;
- * sonst das einzige aktive. Gibt es keins oder mehrere, muss gewählt werden (`null`).
+ * sonst das einzige aktive echte Turnier (das Übungsturnier wird nie von selbst gewählt). Gibt es
+ * keins oder mehrere, muss gewählt werden (`null`).
  */
 export function bestimmeTurnier(
   turniere: readonly Turnier[],
@@ -51,7 +56,7 @@ export function bestimmeTurnier(
 ): TurnierBestimmung {
   const gespeichert = gespeichertId ? turniere.find((t) => t.id === gespeichertId) : undefined;
   if (gespeichert) return { turnier: gespeichert, automatisch: false };
-  const aktive = turniere.filter((t) => t.status === "active");
+  const aktive = turniere.filter((t) => t.status === "active" && !t.is_practice);
   if (aktive.length === 1) return { turnier: aktive[0] ?? null, automatisch: true };
   return { turnier: null, automatisch: false };
 }

@@ -66,14 +66,83 @@
     "loeschen": "„{{name}}“ löschen",
     "loeschen_titel": "„{{name}}“ löschen?",
     "loeschen_text": "Das Turnier wird mit allen Ständen, Klassen und Wettbewerben gelöscht. Das lässt sich nicht rückgängig machen.",
-    "loeschen_knopf": "Turnier löschen"
+    "loeschen_knopf": "Turnier löschen",
+    "kopieren": "Kopieren",
+    "kopieren_lang": "„{{name}}“ als Vorlage für ein neues Turnier nehmen"
   },
   "anlegen": {
     "titel": "Turnier anlegen",
+    "frage": "Wie möchtest du beginnen?",
     "text": "Name und Datum genügen. Alles Weitere richtest du danach Schritt für Schritt ein.",
     "mehrtaegig": "Das Turnier dauert mehrere Tage",
     "art": "Art des Turniers",
+    "knopf": "Anlegen und einrichten",
+    "zurueck": "Zurück",
+    "name_doppelt": "Ein Turnier mit diesem Namen gibt es schon. Häng zum Beispiel das Jahr oder einen Zusatz an.",
+    "name_fehlt": "Gib dem Turnier einen Namen.",
+    "datum_fehlt": "Wähl das Datum, an dem das Turnier stattfindet.",
+    "weg": {
+      "leer": {
+        "titel": "Leer beginnen",
+        "text": "Du gibst Name und Datum an und richtest danach alles Schritt für Schritt ein."
+      },
+      "kopie": {
+        "titel": "Wie ein früheres Turnier",
+        "text": "Übernimmt Stände, Klassen, Wettbewerbe und Startgeld. Teilnehmer und Ergebnisse kommen nicht mit."
+      },
+      "vorlage": {
+        "titel": "Aus einer Vorlage",
+        "text": "Fertige Turniere mit Ständen und Wettbewerben, zum Beispiel Fallscheibe Flinte 15 m."
+      }
+    }
+  },
+  "kopie": {
+    "titel": "Wie ein früheres Turnier",
+    "quelle": "Welches Turnier ist das Vorbild?",
+    "leer": "Es gibt noch kein Turnier, das du als Vorbild nehmen kannst. Beginne leer oder aus einer Vorlage.",
+    "quelle_uebung": "{{name}} (Übung)",
+    "datum": "Datum des neuen Turniers",
+    "erster_tag": "Erster Tag des neuen Turniers",
+    "dauer": "Das neue Turnier dauert wieder {{count}} Tage.",
+    "name_hilfe": "Die Jahreszahl im Namen passt sich dem Datum an, bis du den Namen selbst änderst.",
+    "uebernommen": "Kommt mit",
+    "uebernommen_text": "Stände, Klassen, Wettbewerbe mit Ablauf und Startgeld, die Vorgaben und die Ausschreibung.",
+    "nicht_uebernommen": "Kommt nicht mit",
+    "nicht_uebernommen_text": "Teilnehmer, Anmeldungen, Durchgänge und Ergebnisse. Das neue Turnier beginnt als Entwurf.",
+    "knopf": "Kopieren und einrichten"
+  },
+  "aus_vorlage": {
+    "titel": "Aus einer Vorlage",
+    "frage": "Welche Vorlage passt?",
+    "wettbewerbe_one": "{{count}} Wettbewerb",
+    "wettbewerbe_other": "{{count}} Wettbewerbe",
+    "fehlt": "Geht gerade nicht: Eine Disziplin dieser Vorlage fehlt im Katalog.",
+    "leer": "Es sind keine Vorlagen vorhanden. Beginne leer oder wie ein früheres Turnier.",
+    "hinweis": "Startgeld, Klassen und alles andere kannst du danach in der Einrichtung ändern.",
+    "name_vorschlag": "{{vorlage}} {{jahr}}",
     "knopf": "Anlegen und einrichten"
+  },
+  "uebung": {
+    "kennzeichen": "Übung",
+    "kennzeichen_lang": "Übungsturnier mit Beispieldaten",
+    "starten": "Zum Ausprobieren: Übungsturnier mit Beispieldaten",
+    "starten_kurz": "Erst ausprobieren? Übungsturnier mit Beispieldaten öffnen",
+    "banner_titel": "Das ist das Übungsturnier",
+    "banner_text": "Alle Personen, Vereine und Ergebnisse sind erfunden. Probier hier gefahrlos alles aus: anmelden, Ergebnisse erfassen, die Anzeige ansehen. Für dein echtes Turnier legst du ein eigenes an.",
+    "loeschen": "Übung löschen",
+    "loeschen_titel": "Übungsturnier löschen?",
+    "loeschen_text": "Alle Beispieldaten und alles, was du darin ausprobiert hast, werden gelöscht. Deine echten Turniere bleiben, wie sie sind.",
+    "loeschen_knopf": "Übung löschen"
+  },
+  "kopie_hinweis": {
+    "titel": "Seit „{{quelle}}“ hat sich der Katalog geändert",
+    "text_one": "Dieser Wettbewerb ist noch so eingestellt wie beim letzten Mal. Prüf, ob du den neuen Stand aus dem Katalog übernehmen willst.",
+    "text_other": "Diese {{count}} Wettbewerbe sind noch so eingestellt wie beim letzten Mal. Prüf bei jedem, ob du den neuen Stand aus dem Katalog übernehmen willst.",
+    "unterschied": "Anders als im Katalog: {{punkte}}",
+    "ohne_punkte": "Der Ablauf im Katalog ist jetzt anders.",
+    "pruefen": "Prüfen",
+    "pruefen_lang": "„{{name}}“ prüfen",
+    "ausblenden": "Geprüft, ausblenden"
   },
   "feld": {
     "name": "Name",
@@ -126,6 +195,7 @@
     "bereiche": "Schritte der Einrichtung",
     "unvollstaendig": "unvollständig",
     "abgeschlossen": "Das Turnier ist abgeschlossen. Zum Ändern zuerst „Wieder öffnen“.",
+    "kopieren": "Für ein neues Turnier kopieren",
     "nicht_gefunden_titel": "Turnier nicht gefunden",
     "nicht_gefunden_text": "Dieses Turnier gibt es nicht mehr. Vielleicht wurde es auf einem anderen Gerät gelöscht.",
     "zur_liste": "Zur Liste der Turniere"

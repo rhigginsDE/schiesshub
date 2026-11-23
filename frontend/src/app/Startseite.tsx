@@ -15,6 +15,7 @@ import { formatUhrzeit } from "../lib/format";
 import { startlisteAbfrage } from "../modules/anmeldung/api";
 import { uebersichtAbfrage } from "../modules/turnier/abfragen";
 import { TurnierAnlegen } from "../modules/turnier/TurnierAnlegen";
+import { UebungStarten } from "../modules/turnier/Uebung";
 import { offenePunkte } from "../modules/turnier/vollstaendigkeit";
 import {
   type AblaufAktion,
@@ -398,6 +399,10 @@ function AblaufSeite() {
                         </>
                       )}
                   </p>
+                  {/* Noch kein Turnier: Neulinge können erst in einer Übung ausprobieren. */}
+                  {schritt.id === "turnier" && !turnier && darfEinrichten && (
+                    <UebungStarten darstellung="leise" />
+                  )}
                   {naechster && !aktion && (
                     <p className={s.hinweis}>
                       {schritt.id === "sicherung"

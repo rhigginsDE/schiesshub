@@ -1,5 +1,5 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ApiFehler, apiGet } from "../../api/client";
+import { ApiFehler, apiGet, apiSenden } from "../../api/client";
 import { EREIGNIS_VERBUNDEN, type EreignisZuordnung } from "../../api/ereignisse";
 import { turnierSenden } from "./senden";
 import type {
@@ -7,6 +7,7 @@ import type {
   KatalogVergleich,
   KlasseAenderung,
   KlasseAnlage,
+  KopieErgebnis,
   Revision,
   Stand,
   StandAenderung,
@@ -15,8 +16,11 @@ import type {
   TurnierAenderung,
   TurnierAnlage,
   TurnierKlasse,
+  TurnierKopie,
   TurnierStatus,
   TurnierUebersicht,
+  TurnierVorlage,
+  VorlagenAnlage,
   Wettbewerb,
   WettbewerbAenderung,
   WettbewerbAnlage,
@@ -31,6 +35,7 @@ export const turnierSchluessel = {
     ["turnier", id, "wettbewerb", wettbewerb, "revisionen"] as const,
   katalogDiff: (id: string, wettbewerb: string) =>
     ["turnier", id, "wettbewerb", wettbewerb, "katalog-diff"] as const,
+  vorlagen: () => ["turnier", "vorlagen"] as const,
 };
 
 /** Alle Ereignisse, die das Backend-Modul `turnier` sendet (service.py). */
@@ -73,6 +78,14 @@ export const turnierListeAbfrage = () =>
   queryOptions({
     queryKey: turnierSchluessel.liste(),
     queryFn: ({ signal }) => apiGet<Turnier[]>(pfad.turniere, { signal }),
+  });
+
+/** Fertige Vorlagen; ändern sich nur mit einem neuen Programmstand. */
+export const vorlagenAbfrage = () =>
+  queryOptions({
+    queryKey: turnierSchluessel.vorlagen(),
+    queryFn: ({ signal }) => apiGet<TurnierVorlage[]>("/tournament-templates", { signal }),
+    staleTime: 5 * 60_000,
   });
 
 export const uebersichtAbfrage = (id: string) =>
@@ -136,6 +149,75 @@ export function useTurnierAnlegen() {
   return useSchreiben((daten: TurnierAnlage) =>
     turnierSenden<Turnier>("POST", pfad.turniere, daten),
   );
+}
+
+/** „Wie ein früheres Turnier“: neues Turnier mit Einstellungen und Wettbewerben der Quelle. */
+export function useTurnierKopieren() {
+  return useSchreiben(({ quelleId, daten }: { quelleId: string; daten: TurnierKopie }) =>
+    turnierSenden<KopieErgebnis>("POST", `${pfad.turnier(quelleId)}/copy`, daten),
+  );
+}
+
+export function useAusVorlageAnlegen() {
+  return useSchreiben((daten: VorlagenAnlage) =>
+    turnierSenden<TurnierUebersicht>("POST", `${pfad.turniere}/from-template`, daten),
+  );
+}
+
+/**
+ * Übungsturnier anlegen. Gibt es schon eins (409 `practice_exists`), ist das kein Fehler: Die
+ * Antwort nennt dann das vorhandene, und das wird geöffnet.
+ */
+export async function uebungAnlegen(): Promise<{ id: string; vorhanden: boolean }> {
+  try {
+    const turnier = await apiSenden<TurnierUebersicht>(
+      "POST",
+      `${pfad.turniere}/practice`,
+      undefined,
+      { still: true },
+    );
+    return { id: turnier.id, vorhanden: false };
+  } catch (fehler) {
+    const id = vorhandeneUebung(fehler);
+    if (id) return { id, vorhanden: true };
+    throw fehler;
+  }
+}
+
+/** ID des vorhandenen Übungsturniers aus einer 409-Antwort, sonst `null`. */
+export function vorhandeneUebung(fehler: unknown): string | null {
+  if (!(fehler instanceof ApiFehler) || fehler.status !== 409) return null;
+  const inhalt = fehler.inhalt as { code?: unknown; tournament_id?: unknown } | undefined;
+  const code = fehler.code ?? inhalt?.code;
+  if (code !== "practice_exists" || typeof inhalt?.tournament_id !== "string") return null;
+  return inhalt.tournament_id;
+}
+
+/** Die Übung legt auch Personen, Vereine und Starts an bzw. entfernt sie: alles neu laden. */
+function useAllesNeuLaden<E, A>(senden: (eingabe: E) => Promise<A>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: senden,
+    onSuccess: () => queryClient.invalidateQueries(),
+  });
+}
+
+export function useUebungAnlegen() {
+  return useAllesNeuLaden((_: undefined) => uebungAnlegen());
+}
+
+/** Entfernt das Übungsturnier in jedem Status, samt Beispieldaten. */
+export function useUebungLoeschen() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => turnierSenden("DELETE", pfad.turnier(id)),
+    onSuccess: (_, id) => {
+      // Das gelöschte Turnier nicht neu laden (sonst blitzt „nicht gefunden“ auf), alles andere schon.
+      const geloescht = (schluessel: readonly unknown[]) =>
+        schluessel[0] === "turnier" && schluessel[1] === id;
+      void queryClient.invalidateQueries({ predicate: (q) => !geloescht(q.queryKey) });
+    },
+  });
 }
 
 export function useTurnierAendern(id: string) {

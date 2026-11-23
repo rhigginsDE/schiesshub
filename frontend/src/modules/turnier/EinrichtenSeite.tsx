@@ -1,7 +1,7 @@
 import { Button, NativeSelect, Skeleton } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Check, CircleAlert, CircleDashed, CircleDot } from "lucide-react";
+import { ArrowRight, Check, CircleAlert, CircleDashed, CircleDot, Copy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDarf } from "../../app/berechtigungen";
@@ -16,10 +16,13 @@ import { Staende } from "./bereiche/Staende";
 import { Stammdaten } from "./bereiche/Stammdaten";
 import { Zusammenfassung } from "./bereiche/Zusammenfassung";
 import { EntwurfSchutz, useUngespeichert } from "./EntwurfSchutz";
+import { KopieHinweis } from "./KopieHinweis";
 import { zeitraum } from "./klartext";
 import { type EinrichtenSuche, TURNIER_PFAD } from "./pfade";
 import { StatusAktionen, StatusChip } from "./Status";
+import { TurnierAnlegen } from "./TurnierAnlegen";
 import s from "./turnier.module.css";
+import { UebungBanner, UebungChip } from "./Uebung";
 import { EntwurfKontext, EntwurfRegister } from "./useEntwurf";
 import {
   BEREICHE,
@@ -29,6 +32,7 @@ import {
   type SchrittZustand,
   schrittZustaende,
 } from "./vollstaendigkeit";
+import v from "./vorlagen.module.css";
 import { Wettbewerbe } from "./wettbewerbe/Wettbewerbe";
 
 interface EinrichtenSeiteProps {
@@ -51,6 +55,7 @@ export function EinrichtenSeite({ turnierId, suche, onSuche }: EinrichtenSeitePr
   const mitAusschreibung = ausschreibung.data !== null;
   const [register] = useState(() => new EntwurfRegister());
   const ungespeichert = useUngespeichert(register);
+  const [kopieren, setKopieren] = useState(false);
 
   const turnier = abfrage.data;
   const punkte = turnier ? offenePunkte(turnier) : [];
@@ -117,6 +122,7 @@ export function EinrichtenSeite({ turnierId, suche, onSuche }: EinrichtenSeitePr
             <div className={s.kopfZeile}>
               <h1 className="h-display">{turnier.name}</h1>
               <StatusChip status={turnier.status} />
+              {turnier.is_practice && <UebungChip />}
             </div>
             <p className="gedaempft">
               <span className="num">{zeitraum(turnier, i18n.language)}</span>
@@ -144,12 +150,26 @@ export function EinrichtenSeite({ turnierId, suche, onSuche }: EinrichtenSeitePr
           </div>
         </header>
 
+        {turnier.is_practice && <UebungBanner turnierId={turnier.id} />}
+
         {turnier.status === "closed" && (
-          <p className={s.warnBanner} role="status">
+          <div className={`${s.warnBanner} ${v.umbruch}`} role="status">
             <CircleAlert aria-hidden />
-            {t("einrichten.abgeschlossen")}
-          </p>
+            <span className={v.fuellen}>{t("einrichten.abgeschlossen")}</span>
+            {darfBearbeiten && (
+              <Button
+                variant="default"
+                leftSection={<Copy aria-hidden />}
+                onClick={() => setKopieren(true)}
+              >
+                {t("einrichten.kopieren")}
+              </Button>
+            )}
+          </div>
         )}
+
+        {/* Nach dem Kopieren: geänderte Katalog-Disziplinen; nicht, solange ein Wettbewerb offen ist. */}
+        {!suche.wettbewerb && <KopieHinweis key={turnier.id} turnier={turnier} />}
 
         <div className={s.einrichtenSpalten}>
           <Schrittliste
@@ -216,6 +236,9 @@ export function EinrichtenSeite({ turnierId, suche, onSuche }: EinrichtenSeitePr
         </div>
       </div>
       <EntwurfSchutz register={register} ort={t(`bereich.${bereich}.titel`)} />
+      {kopieren && (
+        <TurnierAnlegen offen vorbild={turnier.id} onSchliessen={() => setKopieren(false)} />
+      )}
     </EntwurfKontext.Provider>
   );
 }

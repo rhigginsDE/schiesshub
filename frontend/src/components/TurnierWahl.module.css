@@ -127,3 +127,11 @@
     justify-self: start;
   }
 }
+
+/* Status und ggf. „Übung“ nebeneinander, als eine Spalte des Eintrags */
+.chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}

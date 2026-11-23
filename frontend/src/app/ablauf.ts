@@ -123,9 +123,10 @@ export function turnierFuerAblauf(
   turniere: readonly Turnier[],
 ): Turnier | null {
   if (bestimmt) return bestimmt;
+  // Das Übungsturnier nur, wenn es kein echtes gibt.
   const zuletzt = (status: Turnier["status"]) =>
     turniere
-      .filter((t) => t.status === status)
+      .filter((t) => t.status === status && !t.is_practice)
       .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
   return zuletzt("active") ?? zuletzt("draft") ?? sortiereTurniere(turniere)[0] ?? null;
 }
