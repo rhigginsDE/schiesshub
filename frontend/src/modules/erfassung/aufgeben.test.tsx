@@ -179,9 +179,10 @@ function auskunftFuer(stand: ErgebnisStand): AufgebenAuskunft | null {
       ...basis,
       would_place: false,
       reason_code: "missing_values",
-      message_de: mitStatus
-        .map((x) => `Serie ${x.number}: Anzahl stehender Scheiben fehlt.`)
-        .join(" "),
+      // Form wie beim Server: die fehlenden Werte und die Folge in einem Text.
+      message_de: `Es fehlen noch: ${mitStatus
+        .map((x) => `Serie ${x.number} (Stehende Scheiben)`)
+        .join(" und ")}. Ohne diese Werte bleibt der Start ohne Platz.`,
       missing_fields: mitStatus.map((x) => ({
         path: pfad(x),
         key: "standing",
@@ -614,8 +615,12 @@ describe("Offene Serien und fehlende Werte (Vorabauskunft)", () => {
     const dialog = await aufgebenWaehlen(user);
     expect(within(dialog).getByText("Serie 2 ist noch nicht fertig erfasst.")).toBeInTheDocument();
     expect(
-      within(dialog).getByText("Serie 2: Anzahl stehender Scheiben fehlt."),
+      within(dialog).getByText(
+        "Es fehlen noch: Serie 2 (Stehende Scheiben). Ohne diese Werte bleibt der Start ohne Platz.",
+      ),
     ).toBeInTheDocument();
+    // Die Folge sagt der Text des Servers schon; kein zweites „ohne Platz“.
+    expect(within(dialog).queryByText(/Gibst du jetzt trotzdem auf/)).toBeNull();
     await user.click(within(dialog).getByRole("button", { name: "Zum fehlenden Feld" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     // Das aktive Feld: stehende Scheiben in Serie 2 (nicht die nicht gewertete Zeit).

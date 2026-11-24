@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Formular } from "./api";
+import type { AbschnittWertung, Formular, SerienWertung } from "./api";
 import {
   aenderungen,
   aenderungsOrt,
@@ -7,6 +7,7 @@ import {
   erreichbar,
   erstesOffenes,
   fehlstellen,
+  fertigeSerien,
   gleicheRohwerte,
   meldungenFuer,
   naechstes,
@@ -19,7 +20,7 @@ import {
   zeitenUeberGrenze,
   zielNachStatus,
 } from "./rohwerte";
-import { FALLSCHEIBE, PRAEZISION } from "./testdaten";
+import { FALLSCHEIBE, PRAEZISION, wertung } from "./testdaten";
 
 const leer = entwurfAus({});
 
@@ -289,6 +290,27 @@ describe("Vollständigkeit und Änderungen", () => {
       },
     });
     expect(fehlstellen(FALLSCHEIBE, e)).toEqual([]);
+  });
+
+  it("eine Serie, die der Server vollständig nennt, hat keine Lücke (Serie nicht beendet)", () => {
+    const e = entwurfAus({
+      sections: { praezision: { series: [{ status: "unfinished", shots: [10] }] } },
+    });
+    const serie = { complete: true } as SerienWertung;
+    const offen = { complete: false } as SerienWertung;
+    const w = wertung({
+      sections: [{ id: "praezision", series: [serie, offen] } as AbschnittWertung],
+    });
+    const fertig = fertigeSerien(w);
+    expect([...fertig]).toEqual(["sections.praezision.series.0"]);
+    expect(fehlstellen(PRAEZISION, e).map((f) => f.pfad)).toEqual([
+      "sections.praezision.series.0",
+      "sections.praezision.series.1",
+    ]);
+    expect(fehlstellen(PRAEZISION, e, fertig).map((f) => f.pfad)).toEqual([
+      "sections.praezision.series.1",
+    ]);
+    expect(fertigeSerien(null).size).toBe(0);
   });
 
   it("stellt geänderte Felder alt und neu gegenüber", () => {

@@ -98,6 +98,7 @@ import {
   erstesOffenes,
   type FeldRef,
   fehlstellen,
+  fertigeSerien,
   gleicheRohwerte,
   hatWert,
   mitAbgeleiteten,
@@ -1026,7 +1027,12 @@ function Flaeche({
   const ringe = form.sections.some((a) => a.series.some((serie) => serie.shots !== null));
   const erfassungsNotizen = notizen(form, "erfassung");
   const titelAktiv = aktiv ? feldTitel(aktiv, form, t) : null;
-  const luecken = wertung && !wertung.complete ? fehlstellen(form, ansicht) : [];
+  /** Alle Eingaben hat der Server (Grundlage für die offenen Serien und das Aufgeben). */
+  const allesBeimServer = !zustand.ungespeichert && phase === "gespeichert";
+  // Serien, die der Server für den gespeicherten Stand vollständig nennt, haben keine Lücke (z. B.
+  // „Serie nicht beendet“ mit 3 von 5 Schuss). Solange Eingaben unterwegs sind, gilt die Maske.
+  const fertig = allesBeimServer ? fertigeSerien(wertung) : new Set<string>();
+  const luecken = wertung && !wertung.complete ? fehlstellen(form, ansicht, fertig) : [];
   const korrekturRoh = korrektur ? rohwerteAus(form, entwurf) : null;
   const korrekturAenderungen = korrekturRoh ? aenderungen(form, basis.raw ?? {}, korrekturRoh) : [];
   // Korrektur: der Server rechnet die geänderten Werte probeweise (nichts wird gespeichert).
@@ -1045,14 +1051,12 @@ function Flaeche({
     !vorschau.isPlaceholderData &&
     !vorschau.isFetching;
   const naechsterVorschlag = vorgeschlagen ?? (abgeschlossen || abgebrochen ? vorschlag() : null);
-  /** Alle Eingaben hat der Server (Grundlage für die offenen Serien und das Aufgeben). */
-  const allesBeimServer = !zustand.ungespeichert && phase === "gespeichert";
   // Vorgemerktes Aufgeben: was in diesen Serien laut Eingabe noch fehlt.
   const vorgemerktPfade = new Set(
     (vorgemerkt ?? []).map((o) => serienPfad(o.abschnitt.id, o.serie.index)),
   );
   const vorgemerktFehlt = vorgemerkt
-    ? fehlstellen(form, entwurf).filter((f) => vorgemerktPfade.has(f.pfad))
+    ? fehlstellen(form, entwurf, fertig).filter((f) => vorgemerktPfade.has(f.pfad))
     : [];
 
   return (

@@ -628,7 +628,8 @@ export function AufgebenHinweis({
                 ? t("abbruch.offen.text", werte)
                 : t("abbruch.offen.text_fertig", werte)}
           </p>
-          <p className={s.klein}>{t("abbruch.offen.folge", werte)}</p>
+          {/* Bei fehlenden Werten sagt der Text des Servers die Folge schon selbst. */}
+          {!fehlendeWerte && <p className={s.klein}>{t("abbruch.offen.folge", werte)}</p>}
           {serienListe}
           {onTrotzdem && (
             <button

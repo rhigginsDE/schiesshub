@@ -17,6 +17,7 @@ import type {
   Rohwerte,
   SerieForm,
   StatusOption,
+  Wertung,
 } from "./api";
 
 /** Ein Schusswert: Ringzahl oder „X“ (Innenzehner). */
@@ -234,12 +235,12 @@ export function statusAus(
 
 /**
  * Ob ein Feld beim gewählten Status gebraucht wird. Im Regelfall gelten alle Felder der Serie
- * (auch freiwillige wie Zehner), sonst nur die `required_fields` des Status.
+ * (auch freiwillige wie Zehner), sonst die `required_fields` und `optional_fields` des Status.
  */
 export function feldAktiv(option: StatusOption | null, key: string): boolean {
   if (key === "status") return true;
   if (!option || option.key === NORMAL) return true;
-  return option.required_fields.includes(key);
+  return option.required_fields.includes(key) || (option.optional_fields?.includes(key) ?? false);
 }
 
 /**
@@ -498,13 +499,21 @@ export interface Fehlstelle {
  * Was nach der Formularbeschreibung noch fehlt: Pflichtfelder ohne Wert, die beim gewählten
  * Ablauf der Serie gebraucht werden (nicht gewertete nie). Ob das Ergebnis vollständig ist,
  * entscheidet der Server; das hier sagt nur, wo die Lücken sind.
+ *
+ * `fertig`: Serien, die der Server für genau diesen Stand als vollständig meldet (`fertigeSerien`).
+ * Dort fehlt nichts, auch wenn nicht jeder Schuss erfasst ist (z. B. „Serie nicht beendet“).
  */
-export function fehlstellen(form: Formular, entwurf: Entwurf): Fehlstelle[] {
+export function fehlstellen(
+  form: Formular,
+  entwurf: Entwurf,
+  fertig: ReadonlySet<string> = new Set(),
+): Fehlstelle[] {
   const liste: Fehlstelle[] = [];
   for (const ref of reihenfolge(form, entwurf)) {
     if (!ref.feld.required || ref.ungewertet || hatWert(entwurf, ref)) continue;
     const pfad =
       ref.serie === null ? `sections.${ref.abschnitt}` : serienPfad(ref.abschnitt, ref.serie);
+    if (fertig.has(pfad)) continue;
     let eintrag = liste.find((f) => f.pfad === pfad);
     if (!eintrag) {
       eintrag = { pfad, abschnitt: ref.abschnitt, serie: ref.serie, felder: [], ziel: ref };
@@ -513,6 +522,17 @@ export function fehlstellen(form: Formular, entwurf: Entwurf): Fehlstelle[] {
     if (!eintrag.felder.includes(ref.feld.label)) eintrag.felder.push(ref.feld.label);
   }
   return liste;
+}
+
+/** Pfade der Serien, die der Server als vollständig meldet (`complete`), für `fehlstellen`. */
+export function fertigeSerien(wertung: Wertung | null | undefined): Set<string> {
+  const fertig = new Set<string>();
+  for (const abschnitt of wertung?.sections ?? []) {
+    abschnitt.series.forEach((serie, index) => {
+      if (serie.complete) fertig.add(serienPfad(abschnitt.id, index));
+    });
+  }
+  return fertig;
 }
 
 // --- Änderungen (Korrektur) ----------------------------------------------------------------------

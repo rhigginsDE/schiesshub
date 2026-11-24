@@ -7009,6 +7009,11 @@ export interface components {
             /** Required Fields */
             required_fields: string[];
             /**
+             * Optional Fields
+             * @default []
+             */
+            optional_fields: string[];
+            /**
              * Unscored Fields
              * @default []
              */
