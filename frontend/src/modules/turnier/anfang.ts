@@ -83,6 +83,45 @@ export function tage(turnier: Pick<Turnier, "date_from" | "date_to">): number {
   return Math.round((tag(turnier.date_to) - tag(turnier.date_from)) / 86_400_000) + 1;
 }
 
+const TAG_MS = 86_400_000;
+
+/**
+ * Tag als fortlaufende Zahl; `null` bei leerem oder unvollständigem Datum. Auch Jahre unter 100
+ * zählen richtig (beim Tippen meldet das Datumsfeld Zwischenstände wie „0002-12-05“).
+ */
+function tagNummer(datum: string): number | null {
+  const teile = /^(\d{4,})-(\d{2})-(\d{2})$/.exec(datum);
+  if (!teile) return null;
+  const tag = new Date(0);
+  tag.setUTCFullYear(Number(teile[1]), Number(teile[2]) - 1, Number(teile[3]));
+  return Math.round(tag.getTime() / TAG_MS);
+}
+
+function ausTagNummer(nummer: number): string {
+  const tag = new Date(nummer * TAG_MS);
+  const jahr = String(tag.getUTCFullYear()).padStart(4, "0");
+  return `${jahr}-${zwei(tag.getUTCMonth() + 1)}-${zwei(tag.getUTCDate())}`;
+}
+
+/**
+ * „Datum bis“, nachdem sich „Datum von“ geändert hat: Es wandert mit und behält die Dauer
+ * (eintägig: gleich „Datum von“), solange es in dieser Sitzung niemand selbst geändert hat
+ * (`bisEigen`). Sonst, bei leerem „Datum bis“ („leer lassen bei einem Tag“) und bei
+ * unvollständigem Datum bleibt es, wie es ist – dann greift die Prüfung „Enddatum vor Beginn“.
+ */
+export function bisNachVon(
+  alt: { date_from: string; date_to: string },
+  neuVon: string,
+  bisEigen: boolean,
+): string {
+  if (bisEigen || !alt.date_to) return alt.date_to;
+  const von = tagNummer(alt.date_from);
+  const bis = tagNummer(alt.date_to);
+  const neu = tagNummer(neuVon);
+  if (von === null || bis === null || neu === null) return alt.date_to;
+  return ausTagNummer(neu + Math.max(0, bis - von));
+}
+
 /** Turniere, die sich als Vorbild eignen: jüngstes zuerst, das Übungsturnier zuletzt. */
 export function vorbilder(turniere: readonly Turnier[]): Turnier[] {
   return [...turniere].sort(

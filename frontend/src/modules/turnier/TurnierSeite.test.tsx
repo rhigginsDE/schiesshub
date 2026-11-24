@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { renderApp } from "../../test/app";
@@ -175,6 +175,25 @@ describe("Turnier einrichten", () => {
       methode: "PATCH",
       inhalt: { settings: { heat_reserve_minutes: 0 } },
     });
+  });
+
+  it("Stammdaten: „Datum bis“ wandert mit „Datum von“, bis man es selbst ändert", async () => {
+    const turnier = { ...beispielTurnier(), date_from: "2026-12-05", date_to: "2026-12-06" };
+    api(grundlage(turnier));
+    renderApp(`/turnier/${TURNIER_ID}?bereich=stammdaten`);
+
+    const von = (await screen.findByLabelText(/Datum von/)) as HTMLInputElement;
+    const bis = screen.getByLabelText(/Datum bis/) as HTMLInputElement;
+    // Zweitägig: Dauer bleibt, keine Fehlermeldung
+    fireEvent.change(von, { target: { value: "2026-12-12" } });
+    expect(bis).toHaveValue("2026-12-13");
+    expect(screen.queryByText("Das Enddatum liegt vor dem Anfangsdatum.")).not.toBeInTheDocument();
+
+    // Selbst geändert: bleibt stehen, dann greift die Prüfung
+    fireEvent.change(bis, { target: { value: "2026-12-14" } });
+    fireEvent.change(von, { target: { value: "2026-12-20" } });
+    expect(bis).toHaveValue("2026-12-14");
+    expect(screen.getByText("Das Enddatum liegt vor dem Anfangsdatum.")).toBeInTheDocument();
   });
 
   it("verwirft auf Wunsch und wechselt dann den Schritt", async () => {

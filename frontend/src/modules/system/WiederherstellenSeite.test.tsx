@@ -329,7 +329,13 @@ describe("Sicherung wiederherstellen (geführt)", () => {
           vorschau({
             source: QUELLE_SERVER,
             confirm: QUELLE_SERVER.id,
+            app_version: "0.1.0",
+            app_version_current: "0.2.0",
             note_items: [
+              {
+                code: "other_app_version",
+                message_de: "Die Sicherung stammt von App-Version 0.1.0, laufend ist 0.2.0.",
+              },
               {
                 code: "server_copy_without_keys",
                 message_de:
@@ -358,6 +364,15 @@ describe("Sicherung wiederherstellen (geführt)", () => {
     await nutzer.click((await screen.findAllByRole("radio"))[0] as HTMLElement);
     await nutzer.click(screen.getByRole("button", { name: "Weiter mit dieser Sicherung" }));
     expect(await screen.findByText("Passwort vergessen?")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Dieselbe Sicherung liegt auch auf dem Server. Diese Kopie braucht kein Passwort.",
+      ),
+    ).toBeInTheDocument();
+    // Vor dem Klick: was fehlende Schlüssel bedeuten
+    expect(
+      screen.getByText(/Ihr fehlen aber die Schlüssel, mit denen die Namen verschlüsselt sind/),
+    ).toBeInTheDocument();
     await nutzer.click(screen.getByRole("button", { name: "Kopie vom Server nehmen" }));
 
     expect(await screen.findByRole("heading", { name: "Das kommt zurück" })).toBeInTheDocument();
@@ -371,6 +386,11 @@ describe("Sicherung wiederherstellen (geführt)", () => {
     ).toBeInTheDocument();
     expect(sichtbar("Ein Hinweis, den die App noch nicht kennt.")).toHaveLength(1);
     expect(
+      screen.getByText(
+        "Die Sicherung stammt von Schiesshub 0.1.0, auf diesem Server läuft Version 0.2.0.",
+      ),
+    ).toBeInTheDocument();
+    expect(
       screen.getByText("Koppeln und PIN sind nicht Pflicht. An deinem Zugang ändert sich nichts."),
     ).toBeInTheDocument();
     // Die alte Liste gar nicht, Technikwörter nur in den zugeklappten Einzelheiten
@@ -378,6 +398,45 @@ describe("Sicherung wiederherstellen (geführt)", () => {
     const einzelheiten = screen.getByText("Einzelheiten für den Betreuer des Servers");
     expect(einzelheiten.closest("details")).not.toHaveAttribute("open");
     expect(einzelheiten.closest("details")).toHaveTextContent(/Berechtigungsprüfung/);
+  });
+
+  it("bietet „Passwort vergessen?“ nur an, wenn eine Kopie ohne Passwort gemeldet ist", async () => {
+    apiAttrappe({
+      "/health": HEALTH,
+      "/auth/status": anmeldung(["*"]),
+      "/backup/maintenance": KEINE_WARTUNG,
+      "/backup/restore/status": lauf({ state: "idle", step: null }),
+      "/backup/restore/sources": {
+        usb_present: true,
+        restore_running: false,
+        // Kennung sieht aus wie eine Server-Kopie, laut Server braucht sie aber ein Passwort
+        sources: [
+          {
+            ...QUELLE_STICK,
+            other_sources: [
+              {
+                id: "local:snapshot-20261123T210253Z.dump",
+                location: "local",
+                needs_passphrase: true,
+                contains_keys: false,
+              },
+            ],
+          },
+        ],
+      },
+    });
+    const nutzer = userEvent.setup();
+    renderApp("/system/sicherung/wiederherstellen");
+
+    await nutzer.click((await screen.findAllByRole("radio"))[0] as HTMLElement);
+    await nutzer.click(screen.getByRole("button", { name: "Weiter mit dieser Sicherung" }));
+    expect(
+      await screen.findByRole("heading", { name: "Passwort der Sicherung eingeben" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Passwort vergessen?")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Kopie vom Server nehmen" }),
+    ).not.toBeInTheDocument();
   });
 
   it("erklärt den Leerzustand ohne Stick", async () => {

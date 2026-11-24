@@ -3,11 +3,24 @@ import userEvent from "@testing-library/user-event";
 import { Target } from "lucide-react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { meldungenLeeren } from "../../components/Meldungen";
-import { renderAnsicht, serverAttrappe } from "../teilnehmer/testhilfe";
-import type { AbschnittWertung, ErgebnisStand, Rohwerte, SerienWertung } from "./api";
-import { offeneSerien, orteText } from "./aufgeben";
+import { renderAnsicht, serverAttrappe, type TestAntwort } from "../teilnehmer/testhilfe";
+import type {
+  AbschnittWertung,
+  AufgebenAuskunft,
+  ErgebnisStand,
+  RanglistenZeile,
+  Rohwerte,
+  SerienWertung,
+} from "./api";
+import {
+  gemeinsamerStatus,
+  nurWerteFehlen,
+  offeneSerien,
+  orteText,
+  serienDerAuskunft,
+} from "./aufgeben";
 import { ErfassungSeite } from "./ErfassungSeite";
-import { FALLSCHEIBE, maske, PRAEZISION, stand, wertung } from "./testdaten";
+import { FALLSCHEIBE, maske, stand, wertung } from "./testdaten";
 
 // Mantines Textarea mit `autosize` (Bemerkung im Abbruch-Dialog) horcht auf `document.fonts`;
 // jsdom kennt das nicht.
@@ -103,6 +116,42 @@ function fallscheibeWertung(raw: Rohwerte) {
   });
 }
 
+/**
+ * Vorabauskunft wie beim Server (`abort_preview.py`), für diese Testdaten nachgestellt: `open_series`
+ * nennt alle gewerteten Serien, die nicht fertig sind (auch nicht geschossene).
+ */
+function auskunftFuer(stand: ErgebnisStand): AufgebenAuskunft | null {
+  if (stand.status === "final" || stand.status === "aborted") return null;
+  const serien = stand.computed?.sections[0]?.series ?? [];
+  const offen = serien.filter((x) => !x.struck && !x.complete);
+  const nummern = offen.map((x) => x.number);
+  if (!serien.some((x) => x.captured)) {
+    return {
+      would_place: false,
+      reason_code: "no_values",
+      message_de: "Noch kein Wertungsschuss erfasst: Abbruch ohne Platz.",
+      open_series: nummern,
+      score_text: null,
+    };
+  }
+  if (offen.some((x) => x.captured)) {
+    return {
+      would_place: false,
+      reason_code: "incomplete_series",
+      message_de: "Serie 2 ist unvollständig erfasst – Text des Servers.",
+      open_series: nummern,
+      score_text: null,
+    };
+  }
+  return {
+    would_place: true,
+    reason_code: "placed",
+    message_de: "Würde nach dem bisherigen Ergebnis platziert (20,00 s).",
+    open_series: nummern,
+    score_text: "20,00 s",
+  };
+}
+
 function serverStand(raw: Rohwerte, teil: Partial<ErgebnisStand> = {}): ErgebnisStand {
   return stand({ raw, status: "captured", computed: fallscheibeWertung(raw), ...teil });
 }
@@ -112,79 +161,58 @@ const ANGEFANGEN: Rohwerte = {
   sections: { fallscheibe: { series: [{ time_cs: 2000, standing: 0 }, { time_cs: 1500 }] } },
 };
 
-describe("offeneSerien", () => {
-  it("Fallscheibe: angefangene, unvollständige Serie mit Status „Abbruch durch den Schützen“", () => {
-    const liste = offeneSerien(FALLSCHEIBE, fallscheibeWertung(ANGEFANGEN));
+const AUSKUNFT_OFFEN: AufgebenAuskunft = {
+  would_place: false,
+  reason_code: "incomplete_series",
+  message_de: "…",
+  open_series: [2, 3],
+  score_text: null,
+};
+
+describe("Serien zur Vorabauskunft", () => {
+  it("nimmt die offenen Serien des Servers, soweit angefangen (nicht geschossene nicht)", () => {
+    const liste = serienDerAuskunft(FALLSCHEIBE, fallscheibeWertung(ANGEFANGEN), AUSKUNFT_OFFEN);
     expect(liste.map((o) => o.ort)).toEqual(["Serie 2"]);
     expect(liste[0]?.abbruchStatus).toBe("Abbruch durch den Schützen");
+    expect(gemeinsamerStatus(liste)).toBe("Abbruch durch den Schützen");
   });
 
-  it("nicht geschossene, fertige und gestrichene Serien sind nicht offen", () => {
-    const raw = { sections: { fallscheibe: { series: [{ time_cs: 2000, standing: 0 }] } } };
-    expect(offeneSerien(FALLSCHEIBE, fallscheibeWertung(raw))).toEqual([]);
-    const gestrichen = {
-      sections: {
-        fallscheibe: { series: [{ time_cs: 2000, standing: 0 }, null, { time_cs: 900 }] },
-      },
-    };
-    expect(offeneSerien(FALLSCHEIBE, fallscheibeWertung(gestrichen))).toEqual([]);
+  it("rechnet keine Regel nach: Nur bei „incomplete_series“ gibt es Serien", () => {
+    const wertungAngefangen = fallscheibeWertung(ANGEFANGEN);
+    for (const reason_code of ["placed", "no_values", "no_rule", "invalid"] as const) {
+      expect(
+        serienDerAuskunft(FALLSCHEIBE, wertungAngefangen, { ...AUSKUNFT_OFFEN, reason_code }),
+      ).toEqual([]);
+    }
+    expect(serienDerAuskunft(FALLSCHEIBE, wertungAngefangen, null)).toEqual([]);
+    // Nennt der Server die Serie nicht, ist sie auch nicht offen.
+    expect(
+      serienDerAuskunft(FALLSCHEIBE, wertungAngefangen, { ...AUSKUNFT_OFFEN, open_series: [3] }),
+    ).toEqual([]);
   });
 
-  it("nach „Abbruch durch den Schützen“ mit stehenden Scheiben ist die Serie fertig", () => {
-    const raw = {
-      sections: {
-        fallscheibe: {
-          series: [
-            { time_cs: 2000, standing: 0 },
-            { status: "aborted_by_shooter", standing: 3 },
-          ],
-        },
-      },
-    };
-    expect(offeneSerien(FALLSCHEIBE, fallscheibeWertung(raw))).toEqual([]);
-  });
-
-  it("Ringe: eine halbe Serie zählt (fehlende Schüsse 0 Ringe), also nichts offen", () => {
-    const halb = wertung({
-      model: "ringe",
-      sections: [
-        abschnitt("praezision", [
-          serie({
-            number: 1,
-            captured: true,
-            complete: false,
-            shots_entered: 2,
-            shots_expected: 3,
-          }),
-          serie({ number: 2 }),
-        ]),
-      ],
-    });
-    expect(offeneSerien(PRAEZISION, halb)).toEqual([]);
-  });
-
-  it("Ringe minus Zeit: halbe Serie zählt nur mit Zeit", () => {
-    const mit = (time_cs: number | null) =>
-      wertung({
-        model: "ringe_minus_zeit",
-        sections: [
-          abschnitt("praezision", [
-            serie({ number: 1, captured: true, complete: false, time_cs }),
-            serie({ number: 2 }),
-          ]),
-        ],
-      });
-    expect(offeneSerien(PRAEZISION, mit(1500))).toEqual([]);
-    const ohneZeit = offeneSerien(PRAEZISION, mit(null));
-    expect(ohneZeit.map((o) => o.ort)).toEqual(["Serie 1"]);
-    // Die Serie kennt keinen Status „Abbruch durch den Schützen“: dann heißt es „fertig erfassen“.
-    expect(ohneZeit[0]?.abbruchStatus).toBeNull();
-  });
-
-  it("ohne Wertung nichts; Orte als Aufzählung", () => {
+  it("offeneSerien ohne Nummern: angefangen und nicht fertig laut Wertung; Orte als Aufzählung", () => {
     expect(offeneSerien(FALLSCHEIBE, null)).toEqual([]);
     const o = offeneSerien(FALLSCHEIBE, fallscheibeWertung(ANGEFANGEN));
+    expect(o.map((x) => x.ort)).toEqual(["Serie 2"]);
     expect(orteText([...o, ...o, ...o], "und")).toBe("Serie 2, Serie 2 und Serie 2");
+    expect(gemeinsamerStatus([])).toBeNull();
+  });
+
+  it("Status schon eingetragen, Werte fehlen: erkennt das an der Wertung des Servers", () => {
+    const gesetzt: Rohwerte = {
+      sections: {
+        fallscheibe: { series: [{ time_cs: 1200, standing: 0 }, { status: "aborted_by_shooter" }] },
+      },
+    };
+    const liste = serienDerAuskunft(FALLSCHEIBE, fallscheibeWertung(gesetzt), AUSKUNFT_OFFEN);
+    expect(liste.map((o) => o.ort)).toEqual(["Serie 2"]);
+    expect(nurWerteFehlen(liste)).toBe(true);
+    expect(
+      nurWerteFehlen(
+        serienDerAuskunft(FALLSCHEIBE, fallscheibeWertung(ANGEFANGEN), AUSKUNFT_OFFEN),
+      ),
+    ).toBe(false);
   });
 });
 
@@ -232,9 +260,45 @@ const startZeile = {
   called_at: null,
 };
 
-function routen(anfang: ErgebnisStand) {
+/** Zeile der Rangliste für diesen Start (nur, was die Erfassung liest). */
+function ranglistenZeile(teil: Partial<RanglistenZeile>): RanglistenZeile {
+  return {
+    place: null,
+    tied: false,
+    tie_unresolved: false,
+    needs_shootoff: false,
+    group: "unranked",
+    start_id: S,
+    entry_id: "e-1",
+    start_number: 7,
+    attempt: 1,
+    display_name: "M. Brandt",
+    club: null,
+    class_id: "k",
+    class_short: "S",
+    score: "43.00",
+    score_text: "43,00 s",
+    complete: false,
+    tens: null,
+    inner_tens: null,
+    series: [],
+    status: "aborted",
+    abort_reason: "dnf",
+    provisional_until: null,
+    abort_note: "Ergebnis nicht vergleichbar: Serie 2 unvollständig erfasst",
+    ...teil,
+  };
+}
+
+function routen(
+  anfang: ErgebnisStand,
+  extra: Record<string, TestAntwort | ((a: { inhalt: unknown }) => TestAntwort)> = {},
+) {
   let server = anfang;
-  const form = () => ({ inhalt: maske(FALLSCHEIBE, server) });
+  const form = () => ({
+    inhalt: { ...maske(FALLSCHEIBE, server), abort_preview: auskunftFuer(server) },
+  });
+  const zeile = () => (server.status === "aborted" ? [ranglistenZeile({})] : []);
   return serverAttrappe({
     "GET /tournaments": { inhalt: [turnier] },
     [`GET /tournaments/${T}/overview`]: { inhalt: uebersicht },
@@ -243,6 +307,14 @@ function routen(anfang: ErgebnisStand) {
     [`GET /tournaments/${T}/starts/${S}/form`]: form,
     [`GET /tournaments/${T}/starts/${S}/form?capture_mode=series`]: form,
     [`GET /tournaments/${T}/starts/${S}/events`]: { inhalt: [] },
+    [`GET /tournaments/${T}/competitions/w/ranking?class_id=k`]: () => ({
+      inhalt: { groups: [{ class_id: "k", rows: zeile() }] },
+    }),
+    [`POST /tournaments/${T}/starts/${S}/preview`]: (aufruf) => {
+      const roh = (aufruf.inhalt as { raw: Rohwerte }).raw;
+      const probe = serverStand(roh, { seq: server.seq, status: server.status });
+      return { inhalt: { computed: probe.computed, abort_preview: auskunftFuer(probe) } };
+    },
     [`PUT /tournaments/${T}/starts/${S}/raw`]: (aufruf) => {
       const inhalt = aufruf.inhalt as { raw: Rohwerte; base_seq: number };
       server = serverStand(inhalt.raw, { seq: inhalt.base_seq + 1 });
@@ -258,6 +330,21 @@ function routen(anfang: ErgebnisStand) {
       };
       return { inhalt: server };
     },
+    [`POST /tournaments/${T}/starts/${S}/correct`]: (aufruf) => {
+      const inhalt = aufruf.inhalt as { raw: Rohwerte; base_seq: number };
+      server = serverStand(inhalt.raw, {
+        seq: inhalt.base_seq + 1,
+        status: "aborted",
+        abort_reason: server.abort_reason,
+      });
+      return { inhalt: server };
+    },
+    [`POST /tournaments/${T}/starts/${S}/result/undo-abort`]: (aufruf) => {
+      const inhalt = aufruf.inhalt as { base_seq: number };
+      server = { ...server, status: "captured", abort_reason: null, seq: inhalt.base_seq + 1 };
+      return { inhalt: server };
+    },
+    ...extra,
   });
 }
 
@@ -281,7 +368,7 @@ beforeEach(() => {
   meldungenLeeren();
 });
 
-describe("Aufgeben in der Erfassung", () => {
+describe("Aufgeben in der Erfassung (Vorabauskunft)", () => {
   it("offene Serie: Rückfrage sagt, was passiert, und trägt „Abbruch durch den Schützen“ ein", async () => {
     const aufrufe = routen(serverStand(ANGEFANGEN, { seq: 3 }));
     const user = userEvent.setup();
@@ -334,6 +421,12 @@ describe("Aufgeben in der Erfassung", () => {
     await user.click(screen.getByRole("button", { name: "Jetzt aufgeben" }));
     const zweiter = await screen.findByRole("dialog");
     expect(within(zweiter).getByRole("radio", { name: "Aufgegeben" })).toBeChecked();
+    // Jetzt sagt die Auskunft des Servers: gewertet, mit dem Ergebnis.
+    expect(
+      await within(zweiter).findByText(
+        "Markus Brandt wird mit dem bisherigen Ergebnis gewertet: 20,00 s.",
+      ),
+    ).toBeInTheDocument();
     expect(within(zweiter).queryByText(/noch nicht fertig erfasst/)).toBeNull();
     await user.click(within(zweiter).getByRole("button", { name: "Start abbrechen" }));
 
@@ -358,7 +451,7 @@ describe("Aufgeben in der Erfassung", () => {
     });
   });
 
-  it("ohne offene Serie läuft das Aufgeben wie bisher", async () => {
+  it("würde platziert: Rückfrage nennt das Ergebnis des Servers", async () => {
     const fertig = { sections: { fallscheibe: { series: [{ time_cs: 2000, standing: 0 }] } } };
     const aufrufe = routen(serverStand(fertig, { seq: 2 }));
     const user = userEvent.setup();
@@ -366,6 +459,9 @@ describe("Aufgeben in der Erfassung", () => {
     await screen.findByRole("heading", { name: "Markus Brandt" });
 
     const dialog = await aufgebenWaehlen(user);
+    expect(
+      within(dialog).getByText("Markus Brandt wird mit dem bisherigen Ergebnis gewertet: 20,00 s."),
+    ).toBeInTheDocument();
     expect(within(dialog).queryByText(/noch nicht fertig erfasst/)).toBeNull();
     await user.click(within(dialog).getByRole("button", { name: "Start abbrechen" }));
     await waitFor(() =>
@@ -374,6 +470,44 @@ describe("Aufgeben in der Erfassung", () => {
         reason: null,
       }),
     );
+  });
+
+  it("ohne Wertungsschuss: eigener Klartext, ohne Platz; abbrechen geht direkt", async () => {
+    const aufrufe = routen(serverStand({}, { seq: 0, status: "called" }));
+    const user = userEvent.setup();
+    anzeigen();
+    await screen.findByRole("heading", { name: "Markus Brandt" });
+
+    const dialog = await aufgebenWaehlen(user);
+    expect(
+      within(dialog).getByText("Markus Brandt stünde ohne Platz in der Rangliste."),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText(/Es ist noch kein Wertungsschuss erfasst/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Start abbrechen" }));
+    await waitFor(() => expect(aufrufe.some((a) => a.pfad.endsWith("/result/abort"))).toBe(true));
+  });
+
+  it("unbekannter Fall (Serie laut Server offen, aber keine angefangen): Text des Servers", async () => {
+    const fertig = { sections: { fallscheibe: { series: [{ time_cs: 2000, standing: 0 }] } } };
+    routen(serverStand(fertig, { seq: 2 }), {
+      [`GET /tournaments/${T}/starts/${S}/form`]: {
+        inhalt: {
+          ...maske(FALLSCHEIBE, serverStand(fertig, { seq: 2 })),
+          abort_preview: {
+            ...AUSKUNFT_OFFEN,
+            open_series: [2],
+            message_de: "Präzision · Serie 2 ist unvollständig erfasst.",
+          },
+        },
+      },
+    });
+    const user = userEvent.setup();
+    anzeigen();
+    await screen.findByRole("heading", { name: "Markus Brandt" });
+    const dialog = await aufgebenWaehlen(user);
+    expect(
+      within(dialog).getByText("Präzision · Serie 2 ist unvollständig erfasst."),
+    ).toBeInTheDocument();
   });
 
   it("„Trotzdem aufgeben“ bricht mit offener Serie ab; andere Gründe fragen nicht nach Serien", async () => {
@@ -394,19 +528,97 @@ describe("Aufgeben in der Erfassung", () => {
       }),
     );
   });
+});
 
-  it("schon aufgegeben mit offener Serie: Hinweis „ohne Platz“ am Start", async () => {
-    routen(serverStand(ANGEFANGEN, { seq: 4, status: "aborted", abort_reason: "dnf" }));
+describe("Aufgegeben ohne Platz", () => {
+  it("nennt den Grund der Rangliste und trägt den Serienstatus als Korrektur nach", async () => {
+    const aufrufe = routen(
+      serverStand(ANGEFANGEN, { seq: 4, status: "aborted", abort_reason: "dnf" }),
+    );
+    const user = userEvent.setup();
     anzeigen();
     expect(await screen.findByText("Ohne Platz in der Rangliste")).toBeInTheDocument();
-    expect(screen.getByText(/Serie 2 war beim Aufgeben nicht fertig erfasst/)).toBeInTheDocument();
-    expect(screen.getByText(/lässt sich aber nachträglich nicht mehr ändern/)).toBeInTheDocument();
+    expect(
+      screen.getByText("Grund: Ergebnis nicht vergleichbar: Serie 2 unvollständig erfasst."),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Serienstatus nachtragen: Trag für Serie 2/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Abbruch zurücknehmen" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Serienstatus nachtragen" }));
+    // Korrektur mit vorbelegtem Status; nichts wird von selbst gesendet.
+    expect(await screen.findByText(/Der Start bleibt abgebrochen/)).toBeInTheDocument();
+    expect(screen.queryByText("Ohne Platz in der Rangliste")).toBeNull();
+    await user.keyboard("3");
+    await user.click(screen.getByRole("button", { name: "Korrektur speichern" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.type(within(dialog).getByRole("textbox"), "Abbruch durch den Schützen nachgetragen");
+    await user.click(within(dialog).getByRole("button", { name: "Korrektur speichern" }));
+
+    await waitFor(() =>
+      expect(aufrufe.find((a) => a.pfad.endsWith("/correct"))?.inhalt).toEqual({
+        raw: {
+          sections: {
+            fallscheibe: {
+              series: [
+                { time_cs: 2000, standing: 0 },
+                { status: "aborted_by_shooter", standing: 3 },
+              ],
+            },
+          },
+        },
+        reason: "Abbruch durch den Schützen nachgetragen",
+        base_seq: 4,
+      }),
+    );
+    expect(aufrufe.some((a) => a.methode === "PUT")).toBe(false);
   });
 
-  it("disqualifiziert mit offener Serie: kein Hinweis", async () => {
-    routen(serverStand(ANGEFANGEN, { seq: 4, status: "aborted", abort_reason: "dsq" }));
+  it("nimmt den Abbruch mit Pflichtgrund zurück und sagt, was danach gilt", async () => {
+    const aufrufe = routen(
+      serverStand(ANGEFANGEN, { seq: 4, status: "aborted", abort_reason: "dnf" }),
+    );
+    const user = userEvent.setup();
     anzeigen();
-    await screen.findByRole("heading", { name: "Markus Brandt" });
+    // Ohne Platz stehen beide Wege im Hinweis.
+    const hinweis = (await screen.findByText("Ohne Platz in der Rangliste")).closest("div");
+    if (!hinweis) throw new Error("Hinweis fehlt");
+    await user.click(within(hinweis).getByRole("button", { name: "Abbruch zurücknehmen" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/„Aufgegeben“ wird zurückgenommen/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Der Start ist wieder in Erfassung/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/ruf ihn am Schießstand neu auf/)).toBeInTheDocument();
+    const knopf = within(dialog).getByRole("button", { name: "Abbruch zurücknehmen" });
+    expect(knopf).toBeDisabled();
+    await user.type(within(dialog).getByRole("textbox"), "Schütze schießt weiter");
+    await user.click(knopf);
+
+    await waitFor(() =>
+      expect(aufrufe.find((a) => a.pfad.endsWith("/undo-abort"))?.inhalt).toEqual({
+        reason: "Schütze schießt weiter",
+        base_seq: 4,
+      }),
+    );
+    // Wieder offen: abschließen und abbrechen stehen wieder da.
+    expect(await screen.findByRole("button", { name: "Ergebnis abschließen" })).toBeInTheDocument();
+  });
+
+  it("409 beim Zurücknehmen: Klartext statt Fehlercode", async () => {
+    routen(serverStand(ANGEFANGEN, { seq: 4, status: "aborted", abort_reason: "dsq" }), {
+      [`POST /tournaments/${T}/starts/${S}/result/undo-abort`]: {
+        status: 409,
+        inhalt: { detail: "Zurücknehmen lässt sich nur der Abbruch eines abgebrochenen Starts." },
+      },
+    });
+    const user = userEvent.setup();
+    anzeigen();
+    // Disqualifiziert: kein Hinweis „ohne Platz“, aber zurücknehmen und korrigieren gehen.
+    await user.click(await screen.findByRole("button", { name: "Abbruch zurücknehmen" }));
     expect(screen.queryByText("Ohne Platz in der Rangliste")).toBeNull();
+    const dialog = await screen.findByRole("dialog");
+    await user.type(within(dialog).getByRole("textbox"), "Irrtum");
+    await user.click(within(dialog).getByRole("button", { name: "Abbruch zurücknehmen" }));
+    expect(
+      await within(dialog).findByText(/Der Start ist nicht mehr abgebrochen/),
+    ).toBeInTheDocument();
   });
 });

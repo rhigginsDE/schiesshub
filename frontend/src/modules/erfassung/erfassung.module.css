@@ -695,6 +695,42 @@
   outline-offset: 2px;
 }
 
+/* Zwei Wege aus „ohne Platz“: je ein Satz und ein Knopf darunter. */
+.wege {
+  display: grid;
+  gap: 12px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wege li {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+/* Was nach einer Rücknahme gilt: kurze Liste im Dialog */
+.danachListe {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 20px;
+  list-style: disc;
+  font-size: 14px;
+}
+
+/* Notizen zum Gleichstand unter dem Gesamtstand */
+.notizen {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
 .artZeile {
   display: flex;
   align-items: center;
@@ -933,6 +969,16 @@
 .feldBereich {
   font-size: 13px;
   color: var(--sh-text-gedaempft);
+}
+
+/* Aus den Einzelwerten berechnet (Server): kein eigener Wert, darum gestrichelt und weicher. */
+.feld[data-abgeleitet] {
+  border-style: dashed;
+}
+
+.feld[data-abgeleitet] .feldWert {
+  color: var(--sh-text-weich);
+  font-weight: 500;
 }
 
 .cursor {

@@ -8,6 +8,14 @@ export const QUELLE_STICK: Quelle = {
   location: "usb",
   locations: ["usb", "local"],
   other_ids: ["local:snapshot-20261123T210253Z.dump"],
+  other_sources: [
+    {
+      id: "local:snapshot-20261123T210253Z.dump",
+      location: "local",
+      needs_passphrase: false,
+      contains_keys: false,
+    },
+  ],
   file_name: "snapshot-20261123T210253Z.shb",
   created_at: "2026-11-23T21:02:53Z",
   size_bytes: 297089,
@@ -24,6 +32,7 @@ export const QUELLE_SERVER: Quelle = {
   location: "local",
   locations: ["local"],
   other_ids: [],
+  other_sources: [],
   file_name: "snapshot-20261123T210253Z.dump",
   encrypted: false,
   needs_passphrase: false,

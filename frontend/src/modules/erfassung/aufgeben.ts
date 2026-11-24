@@ -1,19 +1,14 @@
 /**
  * Aufgeben mit angefangener Serie (Sporthandbuch K 1.14 / L 1.12).
  *
- * Wer nach dem Kommando „Feuer“ aufgibt, wird mit dem bis dahin erzielten Ergebnis platziert. Der
- * Server (`backend/app/scoring/aborted.py`) kann das aber nur, wenn jede angefangene Serie entweder
- * fertig erfasst ist oder nach der Regel des Wertungsmodells auch halb zählt
- * (`ScoringModel.partial_series_counts`). Sonst steht der Start ohne Platz da („Ergebnis nicht
- * vergleichbar: Serie 2 unvollständig erfasst“). Bei der Fallscheibe macht der Status „Abbruch
- * durch den Schützen“ die Serie vollständig (dann zählen 60 s plus stehende Scheiben).
- *
- * Diese Datei erkennt solche Serien im Stand des Servers, damit die Rückfrage beim Aufgeben den
- * richtigen Schritt anbieten kann. Sie rechnet nichts selbst: Ob eine Serie angefangen
- * (`captured`) und fertig (`complete`) ist, sagt die Wertung des Servers; nur die Regel, welche
- * Modelle eine halbe Serie zählen, steht hier als Spiegel von `partial_series_counts`.
+ * Ob ein Aufgeben den Start platziert, sagt allein der Server: vor dem Aufgeben die Vorabauskunft
+ * der Maske (`abort_preview`, gerechnet wie die Rangliste), danach die Rangliste selbst. Hier wird
+ * nichts davon nachgerechnet. Diese Datei sucht nur die Serien heraus, an denen der Weg zur
+ * Wertung ansetzt: angefangen (`captured`), nicht fertig (`complete`), nicht gestrichen – laut
+ * Wertung des Servers. Bei der Fallscheibe macht der Status „Abbruch durch den Schützen“ so eine
+ * Serie vollständig.
  */
-import type { AbschnittForm, Formular, SerieForm, SerienWertung, Wertung } from "./api";
+import type { AbschnittForm, AufgebenAuskunft, Formular, SerieForm, Wertung } from "./api";
 import { statusFeld } from "./rohwerte";
 
 /** Status „Abbruch durch den Schützen“ (`app.scoring.status.ABORTED_BY_SHOOTER`). */
@@ -26,52 +21,65 @@ export interface OffeneSerie {
   ort: string;
   /** Bezeichnung des Status „Abbruch durch den Schützen“, wenn die Serie ihn kennt; sonst null */
   abbruchStatus: string | null;
+  /** „Abbruch durch den Schützen“ steht laut Server schon an der Serie; es fehlen nur Werte. */
+  statusGesetzt: boolean;
 }
 
 /**
- * Zählt eine angefangene, unvollständige Serie nach dem Aufgeben so, wie sie ist? Spiegel von
- * `partial_series_counts` der Wertungsmodelle (`backend/app/scoring/models.py`): Ringe zählen
- * fehlende Schüsse mit 0 (A 9.08); „Ringe minus Zeit“ nur mit erfasster Zeit; alle anderen
- * (Zeit plus Zuschläge und unbekannte Modelle) nicht.
+ * Angefangene, nicht fertige Serien laut Wertung des Servers. `nummern`: nur Serien mit diesen
+ * Nummern (`abort_preview.open_series`); ohne Angabe alle.
  */
-function halbeSerieZaehlt(modell: string, serie: SerienWertung): boolean {
-  switch (modell) {
-    case "ringe":
-    case "ringe_mit_zeitabzug":
-      return true;
-    case "ringe_minus_zeit":
-      return serie.time_cs !== null;
-    default:
-      return false;
-  }
-}
-
-/**
- * Serien, die einen aufgegebenen Start ohne Platz ließen: angefangen, nicht fertig erfasst, nicht
- * gestrichen, und das Modell zählt sie halb nicht. Grundlage ist die Wertung des Servers
- * (`computed`), nicht die Eingabe auf dem Gerät.
- */
-export function offeneSerien(form: Formular, wertung: Wertung | null | undefined): OffeneSerie[] {
+export function offeneSerien(
+  form: Formular,
+  wertung: Wertung | null | undefined,
+  nummern?: readonly number[],
+): OffeneSerie[] {
   if (!wertung) return [];
   const liste: OffeneSerie[] = [];
   for (const abschnitt of form.sections) {
     const wertungAbschnitt = wertung.sections.find((a) => a.id === abschnitt.id);
     if (!wertungAbschnitt) continue;
     for (const serie of abschnitt.series) {
+      if (nummern && !nummern.includes(serie.number)) continue;
       const ergebnis = wertungAbschnitt.series[serie.index];
       if (!ergebnis || ergebnis.struck || serie.struck) continue;
       if (!ergebnis.captured || ergebnis.complete) continue;
-      if (halbeSerieZaehlt(wertung.model, ergebnis)) continue;
       const option = statusFeld(serie)?.options?.find((o) => o.key === ABBRUCH_DURCH_SCHUETZEN);
       liste.push({
         abschnitt,
         serie,
         ort: form.sections.length > 1 ? `${abschnitt.name} · ${serie.label}` : serie.label,
         abbruchStatus: option?.label ?? null,
+        statusGesetzt: ergebnis.status === ABBRUCH_DURCH_SCHUETZEN,
       });
     }
   }
   return liste;
+}
+
+/**
+ * Serien, an denen ein Aufgeben laut Vorabauskunft scheitert (`incomplete_series`): die vom Server
+ * genannten offenen Serien, soweit angefangen. Sonst keine.
+ */
+export function serienDerAuskunft(
+  form: Formular,
+  wertung: Wertung | null | undefined,
+  auskunft: AufgebenAuskunft | null | undefined,
+): OffeneSerie[] {
+  if (auskunft?.reason_code !== "incomplete_series") return [];
+  return offeneSerien(form, wertung, auskunft.open_series);
+}
+
+/** Bezeichnung von „Abbruch durch den Schützen“, wenn alle Serien der Liste ihn kennen. */
+export function gemeinsamerStatus(liste: readonly OffeneSerie[]): string | null {
+  return liste.length > 0 && liste.every((o) => o.abbruchStatus)
+    ? (liste[0]?.abbruchStatus ?? null)
+    : null;
+}
+
+/** Alle Serien der Liste haben den Status schon: Es fehlen nur noch Werte. */
+export function nurWerteFehlen(liste: readonly OffeneSerie[]): boolean {
+  return liste.length > 0 && liste.every((o) => o.statusGesetzt);
 }
 
 /** „Serie 2“, „Serie 2 und 3“, „Serie 1, 2 und 4“ */

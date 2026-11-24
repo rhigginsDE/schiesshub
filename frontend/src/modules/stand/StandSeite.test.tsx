@@ -410,34 +410,44 @@ describe("Schießstand", { timeout: 15000 }, () => {
         },
       },
       [`GET /tournaments/${T}/starts/s-2/form`]: {
-        inhalt: erfassungMaske(FALLSCHEIBE, {
-          ...erfassungStand(),
-          status: "captured",
-          raw: { sections: angefangen },
-          computed: erfassungWertung({
-            model: "zeit_plus_zuschlaege",
-            sections: [
-              {
-                id: "fallscheibe",
-                name: "Fallscheibe",
-                complete: false,
-                rings: null,
-                time_cs: null,
-                penalty_cs: null,
-                overtime_s: null,
-                deduction: null,
-                subtotal: "0",
-                result: "0",
-                floored: false,
-                series: [
-                  fallscheibeSerie(1, true, true),
-                  fallscheibeSerie(2, true, false),
-                  fallscheibeSerie(3, false, false),
-                ],
-              },
-            ],
+        inhalt: {
+          // Vorabauskunft des Servers: Serie 2 ist nur halb erfasst (Serie 3 nicht geschossen).
+          abort_preview: {
+            would_place: false,
+            reason_code: "incomplete_series",
+            message_de: "Serie 2 ist unvollständig erfasst.",
+            open_series: [2, 3],
+            score_text: null,
+          },
+          ...erfassungMaske(FALLSCHEIBE, {
+            ...erfassungStand(),
+            status: "captured",
+            raw: { sections: angefangen },
+            computed: erfassungWertung({
+              model: "zeit_plus_zuschlaege",
+              sections: [
+                {
+                  id: "fallscheibe",
+                  name: "Fallscheibe",
+                  complete: false,
+                  rings: null,
+                  time_cs: null,
+                  penalty_cs: null,
+                  overtime_s: null,
+                  deduction: null,
+                  subtotal: "0",
+                  result: "0",
+                  floored: false,
+                  series: [
+                    fallscheibeSerie(1, true, true),
+                    fallscheibeSerie(2, true, false),
+                    fallscheibeSerie(3, false, false),
+                  ],
+                },
+              ],
+            }),
           }),
-        }),
+        },
       },
       [`POST /tournaments/${T}/starts/s-2/abort`]: {
         inhalt: { ...inErfassung, status: "aborted" },

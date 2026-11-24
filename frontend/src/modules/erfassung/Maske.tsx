@@ -31,6 +31,7 @@ import {
 } from "./eingabe";
 import s from "./erfassung.module.css";
 import {
+  type Abgeleitet,
   type Entwurf,
   type FeldRef,
   feldAktiv,
@@ -62,6 +63,8 @@ export interface MaskeProps {
   onStatus: (abschnitt: AbschnittForm, serie: SerieForm, status: string) => void;
   /** Eingaben sind noch nicht gerechnet: Werte der Serien gedämpft zeigen */
   veraltet: boolean;
+  /** Vom Server aus den Einzelwerten berechnete Feldwerte (nur Anzeige, nichts gespeichert) */
+  abgeleitet?: Abgeleitet;
 }
 
 /** Abschnitte und Serien genau so, wie die Formularbeschreibung des Servers sie vorgibt. */
@@ -347,18 +350,24 @@ function Feldknopf({
   bearbeitbar,
   onFeld,
   fehler,
+  abgeleitet,
 }: FeldknopfProps) {
   const { t } = useTranslation("erfassung");
   const feld = feldRef.feld;
   const istAktiv = aktiv && aktivId === feldRef.id;
-  const wert = wertAus(entwurf, feldRef);
+  const eigener = wertAus(entwurf, feldRef);
+  // Seriensumme aus den Einzelwerten (Server): steht im Feld, ist aber kein eigener Wert. Wer
+  // tippt, ersetzt damit die Einzelwerte.
+  const berechnet = eigener === undefined ? abgeleitet?.get(feldRef.id) : undefined;
+  const wert = eigener ?? berechnet;
   const text = istAktiv && !eingabe.frisch ? eingabe.text : wertText(feld, wert);
+  const zeigtBerechnet = berechnet !== undefined && !(istAktiv && !eingabe.frisch);
   const feldFehler = meldungenFuer(fehler, feldRef.id);
   const hatFehler = feldFehler.length > 0;
   // Der Name beginnt mit dem sichtbaren Text (Feld, Wert, Einheit, Bereich), damit Sprachsteuerung
   // trifft; dazu „leer“ und ein Fehler am Feld.
   const einheit = aktiv && feld.kind === "time" && text !== "" ? ` ${t("einheit.sekunden")}` : "";
-  const bereichText = aktiv ? feldBereich(feld, t) : null;
+  const bereichText = zeigtBerechnet ? t("feld.abgeleitet") : aktiv ? feldBereich(feld, t) : null;
   const bereich = bereichText ? `, ${bereichText}` : "";
   const freiwillig = !feld.required && aktiv ? ` · ${t("feld.freiwillig")}` : "";
   const wertName = !aktiv ? t("feld.entfaellt") : text || t("feld.leer");
@@ -373,6 +382,7 @@ function Feldknopf({
       data-fehler={hatFehler || undefined}
       data-leer={text === "" || undefined}
       data-entfaellt={!aktiv || undefined}
+      data-abgeleitet={zeigtBerechnet || undefined}
       disabled={!aktiv || !bearbeitbar}
       aria-pressed={istAktiv}
       aria-label={name}

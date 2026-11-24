@@ -1,9 +1,10 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { bestimmeTurnier, sortiereTurniere } from "../../components/useAktivesTurnier";
 import { renderApp } from "../../test/app";
 import {
+  bisNachVon,
   heute,
   hinweisKennung,
   katalogGeaendert,
@@ -421,6 +422,45 @@ describe("Hilfen für den Anfang", () => {
     expect(naechsterTermin("2025-12-05", "2026-11-23")).toBe("2026-12-05");
     expect(naechsterTermin("2025-06-01", "2026-11-23")).toBe("2027-06-01");
     expect(naechsterTermin("2024-02-29", "2024-11-23")).toBe("2025-02-28");
+  });
+
+  it("„Datum bis“ wandert mit „Datum von“ mit, solange es nicht selbst geändert ist", () => {
+    const zwei = { date_from: "2026-12-05", date_to: "2026-12-06" };
+    expect(bisNachVon(zwei, "2026-12-12", false)).toBe("2026-12-13");
+    // Auch früher, über Monats- und Jahresgrenzen
+    expect(bisNachVon(zwei, "2026-11-30", false)).toBe("2026-12-01");
+    expect(bisNachVon(zwei, "2026-12-31", false)).toBe("2027-01-01");
+    // Eintägig: gleich „Datum von“
+    expect(
+      bisNachVon({ date_from: "2026-12-05", date_to: "2026-12-05" }, "2027-02-28", false),
+    ).toBe("2027-02-28");
+    // Selbst geändert, leer oder unvollständig: bleibt
+    expect(bisNachVon(zwei, "2026-12-12", true)).toBe("2026-12-06");
+    expect(bisNachVon({ date_from: "2026-12-05", date_to: "" }, "2026-12-12", false)).toBe("");
+    expect(bisNachVon(zwei, "", false)).toBe("2026-12-06");
+    // Zwischenstände beim Tippen der Jahreszahl („0002-…“) rechnen richtig weiter
+    const getippt = bisNachVon(zwei, "0002-12-05", false);
+    expect(getippt).toBe("0002-12-06");
+    expect(bisNachVon({ date_from: "0002-12-05", date_to: getippt }, "2027-12-05", false)).toBe(
+      "2027-12-06",
+    );
+  });
+
+  it("Anlegen: „Datum bis“ selbst gesetzt bleibt stehen, die Prüfung meldet die Reihenfolge", async () => {
+    api({ "GET /tournaments": [beispielTurnier()] });
+    renderApp("/turnier");
+    const dialog = await dialogOeffnen();
+    await userEvent.click(within(dialog).getByRole("button", { name: /Leer beginnen/ }));
+    await userEvent.click(within(dialog).getByRole("checkbox", { name: /mehrere Tage/ }));
+    const von = within(dialog).getByLabelText(/Datum von/) as HTMLInputElement;
+    const bis = within(dialog).getByLabelText(/Datum bis/) as HTMLInputElement;
+    fireEvent.change(von, { target: { value: "2027-03-28" } });
+    fireEvent.change(bis, { target: { value: "2027-03-29" } });
+    fireEvent.change(von, { target: { value: "2027-04-02" } });
+    expect(bis).toHaveValue("2027-03-29");
+    expect(
+      within(dialog).getByText("Das Enddatum liegt vor dem Anfangsdatum."),
+    ).toBeInTheDocument();
   });
 
   it("doppelter Name wie der Server: nur am selben Anfangsdatum, ohne Übung und ohne sich selbst", () => {

@@ -4,7 +4,7 @@ import {
   abschnittAufgelegt,
   abschnittsHinweise,
   feldBereich,
-  kriteriumText,
+  notizen,
   ringEinheit,
   serienAnzeige,
   serienHinweise,
@@ -154,9 +154,35 @@ describe("Bereich der Zehntel-Seriensumme kommt aus der Formularbeschreibung", (
   });
 });
 
-describe("Gleichstandskriterien in Worten", () => {
-  it("Text wie beim Server; unbekannte ID lesbar gemacht", () => {
-    expect(kriteriumText("innenzehner", t)).toBe("Anzahl der Innenzehner");
-    expect(kriteriumText("abstand_zum_rand", t)).toBe("abstand zum rand");
+describe("Notizen der Maske nach Art (note_items)", () => {
+  const mitNotizen = form([abschnitt("a"), abschnitt("b")], {
+    note_items: [
+      { kind: "tenths", text: "Zehntelwertung" },
+      { kind: "competition_time_total", text: "Wettkampfzeit gesamt 75 min" },
+      { kind: "shootoff", text: "Gleichstand bis Platz 3 entscheidet ein Stechen." },
+      { kind: "tens_optional", text: "Zehner freiwillig" },
+      { kind: "max_score", text: "Höchstergebnis: gleicher Platz" },
+    ],
+  });
+
+  it("gemeinsame Wettkampfzeit steht bei den Vorgaben im Kopf, auch bei mehreren Abschnitten", () => {
+    expect(vorgaben(mitNotizen)).toEqual([
+      {
+        art: "hinweis",
+        kind: "competition_time_total",
+        text: "Wettkampfzeit gesamt 75 min",
+      },
+    ]);
+  });
+
+  it("Erfassung und Gleichstand bekommen je ihre Notizen, nichts doppelt", () => {
+    expect(notizen(mitNotizen, "erfassung").map((n) => n.kind)).toEqual([
+      "tenths",
+      "tens_optional",
+    ]);
+    expect(notizen(mitNotizen, "gleichstand").map((n) => n.kind)).toEqual([
+      "shootoff",
+      "max_score",
+    ]);
   });
 });

@@ -11,7 +11,7 @@ import {
 } from "../teilnehmer/testhilfe";
 import type { ErgebnisStand, Rohwerte } from "./api";
 import { ErfassungSeite } from "./ErfassungSeite";
-import { FALLSCHEIBE, maske, PRAEZISION, stand, wertung } from "./testdaten";
+import { FALLSCHEIBE, maske, PRAEZISION, SERIENSUMME, stand, wertung } from "./testdaten";
 
 const T = "78a0a62a-fd80-4ef3-876a-3e7ad7a332b6";
 const R = "46c19d4d-52f9-4ff1-956e-32630f067fd0";
@@ -741,5 +741,139 @@ describe("Erfassungsterminal", () => {
     expect(screen.getAllByText("Markus Brandt").length).toBeGreaterThan(0);
     expect(screen.queryByText("M. Brandt")).toBeNull();
     expect(aufrufe.some((a) => a.pfad.includes("/entries"))).toBe(false);
+  });
+});
+
+describe("Seriensumme aus Einzelwerten, Verlauf, Notizen", () => {
+  const SCHUESSE = [10, 10, 9, 9, 10, 9, 10, 10, 9, 9];
+  const mitSchuessen = stand({
+    seq: 5,
+    status: "captured",
+    raw: { sections: { praezision: { series: [{ shots: SCHUESSE }] } } },
+    computed: wertung({ unit: "Ringe", rings: "95", tens: 5, score: "95", complete: true }),
+  });
+  const seriensummeMaske = {
+    ...maske(SERIENSUMME, mitSchuessen),
+    competition_capture_mode: "shot" as const,
+    derived_values: [
+      { path: "sections.praezision.series[0]", key: "sum", value: 95, source: "shots" as const },
+      { path: "sections.praezision.series[0]", key: "tens", value: 5, source: "shots" as const },
+    ],
+  };
+
+  it("zeigt die berechnete Seriensumme im Feld, speichert sie aber nicht", async () => {
+    const aufrufe = routen({
+      [`GET /tournaments/${T}/starts/${S}/form?capture_mode=series`]: { inhalt: seriensummeMaske },
+    });
+    anzeigen(S, "series");
+    const summe = await screen.findByRole("button", { name: /^Seriensumme: 95/ });
+    expect(summe).toHaveAttribute("data-abgeleitet");
+    expect(within(summe).getByText("aus den Einzelwerten berechnet")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Zehner · freiwillig: 5/ })).toBeInTheDocument();
+    expect(screen.getByText(/Gestrichelte Seriensummen sind aus den Einzelwerten berechnet/));
+    // Keine Lücke, keine Sendung: Ein berechneter Wert ist keine Änderung.
+    expect(screen.queryByText("Fehlt:")).toBeNull();
+    await new Promise((fertig) => setTimeout(fertig, 700));
+    expect(aufrufe.some((a) => a.methode === "PUT")).toBe(false);
+  });
+
+  it("eine eingetragene Summe ersetzt die Einzelwerte", async () => {
+    const aufrufe = routen({
+      [`GET /tournaments/${T}/starts/${S}/form?capture_mode=series`]: { inhalt: seriensummeMaske },
+    });
+    const user = userEvent.setup();
+    anzeigen(S, "series");
+    await user.click(await screen.findByRole("button", { name: /^Seriensumme: 95/ }));
+    await user.keyboard("96{Enter}");
+    await waitFor(
+      () =>
+        expect(aufrufe.filter((a) => a.methode === "PUT").at(-1)?.inhalt).toEqual({
+          raw: { sections: { praezision: { series: [{ sum: 96 }] } } },
+          base_seq: 5,
+        }),
+      { timeout: 3000 },
+    );
+  });
+
+  it("Verlauf nennt den Ort in Worten des Servers (label), Schüsse als Reihe", async () => {
+    routen({
+      [`GET /tournaments/${T}/starts/${S}/form?capture_mode=series`]: { inhalt: seriensummeMaske },
+      [`GET /tournaments/${T}/starts/${S}/events`]: {
+        inhalt: [
+          {
+            seq: 1,
+            type: "raw_set",
+            type_label: "Rohwerte erfasst",
+            created_at: "2026-11-24T10:00:00Z",
+            user_name: "Test-Admin",
+            device_name: null,
+            reason: null,
+            abort_reason: null,
+            changes: [
+              {
+                path: "sections.praezision.series[0].shots",
+                label: "Serie 1 · Schüsse",
+                before: null,
+                after: [10, 9],
+              },
+            ],
+          },
+          {
+            seq: 2,
+            type: "abort_undone",
+            type_label: "Abbruch zurückgenommen",
+            created_at: "2026-11-24T10:05:00Z",
+            user_name: "Test-Admin",
+            device_name: null,
+            reason: "Schütze schießt weiter",
+            abort_reason: null,
+            changes: [],
+          },
+        ],
+      },
+    });
+    const user = userEvent.setup();
+    anzeigen(S, "series");
+    await user.click(await screen.findByRole("button", { name: /^Verlauf/ }));
+    expect(await screen.findByText("Serie 1 · Schüsse")).toBeInTheDocument();
+    expect(screen.getByText("– → 10 9")).toBeInTheDocument();
+    expect(screen.getByText("Abbruch zurückgenommen")).toBeInTheDocument();
+    expect(screen.getByText("Grund: Schütze schießt weiter")).toBeInTheDocument();
+  });
+
+  it("Gleichstand: fehlende Kriterien und Notizen in Worten des Servers, nach Art platziert", async () => {
+    const mitNotizen = {
+      ...SERIENSUMME,
+      note_items: [
+        { kind: "tens_optional" as const, text: "Zehner sind freiwillig." },
+        { kind: "shootoff" as const, text: "Gleichstand bis Platz 3 entscheidet ein Stechen." },
+      ],
+    };
+    const ohneZehner = stand({
+      seq: 1,
+      status: "captured",
+      raw: { sections: { praezision: { series: [{ sum: 95 }] } } },
+      computed: wertung({
+        unit: "Ringe",
+        rings: "95",
+        score: "95",
+        tie_breakers_missing: ["zehner"],
+        tie_breakers_missing_items: [{ id: "zehner", text: "Anzahl der Zehner (vom Server)" }],
+      }),
+    });
+    routen({
+      [`GET /tournaments/${T}/starts/${S}/form?capture_mode=series`]: {
+        inhalt: maske(mitNotizen, ohneZehner),
+      },
+      [`GET /tournaments/${T}/starts/${S}/form`]: { inhalt: maske(mitNotizen, ohneZehner) },
+    });
+    anzeigen(S, "series");
+    expect(
+      await screen.findByText("Für einen Gleichstand fehlt: Anzahl der Zehner (vom Server)"),
+    ).toBeInTheDocument();
+    const gleichstand = screen.getByRole("list", { name: "Hinweise zum Gleichstand" });
+    expect(within(gleichstand).getByText(/entscheidet ein Stechen/)).toBeInTheDocument();
+    expect(within(gleichstand).queryByText("Zehner sind freiwillig.")).toBeNull();
+    expect(screen.getByText("Zehner sind freiwillig.")).toBeInTheDocument();
   });
 });

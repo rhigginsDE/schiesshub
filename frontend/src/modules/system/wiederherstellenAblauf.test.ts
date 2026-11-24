@@ -21,6 +21,7 @@ import {
   type UebersprungenerStart,
   uebersprungeneStarts,
   verloreneEingaben,
+  versionWerte,
   weiterFragen,
 } from "./wiederherstellenAblauf";
 import {
@@ -119,7 +120,7 @@ describe("Ablauf der Wiederherstellung", () => {
     ).toEqual(["local", "pre_restore"]);
   });
 
-  it("findet die Kopie ohne Passwort auf dem Server", () => {
+  it("findet die Kopie ohne Passwort über other_sources, nicht an der Kennung", () => {
     expect(kopieOhnePasswort(QUELLE_STICK)).toMatchObject({
       id: QUELLE_SERVER.id,
       location: "local",
@@ -127,7 +128,54 @@ describe("Ablauf der Wiederherstellung", () => {
       contains_keys: false,
     });
     expect(kopieOhnePasswort(QUELLE_SERVER)).toBeNull();
-    expect(kopieOhnePasswort({ ...QUELLE_STICK, other_ids: [] })).toBeNull();
+    expect(kopieOhnePasswort({ ...QUELLE_STICK, other_sources: [] })).toBeNull();
+    expect(kopieOhnePasswort({ ...QUELLE_STICK, other_sources: undefined })).toBeNull();
+    // Kennung wie früher „local:…“, aber laut Server mit Passwort: kein Ausweg
+    expect(
+      kopieOhnePasswort({
+        ...QUELLE_STICK,
+        other_sources: [
+          { id: "local:x.dump", location: "local", needs_passphrase: true, contains_keys: false },
+        ],
+      }),
+    ).toBeNull();
+    // Kennung ohne bekanntes Muster: zählt, was der Server meldet
+    const vorRestore = kopieOhnePasswort({
+      ...QUELLE_STICK,
+      other_ids: ["k-17"],
+      other_sources: [
+        { id: "k-17", location: "pre_restore", needs_passphrase: false, contains_keys: false },
+      ],
+    });
+    expect(vorRestore).toMatchObject({ id: "k-17", location: "pre_restore" });
+    // Eine Kopie mit Schlüsseln geht vor
+    expect(
+      kopieOhnePasswort({
+        ...QUELLE_STICK,
+        other_sources: [
+          { id: "a", location: "local", needs_passphrase: false, contains_keys: false },
+          { id: "b", location: "usb", needs_passphrase: false, contains_keys: true },
+        ],
+      }),
+    ).toMatchObject({ id: "b", contains_keys: true });
+  });
+
+  it("nennt bei anderer App-Version beide Nummern, sonst den allgemeinen Text", () => {
+    const t = (schluessel: string, werte?: Record<string, unknown>) =>
+      `[${schluessel}${werte?.version_sicherung ? `|${werte.version_sicherung}>${werte.version_jetzt}` : ""}]`;
+    const meldung = [{ code: "other_app_version", message_de: "Server: andere Version" }];
+    expect(meldungTexte(meldung, t, versionWerte("0.1.0", "0.2.0"))).toEqual([
+      "[wiederherstellen.meldung.other_app_version_nummern|0.1.0>0.2.0]",
+    ]);
+    expect(meldungTexte(meldung, t, versionWerte(null, "0.2.0"))).toEqual([
+      "[wiederherstellen.meldung.other_app_version]",
+    ]);
+    expect(versionWerte(" ", "0.2.0")).toEqual({});
+    expect(
+      system.wiederherstellen.meldung.other_app_version_nummern
+        .replace("{{version_sicherung}}", "0.1.0")
+        .replace("{{version_jetzt}}", "0.2.0"),
+    ).toBe("Die Sicherung stammt von Schiesshub 0.1.0, auf diesem Server läuft Version 0.2.0.");
   });
 
   it("nimmt für bekannte Kennungen eigene Texte, sonst den des Servers", () => {

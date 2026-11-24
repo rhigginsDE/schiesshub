@@ -96,7 +96,8 @@
     "titel": "Erfassungsart",
     "series": "Seriensumme",
     "shot": "Einzelschuss",
-    "abweichend": "Nur für diesen Start. Vorgabe des Wettbewerbs: {{vorgabe}}."
+    "abweichend": "Nur für diesen Start. Vorgabe des Wettbewerbs: {{vorgabe}}.",
+    "abgeleitet": "Gestrichelte Seriensummen sind aus den Einzelwerten berechnet und nicht extra gespeichert. Trägst du eine Summe ein, ersetzt sie die Einzelwerte dieser Serie."
   },
   "abschnitt": {
     "ergebnis": "Teilergebnis {{wert}}",
@@ -126,7 +127,8 @@
     "bereich_null": "0 oder {{min}} bis {{max}}",
     "leer_wert": "leer",
     "fehler": "Fehler",
-    "zeit_zu_gross": "Diese Zeit ist nicht plausibel: höchstens {{grenze}} s. Bitte mit dem Startzettel vergleichen."
+    "zeit_zu_gross": "Diese Zeit ist nicht plausibel: höchstens {{grenze}} s. Bitte mit dem Startzettel vergleichen.",
+    "abgeleitet": "aus den Einzelwerten berechnet"
   },
   "schuss": {
     "reihe": "Schüsse {{serie}}",
@@ -175,22 +177,8 @@
     "berechnet": "wird berechnet",
     "rechenweg": "Rechenweg",
     "gleichstand_fehlt": "Für einen Gleichstand fehlt: {{was}}",
-    "gleichstand": {
-      "zehner": "Anzahl der Zehner",
-      "innenzehner": "Anzahl der Innenzehner",
-      "neuner_abwaerts": "Anzahl der Neuner, Achter, Siebener usw.",
-      "parcours_zeit": "kürzere Durchgangszeit",
-      "letzte_serie_rueckwaerts": "letzte Zehnerserie, dann rückwärts in 10-Schuss-Serien (Wurfscheibe: je Serie)",
-      "schuesse_rueckwaerts": "Schusswerte vom letzten Schuss rückwärts",
-      "ergebnis_zweite_haelfte": "höheres Ergebnis der zweiten Hälfte (Schnelllauf bzw. 2. Durchgang)",
-      "mehr_treffer": "mehr Treffer",
-      "zehntel_gesamt": "Gesamtergebnis in Zehnteln",
-      "elfer": "Anzahl der Elfer",
-      "neuner": "Anzahl der Neuner",
-      "sechser": "Anzahl der Sechser",
-      "fuenfer": "Anzahl der Fünfer"
-    },
-    "wird_berechnet": "wird neu berechnet"
+    "wird_berechnet": "wird neu berechnet",
+    "notizen": "Hinweise zum Gleichstand"
   },
   "fortschritt": {
     "schuss_one": "{{anzahl}} von {{count}} Schuss",
@@ -289,6 +277,8 @@
       "titel_other": "{{orte}} sind noch nicht fertig erfasst.",
       "text_one": "Damit {{name}} mit dem bisherigen Ergebnis gewertet wird, trag für diese Serie „{{status}}“ ein.",
       "text_other": "Damit {{name}} mit dem bisherigen Ergebnis gewertet wird, trag für diese Serien „{{status}}“ ein.",
+      "text_gesetzt_one": "„{{status}}“ ist für diese Serie schon eingetragen, es fehlen aber noch Werte. Trag sie ein, damit {{name}} mit dem bisherigen Ergebnis gewertet wird.",
+      "text_gesetzt_other": "„{{status}}“ ist für diese Serien schon eingetragen, es fehlen aber noch Werte. Trag sie ein, damit {{name}} mit dem bisherigen Ergebnis gewertet wird.",
       "text_fertig_one": "Damit {{name}} mit dem bisherigen Ergebnis gewertet wird, erfasse diese Serie fertig.",
       "text_fertig_other": "Damit {{name}} mit dem bisherigen Ergebnis gewertet wird, erfasse diese Serien fertig.",
       "folge": "Gibst du jetzt trotzdem auf, steht {{name}} ohne Platz in der Rangliste.",
@@ -307,10 +297,29 @@
     },
     "ohne_platz": {
       "titel": "Ohne Platz in der Rangliste",
-      "text_one": "{{orte}} war beim Aufgeben nicht fertig erfasst. Deshalb lässt sich das bisherige Ergebnis nicht mit den anderen vergleichen, und {{name}} steht ohne Platz in der Rangliste.",
-      "text_other": "{{orte}} waren beim Aufgeben nicht fertig erfasst. Deshalb lässt sich das bisherige Ergebnis nicht mit den anderen vergleichen, und {{name}} steht ohne Platz in der Rangliste.",
-      "weg": "Gewertet würde der Start, wenn für diese Serie „{{status}}“ erfasst wäre. Ein aufgegebener Start lässt sich aber nachträglich nicht mehr ändern, auch nicht als Korrektur.",
-      "weg_ohne_status": "Ein aufgegebener Start lässt sich nachträglich nicht mehr ändern, auch nicht als Korrektur."
+      "grund": "Grund: {{grund}}.",
+      "ohne_grund": "{{name}} steht nach dem Aufgeben ohne Platz in der Rangliste.",
+      "weg_status_one": "Serienstatus nachtragen: Trag für {{orte}} „{{status}}“ ein und speichere das als Korrektur mit Grund. Dann wird {{name}} mit dem bisherigen Ergebnis gewertet; der Start bleibt aufgegeben.",
+      "weg_status_other": "Serienstatus nachtragen: Trag für {{orte}} „{{status}}“ ein und speichere das als Korrektur mit Grund. Dann wird {{name}} mit dem bisherigen Ergebnis gewertet; der Start bleibt aufgegeben.",
+      "weg_korrektur": "Fehlende Werte nachtragen: als Korrektur mit Grund. Der Start bleibt aufgegeben.",
+      "nachtragen": "Serienstatus nachtragen",
+      "weg_zuruecknehmen": "Oder den Abbruch zurücknehmen, wenn {{name}} doch weiterschießt oder das Aufgeben ein Irrtum war. Der Start ist danach wieder offen.",
+      "ohne_recht": "Nachtragen oder zurücknehmen kann nur, wer Ergebnisse korrigieren darf.",
+      "weg_werte": "Werte nachtragen: Für {{orte}} ist „{{status}}“ eingetragen, es fehlen noch Werte. Trag sie als Korrektur mit Grund nach; dann wird {{name}} mit dem bisherigen Ergebnis gewertet. Der Start bleibt aufgegeben.",
+      "werte_nachtragen": "Werte nachtragen"
+    },
+    "pruefe": "Der Server prüft, ob der Start gewertet würde …",
+    "auskunft": {
+      "gewertet_mit": "{{name}} wird mit dem bisherigen Ergebnis gewertet: {{ergebnis}}.",
+      "gewertet": "{{name}} wird mit dem bisherigen Ergebnis gewertet.",
+      "gewertet_text": "In der Ergebnisliste steht der Start dann als Abbruch mit diesem Ergebnis.",
+      "ohne_platz": "{{name}} stünde ohne Platz in der Rangliste.",
+      "grund": {
+        "no_values": "Es ist noch kein Wertungsschuss erfasst. Ohne Wertungswert gibt es keinen Platz.",
+        "no_rule": "Für die Serien, die noch nicht geschossen sind, gibt die Wertung keine Regel vor. Deshalb lässt sich das bisherige Ergebnis nicht mit den anderen vergleichen.",
+        "missing_section_time": "Die Gesamtzeit fehlt noch. Trag sie ein, dann wird {{name}} mit dem bisherigen Ergebnis gewertet.",
+        "invalid": "Die erfassten Werte lassen sich so nicht werten. Prüf die Eingabe, bevor du den Start abbrichst."
+      }
     }
   },
   "korrektur": {
@@ -329,7 +338,9 @@
     "erledigt": "Korrektur gespeichert",
     "aenderungen": "Geändert (alt → neu)",
     "server_rechnet": "Das neue Ergebnis gilt ab dem Speichern und steht dann oben unter „Gesamt“.",
-    "alt_neu": "{{vorher}} → {{nachher}}"
+    "alt_neu": "{{vorher}} → {{nachher}}",
+    "modus_text_abgebrochen": "Werte ändern und mit Grund speichern. Der Start bleibt abgebrochen; erfasst werden darf auch unvollständig.",
+    "text_abgebrochen": "{{wer}}: Der Start bleibt abgebrochen. Die Änderung steht mit deinem Grund im Verlauf."
   },
   "oeffnen": {
     "knopf": "Wieder öffnen",
@@ -337,6 +348,21 @@
     "text": "{{wer}}: Das Ergebnis gilt dann wieder als offen und muss neu abgeschlossen werden.",
     "bestaetigen": "Wieder öffnen",
     "erledigt": "Ergebnis wieder offen"
+  },
+  "zuruecknehmen": {
+    "knopf": "Abbruch zurücknehmen",
+    "titel": "Abbruch zurücknehmen?",
+    "text": "{{wer}}: „{{grund}}“ wird zurückgenommen. Danach gilt:",
+    "danach_erfasst": "Der Start ist wieder in Erfassung. Die erfassten Werte bleiben und lassen sich weiter erfassen und abschließen.",
+    "danach_angemeldet": "Der Start ist wieder angemeldet (noch nichts erfasst) und kann ganz normal geschossen werden.",
+    "danach_stand": "Einen Schützenstand hat er dann nicht mehr. Soll weitergeschossen werden, ruf ihn am Schießstand neu auf.",
+    "danach_verlauf": "Im Verlauf steht die Rücknahme mit deinem Grund; der Abbruch bleibt dort sichtbar.",
+    "bestaetigen": "Abbruch zurücknehmen",
+    "erledigt": "{{wer}}: Abbruch zurückgenommen",
+    "erledigt_erfasst": "Der Start ist wieder in Erfassung. Am Schießstand bei Bedarf neu aufrufen.",
+    "erledigt_angemeldet": "Der Start ist wieder angemeldet. Am Schießstand bei Bedarf neu aufrufen.",
+    "konflikt": "Der Start wurde inzwischen an einem anderen Gerät geändert. Hier steht jetzt der aktuelle Stand – prüf ihn und versuch es dann noch einmal.",
+    "nicht_abgebrochen": "Der Start ist nicht mehr abgebrochen – vermutlich hat jemand den Abbruch schon zurückgenommen. Die Ansicht ist jetzt aktuell."
   },
   "naechster": {
     "knopf": "Weiter mit {{nr}} {{name}}"

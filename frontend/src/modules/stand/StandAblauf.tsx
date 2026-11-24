@@ -31,8 +31,8 @@ import {
   type Verschiebung,
 } from "../anmeldung/api";
 import { maskeAbfrage } from "../erfassung/api";
-import { offeneSerien } from "../erfassung/aufgeben";
-import { OffeneSerienHinweis } from "../erfassung/Dialoge";
+import { serienDerAuskunft } from "../erfassung/aufgeben";
+import { AufgebenHinweis } from "../erfassung/Dialoge";
 import { ERFASSUNG_PFAD } from "../erfassung/pfade";
 import type { TurnierUebersicht } from "../turnier/typen";
 import {
@@ -107,8 +107,9 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
     null,
   );
 
-  // Aufgeben mit angefangener Serie (erfassung/aufgeben.ts): Ist eine Serie nur halb erfasst,
-  // stünde der Start ohne Platz da. Die Erfassung trägt „Abbruch durch den Schützen“ ein.
+  // Aufgeben eines Starts mit erfassten Werten: Die Vorabauskunft des Servers (`abort_preview` der
+  // Maske, gerechnet wie die Rangliste) sagt, ob er platziert würde. Scheitert es an einer halb
+  // erfassten Serie, trägt die Erfassung „Abbruch durch den Schützen“ ein.
   const navigate = useNavigate();
   const darfErgebnisLesen = useDarf("result.read");
   const serienPruefen =
@@ -117,13 +118,15 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
     ...maskeAbfrage(turnierId, abbruch?.start.start_id ?? "", null),
     enabled: serienPruefen,
   });
+  const abbruchAuskunft = serienPruefen ? (abbruchMaske.data?.abort_preview ?? null) : null;
   const abbruchOffene =
     serienPruefen && abbruchMaske.data
-      ? offeneSerien(abbruchMaske.data.form, abbruchMaske.data.current.computed)
+      ? serienDerAuskunft(
+          abbruchMaske.data.form,
+          abbruchMaske.data.current.computed,
+          abbruchAuskunft,
+        )
       : [];
-  const abbruchStatus = abbruchOffene.every((o) => o.abbruchStatus)
-    ? (abbruchOffene[0]?.abbruchStatus ?? null)
-    : null;
 
   if (warteschlange.isPending || durchgaenge.isPending || startliste.isPending) {
     return <Skeleton height={320} radius="md" />;
@@ -459,13 +462,17 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
           abbruchSenden(abbruch.start, abbruch.grund);
         }}
       >
-        {abbruch && abbruchOffene.length > 0 && (
-          <OffeneSerienHinweis
+        {abbruch && abbruchAuskunft && (
+          <AufgebenHinweis
+            auskunft={abbruchAuskunft}
             liste={abbruchOffene}
             name={anzeigename(abbruch.start).text}
-            status={abbruchStatus}
             trotzdemGesperrt={abbrechen.isPending}
-            onTrotzdem={() => abbruchSenden(abbruch.start, abbruch.grund)}
+            onTrotzdem={
+              abbruchOffene.length > 0
+                ? () => abbruchSenden(abbruch.start, abbruch.grund)
+                : undefined
+            }
           />
         )}
         {serienPruefen && abbruchMaske.isPending && (

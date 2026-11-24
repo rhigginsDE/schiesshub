@@ -2,6 +2,7 @@ import { TextInput } from "@mantine/core";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTurnierAendern } from "../abfragen";
+import { bisNachVon } from "../anfang";
 import { feldFehlerFuer } from "../senden";
 import s from "../turnier.module.css";
 import type { TurnierAenderung, TurnierUebersicht } from "../typen";
@@ -68,8 +69,15 @@ export function Stammdaten({
     eigene.date_to = t("pruefung.datum_reihenfolge");
   }
   const fehler = { ...(aendern.isError ? feldFehlerFuer(aendern.error, FELDER) : {}), ...eigene };
+  // „Datum bis“ selbst geändert? Bis dahin wandert es mit „Datum von“ mit (gleiche Dauer).
+  const [bisEigen, setBisEigen] = useState(false);
   const setze = (feld: keyof Stammwerte, wert: string) => {
-    entwurf.setWerte({ ...werte, [feld]: wert });
+    if (feld === "date_from") {
+      entwurf.setWerte({ ...werte, date_from: wert, date_to: bisNachVon(werte, wert, bisEigen) });
+    } else {
+      if (feld === "date_to") setBisEigen(true);
+      entwurf.setWerte({ ...werte, [feld]: wert });
+    }
     if (aendern.isError) aendern.reset();
   };
 
@@ -147,6 +155,7 @@ export function Stammdaten({
           entwurf.verwerfen();
           aendern.reset();
           setGeprueft(false);
+          setBisEigen(false);
         }}
       />
     </form>

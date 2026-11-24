@@ -60,6 +60,34 @@ export function istHoechstergebnis(zeile: {
 }
 
 /**
+ * Gleiches Ergebnis, aber durch die Gleichstandskette getrennt (`tie_reason` „resolved“): kein
+ * geteilter Platz und keine Aufforderung. Maßgeblich für „geteilt“ bleibt allein `tied`; meldet
+ * der Server trotzdem einen geteilten oder offenen Platz, gilt der.
+ */
+export function istGetrennterGleichstand(zeile: {
+  tie_reason?: string | null;
+  tied?: boolean | null;
+  tie_unresolved?: boolean | null;
+}): boolean {
+  return zeile.tie_reason === "resolved" && !zeile.tied && !zeile.tie_unresolved;
+}
+
+/**
+ * Hinweis des Servers zu einem durch die Kette getrennten Gleichstand, für den Schirm gekürzt:
+ * Das Wort vorn („Ringgleichheit, “) fällt weg – die gleichen Summen stehen ja daneben –, damit
+ * in der schmalen Unterzeile das Kriterium zu lesen ist („entschieden nach: letzte Zehnerserie“).
+ */
+export function getrenntHinweis(
+  note: string | null | undefined,
+  wort: string | null | undefined,
+): string | null {
+  const text = note?.trim();
+  if (!text) return null;
+  const vorn = wort?.trim() ? `${wort.trim()}, ` : null;
+  return vorn && text.startsWith(vorn) ? text.slice(vorn.length) : text;
+}
+
+/**
  * Das formelle Wort für gleiche Ergebnisse dieses Wettbewerbs („Ringgleichheit“,
  * „Ergebnisgleichheit“, „gleiches Ergebnis“), wie es der Feed in `tie_word` liefert; leer `null`.
  */

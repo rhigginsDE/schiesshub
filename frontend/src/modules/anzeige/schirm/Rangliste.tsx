@@ -3,8 +3,10 @@ import { useTranslation } from "react-i18next";
 import {
   abbruchText,
   gesamtTeile,
+  getrenntHinweis,
   gleichstandHinweis,
   gleichstandWort,
+  istGetrennterGleichstand,
   istHoechstergebnis,
   istPlatzierterAbbruch,
   laengstesWort,
@@ -62,17 +64,22 @@ const GleichheitsWort = createContext<string | null>(null);
 
 interface GeteilterPlatz {
   text: string;
-  /** offen: Stechen oder von Hand (Info-Farbe); entschieden: Höchstergebnis (gedämpft) */
-  art: "offen" | "entschieden";
+  /**
+   * offen: Stechen oder von Hand (Info-Farbe); entschieden: Höchstergebnis, gleicher Platz
+   * (gedämpft); getrennt: gleiches Ergebnis, durch die Gleichstandskette entschieden (gedämpft)
+   */
+  art: "offen" | "entschieden" | "getrennt";
 }
 
 /**
- * Text zu einem geteilten Platz. Offen (`tie_unresolved`) mit dem formellen Wort des Feeds
+ * Text zu einem gleichen Ergebnis. Offen (`tie_unresolved`) mit dem formellen Wort des Feeds
  * („Ringgleichheit: Stechen“, „Ergebnisgleichheit: manuell entscheiden“); nach Regel entschieden
  * („max_score“) der Hinweis des Servers („Höchstergebnis: gleicher Platz“), ohne Aufforderung.
- * `null` ohne Platz oder ohne etwas zu sagen.
+ * Durch die Gleichstandskette getrennt („resolved“, nicht geteilt) nur mit `mitGetrennt`: der
+ * Hinweis des Servers („Ringgleichheit, entschieden nach: …“). `null` ohne Platz oder ohne etwas
+ * zu sagen.
  */
-function useGeteilterPlatz(): (zeile: FeedZeile) => GeteilterPlatz | null {
+function useGeteilterPlatz(mitGetrennt = false): (zeile: FeedZeile) => GeteilterPlatz | null {
   const { t } = useTranslation("anzeige");
   const wort = gleichstandWort(useContext(GleichheitsWort));
   return (zeile) => {
@@ -92,13 +99,34 @@ function useGeteilterPlatz(): (zeile: FeedZeile) => GeteilterPlatz | null {
         text: zeile.tie_note?.trim() || t("schirm.gleichstand.hoechstergebnis"),
       };
     }
+    if (mitGetrennt && istGetrennterGleichstand(zeile)) {
+      return {
+        art: "getrennt",
+        text:
+          getrenntHinweis(zeile.tie_note, wort) ||
+          (wort
+            ? t("schirm.gleichstand.getrennt_wort", { wort })
+            : t("schirm.gleichstand.getrennt")),
+      };
+    }
     return null;
   };
 }
 
-/** Geteilter Platz: offen in Info-Farbe, entschieden gedämpft – hinter Verein und Zusätzen. */
-function Gleichstand({ zeile, als = "em" }: { zeile: FeedZeile; als?: "em" | "span" }) {
-  const geteilt = useGeteilterPlatz()(zeile);
+/**
+ * Gleiches Ergebnis: offen in Info-Farbe, entschieden gedämpft – hinter Verein und Zusätzen.
+ * `mitGetrennt`: auch „durch die Gleichstandskette entschieden“ erklären (nur Live-Wertung).
+ */
+function Gleichstand({
+  zeile,
+  als = "em",
+  mitGetrennt = false,
+}: {
+  zeile: FeedZeile;
+  als?: "em" | "span";
+  mitGetrennt?: boolean;
+}) {
+  const geteilt = useGeteilterPlatz(mitGetrennt)(zeile);
   if (!geteilt) return null;
   const Element = als;
   return (
@@ -153,7 +181,8 @@ function Unterzeile({ zeile, ohnePlatz }: { zeile: FeedZeile; ohnePlatz?: boolea
   return (
     <span className={s.unter}>
       {teile.join(" · ")}
-      <Gleichstand zeile={zeile} />
+      {/* Live-Wertung: Zuschauer vergleichen gleiche Summen, darum hier auch „entschieden nach …“ */}
+      <Gleichstand zeile={zeile} mitGetrennt={!ohnePlatz} />
       {/* Leerzeichen vor jedem Zusatz: Vorlesen und Kopieren trennen „e. V.“ und „aufgegeben“. */}
       {zeile.running && (
         <>

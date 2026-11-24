@@ -6,7 +6,14 @@ import { BEGRIFFE_RUECKFALL, type Begriffssaetze } from "../../lib/begriffe";
 import { theme } from "../../theme";
 import { SchirmAnsicht } from "./schirm/Schirm";
 import type { FeedQuelle, FeedZustand } from "./schirm/useFeed";
-import { abbruchRangliste, beispielFeed, rangliste, szenen, zeile } from "./testdaten";
+import {
+  abbruchRangliste,
+  beispielFeed,
+  getrenntRangliste,
+  rangliste,
+  szenen,
+  zeile,
+} from "./testdaten";
 import type { Feed, FeedPerson, SzeneVon } from "./typen";
 
 const QUELLE: FeedQuelle = { art: "anzeige", id: "a1" };
@@ -618,6 +625,34 @@ describe("Bildschirm: Gleichstand nach Server, Wörter je Verband, Übung", () =
       expect(within(region).queryByText(/Stechen|manuell/)).toBeNull();
       unmount();
     }
+  });
+
+  it("durch die Kette entschieden: kein geteilter Platz, Hinweis nur in der Live-Wertung", () => {
+    const ranking = getrenntRangliste();
+    // Das Wort vorn fällt auf dem Schirm weg; der volle Text steht im `title`.
+    const hinweis = "entschieden nach: letzte Zehnerserie";
+
+    const live = szenen.live_ranking as SzeneVon<"live_ranking">;
+    const { unmount } = zeige(beispielFeed({ scenes: [{ ...live, ranking }] }));
+    const liste = screen.getByRole("region", { name: live.title });
+    const hinweise = within(liste).getAllByText(hinweis);
+    expect(hinweise).toHaveLength(2);
+    for (const h of hinweise) {
+      expect(h).toHaveAttribute("data-geteilt", "getrennt");
+      expect(h).toHaveAttribute("title", "Ringgleichheit, entschieden nach: letzte Zehnerserie");
+    }
+    expect(within(liste).queryByText("geteilt")).toBeNull();
+    expect(within(liste).queryByText(/Stechen|manuell/)).toBeNull();
+    // Trefferzählung/ohne Zehner: nichts von Zehnern auf dem Schirm
+    expect(liste.textContent).not.toMatch(/\d\s*(Innen)?[Zz]ehner\b/);
+    unmount();
+
+    // Ergebnisliste: Podest ohne den langen Hinweis, Plätze 2 und 3 nicht geteilt
+    const sieger = szenen.winners as SzeneVon<"winners">;
+    zeige(beispielFeed({ scenes: [{ ...sieger, ranking }] }));
+    const ergebnis = screen.getByRole("region", { name: sieger.title });
+    expect(within(ergebnis).queryByText(/entschieden nach/)).toBeNull();
+    expect(within(ergebnis).queryByText(/Stechen|manuell|geteilt/)).toBeNull();
   });
 
   it("Hinweis „Stechen“ nur bei offenem Gleichstand, nicht nach dem Wortlaut von tie_note", () => {

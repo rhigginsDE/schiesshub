@@ -21,6 +21,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { healthAbfrage } from "../../api/abfragen";
+import { ApiFehler } from "../../api/client";
 import { useDarf } from "../../app/berechtigungen";
 import { Bestaetigung } from "../../components/Bestaetigung";
 import { scrollVerhalten } from "../../components/bewegung";
@@ -34,7 +35,7 @@ import {
   formatWert,
   formatZeit,
   fortschrittText,
-  kriteriumText,
+  notizen,
   restText,
   ringEinheit,
   vorgaben,
@@ -43,6 +44,7 @@ import {
 import {
   type Abbruchgrund,
   type AbschnittForm,
+  type AufgebenAuskunft,
   type Erfassungsart,
   type ErgebnisStand,
   erfassungSchluessel,
@@ -50,19 +52,28 @@ import {
   ladeMaske,
   type Maske as MaskeDaten,
   maskeAbfrage,
+  type Notiz,
   neuerSchluessel,
+  ranglistenZeileAbfrage,
   SeqKonflikt,
   type SerieForm,
   vorschauAbfrage,
   type Wertung,
 } from "./api";
-import { ABBRUCH_DURCH_SCHUETZEN, type OffeneSerie, offeneSerien, orteText } from "./aufgeben";
+import {
+  ABBRUCH_DURCH_SCHUETZEN,
+  gemeinsamerStatus,
+  type OffeneSerie,
+  offeneSerien,
+  orteText,
+  serienDerAuskunft,
+} from "./aufgeben";
 import { type Namen, nameVon } from "./auswahl";
 import {
   AbbruchDialog,
   AenderungsListe,
   GrundDialog,
-  OffeneSerienHinweis,
+  OhnePlatzHinweis,
   PruefDialog,
   type PruefKopf,
 } from "./Dialoge";
@@ -82,6 +93,7 @@ import {
 import s from "./erfassung.module.css";
 import { Maske } from "./Maske";
 import {
+  abgeleiteteWerte,
   aenderungen,
   type Entwurf,
   erreichbar,
@@ -90,6 +102,7 @@ import {
   fehlstellen,
   gleicheRohwerte,
   hatWert,
+  mitAbgeleiteten,
   naechstes,
   normalerPfad,
   type PfadMeldung,
@@ -127,6 +140,36 @@ function tastaturZurueck() {
   ) {
     fokus.blur();
   }
+}
+
+/** Trägt „Abbruch durch den Schützen“ in die Serien ein, die den Status kennen. */
+function mitAbbruchStatus(entwurf: Entwurf, serien: readonly OffeneSerie[]): Entwurf {
+  let e = entwurf;
+  for (const offen of serien) {
+    if (!offen.abbruchStatus) continue;
+    e = setzeWert(
+      e,
+      { abschnitt: offen.abschnitt.id, serie: offen.serie.index, key: "status" },
+      ABBRUCH_DURCH_SCHUETZEN,
+    );
+  }
+  return e;
+}
+
+/** Erstes leeres Feld in diesen Serien (dorthin geht die Eingabe nach dem Status). */
+function erstesFeldIn(
+  refs: readonly FeldRef[],
+  entwurf: Entwurf,
+  serien: readonly OffeneSerie[],
+): FeldRef | null {
+  for (const offen of serien) {
+    const ziel = erstesOffenes(
+      refs.filter((r) => r.abschnitt === offen.abschnitt.id && r.serie === offen.serie.index),
+      entwurf,
+    );
+    if (ziel) return ziel;
+  }
+  return null;
 }
 
 interface TerminalProps {
@@ -176,7 +219,7 @@ export function Terminal(props: TerminalProps) {
   return <Flaeche {...props} maske={maske.data} wechselt={maske.isPlaceholderData} />;
 }
 
-type Dialog = null | "abschluss" | "abbruch" | "oeffnen" | "korrektur";
+type Dialog = null | "abschluss" | "abbruch" | "oeffnen" | "korrektur" | "zuruecknehmen";
 
 interface FlaecheProps extends TerminalProps {
   maske: MaskeDaten;
@@ -287,7 +330,7 @@ function Flaeche({
   const abgebrochen = status === "aborted";
   const bearbeitbar =
     phase !== "konflikt" &&
-    ((korrektur && darfKorrigieren && abgeschlossen) ||
+    ((korrektur && darfKorrigieren && (abgeschlossen || abgebrochen)) ||
       (!korrektur && darfErfassen && !abgeschlossen && !abgebrochen));
 
   // Wechsel zu einem anderen Start oder einer anderen Seite: nicht stillschweigend verwerfen.
@@ -307,6 +350,14 @@ function Flaeche({
   });
 
   // --- Aktives Feld ---
+
+  // Seriensumme aus den Einzelwerten (Server, nur Anzeige): zählt für Lücken und das erste offene
+  // Feld als Wert, gesendet wird sie nie.
+  const abgeleitet = useMemo(
+    () => abgeleiteteWerte(entwurf, maske.derived_values),
+    [entwurf, maske.derived_values],
+  );
+  const ansicht = useMemo(() => mitAbgeleiteten(entwurf, abgeleitet), [entwurf, abgeleitet]);
 
   const [aufgeklappt, setAufgeklappt] = useState<ReadonlySet<string>>(new Set());
   const refs = useMemo(
@@ -358,8 +409,8 @@ function Flaeche({
     if (aktivId !== null && refs.some((ref) => ref.id === aktivId)) return;
     if (aktivId === null && gestartet.current) return;
     gestartet.current = true;
-    gehe(erstesOffenes(refs, entwurf));
-  }, [bearbeitbar, aktivId, refs, entwurf, gehe]);
+    gehe(erstesOffenes(refs, ansicht));
+  }, [bearbeitbar, aktivId, refs, ansicht, gehe]);
 
   // Konflikt: die Frage muss sichtbar sein, auch wenn weiter unten erfasst wurde.
   const konfliktDa = phase === "konflikt";
@@ -737,13 +788,32 @@ function Flaeche({
       },
     );
 
-  // --- Aufgeben mit angefangener Serie (aufgeben.ts) ---
+  // --- Aufgeben: Vorabauskunft des Servers (abort_preview, aufgeben.ts) ---
 
-  // Laut Server angefangene, unvollständige Serien: Ein Aufgeben ließe den Start ohne Platz.
-  const offene = offeneSerien(form, basis.computed);
   const [abbruchGrund, setAbbruchGrund] = useState<Abbruchgrund | null>(null);
   /** „Abbruch durch den Schützen“ ist eingetragen, das Aufgeben steht noch aus. */
   const [vorgemerkt, setVorgemerkt] = useState<readonly OffeneSerie[] | null>(null);
+
+  // Die Auskunft der Maske gilt für deren Stand. Hat die Sitzung inzwischen einen neueren (eigene
+  // Eingabe, Ereignis noch nicht da), fragt das Terminal den Server mit genau diesen Rohwerten
+  // (`POST …/preview`, nichts wird gespeichert).
+  const offenerStart = !abgeschlossen && !abgebrochen;
+  const auskunftDerMaske = maske.current.seq === basis.seq;
+  const basisRoh = basis.raw ?? {};
+  const auskunftAbfrage = useQuery({
+    ...vorschauAbfrage(turnierId, startId, basisRoh, stabil(basisRoh)),
+    enabled: offenerStart && !auskunftDerMaske && (dialog === "abbruch" || vorgemerkt !== null),
+  });
+  /** `undefined`: wird geladen; `null`: keine (erledigter Start) */
+  const auskunft: AufgebenAuskunft | null | undefined = !offenerStart
+    ? null
+    : auskunftDerMaske
+      ? (maske.abort_preview ?? null)
+      : auskunftAbfrage.data
+        ? (auskunftAbfrage.data.abort_preview ?? null)
+        : undefined;
+  // Angefangene Serien, an denen das Aufgeben laut Server scheitert.
+  const offene = serienDerAuskunft(form, basis.computed, auskunft);
 
   const abbruchOeffnen = (grund: Abbruchgrund | null) => {
     setAbbruchGrund(grund);
@@ -756,29 +826,12 @@ function Flaeche({
    * danach ausdrücklich mit „Jetzt aufgeben“, wenn der Server die Serien vollständig hat.
    */
   const serienAbschliessen = () => {
-    let e = sitzung.lesen().entwurf;
-    for (const offen of offene) {
-      if (!offen.abbruchStatus) continue;
-      e = setzeWert(
-        e,
-        { abschnitt: offen.abschnitt.id, serie: offen.serie.index, key: "status" },
-        ABBRUCH_DURCH_SCHUETZEN,
-      );
-    }
+    const e = mitAbbruchStatus(sitzung.lesen().entwurf, offene);
     if (e !== sitzung.lesen().entwurf) sitzung.aendern(e);
     setDialog(null);
     setVorgemerkt(offene);
     tastaturZurueck();
-    const refs = liste(e);
-    const ziel = offene
-      .map((offen) =>
-        erstesOffenes(
-          refs.filter((r) => r.abschnitt === offen.abschnitt.id && r.serie === offen.serie.index),
-          e,
-        ),
-      )
-      .find((ref) => ref !== null);
-    gehe(ziel ?? null);
+    gehe(erstesFeldIn(liste(e), e, offene));
   };
 
   // Vom Schießstand mit „aufgegeben“ geschickt: Rückfrage einmal öffnen.
@@ -840,6 +893,76 @@ function Flaeche({
     gehe(null);
   };
 
+  // --- Aufgegeben ohne Platz: Serienstatus nachtragen oder Abbruch zurücknehmen ---
+
+  // Ob der aufgegebene Start einen Platz hat, sagt die Rangliste des Servers (mit Grund).
+  const aufgegeben = abgebrochen && basis.abort_reason === "dnf";
+  const ranglistenZeile = useQuery({
+    ...ranglistenZeileAbfrage(turnierId, kopf.competition_id, kopf.class_id, startId),
+    enabled: aufgegeben,
+  });
+  const ohnePlatz =
+    aufgegeben && !korrektur && ranglistenZeile.data != null && ranglistenZeile.data.place === null;
+  // Angefangene, nicht fertige Serien laut Wertung des Servers: dort setzt das Nachtragen an.
+  const ohnePlatzSerien = ohnePlatz ? offeneSerien(form, basis.computed) : [];
+
+  /**
+   * Korrektur mit „Abbruch durch den Schützen“ in den offenen Serien vorbelegt. Gespeichert wird
+   * erst mit Grund („Korrektur speichern“); der Start bleibt aufgegeben und wird danach mit dem
+   * bisherigen Ergebnis gewertet.
+   */
+  const serienstatusNachtragen = () => {
+    // Sofort: Im Korrekturmodus sendet das Terminal nichts von selbst.
+    sitzung.setzeAutomatisch(false);
+    const e = mitAbbruchStatus(sitzung.lesen().entwurf, ohnePlatzSerien);
+    korrekturBeginnen();
+    sitzung.aendern(e);
+    tastaturZurueck();
+    gehe(erstesFeldIn(liste(e), e, ohnePlatzSerien));
+  };
+
+  const zuruecknehmen = (grund: string) =>
+    vorgang(
+      async (schluessel) => {
+        try {
+          return await ergebnisApi.abbruchZuruecknehmen(
+            turnierId,
+            startId,
+            grund,
+            basis.seq,
+            schluessel,
+          );
+        } catch (fehler) {
+          // 409 ohne Stand: Der Start ist gar nicht mehr abgebrochen (anderes Gerät).
+          if (fehler instanceof ApiFehler && fehler.status === 409) {
+            neuLaden();
+            throw t("zuruecknehmen.nicht_abgebrochen");
+          }
+          throw fehler;
+        }
+      },
+      (stand) => {
+        gestartet.current = false;
+        setAktivId(null);
+        setVorgeschlagen(null);
+        setVorgemerkt(null);
+        zeigeMeldung({
+          ton: "erfolg",
+          titel: t("zuruecknehmen.erledigt", { wer }),
+          text: t(
+            stand.status === "captured"
+              ? "zuruecknehmen.erledigt_erfasst"
+              : "zuruecknehmen.erledigt_angemeldet",
+          ),
+        });
+      },
+      (konflikt) => {
+        // Inzwischen geändert (veraltete Sequenz): neuen Stand zeigen, erneut entscheiden lassen.
+        sitzung.uebernehmen(konflikt.aktuell);
+        setVorgangFehler(t("zuruecknehmen.konflikt"));
+      },
+    );
+
   // --- Anzeige ---
 
   // Zeiten über der Grenze der Formularbeschreibung gleich bei der Eingabe als Fehler am Feld
@@ -866,8 +989,9 @@ function Flaeche({
     phase === "gespeichert" &&
     grenzFehler.length === 0;
   const ringe = form.sections.some((a) => a.series.some((serie) => serie.shots !== null));
+  const erfassungsNotizen = notizen(form, "erfassung");
   const titelAktiv = aktiv ? feldTitel(aktiv, form, t) : null;
-  const luecken = wertung && !wertung.complete ? fehlstellen(form, entwurf) : [];
+  const luecken = wertung && !wertung.complete ? fehlstellen(form, ansicht) : [];
   const korrekturRoh = korrektur ? rohwerteAus(form, entwurf) : null;
   const korrekturAenderungen = korrekturRoh ? aenderungen(form, basis.raw ?? {}, korrekturRoh) : [];
   // Korrektur: der Server rechnet die geänderten Werte probeweise (nichts wird gespeichert).
@@ -888,11 +1012,6 @@ function Flaeche({
   const naechsterVorschlag = vorgeschlagen ?? (abgeschlossen || abgebrochen ? vorschlag() : null);
   /** Alle Eingaben hat der Server (Grundlage für die offenen Serien und das Aufgeben). */
   const allesBeimServer = !zustand.ungespeichert && phase === "gespeichert";
-  /** Bezeichnung von „Abbruch durch den Schützen“, wenn alle Serien der Liste ihn kennen */
-  const statusVon = (liste: readonly OffeneSerie[]) =>
-    liste.length > 0 && liste.every((o) => o.abbruchStatus)
-      ? (liste[0]?.abbruchStatus ?? null)
-      : null;
   // Vorgemerktes Aufgeben: was in diesen Serien laut Eingabe noch fehlt.
   const vorgemerktPfade = new Set(
     (vorgemerkt ?? []).map((o) => serienPfad(o.abschnitt.id, o.serie.index)),
@@ -900,8 +1019,6 @@ function Flaeche({
   const vorgemerktFehlt = vorgemerkt
     ? fehlstellen(form, entwurf).filter((f) => vorgemerktPfade.has(f.pfad))
     : [];
-  // Aufgegeben mit offener Serie: steht ohne Platz in der Rangliste (Hinweis am Start).
-  const ohnePlatz = abgebrochen && basis.abort_reason === "dnf" ? offene : [];
 
   return (
     <>
@@ -949,7 +1066,9 @@ function Flaeche({
             <PencilLine aria-hidden />
             <div>
               <strong>{t("korrektur.modus")}</strong>
-              <p>{t("korrektur.modus_text")}</p>
+              <p>
+                {abgebrochen ? t("korrektur.modus_text_abgebrochen") : t("korrektur.modus_text")}
+              </p>
               <AenderungsListe liste={korrekturAenderungen} />
             </div>
           </div>
@@ -957,25 +1076,28 @@ function Flaeche({
         {vorgemerkt && !abgeschlossen && !abgebrochen && !korrektur && (
           <AufgebenVorgemerkt
             liste={vorgemerkt}
-            status={statusVon(vorgemerkt)}
+            status={gemeinsamerStatus(vorgemerkt)}
             fehlt={vorgemerktFehlt.flatMap((f) => f.felder)}
-            bereit={allesBeimServer && offene.length === 0}
-            wartet={!allesBeimServer}
+            bereit={allesBeimServer && auskunft !== undefined && offene.length === 0}
+            wartet={!allesBeimServer || auskunft === undefined}
             darf={darfErfassen}
             onJetzt={() => abbruchOeffnen("dnf")}
             onDochNicht={() => setVorgemerkt(null)}
           />
         )}
-        {ohnePlatz.length > 0 && (
-          <OffeneSerienHinweis
-            liste={ohnePlatz}
+        {ohnePlatz && (
+          <OhnePlatzHinweis
+            grund={ranglistenZeile.data?.abort_note ?? null}
+            liste={ohnePlatzSerien}
             name={pruefKopf.name}
-            status={statusVon(ohnePlatz)}
-            ohnePlatz
+            darf={darfKorrigieren}
+            onNachtragen={serienstatusNachtragen}
+            onKorrigieren={korrekturBeginnen}
+            onZuruecknehmen={() => oeffneDialog("zuruecknehmen")}
           />
         )}
 
-        {(ringe || form.notes.length > 0) && (
+        {(ringe || erfassungsNotizen.length > 0) && (
           <div className={s.artZeile}>
             {ringe && (
               <>
@@ -1006,9 +1128,14 @@ function Flaeche({
                 )}
               </>
             )}
-            {form.notes.map((note) => (
-              <p key={note} className={s.klein}>
-                {note}
+            {abgeleitet.size > 0 && (
+              <p className={s.klein} data-abgeleitet-hinweis>
+                {t("art.abgeleitet")}
+              </p>
+            )}
+            {erfassungsNotizen.map((notiz) => (
+              <p key={`${notiz.kind}-${notiz.text}`} className={s.klein}>
+                {notiz.text}
               </p>
             ))}
           </div>
@@ -1035,6 +1162,7 @@ function Flaeche({
           }
           onFeld={feldWaehlen}
           onStatus={statusSetzen}
+          abgeleitet={abgeleitet}
           veraltet={korrektur ? mitVorschau && !vorschauAktuell : berechnet}
         />
 
@@ -1062,6 +1190,7 @@ function Flaeche({
           vorschau={vorschauWertung}
           vorschauAktuell={vorschauAktuell}
           vorschauFehler={mitVorschau && vorschau.isError}
+          notizen={notizen(form, "gleichstand")}
         />
 
         <Verlauf
@@ -1074,7 +1203,7 @@ function Flaeche({
       </section>
 
       <aside className={s.eingabe} aria-label={t("eingabe")}>
-        {!(abgeschlossen && !korrektur) && !abgebrochen && (
+        {(korrektur || (!abgeschlossen && !abgebrochen)) && (
           <Tastenfeld
             aktiv={aktiv}
             titel={titelAktiv}
@@ -1158,6 +1287,25 @@ function Flaeche({
                     onClick={() => oeffneDialog("oeffnen")}
                   >
                     {t("oeffnen.knopf")}
+                  </Button>
+                </>
+              )}
+              {/* Ohne Platz stehen beide Wege mit Erklärung im Hinweis links. */}
+              {abgebrochen && darfKorrigieren && !ohnePlatz && (
+                <>
+                  <Button
+                    variant="default"
+                    leftSection={<Undo2 aria-hidden />}
+                    onClick={() => oeffneDialog("zuruecknehmen")}
+                  >
+                    {t("zuruecknehmen.knopf")}
+                  </Button>
+                  <Button
+                    variant="default"
+                    leftSection={<PencilLine aria-hidden />}
+                    onClick={korrekturBeginnen}
+                  >
+                    {t("korrektur.knopf")}
                   </Button>
                 </>
               )}
@@ -1249,6 +1397,7 @@ function Flaeche({
           wer={wer}
           name={pruefKopf.name}
           startGrund={abbruchGrund}
+          auskunft={auskunft}
           offeneSerien={offene}
           onSerienAbschliessen={serienAbschliessen}
           bereit={allesBeimServer || phase === "abgelehnt"}
@@ -1274,10 +1423,35 @@ function Flaeche({
           onSchliessen={() => setDialog(null)}
           onBestaetigen={(grund) => void korrekturSpeichern(grund)}
           titel={t("korrektur.titel")}
-          text={t("korrektur.text", { wer })}
+          text={t(abgebrochen ? "korrektur.text_abgebrochen" : "korrektur.text", { wer })}
           bestaetigen={t("korrektur.bestaetigen")}
         >
           <AenderungsListe liste={korrekturAenderungen} />
+        </GrundDialog>
+      )}
+      {dialog === "zuruecknehmen" && (
+        <GrundDialog
+          offen
+          laedt={laedt}
+          fehler={vorgangFehler}
+          onSchliessen={() => setDialog(null)}
+          onBestaetigen={(grund) => void zuruecknehmen(grund)}
+          titel={t("zuruecknehmen.titel")}
+          text={t("zuruecknehmen.text", {
+            wer,
+            grund: basis.abort_reason ? t(`abbruch.lang.${basis.abort_reason}`) : "",
+          })}
+          bestaetigen={t("zuruecknehmen.bestaetigen")}
+        >
+          <ul className={s.danachListe}>
+            <li>
+              {gleicheRohwerte(basis.raw, {})
+                ? t("zuruecknehmen.danach_angemeldet")
+                : t("zuruecknehmen.danach_erfasst")}
+            </li>
+            <li>{t("zuruecknehmen.danach_stand")}</li>
+            <li>{t("zuruecknehmen.danach_verlauf")}</li>
+          </ul>
         </GrundDialog>
       )}
       {blocker.status === "blocked" && (
@@ -1432,6 +1606,7 @@ function Gesamtstand({
   vorschau,
   vorschauAktuell,
   vorschauFehler,
+  notizen: gleichstandNotizen,
 }: {
   basis: ErgebnisStand;
   berechnet: boolean;
@@ -1440,6 +1615,8 @@ function Gesamtstand({
   vorschau: Wertung | null;
   vorschauAktuell: boolean;
   vorschauFehler: boolean;
+  /** Notizen des Servers zum Gleichstand (Höchstergebnis, Stechen, manuell) */
+  notizen: readonly Notiz[];
 }) {
   const { t } = useTranslation("erfassung");
   const [wegOffen, setWegOffen] = useState(false);
@@ -1450,12 +1627,15 @@ function Gesamtstand({
   const korrekturGeaendert = korrektur && (vorschau !== null || berechnet);
   const nochNichts = gleicheRohwerte(basis.raw, {});
   const nebenwerte: { name: string; wert: string }[] = [];
-  // Treffer je Ziel (Wurfscheibe): Zehner und Innenzehner gibt es dort nicht.
   const treffer = zaehltTreffer(wertung.unit);
-  if (wertung.tens !== null && wertung.rings !== null && !treffer) {
+  // Zehner und Innenzehner nur, wenn der Server sie liefert (bei Trefferzählung `null`). Ältere
+  // gespeicherte Stände der Wurfscheibe haben noch 0 statt `null`: dort bleibt die Einheit der
+  // Rückfall, bis der Server sie neu rechnet.
+  const zehnerDa = wertung.rings !== null && !treffer;
+  if (wertung.tens !== null && zehnerDa) {
     nebenwerte.push({ name: t("gesamt.zehner"), wert: formatWert(wertung.tens) });
   }
-  if (wertung.inner_tens !== null && wertung.rings !== null && !treffer) {
+  if (wertung.inner_tens !== null && zehnerDa) {
     nebenwerte.push({ name: t("gesamt.innenzehner"), wert: formatWert(wertung.inner_tens) });
   }
   if (wertung.penalty_cs) {
@@ -1508,16 +1688,21 @@ function Gesamtstand({
         {korrektur && vorschauFehler && (
           <span className={s.berechnet}>{t("korrektur.erst_danach")}</span>
         )}
-        {wertung.tie_breakers_missing.length > 0 && (
+        {wertung.tie_breakers_missing_items.length > 0 && (
           <span className={s.klein}>
             {t("gesamt.gleichstand_fehlt", {
-              was: wertung.tie_breakers_missing
-                .map((kriterium) => kriteriumText(kriterium, t))
-                .join(", "),
+              was: wertung.tie_breakers_missing_items.map((kriterium) => kriterium.text).join(", "),
             })}
           </span>
         )}
       </p>
+      {gleichstandNotizen.length > 0 && (
+        <ul className={s.notizen} aria-label={t("gesamt.notizen")}>
+          {gleichstandNotizen.map((notiz) => (
+            <li key={`${notiz.kind}-${notiz.text}`}>{notiz.text}</li>
+          ))}
+        </ul>
+      )}
       {wertung.steps.length > 0 && (
         <>
           <button

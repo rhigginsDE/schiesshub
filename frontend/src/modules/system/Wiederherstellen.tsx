@@ -55,6 +55,7 @@ import {
   umschaltenLaeuft,
   type Vorschau,
   verloreneEingaben,
+  versionWerte,
   WIEDERHERSTELLEN_SCHLUESSEL,
   type WiederherstellungsSchritt,
   type WiederherstellungsStatus,
@@ -582,7 +583,15 @@ function Passwort({
         {kopie && (
           <div className={`${s.abschnitt} ${s.nebenweg}`}>
             <h4 className={s.abschnittTitel}>{t("wiederherstellen.passwort_vergessen_titel")}</h4>
-            <p className={s.text}>{t("wiederherstellen.passwort_vergessen_text")}</p>
+            <p className={s.text}>
+              {t("wiederherstellen.passwort_vergessen_text", {
+                ort: t(`wiederherstellen.orte.${kopie.location}`),
+              })}
+            </p>
+            {/* Vor dem Klick sagen, was fehlt: Ohne Schlüssel gelten die dieses Servers. */}
+            {!kopie.contains_keys && (
+              <p className={s.text}>{t("wiederherstellen.passwort_vergessen_ohne_schluessel")}</p>
+            )}
             <div>
               <Button variant="default" onClick={() => onKopie(kopie)} disabled={laedt}>
                 {t("wiederherstellen.passwort_vergessen_knopf")}
@@ -638,7 +647,11 @@ function VorschauAnsicht({
   const [aussperrenFehlt, setAussperrenFehlt] = useState(false);
   const { access: zugang } = vorschau;
   const zeit = formatZeitpunkt(vorschau.created_at ?? vorschau.source.created_at, sprache);
-  const hinweise = meldungTexte(vorschau.note_items, uebersetzen);
+  const hinweise = meldungTexte(
+    vorschau.note_items,
+    uebersetzen,
+    versionWerte(vorschau.app_version, vorschau.app_version_current),
+  );
   const ort = ortText(t, vorschau.source.location);
 
   const weiter = () => {
@@ -1195,7 +1208,11 @@ function Ergebnis({ status }: { status: WiederherstellungsStatus }) {
   const fehlen = bericht ? bericht.missing_events + bericht.conflicts : 0;
   const zeit = status.source ? formatZeitpunkt(status.source.created_at, sprache) : "";
   const hinweise = ergebnisHinweise(status);
-  const hinweisTexte = meldungTexte(hinweise, uebersetzen);
+  const hinweisTexte = meldungTexte(
+    hinweise,
+    uebersetzen,
+    versionWerte(ergebnis.app_version, ergebnis.app_version_current),
+  );
   const starts = uebersprungeneStarts(status);
 
   return (

@@ -24,7 +24,15 @@ import {
   useTurnierKopieren,
   vorlagenAbfrage,
 } from "./abfragen";
-import { heute, naechsterTermin, nameMitJahr, nameVergeben, tage, vorbilder } from "./anfang";
+import {
+  bisNachVon,
+  heute,
+  naechsterTermin,
+  nameMitJahr,
+  nameVergeben,
+  tage,
+  vorbilder,
+} from "./anfang";
 import a from "./aufgaben.module.css";
 import { EINRICHTEN_PFAD } from "./pfade";
 import { feldFehlerFuer, vorlagenLuecken } from "./senden";
@@ -237,6 +245,8 @@ function TerminFelder({
   onAendern: (termin: Termin) => void;
 }) {
   const { t } = useTranslation("turnier");
+  // „Datum bis“ selbst geändert? Bis dahin wandert es mit „Datum von“ mit (gleiche Dauer).
+  const [bisEigen, setBisEigen] = useState(false);
   return (
     <>
       <div className={s.zweiSpalten}>
@@ -247,7 +257,10 @@ function TerminFelder({
           size="md"
           value={termin.date_from}
           error={fehler.date_from}
-          onChange={(e) => onAendern({ ...termin, date_from: e.currentTarget.value })}
+          onChange={(e) => {
+            const von = e.currentTarget.value;
+            onAendern({ ...termin, date_from: von, date_to: bisNachVon(termin, von, bisEigen) });
+          }}
         />
         {termin.mehrtaegig && (
           <TextInput
@@ -257,7 +270,10 @@ function TerminFelder({
             value={termin.date_to}
             min={termin.date_from}
             error={fehler.date_to}
-            onChange={(e) => onAendern({ ...termin, date_to: e.currentTarget.value })}
+            onChange={(e) => {
+              setBisEigen(true);
+              onAendern({ ...termin, date_to: e.currentTarget.value });
+            }}
           />
         )}
       </div>

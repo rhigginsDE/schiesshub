@@ -161,6 +161,52 @@ export function setzeWert(
   });
 }
 
+// --- Aus den Einzelwerten berechnet (Seriensumme) ------------------------------------------------
+
+/** Feldwerte, die der Server aus den Einzelwerten rechnet, je Feld-ID (`sections.x.series.0.sum`). */
+export type Abgeleitet = ReadonlyMap<string, string | number>;
+
+const SERIEN_PFAD = /^sections\.([^.]+)\.series\.(\d+)$/;
+
+/**
+ * Abgeleitete Werte des Servers (`derived_values`) für die Felder der Maske. Ein Wert gilt nur,
+ * solange die Serie im Entwurf noch Einzelwerte und für das Feld keinen eigenen Wert hat: Wer in
+ * der Seriensumme etwas einträgt, ersetzt die Einzelwerte (`setzeWert`), dann zählt der neue Wert.
+ * Gesendet wird ein abgeleiteter Wert nie.
+ */
+export function abgeleiteteWerte(
+  entwurf: Entwurf,
+  werte: readonly { path: string; key: string; value: string | number }[],
+): Abgeleitet {
+  const karte = new Map<string, string | number>();
+  for (const wert of werte) {
+    const treffer = SERIEN_PFAD.exec(normalerPfad(wert.path));
+    if (!treffer) continue;
+    const abschnitt = treffer[1] ?? "";
+    const index = Number(treffer[2]);
+    const serie = serieAus(entwurf, abschnitt, index);
+    if (schuesseAus(serie).length === 0 || serie[wert.key] !== undefined) continue;
+    karte.set(feldId(abschnitt, index, wert.key), wert.value);
+  }
+  return karte;
+}
+
+/**
+ * Entwurf mit den abgeleiteten Werten, nur zum Lesen: für Lücken und das erste offene Feld (ein
+ * berechneter Wert ist keine Lücke und wird nicht von selbst angesteuert). Nie senden.
+ */
+export function mitAbgeleiteten(entwurf: Entwurf, abgeleitet: Abgeleitet): Entwurf {
+  let neu = entwurf;
+  for (const [id, wert] of abgeleitet) {
+    const teile = id.split(".");
+    const abschnitt = teile[1] ?? "";
+    const index = Number(teile[3]);
+    const key = teile[4] ?? "";
+    neu = mitSerie(neu, abschnitt, index, (serie) => ({ ...serie, [key]: wert }));
+  }
+  return neu;
+}
+
 // --- Status und Pflichtfelder --------------------------------------------------------------------
 
 export function statusFeld(serie: SerieForm): FeldBeschreibung | undefined {

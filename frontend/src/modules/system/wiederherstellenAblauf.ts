@@ -208,30 +208,29 @@ export function quellenZusammenfassen(quellen: readonly Quelle[]): Quelle[] {
 }
 
 /**
- * Kopie derselben Sicherung, die ohne Sicherungspasswort lesbar ist (die vom Server), falls es
- * eine gibt: der Ausweg, wenn das Passwort vergessen ist. Sie enthält keine Schlüssel.
+ * Kopie derselben Sicherung, die ohne Sicherungspasswort lesbar ist (meist die vom Server), falls
+ * der Server eine meldet (`other_sources` mit `needs_passphrase` false): der Ausweg, wenn das
+ * Passwort vergessen ist. Eine Kopie mit Schlüsseln geht vor; ob die gewählte Schlüssel enthält,
+ * steht in `contains_keys` (vom Server: nein – dann gelten die Schlüssel dieses Servers).
  */
 export function kopieOhnePasswort(quelle: Quelle): Quelle | null {
   if (!quelle.needs_passphrase) return null;
-  for (const id of quelle.other_ids ?? []) {
-    const trenner = id.indexOf(":");
-    const ort = id.slice(0, trenner);
-    const datei = id.slice(trenner + 1);
-    if ((ort === "local" || ort === "pre_restore") && !datei.endsWith(".shb")) {
-      return {
-        ...quelle,
-        id,
-        location: ort,
-        locations: orteDerQuelle(quelle),
-        other_ids: [],
-        file_name: datei,
-        encrypted: false,
-        needs_passphrase: false,
-        contains_keys: false,
-      };
-    }
-  }
-  return null;
+  const ohnePasswort = (quelle.other_sources ?? []).filter((andere) => !andere.needs_passphrase);
+  const kopie = ohnePasswort.find((andere) => andere.contains_keys) ?? ohnePasswort[0];
+  if (!kopie) return null;
+  return {
+    ...quelle,
+    id: kopie.id,
+    location: kopie.location,
+    locations: orteDerQuelle(quelle),
+    other_ids: [],
+    other_sources: [],
+    // `file_name` bleibt der des Eintrags; Datei und Ort der Kopie nennt danach die Vorschau
+    // des Servers (`vorschau.source`).
+    encrypted: false,
+    needs_passphrase: false,
+    contains_keys: kopie.contains_keys,
+  };
 }
 
 // --- Meldungen des Servers ------------------------------------------------------------
@@ -269,17 +268,32 @@ const EIGENER_TEXT: ReadonlySet<string> = new Set(MELDUNG_CODES);
 
 export type Uebersetzer = (schluessel: string, werte?: Record<string, unknown>) => string;
 
-/** Eigener Text für bekannte Kennungen, sonst der des Servers; gleiche Texte nur einmal. */
+/** Versionen zu `other_app_version` (Vorschau und Ergebnis), als Werte für `meldungTexte`. */
+export function versionWerte(
+  sicherung: string | null | undefined,
+  jetzt: string | null | undefined,
+): { version_sicherung?: string; version_jetzt?: string } {
+  const alt = sicherung?.trim();
+  const neu = jetzt?.trim();
+  return alt && neu ? { version_sicherung: alt, version_jetzt: neu } : {};
+}
+
+/**
+ * Eigener Text für bekannte Kennungen, sonst der des Servers; gleiche Texte nur einmal. Zu
+ * `other_app_version` mit beiden Versionsnummern (`versionWerte`) der Text mit den Nummern.
+ */
 export function meldungTexte(
   meldungen: readonly Meldung[] | undefined,
   t: Uebersetzer,
   werte: Record<string, unknown> = {},
 ): string[] {
-  const texte = (meldungen ?? []).map((meldung) =>
-    EIGENER_TEXT.has(meldung.code)
-      ? t(`wiederherstellen.meldung.${meldung.code}`, werte)
-      : meldung.message_de,
-  );
+  const texte = (meldungen ?? []).map((meldung) => {
+    if (!EIGENER_TEXT.has(meldung.code)) return meldung.message_de;
+    const mitNummern =
+      meldung.code === "other_app_version" && werte.version_sicherung && werte.version_jetzt;
+    const schluessel = mitNummern ? "other_app_version_nummern" : meldung.code;
+    return t(`wiederherstellen.meldung.${schluessel}`, werte);
+  });
   return [...new Set(texte.filter(Boolean))];
 }
 

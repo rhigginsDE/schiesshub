@@ -35,7 +35,9 @@
       "manuell": "manuell entscheiden",
       "stechen_wort": "{{wort}}: Stechen",
       "manuell_wort": "{{wort}}: manuell entscheiden",
-      "hoechstergebnis": "Höchstergebnis: gleicher Platz"
+      "hoechstergebnis": "Höchstergebnis: gleicher Platz",
+      "getrennt": "gleiches Ergebnis, nach Regel entschieden",
+      "getrennt_wort": "{{wort}}, nach Regel entschieden"
     },
     "uebung": "Übung",
     "uebung_lang": "Übungsturnier mit Beispieldaten – keine echten Ergebnisse",

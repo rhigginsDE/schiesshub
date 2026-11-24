@@ -176,6 +176,60 @@ export function abbruchRangliste(): FeedRangliste {
   };
 }
 
+/**
+ * Rangliste mit Ringgleichheit, die die Gleichstandskette entschieden hat (wie der Server seit
+ * Commit 3ba1bc4): beide mit `tie_reason` „resolved“, Kriterium und Hinweis, aber `tied` false –
+ * Platz 2 und 3, kein geteilter Platz. Ohne Zehner (`tens` liefert der Feed nicht).
+ */
+export function getrenntRangliste(): FeedRangliste {
+  const hinweis = "Ringgleichheit, entschieden nach: letzte Zehnerserie";
+  return {
+    competition_id: "w10",
+    competition_name: "Luftgewehr",
+    competition_code: "1.10",
+    direction: "absteigend",
+    unit: "Ringe",
+    combined: false,
+    tie_word: "Ringgleichheit",
+    federation: "dsb",
+    groups: [
+      {
+        class_id: "k1",
+        class_name: "Schützenklasse",
+        class_short: "S",
+        rows: [
+          zeile({
+            start_id: "g1",
+            place: 1,
+            display_name: "Anna Beispiel",
+            score_text: "390 Ringe",
+          }),
+          zeile({
+            start_id: "g2",
+            place: 2,
+            tie_reason: "resolved",
+            tie_criterion: "letzte_serie_rueckwaerts",
+            tie_note: hinweis,
+            display_name: "Bernd Muster",
+            score_text: "385 Ringe",
+          }),
+          zeile({
+            start_id: "g3",
+            place: 3,
+            tie_reason: "resolved",
+            tie_criterion: "letzte_serie_rueckwaerts",
+            tie_note: hinweis,
+            display_name: "Clara Probe",
+            score_text: "385 Ringe",
+          }),
+        ],
+        more: 0,
+        unplaced: [],
+      },
+    ],
+  };
+}
+
 function person(teil: Partial<FeedPerson> & Pick<FeedPerson, "start_id">): FeedPerson {
   return {
     start_number: 5,

@@ -72,7 +72,7 @@
       "dsq": "Disqualifiziert"
     },
     "titel": "{{wer}}: {{grund}}?",
-    "text": "Der Start in „{{wettbewerb}}“ ({{versuch}}. Start) wird abgebrochen und der Schützenstand frei. Das lässt sich nicht rückgängig machen.",
+    "text": "Der Start in „{{wettbewerb}}“ ({{versuch}}. Start) wird abgebrochen und der Schützenstand frei. Zurücknehmen lässt sich das nur in der Erfassung, mit Grund.",
     "bestaetigen": "Start abbrechen",
     "zurueck": "Nicht abbrechen",
     "gemacht": "{{wer}}: {{grund}}",

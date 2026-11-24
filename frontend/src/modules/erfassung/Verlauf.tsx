@@ -20,6 +20,10 @@ interface VerlaufProps {
 
 function wertKurz(wert: unknown, feld: Parameters<typeof wertText>[0] | null): string {
   if (wert === null || wert === undefined) return "–";
+  // Schüsse als Reihe („10 9 X“), auch wenn die Maske gerade kein Schussfeld hat (Seriensumme).
+  if (Array.isArray(wert)) {
+    return wert.length > 0 ? wert.map((einzeln) => wertKurz(einzeln, feld)).join(" ") : "–";
+  }
   if (typeof wert === "object") return JSON.stringify(wert);
   if (feld?.kind === "choice")
     return feld.options?.find((o) => o.key === wert)?.label ?? String(wert);
@@ -86,10 +90,12 @@ function VerlaufZeile({ eintrag, form }: { eintrag: VerlaufEintrag; form: Formul
       {eintrag.changes.length > 0 && (
         <ul className={s.aenderungen}>
           {eintrag.changes.slice(0, 8).map((aenderung) => {
+            // Ort in Worten vom Server („Serie 1 · Treffer je Ziel“), gleich in jeder Erfassungsart;
+            // die Maske liefert nur noch das Feld, um den Wert lesbar zu schreiben.
             const ort = aenderungsOrt(form, aenderung.path, (nr) => t("tasten.schuss", { nr }));
             return (
               <li key={aenderung.path}>
-                <span className="gedaempft">{ort.text}</span>{" "}
+                <span className="gedaempft">{aenderung.label || ort.text}</span>{" "}
                 <span className="num">
                   {wertKurz(aenderung.before, ort.feld)} → {wertKurz(aenderung.after, ort.feld)}
                 </span>

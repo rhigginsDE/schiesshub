@@ -9,6 +9,8 @@ import type {
   Formular,
   Fortschritt,
   HinweisArt,
+  Notiz,
+  NotizArt,
   SerieForm,
   SerienWertung,
 } from "./api";
@@ -32,18 +34,6 @@ export function formatZeit(hundertstel: number | null | undefined): string {
  */
 export function zaehltTreffer(einheit: string | null | undefined): boolean {
   return einheit === "Treffer";
-}
-
-/**
- * Gleichstandskriterium in Worten, z. B. für „Für einen Gleichstand fehlt: …“. Der Server liefert
- * `tie_breakers_missing` nur als IDs; der Klartext des Servers steht in `scoring/kriterien.yaml`
- * und ist hier für die Kriterien nachgeschrieben, die überhaupt fehlen können. Eine unbekannte ID
- * wird wie beim Server lesbar gemacht („abstand_zum_rand“ → „abstand zum rand“).
- */
-export function kriteriumText(kriterium: string, t: TFunction<"erfassung">): string {
-  return t(`gesamt.gleichstand.${kriterium}`, {
-    defaultValue: kriterium.replaceAll("_", " ").trim(),
-  });
 }
 
 /** „16 von 20 Schuss · 1 von 2 Serien“: nur, was diese Wertung zählt. `treffer`: Ziele statt Schuss. */
@@ -174,7 +164,9 @@ export function feldBereich(feld: FeldBeschreibung, t: TFunction<"erfassung">): 
 const KOPF_ARTEN: readonly HinweisArt[] = ["sighters", "preparation_time", "competition_time"];
 
 /** Eine Vorgabe im Kopf: ein Hinweis des Servers oder „aufgelegt“ (Angabe des Abschnitts). */
-export type Vorgabe = { art: "hinweis"; kind: HinweisArt; text: string } | { art: "aufgelegt" };
+export type Vorgabe =
+  | { art: "hinweis"; kind: HinweisArt | NotizArt; text: string }
+  | { art: "aufgelegt" };
 
 /** Hat genau einen Abschnitt: Seine Vorgaben stehen im Kopf statt in der Abschnittszeile. */
 function einzigerAbschnitt(form: Formular) {
@@ -190,7 +182,8 @@ function alleAufgelegt(form: Formular): boolean {
  * Vorgaben des Wettbewerbs zur Information im Kopf der Erfassung: Probeschüsse, Vorbereitung und
  * Wettkampfzeit (Hinweise des Servers nach Art), „aufgelegt“. Nur was der Server angibt; geprüft
  * oder erzwungen wird davon nichts. Bei mehreren Abschnitten bleiben deren Angaben an den
- * Abschnitten; die gemeinsame Wettkampfzeit steht in den Notizen des Servers.
+ * Abschnitten; die gemeinsame Wettkampfzeit (Notiz `competition_time_total`) steht hier bei den
+ * Zeiten.
  */
 export function vorgaben(form: Formular): Vorgabe[] {
   const liste: Vorgabe[] = [];
@@ -202,8 +195,31 @@ export function vorgaben(form: Formular): Vorgabe[] {
       }
     }
   }
+  for (const notiz of form.note_items) {
+    if (notiz.kind === "competition_time_total") {
+      liste.push({ art: "hinweis", kind: notiz.kind, text: notiz.text });
+    }
+  }
   if (alleAufgelegt(form)) liste.push({ art: "aufgelegt" });
   return liste;
+}
+
+// --- Notizen zur Maske ----------------------------------------------------------------------------
+
+/** Notizen zum Gleichstand und zur Platzierung: stehen beim Gesamtstand. */
+const GLEICHSTAND_ARTEN: readonly NotizArt[] = ["max_score", "shootoff", "tie_break_manual"];
+
+/**
+ * Notizen des Servers (`form.note_items`) nach ihrem Platz in der Maske, erkannt an der Art:
+ * `gleichstand` (Höchstergebnis, Stechen, manuelle Entscheidung) beim Gesamtstand, alle übrigen
+ * (Zehntelwertung, freiwillige Zehner, Gleichstand aus Seriensummen nicht rechenbar) bei der
+ * Erfassungsart. Die gemeinsame Wettkampfzeit steht bei den Vorgaben im Kopf (`vorgaben`).
+ */
+export function notizen(form: Formular, platz: "erfassung" | "gleichstand"): Notiz[] {
+  return form.note_items.filter((notiz) => {
+    if (notiz.kind === "competition_time_total") return false;
+    return GLEICHSTAND_ARTEN.includes(notiz.kind) === (platz === "gleichstand");
+  });
 }
 
 /**

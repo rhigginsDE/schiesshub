@@ -8,9 +8,11 @@ import {
   feedUhrzeit,
   gemeinsamerVerband,
   gesamtTeile,
+  getrenntHinweis,
   gleichstandHinweis,
   gleichstandWort,
   hauptSerie,
+  istGetrennterGleichstand,
   istHoechstergebnis,
   istPlatzierterAbbruch,
   laengstesWort,
@@ -286,6 +288,32 @@ describe("Gleichstand (Stechen, von Hand, Höchstergebnis)", () => {
     expect(istHoechstergebnis({ tie_reason: "max_score", tie_unresolved: false })).toBe(true);
     expect(istHoechstergebnis({ tie_reason: "shootoff", tie_unresolved: true })).toBe(false);
     expect(istHoechstergebnis({ tie_reason: null, tie_unresolved: false })).toBe(false);
+  });
+
+  it("durch die Gleichstandskette getrennt: kein geteilter Platz, keine Aufforderung", () => {
+    const getrennt = { tie_reason: "resolved", tied: false, tie_unresolved: false } as const;
+    expect(istGetrennterGleichstand(getrennt)).toBe(true);
+    expect(gleichstandHinweis(getrennt)).toBeNull();
+    expect(istHoechstergebnis(getrennt)).toBe(false);
+    // Maßgeblich ist `tied`: meldet der Server doch einen geteilten Platz, gilt der.
+    expect(istGetrennterGleichstand({ ...getrennt, tied: true })).toBe(false);
+    expect(istGetrennterGleichstand({ tie_reason: "max_score", tied: true })).toBe(false);
+    expect(istGetrennterGleichstand({ tie_reason: null, tied: false })).toBe(false);
+  });
+
+  it("kürzt den Hinweis zum getrennten Gleichstand um das Wort vorn", () => {
+    expect(
+      getrenntHinweis(
+        "Ergebnisgleichheit, entschieden nach: letzte Zehnerserie",
+        "Ergebnisgleichheit",
+      ),
+    ).toBe("entschieden nach: letzte Zehnerserie");
+    // Anderes Wort oder keins: Text bleibt
+    expect(getrenntHinweis("Ringgleichheit, entschieden nach: X", "Ergebnisgleichheit")).toBe(
+      "Ringgleichheit, entschieden nach: X",
+    );
+    expect(getrenntHinweis("entschieden nach: X", null)).toBe("entschieden nach: X");
+    expect(getrenntHinweis("  ", "Ringgleichheit")).toBeNull();
   });
 
   it("nimmt das formelle Wort aus tie_word, leer kein Wort", () => {
