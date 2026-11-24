@@ -1207,7 +1207,7 @@ export interface paths {
         };
         /**
          * Eingabemaske eines Starts
-         * @description Maske für die aktuelle Definition des Wettbewerbs, Kopf des Starts (mit `result.capture` voller Name, sonst nach Anzeige-Einstellung; dazu Kennziffer des Wettbewerbs und Stand), aktueller Rohwert und Zwischenstand. `capture_mode` wählt nur die Darstellung (Einzelschuss oder Seriensumme); ohne Angabe gilt die des Wettbewerbs. Rohwerte dürfen beides enthalten und werden gleich gewertet.
+         * @description Maske für die aktuelle Definition des Wettbewerbs, Kopf des Starts (mit `result.capture` voller Name, sonst nach Anzeige-Einstellung; dazu Kennziffer des Wettbewerbs und Stand), aktueller Rohwert und Zwischenstand. `capture_mode` wählt nur die Darstellung (Einzelschuss oder Seriensumme); ohne Angabe gilt die des Wettbewerbs. Rohwerte dürfen beides enthalten und werden gleich gewertet. `abort_preview`: ob ein Aufgeben jetzt (dnf) platziert würde, gerechnet wie die Rangliste (null bei abgeschlossenen und abgebrochenen Starts).
          */
         get: operations["ergebnisse_get_form"];
         put?: never;
@@ -1249,7 +1249,7 @@ export interface paths {
         put?: never;
         /**
          * Rohwerte probeweise werten (ohne Speichern)
-         * @description Rechnet `raw` gegen die aktuelle Definition des Wettbewerbs durch und liefert Validierungsfehler und berechneten Stand, speichert aber nichts (kein Ereignis, kein Statuswechsel). `errors`: Fehler, die auch `PUT …/raw` meldete; `finalize_errors`: was zum Abschließen oder Korrigieren fehlt. Für „Korrigieren“ und Eingaben, die erst später gespeichert werden.
+         * @description Rechnet `raw` gegen die aktuelle Definition des Wettbewerbs durch und liefert Validierungsfehler und berechneten Stand, speichert aber nichts (kein Ereignis, kein Statuswechsel). `errors`: Fehler, die auch `PUT …/raw` meldete; `finalize_errors`: was zum Abschließen oder Korrigieren fehlt; `abort_preview`: ob ein Aufgeben mit diesen Rohwerten platziert würde. Für „Korrigieren“ und Eingaben, die erst später gespeichert werden.
          */
         post: operations["ergebnisse_preview"];
         delete?: never;
@@ -1305,8 +1305,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Abgeschlossenes Ergebnis korrigieren (mit Grund)
-         * @description Ersetzt die Rohwerte eines abgeschlossenen Ergebnisses; es bleibt abgeschlossen. Die Einspruchsfrist beginnt neu, außer das Turnier hat `settings.protest_restart_on_correction: false` (dann läuft sie ab dem Abschluss weiter).
+         * Abgeschlossenes oder abgebrochenes Ergebnis korrigieren (mit Grund)
+         * @description Ersetzt die Rohwerte eines abgeschlossenen Ergebnisses; es bleibt abgeschlossen. Die Einspruchsfrist beginnt neu, außer das Turnier hat `settings.protest_restart_on_correction: false` (dann läuft sie ab dem Abschluss weiter). Bei einem abgebrochenen Start ersetzt die Korrektur nur die Rohwerte (Zwischenstand erlaubt, etwa um den Serienstatus „Abbruch durch den Schützen“ nachzutragen); der Start bleibt abgebrochen.
          */
         post: operations["ergebnisse_correct"];
         delete?: never;
@@ -1329,6 +1329,26 @@ export interface paths {
          * @description Schreibt das Ereignis `aborted` (mit optionalem Grund) ins Ergebnisprotokoll und wechselt den Status. `POST …/starts/{start_id}/abort` des Moduls `starts` führt zum selben Ergebnis (ohne Grund, Antwort ist dort der Start). Vorhandene Rohwerte bleiben erhalten.
          */
         post: operations["ergebnisse_abort"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/starts/{start_id}/result/undo-abort": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Abbruch zurücknehmen (mit Grund)
+         * @description Nimmt einen Abbruch (dns, dnf, dsq) zurück: neues Ereignis `abort_undone` im Ergebnisprotokoll (nichts wird überschrieben), Eintrag `start.abort_undone` im Audit-Protokoll. Der Start kehrt in den Status vor dem Abbruch zurück – „erfasst“, wenn es Rohwerte gibt, sonst „angemeldet“ – ohne Schützenstand (er wird nicht wieder aufgerufen). Danach lassen sich Rohwerte wieder erfassen, abschließen oder erneut abbrechen.
+         */
+        post: operations["ergebnisse_undo_abort"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2000,7 +2020,7 @@ export interface paths {
         put?: never;
         /**
          * Sicherung prüfen und Vorschau der Wiederherstellung (ändert nichts)
-         * @description Prüft Prüfsumme und Passwort, liest den Abzug und vergleicht ihn mit dem jetzigen Stand. `restorable` ist false, wenn `problems` etwas nennt. `confirm` gehört in `POST /backup/restore/execute`.
+         * @description Prüft Prüfsumme und Passwort, liest den Abzug und vergleicht ihn mit dem jetzigen Stand. `restorable` ist false, wenn `problem_items` etwas nennt. `confirm` gehört in `POST /backup/restore/execute`.
          */
         post: operations["backup_restore_preview"];
         delete?: never;
@@ -2363,6 +2383,25 @@ export interface components {
             finale?: components["schemas"]["Finale"] | null;
             /** Varianten */
             varianten: components["schemas"]["Variante"][];
+        };
+        /**
+         * AbortPreview
+         * @description Was ein Aufgeben jetzt (Abbruchgrund `dnf`) bewirken würde – gerechnet wie die Rangliste.
+         */
+        AbortPreview: {
+            /** Would Place */
+            would_place: boolean;
+            /**
+             * Reason Code
+             * @enum {string}
+             */
+            reason_code: "placed" | "no_values" | "incomplete_series" | "no_rule" | "missing_section_time" | "invalid";
+            /** Message De */
+            message_de: string;
+            /** Open Series */
+            open_series: number[];
+            /** Score Text */
+            score_text: string | null;
         };
         /** AbortRequest */
         AbortRequest: {
@@ -3329,6 +3368,12 @@ export interface components {
             decimals: number;
             /** Hits */
             hits?: number | null;
+            /**
+             * Tie Breakers Missing Items
+             * @description `tie_breakers_missing` mit Klartext, z. B. `{"id": "zehner", "text": "Anzahl der
+             *     Zehner"}`. Wird aus der ID abgeleitet (auch für gespeicherte Stände).
+             */
+            readonly tie_breakers_missing_items: components["schemas"]["TieBreakerItem"][];
         };
         /**
          * ConflictOut
@@ -3405,6 +3450,26 @@ export interface components {
              * Format: date
              */
             catalog_stand: string;
+        };
+        /**
+         * DerivedValue
+         * @description Feldwert, den der Server aus anderen erfassten Werten rechnet (nicht gespeichert).
+         *
+         *     Beispiel: Maske in Seriensumme, Serie 1 wurde Schuss für Schuss bzw. je Ziel erfasst →
+         *     `{"path": "sections.trap.series[0]", "key": "sum", "value": 23, "source": "shots"}`.
+         */
+        DerivedValue: {
+            /** Path */
+            path: string;
+            /** Key */
+            key: string;
+            /** Value */
+            value: string | number;
+            /**
+             * Source
+             * @constant
+             */
+            source: "shots";
         };
         /**
          * DeviationOut
@@ -3881,7 +3946,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "raw_set" | "finalized" | "corrected" | "reopened" | "aborted";
+            type: "raw_set" | "finalized" | "corrected" | "reopened" | "aborted" | "abort_undone";
             /** Type Label */
             type_label: string;
             /**
@@ -4291,7 +4356,9 @@ export interface components {
              */
             needs_shootoff: boolean;
             /** Tie Reason */
-            tie_reason?: ("missing_data" | "manual" | "shootoff" | "max_score") | null;
+            tie_reason?: ("missing_data" | "manual" | "shootoff" | "max_score" | "resolved") | null;
+            /** Tie Criterion */
+            tie_criterion?: string | null;
             /**
              * Tie Unresolved
              * @default false
@@ -4705,6 +4772,11 @@ export interface components {
             /** Notes */
             notes: string[];
             /**
+             * Note Items
+             * @default []
+             */
+            note_items: components["schemas"]["NoteItem"][];
+            /**
              * Ring Decimals
              * @default 0
              */
@@ -4772,6 +4844,12 @@ export interface components {
             competition_capture_mode: "shot" | "series";
             form: components["schemas"]["FormDescription"];
             current: components["schemas"]["ResultState"];
+            abort_preview?: components["schemas"]["AbortPreview"] | null;
+            /**
+             * Derived Values
+             * @default []
+             */
+            derived_values: components["schemas"]["DerivedValue"][];
         };
         /** GruppeOut */
         GruppeOut: {
@@ -5240,6 +5318,25 @@ export interface components {
             lane: number;
         };
         /**
+         * NoteItem
+         * @description Hinweis zur ganzen Maske mit Art (`FormDescription.note_items`).
+         *
+         *     `tenths` (Zehntelwertung), `tie_break_series_sum` (ein Gleichstandskriterium lässt sich aus
+         *     Seriensummen nicht rechnen), `tens_optional` (Zehner/Innenzehner freiwillig, aber für den
+         *     Gleichstand gebraucht), `competition_time_total` (gemeinsame Wettkampfzeit), `max_score`
+         *     (Höchstergebnis: gleicher Platz), `shootoff` (Stechen bis Platz N), `tie_break_manual`
+         *     (ab einem Kriterium entscheidet ein Mensch).
+         */
+        NoteItem: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "tenths" | "tie_break_series_sum" | "tens_optional" | "competition_time_total" | "max_score" | "shootoff" | "tie_break_manual";
+            /** Text */
+            text: string;
+        };
+        /**
          * NoticeScene
          * @description Freier Hinweis, z. B. „Siegerehrung um 15:30 Uhr“.
          */
@@ -5273,6 +5370,23 @@ export interface components {
         Order: {
             /** Ids */
             ids: string[];
+        };
+        /**
+         * OtherSourceOut
+         * @description Eine weitere Kopie derselben Sicherung an einem anderen Ort.
+         */
+        OtherSourceOut: {
+            /** Id */
+            id: string;
+            /**
+             * Location
+             * @enum {string}
+             */
+            location: "usb" | "local" | "pre_restore";
+            /** Needs Passphrase */
+            needs_passphrase: boolean;
+            /** Contains Keys */
+            contains_keys: boolean;
         };
         /** PairIn */
         PairIn: {
@@ -5509,6 +5623,7 @@ export interface components {
             computed: components["schemas"]["ComputedResult"] | null;
             /** Score */
             score: string | null;
+            abort_preview?: components["schemas"]["AbortPreview"] | null;
         };
         /** PreviewRequest */
         PreviewRequest: {
@@ -5713,7 +5828,7 @@ export interface components {
             /** Tie Unresolved */
             tie_unresolved: boolean;
             /** Tie Reason */
-            tie_reason?: ("missing_data" | "manual" | "shootoff" | "max_score") | null;
+            tie_reason?: ("missing_data" | "manual" | "shootoff" | "max_score" | "resolved") | null;
             /** Tie Criterion */
             tie_criterion?: string | null;
             /**
@@ -5800,6 +5915,8 @@ export interface components {
         RawChangeOut: {
             /** Path */
             path: string;
+            /** Label */
+            label: string;
             /** Before */
             before: unknown;
             /** After */
@@ -5905,10 +6022,6 @@ export interface components {
             access: components["schemas"]["AccessCheckOut"];
             /** Restorable */
             restorable: boolean;
-            /** Problems */
-            problems: string[];
-            /** Notes */
-            notes: string[];
             /** Problem Items */
             problem_items?: components["schemas"]["RestoreMessageOut"][];
             /** Note Items */
@@ -5931,10 +6044,12 @@ export interface components {
             keys_set_aside: string[];
             /** After Backup Ok */
             after_backup_ok: boolean | null;
-            /** Notes */
-            notes: string[];
             /** Note Items */
             note_items?: components["schemas"]["RestoreMessageOut"][];
+            /** App Version */
+            app_version?: string | null;
+            /** App Version Current */
+            app_version_current?: string | null;
             /** Skipped Starts */
             skipped_starts?: components["schemas"]["app__modules__backup__schemas__SkippedStartOut"][];
         };
@@ -5962,6 +6077,8 @@ export interface components {
             locations?: ("usb" | "local" | "pre_restore")[];
             /** Other Ids */
             other_ids?: string[];
+            /** Other Sources */
+            other_sources?: components["schemas"]["OtherSourceOut"][];
             /** File Name */
             file_name: string;
             /**
@@ -6934,6 +7051,16 @@ export interface components {
             };
         };
         /**
+         * TieBreakerItem
+         * @description Ein Gleichstandskriterium mit Klartext (`app/scoring/kriterien.yaml`).
+         */
+        TieBreakerItem: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+        };
+        /**
          * TournamentCopy
          * @description Neues Turnier „wie letztes Jahr“: Name und Termin neu, alles andere vom Original.
          */
@@ -7256,6 +7383,13 @@ export interface components {
             /** Date To */
             date_to?: string | null;
             settings?: components["schemas"]["TournamentSettingsUpdate"] | null;
+        };
+        /** UndoAbortRequest */
+        UndoAbortRequest: {
+            /** Reason */
+            reason: string;
+            /** Base Seq */
+            base_seq?: number | null;
         };
         /** UsbStatusOut */
         UsbStatusOut: {
@@ -11514,6 +11648,61 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["AbortResultRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultState"];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Im aktuellen Zustand nicht möglich. Bei veraltetem `base_seq` mit dem aktuellen Stand in `current`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeqConflictOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ergebnisse_undo_abort: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Beliebiger eindeutiger Schlüssel je Vorgang, z. B. eine UUID des Clients. */
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                tournament_id: string;
+                start_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UndoAbortRequest"];
             };
         };
         responses: {
