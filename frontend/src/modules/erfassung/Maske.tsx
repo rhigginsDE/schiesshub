@@ -292,8 +292,16 @@ function SerieKarte(props: SerieKarteProps) {
                       key={feld.key}
                       {...props}
                       feld={feld}
-                      aktivFeld={feldErfassbar(option, feld.key)}
-                      ungewertet={feldUngewertet(option, feld.key)}
+                      aktivFeld={feldErfassbar(
+                        option,
+                        feld.key,
+                        serieAus(entwurf, abschnitt.id, serie.index).shots,
+                      )}
+                      ungewertet={feldUngewertet(
+                        option,
+                        feld.key,
+                        serieAus(entwurf, abschnitt.id, serie.index).shots,
+                      )}
                     />
                   ) : (
                     <Feldknopf
@@ -306,8 +314,16 @@ function SerieKarte(props: SerieKarteProps) {
                         key: feld.key,
                         feld,
                       }}
-                      aktiv={feldErfassbar(option, feld.key)}
-                      ungewertet={feldUngewertet(option, feld.key)}
+                      aktiv={feldErfassbar(
+                        option,
+                        feld.key,
+                        serieAus(entwurf, abschnitt.id, serie.index)[feld.key],
+                      )}
+                      ungewertet={feldUngewertet(
+                        option,
+                        feld.key,
+                        serieAus(entwurf, abschnitt.id, serie.index)[feld.key],
+                      )}
                     />
                   ),
                 )}

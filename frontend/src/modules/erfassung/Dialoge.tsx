@@ -264,11 +264,19 @@ function ServerSerien({ form, stand }: { form: Formular; stand: ErgebnisStand })
                   .filter((feld) => feld.kind !== "choice")
                   .map((feld) => ({
                     feld,
-                    text: !feldErfassbar(option, feld.key)
+                    text: !feldErfassbar(
+                      option,
+                      feld.key,
+                      feld.kind === "shots" ? roh.shots : roh[feld.key],
+                    )
                       ? t("feld.entfaellt")
                       : feldText(feld, feld.kind === "shots" ? schuesseAus(roh) : roh[feld.key], t),
                     // Erfasst, aber vom Serienstatus nicht gewertet: Wert bleibt sichtbar.
-                    ungewertet: feldUngewertet(option, feld.key),
+                    ungewertet: feldUngewertet(
+                      option,
+                      feld.key,
+                      feld.kind === "shots" ? roh.shots : roh[feld.key],
+                    ),
                   }));
                 return (
                   <li key={serie.index} className={s.pruefZeile}>

@@ -48,14 +48,14 @@ describe("Rohwerte aus dem Entwurf", () => {
     });
   });
 
-  it("lässt Felder weg, die der gewählte Status weder braucht noch erlaubt, und behält sie im Entwurf", () => {
+  it("schickt erfasste Werte auch dann mit, wenn der gewählte Status sie in keiner Liste führt", () => {
     let e = setzeWert(leer, { abschnitt: "fallscheibe", serie: 0, key: "time_cs" }, 1500);
     e = setzeWert(e, { abschnitt: "fallscheibe", serie: 0, key: "standing" }, 2);
     e = setzeWert(e, { abschnitt: "fallscheibe", serie: 0, key: "status" }, "time_limit");
     expect(rohwerteAus(OHNE_UNGEWERTETE, e)).toEqual({
-      sections: { fallscheibe: { series: [{ status: "time_limit", standing: 2 }] } },
+      sections: { fallscheibe: { series: [{ time_cs: 1500, standing: 2, status: "time_limit" }] } },
     });
-    // Zurück auf „regulär“: Die Zeit ist wieder da, „status“ entfällt (Standard).
+    // Zurück auf „regulär“: Die Zeit bleibt, „status“ entfällt (Standard).
     e = setzeWert(e, { abschnitt: "fallscheibe", serie: 0, key: "status" }, "normal");
     expect(rohwerteAus(OHNE_UNGEWERTETE, e)).toEqual({
       sections: { fallscheibe: { series: [{ time_cs: 1500, standing: 2 }] } },

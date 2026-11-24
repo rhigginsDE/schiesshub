@@ -313,7 +313,7 @@
       "nachtragen": "Serienstatus nachtragen",
       "weg_zuruecknehmen": "Oder den Abbruch zurücknehmen, wenn {{name}} doch weiterschießt oder das Aufgeben ein Irrtum war. Der Start ist danach wieder offen.",
       "ohne_recht": "Nachtragen oder zurücknehmen kann nur, wer Ergebnisse korrigieren darf.",
-      "weg_werte": "Werte nachtragen: Für {{orte}} ist ein Serienstatus eingetragen, es fehlen noch Werte. Trag sie als Korrektur mit Grund nach; dann wird {{name}} mit dem bisherigen Ergebnis gewertet. Der Start bleibt aufgegeben.",
+      "weg_werte": "Werte nachtragen: Trag die fehlenden Werte als Korrektur mit Grund nach. Der Start bleibt aufgegeben.",
       "werte_nachtragen": "Werte nachtragen"
     },
     "pruefe": "Der Server prüft, ob der Start gewertet würde …",

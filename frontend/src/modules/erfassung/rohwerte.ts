@@ -243,18 +243,25 @@ export function feldAktiv(option: StatusOption | null, key: string): boolean {
 }
 
 /**
- * Ob ein Feld beim gewählten Status erfasst sein darf, aber nicht gewertet wird (`unscored_fields`
- * des Servers, z. B. die gemessene Zeit bei „Abbruch durch den Schützen“). So ein Wert bleibt in
- * der Maske sichtbar und änderbar und geht mit den Rohwerten mit.
+ * Ob ein Feld beim gewählten Status nicht gewertet wird, aber erfasst sein darf: wenn der Server
+ * es so führt (`unscored_fields`, z. B. die gemessene Zeit bei „Abbruch durch den Schützen“) oder
+ * wenn dort schon ein Wert steht. So ein Wert bleibt in der Maske sichtbar und änderbar und geht
+ * mit den Rohwerten mit: Nichts Erfasstes verschwindet stillschweigend.
  */
-export function feldUngewertet(option: StatusOption | null, key: string): boolean {
+export function feldUngewertet(option: StatusOption | null, key: string, wert?: unknown): boolean {
   if (feldAktiv(option, key)) return false;
-  return option?.unscored_fields?.includes(key) ?? false;
+  if (option?.unscored_fields?.includes(key)) return true;
+  return wertDa(wert);
 }
 
 /** Ob ein Feld beim gewählten Status in der Maske erfasst werden kann (gewertet oder nicht). */
-export function feldErfassbar(option: StatusOption | null, key: string): boolean {
-  return feldAktiv(option, key) || feldUngewertet(option, key);
+export function feldErfassbar(option: StatusOption | null, key: string, wert?: unknown): boolean {
+  return feldAktiv(option, key) || feldUngewertet(option, key, wert);
+}
+
+function wertDa(wert: unknown): boolean {
+  if (wert === undefined || wert === null) return false;
+  return !(Array.isArray(wert) && wert.length === 0);
 }
 
 // --- Rohwerte bauen ----------------------------------------------------------------------------
@@ -264,9 +271,9 @@ function leer(serie: SerieEntwurf): boolean {
 }
 
 /**
- * Die Rohwerte zum Senden: Werte, die der Status der Serie braucht oder erfasst haben darf
- * (`required_fields` und `unscored_fields`); leere Serien als `null`,
- * leere Abschnitte und nachlaufende leere Serien entfallen. Teile, die das Formular nicht kennt
+ * Die Rohwerte zum Senden: alle in der Serie erfassten Werte, unabhängig vom Serienstatus. Der
+ * Server behält sie und wertet nur, was der Status vorsieht. Leere Serien gehen als `null`, leere
+ * Abschnitte und nachlaufende leere Serien entfallen. Teile, die das Formular nicht kennt
  * (z. B. nach einer Änderung der Wertung), bleiben stehen; der Server meldet sie dann.
  */
 export function rohwerteAus(form: Formular, entwurf: Entwurf): Rohwerte {
@@ -275,18 +282,12 @@ export function rohwerteAus(form: Formular, entwurf: Entwurf): Rohwerte {
   for (const abschnitt of form.sections) {
     const eintrag = entwurf.sections[abschnitt.id];
     if (!eintrag) continue;
-    const series: (SerieEntwurf | null)[] = eintrag.series.map((serie, index) => {
+    const series: (SerieEntwurf | null)[] = eintrag.series.map((serie) => {
       if (!serie) return null;
-      const formSerie = abschnitt.series.find((s) => s.index === index);
-      const option = formSerie ? statusAus(entwurf, abschnitt.id, formSerie) : null;
       const neu: SerieEntwurf = {};
       for (const [key, wert] of Object.entries(serie)) {
         if (wert === undefined) continue;
         if (key === "shots" && Array.isArray(wert) && wert.length === 0) continue;
-        // Zehner und Innenzehner gehören zur Seriensumme: Sie gehen mit, wenn die Summe gilt.
-        const zurSumme =
-          (RING_SUMME as readonly string[]).includes(key) && feldAktiv(option, "sum");
-        if (!feldErfassbar(option, key) && !zurSumme) continue;
         neu[key] = wert;
       }
       return leer(neu) ? null : neu;
