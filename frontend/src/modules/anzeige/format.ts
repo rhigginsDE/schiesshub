@@ -33,38 +33,38 @@ export function serienWert(serie: FeedSerie | undefined, sprache: string): strin
 export type GleichstandHinweis = "stechen" | "manuell";
 
 /**
- * Hinweis zu einem geteilten Platz, wie der Server ihn meldet (die Reihenfolge rechnet allein der
- * Server): `needs_shootoff` → Stechen; ein anderer offener Gleichstand (`tie_reason` „manual“ oder
- * „missing_data“, im Feed nur am `tie_note` erkennbar) → von Hand entscheiden. Sonst nichts.
+ * Hinweis zu einem geteilten Platz, wie der Server ihn meldet (Reihenfolge und Entscheidung rechnet
+ * allein der Server): nur bei `tie_unresolved` (offen) – Stechen (`tie_reason` „shootoff“ bzw.
+ * `needs_shootoff`), sonst von Hand entscheiden („manual“, „missing_data“). Ein entschiedener
+ * geteilter Platz („max_score“: Höchstergebnis, gleicher Platz nach Regel) fordert zu nichts auf.
  */
 export function gleichstandHinweis(zeile: {
+  tie_unresolved?: boolean | null;
   needs_shootoff?: boolean | null;
-  tie_note?: string | null;
   tie_reason?: string | null;
-  tied?: boolean;
 }): GleichstandHinweis | null {
-  if (zeile.needs_shootoff || zeile.tie_reason === "shootoff") return "stechen";
-  if (zeile.tie_reason === "manual" || zeile.tie_reason === "missing_data") return "manuell";
-  if (zeile.tied !== false && zeile.tie_note) return "manuell";
-  return null;
+  if (!zeile.tie_unresolved) return null;
+  if (zeile.tie_reason === "shootoff" || zeile.needs_shootoff) return "stechen";
+  return "manuell";
 }
 
 /**
- * Das formelle Wort für gleiche Ergebnisse („Ringgleichheit“, „Treffergleichheit“, „gleiches
- * Ergebnis“). Der Feed liefert kein eigenes Feld dafür; der Hinweis `tie_note` des Servers beginnt
- * aber mit genau diesem Wort („Ringgleichheit auf Platz 1: Stechen“, „Ringgleichheit: nach
- * Sportordnung …“, „Ringgleichheit nicht auflösbar: …“). `wort` (z. B. `RankingOut.tie_word`)
- * hat Vorrang. Ohne erkennbares Wort `null` – dann bleibt der Hinweis ohne Wort.
+ * Geteilter Platz nach Regel entschieden: Höchstergebnis erreicht (DSB-SpO 0.12.1), alle teilen
+ * den Platz. Wird dezent erklärt, ohne Aufforderung.
  */
-export function gleichstandWort(
-  zeile: { tie_note?: string | null },
-  wort?: string | null,
-): string | null {
-  if (wort?.trim()) return wort.trim();
-  const treffer = zeile.tie_note
-    ? /^\s*([^:]{2,30}?)(?: auf Platz \d+:| nicht auflösbar|:)/.exec(zeile.tie_note)
-    : null;
-  return treffer?.[1]?.trim() || null;
+export function istHoechstergebnis(zeile: {
+  tie_reason?: string | null;
+  tie_unresolved?: boolean | null;
+}): boolean {
+  return zeile.tie_reason === "max_score" && !zeile.tie_unresolved;
+}
+
+/**
+ * Das formelle Wort für gleiche Ergebnisse dieses Wettbewerbs („Ringgleichheit“,
+ * „Ergebnisgleichheit“, „gleiches Ergebnis“), wie es der Feed in `tie_word` liefert; leer `null`.
+ */
+export function gleichstandWort(wort: string | null | undefined): string | null {
+  return wort?.trim() || null;
 }
 
 export type AbbruchGrund = NonNullable<FeedZeile["abort_reason"]>;
@@ -469,6 +469,20 @@ export function mitWeiterenPlaetzen(zeilen: readonly FeedZeile[]): boolean {
 /** Längstes Wort eines Namens (Zeichen): Danach richtet sich die Schrift auf dem Podest. */
 export function laengstesWort(text: string): number {
   return text.split(/\s+/).reduce((max, wort) => Math.max(max, wort.length), 0);
+}
+
+/**
+ * Verband für Wörter, die mehrere Abläufe betreffen (Standanzeige: Schützenstände, Als Nächstes):
+ * der gemeinsame Verband aller Abläufe; sind es verschiedene oder keiner, `null` (Standardsatz).
+ */
+export function gemeinsamerVerband(
+  ablaeufe: readonly { federation?: string | null }[],
+): string | null {
+  const verbaende = new Set(
+    ablaeufe.map((ablauf) => ablauf.federation?.trim().toLowerCase() || null),
+  );
+  if (verbaende.size !== 1) return null;
+  return [...verbaende][0] ?? null;
 }
 
 /** Podest-Reihenfolge der ersten drei: Zweiter links, Erster in der Mitte, Dritter rechts. */

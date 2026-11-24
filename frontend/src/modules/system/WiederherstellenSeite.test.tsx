@@ -1,10 +1,17 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { meldungenLeeren } from "../../components/Meldungen";
 import { apiAttrappe, renderApp } from "../../test/app";
 import type { WiederherstellungsStatus } from "./wiederherstellenAblauf";
-import { lauf, QUELLE_SERVER, QUELLE_STICK, vorschau } from "./wiederherstellenTestdaten";
+import {
+  ausgesperrt,
+  lauf,
+  QUELLE_ALT,
+  QUELLE_SERVER,
+  QUELLE_STICK,
+  vorschau,
+} from "./wiederherstellenTestdaten";
 
 afterEach(() => meldungenLeeren());
 
@@ -44,6 +51,11 @@ function gesendet(attrappe: ReturnType<typeof apiAttrappe>, pfad: string): unkno
   return init?.body ? JSON.parse(String(init.body)) : undefined;
 }
 
+/** Texte außerhalb der zugeklappten „Einzelheiten für den Betreuer des Servers“. */
+function sichtbar(text: string | RegExp): HTMLElement[] {
+  return screen.queryAllByText(text).filter((element) => !element.closest("details"));
+}
+
 function fertig(): WiederherstellungsStatus {
   return lauf({
     state: "succeeded",
@@ -69,7 +81,32 @@ function fertig(): WiederherstellungsStatus {
       keys_installed: [],
       keys_set_aside: [],
       after_backup_ok: true,
-      notes: [],
+      notes: ["ALTER HINWEIS"],
+      note_items: [
+        {
+          code: "module_restart_failed",
+          message_de:
+            "Das Modul „Anzeige“ ließ sich nicht neu starten; bitte den Server neu starten.",
+        },
+      ],
+      skipped_starts: [
+        {
+          competition_name: "Luftpistole",
+          competition_code: "2.10",
+          start_number: 32,
+          attempt: 1,
+          reason_code: "does_not_match",
+          message_de: "passt nicht zur Sicherung",
+        },
+        {
+          competition_name: "Luftpistole",
+          competition_code: "2.10",
+          start_number: 31,
+          attempt: 2,
+          reason_code: "start_not_in_backup",
+          message_de: "nach der Sicherung gebucht",
+        },
+      ],
     },
   });
 }
@@ -96,10 +133,10 @@ describe("Sicherung wiederherstellen (geführt)", () => {
       "/backup/restore/sources": {
         usb_present: true,
         restore_running: false,
-        sources: [QUELLE_STICK, QUELLE_SERVER],
+        // Die Server-Kopie derselben Sicherung steht in `other_ids` des Sticks: nur ein Eintrag.
+        sources: [QUELLE_STICK, QUELLE_SERVER, QUELLE_ALT],
       },
-      "/backup/restore/preview": () =>
-        json(vorschau({ access: { ...vorschau().access, lockout_risk: true } })),
+      "/backup/restore/preview": () => json(vorschau({ access: ausgesperrt() })),
       "/backup/restore/execute": () => {
         gestartet = true;
         return json(lauf({ step: "check" }), 202);
@@ -114,9 +151,13 @@ describe("Sicherung wiederherstellen (geführt)", () => {
     ).toBeInTheDocument();
     await nutzer.click(await screen.findByRole("button", { name: "Weiter mit dieser Sicherung" }));
     expect(await screen.findByText("Bitte wähle eine Sicherung.")).toBeInTheDocument();
-    const [stick] = screen.getAllByRole("radio");
-    expect(stick).toHaveTextContent(/Stick/);
+    const auswahl = screen.getAllByRole("radio");
+    expect(auswahl).toHaveLength(2);
+    const [stick, alt] = auswahl;
+    expect(stick).toHaveTextContent("auf dem Stick und auf dem Server");
     expect(stick).toHaveTextContent(/Passwort nötig/);
+    expect(alt).toHaveTextContent("auf dem Server");
+    expect(alt).not.toHaveTextContent(/Stick/);
     await nutzer.click(stick as HTMLElement);
     await nutzer.click(screen.getByRole("button", { name: "Weiter mit dieser Sicherung" }));
 
@@ -145,6 +186,11 @@ describe("Sicherung wiederherstellen (geführt)", () => {
     expect(
       screen.getByText("Danach kommst du an diesem Gerät nicht mehr in die Verwaltung"),
     ).toBeInTheDocument();
+    // Eigener Text zur Kennung `lockout`, nicht der des Servers
+    expect(
+      screen.getByText("Nicht in der Sicherung: dein Benutzer und dieses Gerät."),
+    ).toBeInTheDocument();
+    expect(sichtbar(/fehlt dein Konto/)).toHaveLength(0);
     await nutzer.click(screen.getByRole("button", { name: "Weiter zur Bestätigung" }));
     expect(screen.getByText("Bitte bestätige, dass du das verstanden hast.")).toBeInTheDocument();
     await nutzer.click(screen.getByRole("checkbox", { name: /nicht mehr als Administrator/ }));
@@ -197,6 +243,28 @@ describe("Sicherung wiederherstellen (geführt)", () => {
       screen.getByText(/7 Eingaben bei den Ergebnissen wurden nachgetragen/),
     ).toBeInTheDocument();
     expect(screen.getByText(/2 Eingaben ließen sich nicht nachtragen/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Ein Teil von Schiesshub ist nach dem Umschalten nicht wieder angelaufen/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("ALTER HINWEIS")).not.toBeInTheDocument();
+
+    // Liste zum Nachtragen vom Startzettel, sortiert nach Startnummer
+    const liste = screen.getByRole("region", {
+      name: "Diese Eingaben musst du vom Startzettel von Hand nachtragen",
+    });
+    const zeilen = within(liste).getAllByRole("row").slice(1);
+    expect(zeilen).toHaveLength(2);
+    expect(zeilen[0]).toHaveTextContent("31");
+    expect(zeilen[0]).toHaveTextContent("Luftpistole");
+    expect(zeilen[0]).toHaveTextContent("Kennziffer 2.10");
+    expect(zeilen[0]).toHaveTextContent("2. Start");
+    expect(zeilen[0]).toHaveTextContent(/Erst nach der Sicherung gebucht\. Start neu buchen/);
+    expect(zeilen[1]).toHaveTextContent("32");
+    expect(zeilen[1]).toHaveTextContent("1. Start");
+    expect(zeilen[1]).toHaveTextContent(
+      /Passt nicht zur Sicherung\. Start in der Erfassung öffnen/,
+    );
+    expect(within(liste).getByRole("button", { name: "Liste drucken" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Fertig" })).toBeInTheDocument();
   });
 
@@ -216,7 +284,11 @@ describe("Sicherung wiederherstellen (geführt)", () => {
           vorschau({
             source: QUELLE_SERVER,
             restorable: false,
-            problems: ["Die Sicherung stammt von einer neueren Version der App."],
+            problems: ["ALTER TEXT"],
+            problem_items: [
+              { code: "schema_newer", message_de: "Die Sicherung ist neuer als die App." },
+              { code: "etwas_neues", message_de: "Ein Problem, das die App noch nicht kennt." },
+            ],
           }),
         ),
     });
@@ -231,11 +303,84 @@ describe("Sicherung wiederherstellen (geführt)", () => {
     expect(
       await screen.findByText("Diese Sicherung lässt sich so nicht wiederherstellen"),
     ).toBeInTheDocument();
-    expect(screen.getByText(/neueren Version der App/)).toBeInTheDocument();
+    // Bekannte Kennung: eigener Text; unbekannte: Text des Servers; die alte Liste nicht mehr
+    expect(
+      screen.getByText(/neueren Version von Schiesshub als der auf diesem Server/),
+    ).toBeInTheDocument();
+    expect(sichtbar("Ein Problem, das die App noch nicht kennt.")).toHaveLength(1);
+    expect(screen.queryByText("ALTER TEXT")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Weiter zur Bestätigung" }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Andere Sicherung wählen" })).toBeInTheDocument();
+  });
+
+  it("Passwort vergessen: nimmt die Kopie vom Server und zeigt Hinweise in eigenen Worten", async () => {
+    const attrappe = apiAttrappe({
+      "/health": HEALTH,
+      "/auth/status": anmeldung(["*"]),
+      "/backup/maintenance": KEINE_WARTUNG,
+      "/backup/restore/status": lauf({ state: "idle", step: null }),
+      "/backup/restore/sources": {
+        usb_present: true,
+        restore_running: false,
+        sources: [QUELLE_STICK],
+      },
+      "/backup/restore/preview": () =>
+        json(
+          vorschau({
+            source: QUELLE_SERVER,
+            confirm: QUELLE_SERVER.id,
+            notes: ["ALTER HINWEIS"],
+            note_items: [
+              {
+                code: "server_copy_without_keys",
+                message_de:
+                  "Sicherung vom Server ohne Schlüssel: Es gelten die Schlüssel des Servers.",
+              },
+              { code: "ganz_neu", message_de: "Ein Hinweis, den die App noch nicht kennt." },
+            ],
+            access: {
+              ...vorschau().access,
+              enforced_now: false,
+              enforced_after: false,
+              message_de: "Die Berechtigungsprüfung ist aus; der Zugang ändert sich nicht.",
+              reasons: [
+                {
+                  code: "enforcement_off",
+                  message_de: "Die Berechtigungsprüfung ist aus; der Zugang ändert sich nicht.",
+                },
+              ],
+            },
+          }),
+        ),
+    });
+    const nutzer = userEvent.setup();
+    renderApp("/system/sicherung/wiederherstellen");
+
+    await nutzer.click((await screen.findAllByRole("radio"))[0] as HTMLElement);
+    await nutzer.click(screen.getByRole("button", { name: "Weiter mit dieser Sicherung" }));
+    expect(await screen.findByText("Passwort vergessen?")).toBeInTheDocument();
+    await nutzer.click(screen.getByRole("button", { name: "Kopie vom Server nehmen" }));
+
+    expect(await screen.findByRole("heading", { name: "Das kommt zurück" })).toBeInTheDocument();
+    expect(gesendet(attrappe, "/backup/restore/preview")).toEqual({
+      source_id: QUELLE_SERVER.id,
+      passphrase: null,
+    });
+    expect(screen.getByText("Gut zu wissen")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Diese Sicherung vom Server enthält keine Schlüssel für die Namen/),
+    ).toBeInTheDocument();
+    expect(sichtbar("Ein Hinweis, den die App noch nicht kennt.")).toHaveLength(1);
+    expect(
+      screen.getByText("Koppeln und PIN sind nicht Pflicht. An deinem Zugang ändert sich nichts."),
+    ).toBeInTheDocument();
+    // Die alte Liste gar nicht, Technikwörter nur in den zugeklappten Einzelheiten
+    expect(screen.queryByText("ALTER HINWEIS")).not.toBeInTheDocument();
+    const einzelheiten = screen.getByText("Einzelheiten für den Betreuer des Servers");
+    expect(einzelheiten.closest("details")).not.toHaveAttribute("open");
+    expect(einzelheiten.closest("details")).toHaveTextContent(/Berechtigungsprüfung/);
   });
 
   it("erklärt den Leerzustand ohne Stick", async () => {

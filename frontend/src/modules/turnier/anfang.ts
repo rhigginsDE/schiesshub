@@ -1,8 +1,8 @@
 /**
  * Hilfen für die drei Wege, ein Turnier zu beginnen (leer, wie ein früheres, aus einer Vorlage):
- * Datum und Name vorschlagen, doppelte Namen erkennen, Hinweise nach dem Kopieren merken.
+ * Datum und Name vorschlagen, doppelte Namen erkennen, geänderte Katalog-Wettbewerbe finden.
  */
-import type { KopierterWettbewerb, Turnier } from "./typen";
+import type { Turnier, Wettbewerb } from "./typen";
 
 const zwei = (zahl: number) => String(zahl).padStart(2, "0");
 
@@ -47,12 +47,30 @@ export function nameMitJahr(name: string, jahr: string): string {
   return basis.slice(0, letzter.index) + jahr + basis.slice(letzter.index + letzter[0].length);
 }
 
-/** Gibt es schon ein Turnier mit diesem Namen? Groß-/Kleinschreibung und Leerzeichen zählen nicht. */
-export function nameVergeben(name: string, turniere: readonly Turnier[]): boolean {
-  const gesucht = name.trim().replace(/\s+/g, " ").toLocaleLowerCase("de");
-  if (!gesucht) return false;
+/** Name wie der Server vergleicht: ohne Leerzeichen am Rand, ohne Groß-/Kleinschreibung. */
+function nameVergleich(name: string): string {
+  return name.trim().toLocaleLowerCase("de");
+}
+
+/**
+ * Gibt es schon ein Turnier mit diesem Namen am selben Anfangsdatum? Dieselbe Regel wie der Server
+ * (409, Feldfehler `name`): Gleicher Name an einem anderen Tag ist erlaubt, das Übungsturnier zählt
+ * nicht mit, und das Turnier selbst (`eigeneId`, beim Ändern) auch nicht.
+ */
+export function nameVergeben(
+  name: string,
+  datum: string,
+  turniere: readonly Turnier[],
+  eigeneId?: string,
+): boolean {
+  const gesucht = nameVergleich(name);
+  if (!gesucht || !datum) return false;
   return turniere.some(
-    (turnier) => turnier.name.trim().replace(/\s+/g, " ").toLocaleLowerCase("de") === gesucht,
+    (turnier) =>
+      turnier.id !== eigeneId &&
+      !turnier.is_practice &&
+      turnier.date_from === datum &&
+      nameVergleich(turnier.name) === gesucht,
   );
 }
 
@@ -75,65 +93,49 @@ export function vorbilder(turniere: readonly Turnier[]): Turnier[] {
   );
 }
 
-// --- Hinweis nach dem Kopieren -----------------------------------------------------------------
+// --- Hinweis „Katalog geändert“ ----------------------------------------------------------------
 
-/** Ein Wettbewerb der Kopie, dessen Katalog-Disziplin sich seit dem Vorbild geändert hat. */
-export interface GeaenderterWettbewerb {
-  id: string;
-  name: string;
-  /** Unterschiede in Klartext, wie der Server sie beim Kopieren beschrieben hat */
-  punkte: string[];
-}
-
-export interface KopieHinweisDaten {
-  /** Name des Vorbilds („seit „Herbstpokal 2026““) */
-  quelle: string;
-  wettbewerbe: GeaenderterWettbewerb[];
-}
-
-const SPEICHER = (turnierId: string) => `schiesshub.kopie.${turnierId}`;
-
-/** Aus der Antwort von `POST …/copy`: nur Wettbewerbe mit `catalog_changed`. */
-export function geaenderteWettbewerbe(
-  wettbewerbe: readonly KopierterWettbewerb[],
-): GeaenderterWettbewerb[] {
-  return wettbewerbe
-    .filter((w) => w.catalog_changed)
-    .map((w) => ({
-      id: w.id,
-      name: w.name,
-      punkte: w.catalog_diff.differences.map((d) => d.text).filter(Boolean),
-    }));
+/**
+ * Wettbewerbe, bei denen sich der Katalog seit der Übernahme geändert hat (`catalog_changed`, vom
+ * Server je Abruf berechnet, gleich auf jedem Gerät).
+ */
+export function katalogGeaendert<W extends Pick<Wettbewerb, "catalog_changed">>(
+  wettbewerbe: readonly W[],
+): W[] {
+  return wettbewerbe.filter((w) => w.catalog_changed);
 }
 
 /**
- * Merkt sich auf diesem Gerät, welche Wettbewerbe der Kopie zu prüfen sind. Die Einrichtung zeigt
- * den Hinweis, bis er ausgeblendet wird oder kein Wettbewerb mehr abweicht.
+ * Kennung des Hinweises: welche Wettbewerbe mit welchem Katalogstand. Kommt eine neue Änderung
+ * dazu, ändert sich die Kennung und ein ausgeblendeter Hinweis erscheint wieder.
  */
-export function merkeKopieHinweis(turnierId: string, daten: KopieHinweisDaten): void {
-  if (daten.wettbewerbe.length === 0) return;
+export function hinweisKennung(
+  wettbewerbe: readonly Pick<Wettbewerb, "id" | "catalog_stand_now">[],
+): string {
+  return wettbewerbe
+    .map((w) => `${w.id}@${w.catalog_stand_now ?? "-"}`)
+    .sort()
+    .join(",");
+}
+
+const AUSGEBLENDET = (turnierId: string) => `schiesshub.katalog-hinweis.${turnierId}`;
+
+/**
+ * „Ausblenden“ gilt nur auf diesem Gerät und nur für den Hinweis oben in der Einrichtung; das
+ * Kennzeichen am Wettbewerb bleibt, bis der neue Stand übernommen ist.
+ */
+export function hinweisAusgeblendet(turnierId: string, kennung: string): boolean {
   try {
-    window.localStorage.setItem(SPEICHER(turnierId), JSON.stringify(daten));
+    return window.localStorage.getItem(AUSGEBLENDET(turnierId)) === kennung;
   } catch {
-    // Ohne Speicher (privates Fenster) gibt es den Hinweis eben nicht.
+    return false;
   }
 }
 
-export function leseKopieHinweis(turnierId: string): KopieHinweisDaten | null {
+export function hinweisAusblenden(turnierId: string, kennung: string): void {
   try {
-    const roh = window.localStorage.getItem(SPEICHER(turnierId));
-    if (!roh) return null;
-    const daten = JSON.parse(roh) as KopieHinweisDaten;
-    return Array.isArray(daten?.wettbewerbe) ? daten : null;
+    window.localStorage.setItem(AUSGEBLENDET(turnierId), kennung);
   } catch {
-    return null;
-  }
-}
-
-export function vergissKopieHinweis(turnierId: string): void {
-  try {
-    window.localStorage.removeItem(SPEICHER(turnierId));
-  } catch {
-    // nichts zu tun
+    // Ohne Speicher (privates Fenster) bleibt der Hinweis eben stehen.
   }
 }

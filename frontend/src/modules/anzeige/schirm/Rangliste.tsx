@@ -1,10 +1,11 @@
-import { type CSSProperties, useMemo } from "react";
+import { type CSSProperties, createContext, useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   abbruchText,
   gesamtTeile,
   gleichstandHinweis,
   gleichstandWort,
+  istHoechstergebnis,
   istPlatzierterAbbruch,
   laengstesWort,
   mitErgebnis,
@@ -23,7 +24,7 @@ import {
 import { inSeiten, seiteZurZeit, type Takt, teilTakt } from "../rotation";
 import type { FeedGruppe, FeedZeile, SzeneVon } from "../typen";
 import { AbschnittKopf, LivePunkt, SeitenMarke, useName, WettbewerbTitel } from "./Bausteine";
-import { useSchirm, useSeiten } from "./messen";
+import { useSchirm, useSeiten, useWoerter } from "./messen";
 import s from "./schirm.module.css";
 
 function spaltenVorlage(serien: number): string {
@@ -56,32 +57,60 @@ function Platz({ zeile }: { zeile: FeedZeile }) {
   );
 }
 
+/** Wort für gleiche Ergebnisse der gezeigten Rangliste (`FeedRanking.tie_word`). */
+const GleichheitsWort = createContext<string | null>(null);
+
+interface GeteilterPlatz {
+  text: string;
+  /** offen: Stechen oder von Hand (Info-Farbe); entschieden: Höchstergebnis (gedämpft) */
+  art: "offen" | "entschieden";
+}
+
 /**
- * Text eines offenen Gleichstands mit dem formellen Wort („Ringgleichheit: Stechen“), sonst wie
- * bisher nur „Stechen“ bzw. „manuell entscheiden“. `null` ohne offenen Gleichstand.
+ * Text zu einem geteilten Platz. Offen (`tie_unresolved`) mit dem formellen Wort des Feeds
+ * („Ringgleichheit: Stechen“, „Ergebnisgleichheit: manuell entscheiden“); nach Regel entschieden
+ * („max_score“) der Hinweis des Servers („Höchstergebnis: gleicher Platz“), ohne Aufforderung.
+ * `null` ohne Platz oder ohne etwas zu sagen.
  */
-function useGleichstandText(): (zeile: FeedZeile) => string | null {
+function useGeteilterPlatz(): (zeile: FeedZeile) => GeteilterPlatz | null {
   const { t } = useTranslation("anzeige");
+  const wort = gleichstandWort(useContext(GleichheitsWort));
   return (zeile) => {
-    const hinweis = zeile.place !== null ? gleichstandHinweis(zeile) : null;
-    if (!hinweis) return null;
-    const wort = gleichstandWort(zeile);
-    return wort
-      ? t(`schirm.gleichstand.${hinweis}_wort`, { wort })
-      : t(`schirm.gleichstand.${hinweis}`);
+    if (zeile.place === null) return null;
+    const hinweis = gleichstandHinweis(zeile);
+    if (hinweis) {
+      return {
+        art: "offen",
+        text: wort
+          ? t(`schirm.gleichstand.${hinweis}_wort`, { wort })
+          : t(`schirm.gleichstand.${hinweis}`),
+      };
+    }
+    if (istHoechstergebnis(zeile)) {
+      return {
+        art: "entschieden",
+        text: zeile.tie_note?.trim() || t("schirm.gleichstand.hoechstergebnis"),
+      };
+    }
+    return null;
   };
 }
 
-/** Offener Gleichstand (Stechen, von Hand), dezent hinter Verein und Zusätzen. */
-function Gleichstand({ zeile }: { zeile: FeedZeile }) {
-  const text = useGleichstandText()(zeile);
-  if (!text) return null;
+/** Geteilter Platz: offen in Info-Farbe, entschieden gedämpft – hinter Verein und Zusätzen. */
+function Gleichstand({ zeile, als = "em" }: { zeile: FeedZeile; als?: "em" | "span" }) {
+  const geteilt = useGeteilterPlatz()(zeile);
+  if (!geteilt) return null;
+  const Element = als;
   return (
     <>
       {" "}
-      <em className={s.gleichstand} title={zeile.tie_note ?? undefined}>
-        {text}
-      </em>
+      <Element
+        className={geteilt.art === "offen" ? s.gleichstand : s.gleichstandEntschieden}
+        data-geteilt={geteilt.art}
+        title={zeile.tie_note ?? undefined}
+      >
+        {geteilt.text}
+      </Element>
     </>
   );
 }
@@ -265,46 +294,53 @@ export function LiveWertung({ szene, takt }: { szene: SzeneVon<"live_ranking">; 
   const serien = serienPassen(anzahl, breite, hochkant) ? anzahl : 0;
   const eintraege = useMemo(() => ranglistenEintraege(rangliste), [rangliste]);
   const seiten = useSeiten(eintraege, takt, ranglistenSeiten);
+  const woerter = useWoerter(rangliste.federation);
   const stil = {
     "--spalten": spaltenVorlage(serien),
     "--serie-breite": `${breite}cqmin`,
   } as CSSProperties;
 
   return (
-    <section className={s.szeneRangliste} aria-label={szene.title} style={stil}>
-      <AbschnittKopf
-        titel={
-          <WettbewerbTitel code={rangliste.competition_code} name={rangliste.competition_name} />
-        }
-        meta={
-          <>
-            {rangliste.combined && <span>{t("schirm.gemeinsame_wertung")}</span>}
-            <SeitenMarke seite={seiten.seite} seiten={seiten.seiten} />
-          </>
-        }
-      />
-      <div className={s.rangSpalten} aria-hidden="true">
-        <span>{t("schirm.spalte.platz")}</span>
-        <span>{t("schirm.spalte.name")}</span>
-        {Array.from({ length: serien }, (_, nr) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: feste Spaltenposition
-          <span key={nr} className={s.rechts}>
-            {t("schirm.spalte.serie", { nr: nr + 1 })}
-          </span>
-        ))}
-        <span className={s.rechts}>{t("schirm.spalte.gesamt")}</span>
-      </div>
-      <div ref={seiten.ref} className={s.rangListe}>
-        {seiten.eintraege.map((eintrag) => (
-          <Eintrag
-            key={eintrag.schluessel}
-            eintrag={eintrag}
-            serien={serien}
-            einheit={rangliste.unit}
-          />
-        ))}
-      </div>
-    </section>
+    <GleichheitsWort.Provider value={rangliste.tie_word}>
+      <section className={s.szeneRangliste} aria-label={szene.title} style={stil}>
+        <AbschnittKopf
+          titel={
+            <WettbewerbTitel
+              code={rangliste.competition_code}
+              name={rangliste.competition_name}
+              kennziffer={woerter.kennziffer}
+            />
+          }
+          meta={
+            <>
+              {rangliste.combined && <span>{t("schirm.gemeinsame_wertung")}</span>}
+              <SeitenMarke seite={seiten.seite} seiten={seiten.seiten} />
+            </>
+          }
+        />
+        <div className={s.rangSpalten} aria-hidden="true">
+          <span>{t("schirm.spalte.platz")}</span>
+          <span>{t("schirm.spalte.name")}</span>
+          {Array.from({ length: serien }, (_, nr) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: feste Spaltenposition
+            <span key={nr} className={s.rechts}>
+              {t("schirm.spalte.serie", { serie: woerter.serie, nr: nr + 1 })}
+            </span>
+          ))}
+          <span className={s.rechts}>{t("schirm.spalte.gesamt")}</span>
+        </div>
+        <div ref={seiten.ref} className={s.rangListe}>
+          {seiten.eintraege.map((eintrag) => (
+            <Eintrag
+              key={eintrag.schluessel}
+              eintrag={eintrag}
+              serien={serien}
+              einheit={rangliste.unit}
+            />
+          ))}
+        </div>
+      </section>
+    </GleichheitsWort.Provider>
   );
 }
 
@@ -320,7 +356,6 @@ function PodestStufe({
   einheit: string | null;
 }) {
   const name = useName();
-  const gleichstand = useGleichstandText()(zeile);
   const teile = gesamtTeile(zeile.score_text, einheit);
   const text = name(zeile);
   return (
@@ -334,11 +369,7 @@ function PodestStufe({
       <div className={s.stufeName} style={{ "--wort": laengstesWort(text) } as CSSProperties}>
         <b className={s.stufeNameText}>{text}</b>
         {zeile.club && <span>{zeile.club}</span>}
-        {gleichstand && (
-          <span className={s.gleichstand} title={zeile.tie_note ?? undefined}>
-            {gleichstand}
-          </span>
-        )}
+        <Gleichstand zeile={zeile} als="span" />
         <AbbruchMarke zeile={zeile} als="span" />
       </div>
       <div className={s.sockel} style={{ "--zeichen": teile.wert.length } as CSSProperties}>
@@ -362,6 +393,7 @@ function WeitereListe({
 }) {
   const { t } = useTranslation("anzeige");
   const name = useName();
+  const geteilt = useGeteilterPlatz();
   const seiten = useSeiten(zeilen, takt);
   return (
     <section className={s.weitereBlock}>
@@ -375,7 +407,7 @@ function WeitereListe({
             <span className={`num ${s.platz}`}>{zeile.place ?? "–"}</span>
             <span className={s.wer}>
               <b className={s.weitereName}>{name(zeile)}</b>
-              {(zeile.club || gleichstandHinweis(zeile) || istPlatzierterAbbruch(zeile)) && (
+              {(zeile.club || geteilt(zeile) || istPlatzierterAbbruch(zeile)) && (
                 <span className={s.unter}>
                   {zeile.club}
                   <Gleichstand zeile={zeile} />
@@ -499,39 +531,47 @@ export function Siegerliste({ szene, takt }: { szene: SzeneVon<"winners">; takt:
   const gruppen = rangliste.groups.filter(
     (gruppe) => gruppe.rows.length > 0 || gruppe.unplaced.length > 0,
   );
-  // Mit weiteren Plätzen (ab Platz 4) oder hochkant: eine Klasse je Seite; sonst bis zu drei
-  // nebeneinander. Abgebrochene allein zählen nicht: Sie stehen dann unter dem Podest.
+  // Mit weiteren Plätzen (ab Platz 4): eine Klasse je Seite. Sonst quer bis zu drei Klassen
+  // nebeneinander, hochkant zwei untereinander – so füllen die Podeste den hohen Schirm, statt
+  // unten unter viel leerer Fläche zu stehen. Starts ohne Platz stehen dann über dem Podest.
   const mitRest = gruppen.some((gruppe) => mitWeiterenPlaetzen(gruppe.rows));
-  const proSeite = hochkant || mitRest ? 1 : 3;
+  const proSeite = mitRest ? 1 : hochkant ? 2 : 3;
+  const woerter = useWoerter(rangliste.federation);
   const seiten = inSeiten(gruppen, proSeite);
   const seite = seiteZurZeit(takt, jetzt, seiten.length);
   const teil = teilTakt(takt, seite, seiten.length);
   const sichtbar = seiten[seite] ?? [];
 
   return (
-    <section className={s.szeneSieger} aria-label={szene.title}>
-      <AbschnittKopf
-        titel={
-          <WettbewerbTitel code={rangliste.competition_code} name={rangliste.competition_name} />
-        }
-        meta={
-          <>
-            {rangliste.combined && <span>{t("schirm.gemeinsame_wertung")}</span>}
-            <SeitenMarke seite={seite} seiten={seiten.length} />
-          </>
-        }
-      />
-      <div className={s.siegerGruppen} style={{ "--anzahl": sichtbar.length } as CSSProperties}>
-        {sichtbar.map((gruppe, nr) => (
-          <KlassenSieger
-            key={gruppe.class_id ?? `gruppe-${nr}`}
-            gruppe={gruppe}
-            takt={teil}
-            einheit={rangliste.unit}
-            allein={sichtbar.length === 1}
-          />
-        ))}
-      </div>
-    </section>
+    <GleichheitsWort.Provider value={rangliste.tie_word}>
+      <section className={s.szeneSieger} aria-label={szene.title}>
+        <AbschnittKopf
+          titel={
+            <WettbewerbTitel
+              code={rangliste.competition_code}
+              name={rangliste.competition_name}
+              kennziffer={woerter.kennziffer}
+            />
+          }
+          meta={
+            <>
+              {rangliste.combined && <span>{t("schirm.gemeinsame_wertung")}</span>}
+              <SeitenMarke seite={seite} seiten={seiten.length} />
+            </>
+          }
+        />
+        <div className={s.siegerGruppen} style={{ "--anzahl": sichtbar.length } as CSSProperties}>
+          {sichtbar.map((gruppe, nr) => (
+            <KlassenSieger
+              key={gruppe.class_id ?? `gruppe-${nr}`}
+              gruppe={gruppe}
+              takt={teil}
+              einheit={rangliste.unit}
+              allein={sichtbar.length === 1}
+            />
+          ))}
+        </div>
+      </section>
+    </GleichheitsWort.Provider>
   );
 }

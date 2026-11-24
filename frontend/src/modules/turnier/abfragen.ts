@@ -1,6 +1,7 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiFehler, apiGet, apiSenden } from "../../api/client";
 import { EREIGNIS_VERBUNDEN, type EreignisZuordnung } from "../../api/ereignisse";
+import { turnierEntfernen } from "./geloescht";
 import { turnierSenden } from "./senden";
 import type {
   DefinitionGrund,
@@ -206,18 +207,25 @@ export function useUebungAnlegen() {
   return useAllesNeuLaden((_: undefined) => uebungAnlegen());
 }
 
-/** Entfernt das Übungsturnier in jedem Status, samt Beispieldaten. */
-export function useUebungLoeschen() {
+/**
+ * Löschen: Das gelöschte Turnier sofort aus Liste und Cache nehmen und nie mehr abfragen (sonst
+ * blitzt „nicht gefunden“ auf und es gibt 404-Abfragen); `alles` lädt danach alle übrigen Daten
+ * neu (Übung: auch Personen und Vereine), sonst nur die Turnierdaten.
+ */
+function useLoeschen(alles: boolean) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => turnierSenden("DELETE", pfad.turnier(id)),
     onSuccess: (_, id) => {
-      // Das gelöschte Turnier nicht neu laden (sonst blitzt „nicht gefunden“ auf), alles andere schon.
-      const geloescht = (schluessel: readonly unknown[]) =>
-        schluessel[0] === "turnier" && schluessel[1] === id;
-      void queryClient.invalidateQueries({ predicate: (q) => !geloescht(q.queryKey) });
+      turnierEntfernen(id, queryClient);
+      void queryClient.invalidateQueries(alles ? undefined : { queryKey: turnierSchluessel.alle });
     },
   });
+}
+
+/** Entfernt das Übungsturnier in jedem Status, samt Beispieldaten. */
+export function useUebungLoeschen() {
+  return useLoeschen(true);
 }
 
 export function useTurnierAendern(id: string) {
@@ -233,7 +241,7 @@ export function useStatusWechseln() {
 }
 
 export function useTurnierLoeschen() {
-  return useSchreiben((id: string) => turnierSenden("DELETE", pfad.turnier(id)));
+  return useLoeschen(false);
 }
 
 export function useStandAnlegen(id: string) {

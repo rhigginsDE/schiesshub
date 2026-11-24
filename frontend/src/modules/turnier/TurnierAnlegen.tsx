@@ -24,19 +24,10 @@ import {
   useTurnierKopieren,
   vorlagenAbfrage,
 } from "./abfragen";
-import {
-  geaenderteWettbewerbe,
-  heute,
-  merkeKopieHinweis,
-  naechsterTermin,
-  nameMitJahr,
-  nameVergeben,
-  tage,
-  vorbilder,
-} from "./anfang";
+import { heute, naechsterTermin, nameMitJahr, nameVergeben, tage, vorbilder } from "./anfang";
 import a from "./aufgaben.module.css";
 import { EINRICHTEN_PFAD } from "./pfade";
-import { feldFehlerFuer } from "./senden";
+import { feldFehlerFuer, vorlagenLuecken } from "./senden";
 import s from "./turnier.module.css";
 import {
   type Turnier,
@@ -46,6 +37,7 @@ import {
   type Vorlage,
 } from "./typen";
 import { UebungStarten } from "./Uebung";
+import { VorlageFehlt } from "./VorlageFehlt";
 import v from "./vorlagen.module.css";
 
 const FELDER = ["name", "organizer", "date_from", "date_to", "template", "template_id"] as const;
@@ -279,7 +271,10 @@ function TerminFelder({
   );
 }
 
-/** Prüfung im Browser: Name fehlt oder doppelt, Datum fehlt, Enddatum vor Beginn. */
+/**
+ * Prüfung im Browser: Name fehlt, Name am selben Tag schon vergeben (wie die Serverregel), Datum
+ * fehlt, Enddatum vor Beginn.
+ */
 function eigeneFehler(
   t: (schluessel: string) => string,
   geprueft: boolean,
@@ -288,7 +283,7 @@ function eigeneFehler(
   turniere: readonly Turnier[],
 ): Record<string, string> {
   const fehler: Record<string, string> = {};
-  if (nameVergeben(name, turniere)) fehler.name = t("anlegen.name_doppelt");
+  if (nameVergeben(name, termin.date_from, turniere)) fehler.name = t("anlegen.name_doppelt");
   else if (geprueft && !name.trim()) fehler.name = t("anlegen.name_fehlt");
   if (geprueft && !termin.date_from) fehler.date_from = t("anlegen.datum_fehlt");
   if (
@@ -429,6 +424,7 @@ function WieFrueher({
   // Datum und Name folgen dem Vorbild, bis sie jemand selbst ändert.
   const [datumEigen, setDatumEigen] = useState<string | null>(null);
   const [nameEigen, setNameEigen] = useState<string | null>(null);
+  const [veranstalterEigen, setVeranstalterEigen] = useState<string | null>(null);
   const [geprueft, setGeprueft] = useState(false);
 
   if (laedt) return <Skeleton height={240} radius="md" />;
@@ -445,6 +441,8 @@ function WieFrueher({
   const datum = datumEigen ?? naechsterTermin(quelle.date_from);
   const jahr = datum.slice(0, 4) || heute().slice(0, 4);
   const name = nameEigen ?? nameMitJahr(quelle.name, jahr);
+  // Veranstalter wie beim Vorbild, bis ihn jemand ändert; leer heißt: ohne Veranstalter.
+  const veranstalter = veranstalterEigen ?? quelle.organizer ?? "";
   const dauer = tage(quelle);
 
   const eigene = eigeneFehler(t, geprueft, name, { date_from: datum }, turniere);
@@ -459,16 +457,12 @@ function WieFrueher({
     setGeprueft(true);
     if (!name.trim() || !datum || Object.keys(eigene).length > 0) return;
     kopieren.mutate(
-      { quelleId: quelle.id, daten: { name: name.trim(), date_from: datum } },
       {
-        onSuccess: (ergebnis) => {
-          merkeKopieHinweis(ergebnis.tournament.id, {
-            quelle: quelle.name,
-            wettbewerbe: geaenderteWettbewerbe(ergebnis.competitions),
-          });
-          onFertig(ergebnis.tournament.id);
-        },
+        quelleId: quelle.id,
+        daten: { name: name.trim(), date_from: datum, organizer: veranstalter.trim() || null },
       },
+      // Geänderte Katalog-Wettbewerbe meldet der Server danach an jedem Wettbewerb selbst.
+      { onSuccess: (ergebnis) => onFertig(ergebnis.tournament.id) },
     );
   };
 
@@ -483,6 +477,7 @@ function WieFrueher({
           setQuelleId(e.currentTarget.value);
           setDatumEigen(null);
           setNameEigen(null);
+          setVeranstalterEigen(null);
           zuruecksetzen();
         }}
         data={auswahl.map((turnier) => {
@@ -520,6 +515,19 @@ function WieFrueher({
         inputWrapperOrder={["label", "input", "description", "error"]}
         onChange={(e) => {
           setDatumEigen(e.currentTarget.value);
+          zuruecksetzen();
+        }}
+      />
+      <TextInput
+        label={t("feld.veranstalter")}
+        placeholder={t("feld.veranstalter_platzhalter")}
+        size="md"
+        value={veranstalter}
+        error={fehler.organizer}
+        description={t("kopie.veranstalter_hilfe")}
+        inputWrapperOrder={["label", "input", "description", "error"]}
+        onChange={(e) => {
+          setVeranstalterEigen(e.currentTarget.value);
           zuruecksetzen();
         }}
       />
@@ -580,7 +588,9 @@ function AusVorlage({
   const name =
     nameEigen ?? (vorlage ? t("aus_vorlage.name_vorschlag", { vorlage: vorlage.name, jahr }) : "");
   const eigene = eigeneFehler(t, geprueft, name, termin, turniere);
-  const server = anlegen.isError ? feldFehlerFuer(anlegen.error, FELDER) : {};
+  // 409 template_unavailable: eigene Meldung mit dem, was im Katalog fehlt.
+  const luecken = anlegen.isError ? vorlagenLuecken(anlegen.error) : null;
+  const server = anlegen.isError && !luecken ? feldFehlerFuer(anlegen.error, FELDER) : {};
   const fehler = { ...server, ...eigene };
   const zuruecksetzen = () => {
     if (anlegen.isError) anlegen.reset();
@@ -680,6 +690,7 @@ function AusVorlage({
           <p className={v.hilfe}>{t("aus_vorlage.hinweis")}</p>
         </>
       )}
+      {luecken && <VorlageFehlt luecken={luecken} vorlage={vorlage?.name} />}
       <Fehlermeldung text={fehler[""]} />
       <Leiste
         onZurueck={onZurueck}

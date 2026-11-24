@@ -284,6 +284,103 @@ describe("Turnier einrichten", () => {
     ).toBeInTheDocument();
   });
 
+  it("Katalog geändert: Kennzeichen an der Karte, Stand damals → heute, Übernehmen per reset-definition", async () => {
+    const turnier = beispielTurnier();
+    const wettbewerb = turnier.competitions[0];
+    if (!wettbewerb) throw new Error("Testdaten ohne Wettbewerb");
+    const geaendert = {
+      ...turnier,
+      competitions: [
+        {
+          ...wettbewerb,
+          catalog_changed: true,
+          catalog_stand_then: "2025-06-30",
+          catalog_stand_now: "2026-06-30",
+        },
+      ],
+    };
+    const geschrieben = api({
+      ...grundlage(geaendert),
+      [`GET ${T}/competitions/${WETTBEWERB_ID}/catalog-diff`]: {
+        deviates: true,
+        catalog_available: true,
+        differences: [{ path: "x", text: "Fallscheibe: 4 Serien statt 5" }],
+      },
+      [`POST ${T}/competitions/${WETTBEWERB_ID}/reset-definition`]: {
+        ...wettbewerb,
+        catalog_changed: false,
+      },
+    });
+    renderApp(`/turnier/${TURNIER_ID}?bereich=wettbewerbe&wettbewerb=${WETTBEWERB_ID}`);
+
+    expect(await screen.findByText("Katalog geändert")).toBeInTheDocument();
+    expect(screen.getByText("Der Katalog hat sich geändert")).toBeInTheDocument();
+    expect(
+      screen.getByText("Katalogstand damals 30.06.2025, heute 30.06.2026"),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText("Anders als im Katalog: Fallscheibe: 4 Serien statt 5"),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Neuen Stand übernehmen" }));
+    const frage = await screen.findByRole("dialog", { name: "Neuen Katalogstand übernehmen?" });
+    await userEvent.click(within(frage).getByRole("button", { name: "Zurücksetzen" }));
+    await waitFor(() =>
+      expect(geschrieben.map((g) => `${g.methode} ${g.pfad}`)).toContain(
+        `POST ${T}/competitions/${WETTBEWERB_ID}/reset-definition`,
+      ),
+    );
+  });
+
+  it("Ausschreibung: bietet einen fehlenden Standardabschnitt ruhig zum Einfügen an", async () => {
+    const turnier = beispielTurnier();
+    const geschrieben = api({
+      ...grundlage(turnier),
+      [`GET ${T}/announcement`]: {
+        title: null,
+        facts: {},
+        blocks: [
+          {
+            id: "wettbewerbe",
+            kind: "competitions",
+            heading: "Wettbewerbe",
+            body: "",
+            visible: true,
+          },
+          { id: "klassen", kind: "classes", heading: "Klassen", body: "", visible: true },
+        ],
+        missing_default_blocks: [
+          {
+            id: "schiessstaende",
+            kind: "ranges",
+            heading: "Schießstände",
+            body: "",
+            visible: true,
+          },
+        ],
+      },
+      [`PUT ${T}/announcement`]: (inhalt: unknown) => ({
+        ...(inhalt as object),
+        missing_default_blocks: [],
+      }),
+    });
+    renderApp(`/turnier/${TURNIER_ID}?bereich=ausschreibung`);
+
+    expect(
+      await screen.findByText("Diesem Dokument fehlt der Abschnitt „Schießstände“."),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Abschnitt „Schießstände“ einfügen" }),
+    );
+    expect(screen.queryByText(/fehlt der Abschnitt/)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Speichern" }));
+    await waitFor(() => expect(geschrieben).toHaveLength(1));
+    const inhalt = geschrieben[0]?.inhalt as { blocks: { id: string }[] } & Record<string, unknown>;
+    expect(inhalt.blocks.map((b) => b.id)).toEqual(["wettbewerbe", "schiessstaende", "klassen"]);
+    expect(inhalt).not.toHaveProperty("missing_default_blocks");
+  });
+
   it("blendet die Ausschreibung aus, wenn das Backend sie nicht kennt", async () => {
     api(grundlage());
     renderApp(`/turnier/${TURNIER_ID}?bereich=stammdaten`);

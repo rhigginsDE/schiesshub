@@ -78,7 +78,7 @@
     "art": "Art des Turniers",
     "knopf": "Anlegen und einrichten",
     "zurueck": "Zurück",
-    "name_doppelt": "Ein Turnier mit diesem Namen gibt es schon. Häng zum Beispiel das Jahr oder einen Zusatz an.",
+    "name_doppelt": "An diesem Tag gibt es schon ein Turnier mit diesem Namen. Häng einen Zusatz an oder wähl ein anderes Datum.",
     "name_fehlt": "Gib dem Turnier einen Namen.",
     "datum_fehlt": "Wähl das Datum, an dem das Turnier stattfindet.",
     "weg": {
@@ -105,6 +105,7 @@
     "erster_tag": "Erster Tag des neuen Turniers",
     "dauer": "Das neue Turnier dauert wieder {{count}} Tage.",
     "name_hilfe": "Die Jahreszahl im Namen passt sich dem Datum an, bis du den Namen selbst änderst.",
+    "veranstalter_hilfe": "Optional. Vorbelegt mit dem Veranstalter des Vorbilds; steht in der Ausschreibung.",
     "uebernommen": "Kommt mit",
     "uebernommen_text": "Schießstände, Klassen, Wettbewerbe mit Ablauf und Startgeld, die Vorgaben und die Ausschreibung.",
     "nicht_uebernommen": "Kommt nicht mit",
@@ -122,6 +123,16 @@
     "name_vorschlag": "{{vorlage}} {{jahr}}",
     "knopf": "Anlegen und einrichten"
   },
+  "vorlage_fehlt": {
+    "titel": "Die Vorlage „{{name}}“ geht gerade nicht",
+    "titel_ohne": "Diese Vorlage geht gerade nicht",
+    "titel_uebung": "Das Übungsturnier lässt sich gerade nicht anlegen",
+    "eintrag_competition": "{{was}} fehlt im Katalog.",
+    "eintrag_classes": "{{was}} fehlen im Katalog.",
+    "rat": "Angelegt wurde nichts. Wähle eine andere Vorlage oder beginne leer. Neue Disziplinen kommen mit einem Update des Katalogs; was es gibt, siehst du im Katalog.",
+    "rat_uebung": "Angelegt wurde nichts. Das Übungsturnier braucht diese Disziplinen aus dem Katalog. Du kannst stattdessen ein eigenes Turnier leer beginnen; was es gibt, siehst du im Katalog.",
+    "katalog": "Katalog ansehen"
+  },
   "uebung": {
     "kennzeichen": "Übung",
     "kennzeichen_lang": "Übungsturnier mit Beispieldaten",
@@ -135,14 +146,30 @@
     "loeschen_knopf": "Übung löschen"
   },
   "kopie_hinweis": {
-    "titel": "Seit „{{quelle}}“ hat sich der Katalog geändert",
-    "text_one": "Dieser Wettbewerb ist noch so eingestellt wie beim letzten Mal. Prüf, ob du den neuen Stand aus dem Katalog übernehmen willst.",
-    "text_other": "Diese {{count}} Wettbewerbe sind noch so eingestellt wie beim letzten Mal. Prüf bei jedem, ob du den neuen Stand aus dem Katalog übernehmen willst.",
-    "unterschied": "Anders als im Katalog: {{punkte}}",
-    "ohne_punkte": "Der Ablauf im Katalog ist jetzt anders.",
+    "titel_one": "Bei einem Wettbewerb hat sich der Katalog geändert",
+    "titel_other": "Bei {{count}} Wettbewerben hat sich der Katalog geändert",
+    "text_one": "Er ist noch so eingestellt wie beim früheren Katalogstand. Prüf, ob du den neuen Stand übernehmen willst.",
+    "text_other": "Sie sind noch so eingestellt wie beim früheren Katalogstand. Prüf bei jedem, ob du den neuen Stand übernehmen willst.",
     "pruefen": "Prüfen",
     "pruefen_lang": "„{{name}}“ prüfen",
-    "ausblenden": "Geprüft, ausblenden"
+    "ausblenden": "Auf diesem Gerät ausblenden"
+  },
+  "katalog_stand": {
+    "chip": "Katalog geändert",
+    "chip_fehlt": "Fehlt im Katalog",
+    "neu": "Katalogstand damals {{damals}}, heute {{heute}}",
+    "korrigiert": "Katalogstand {{damals}}, seitdem im Katalog korrigiert",
+    "nur_heute": "Katalogstand heute {{heute}}",
+    "fehlt": "Übernommen mit Katalogstand {{damals}}; die Disziplin fehlt jetzt im Katalog",
+    "fehlt_ohne": "Die Disziplin fehlt jetzt im Katalog",
+    "titel": "Der Katalog hat sich geändert",
+    "titel_fehlt": "Die Disziplin fehlt jetzt im Katalog",
+    "text": "Dieser Wettbewerb ist noch so eingestellt wie beim früheren Katalogstand. Übernimm den neuen Stand, wenn er für dein Turnier gilt. Schießstand, Startgeld, Klassen und Planung bleiben.",
+    "text_fehlt": "Der Wettbewerb bleibt, wie er ist. Einen neuen Stand gibt es nicht zu übernehmen.",
+    "unterschiede": "Anders als im Katalog: {{punkte}}",
+    "keine_unterschiede": "Ablauf und Wertung sind gleich geblieben; übernehmen setzt nur den Katalogstand neu.",
+    "uebernehmen": "Neuen Stand übernehmen",
+    "uebernehmen_titel": "Neuen Katalogstand übernehmen?"
   },
   "feld": {
     "name": "Name",
@@ -198,7 +225,9 @@
     "kopieren": "Für ein neues Turnier kopieren",
     "nicht_gefunden_titel": "Turnier nicht gefunden",
     "nicht_gefunden_text": "Dieses Turnier gibt es nicht mehr. Vielleicht wurde es auf einem anderen Gerät gelöscht.",
-    "zur_liste": "Zur Liste der Turniere"
+    "zur_liste": "Zur Liste der Turniere",
+    "geloescht_titel": "Dieses Turnier wurde gelöscht",
+    "geloescht_text": "Es ist auf keinem Gerät mehr da. Wähle in der Liste ein anderes Turnier."
   },
   "bereich": {
     "stammdaten": {
@@ -514,18 +543,18 @@
     }
   },
   "klartext": {
-    "serien_one": "{{count}} Serie",
-    "serien_other": "{{count}} Serien",
+    "serien_one": "{{count}} {{serie}}",
+    "serien_other": "{{count}} {{serien}}",
     "schuss": "{{count}} Schuss",
     "max_schuss": "max. {{count}} Schuss",
     "ziele_one": "{{count}} Ziel",
     "ziele_other": "{{count}} Ziele",
-    "zeit": "{{dauer}} je Serie",
+    "zeit": "{{dauer}} je {{serie}}",
     "zeiten": "Zeiten {{liste}} s",
     "max_zeit": "max. {{dauer}}",
-    "gewertet_one": "{{count}} Serie gewertet",
-    "gewertet_other": "{{count}} Serien gewertet",
-    "trefferaufnahme": "Trefferaufnahme nach Serie {{liste}}",
+    "gewertet_one": "{{count}} {{serie}} gewertet",
+    "gewertet_other": "{{count}} {{serien}} gewertet",
+    "trefferaufnahme": "{{trefferaufnahme}} nach {{serie}} {{liste}}",
     "planung_reihenfolge": "Aufruf der Reihe nach",
     "planung_zeitplan": "Zeitplan",
     "planung_zeitplan_dauer": "Zeitplan, {{minuten}} Min.",
@@ -605,6 +634,9 @@
     "ausblenden": "„{{name}}“ ausblenden",
     "einblenden": "„{{name}}“ einblenden",
     "text_hinzufuegen": "Abschnitt hinzufügen",
+    "fehlt_abschnitt": "Diesem Dokument fehlt der Abschnitt „{{name}}“.",
+    "fehlt_einfuegen": "Abschnitt einfügen",
+    "fehlt_einfuegen_lang": "Abschnitt „{{name}}“ einfügen",
     "eckdaten_titel": "Titel und Angaben zum Turnier",
     "baustein": "Abschnitt",
     "ueberschrift": "Überschrift",
@@ -623,17 +655,17 @@
       "veranstalter-und-ort": "Üblich: ausrichtender Verein, Schützenhaus, Anfahrt und Parken.",
       "teilnahmeberechtigung": "Üblich: wer starten darf, z. B. Mitglieder, Gäste, nötige Ausweise oder Waffenbesitzkarte.",
       "anmeldung": "Üblich: wie und bis wann gemeldet wird, Nachmeldung am {{schiessstand}}, Bezahlung.",
-      "ablauf": "Üblich: Öffnungszeiten, Beginn der Durchgänge, Einteilung auf die {{schuetzenstaende}}.",
+      "ablauf": "Üblich: Öffnungszeiten, Beginn der {{durchgaenge}}, Einteilung auf die {{schuetzenstaende}}.",
       "sicherheit": "Üblich: Waffenkontrolle, Transport, Gehörschutz und Schutzbrille.",
       "wertung": "Üblich: Wertung, Ehrung der Sieger, Preise und Urkunden.",
       "einsprueche": "Üblich: Frist und Weg für Einsprüche, {{gebuehr_einspruch}}.",
-      "datenschutz": "Üblich: welche Daten erhoben werden und ob die {{ergebnisliste}} veröffentlicht wird.",
+      "datenschutz": "Üblich: welche Daten erhoben werden und ob die {{ergebnislisten}} veröffentlicht werden.",
       "kontakt": "Üblich: Ansprechperson mit Telefon oder E-Mail."
     },
     "art": {
       "text": "Eigener Text",
       "competitions": "Aus dem Turnier: Wettbewerbe",
-      "classes": "Aus dem Turnier: Klassen",
+      "classes": "Aus dem Turnier: {{klassen}}",
       "fees": "Aus dem Turnier: {{startgeld}}",
       "dates": "Aus dem Turnier: Termine",
       "ranges": "Aus dem Turnier: {{schiessstaende}}"

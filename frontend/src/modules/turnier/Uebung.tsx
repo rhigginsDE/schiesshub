@@ -10,6 +10,8 @@ import { merkeTurnier } from "../../components/useAktivesTurnier";
 import { useUebungAnlegen, useUebungLoeschen } from "./abfragen";
 import { fehlerText } from "./fehlertext";
 import { EINRICHTEN_PFAD, TURNIER_PFAD } from "./pfade";
+import { vorlagenLuecken } from "./senden";
+import { VorlageFehlt } from "./VorlageFehlt";
 import v from "./vorlagen.module.css";
 
 /**
@@ -44,6 +46,8 @@ export function UebungStarten({ darstellung = "knopf", text, onGeoeffnet }: Uebu
   const anlegen = useUebungAnlegen();
   const darf = useDarf("tournament.edit");
   if (!darf) return null;
+  // 409 template_unavailable: Dem Katalog fehlt eine Disziplin des Übungsturniers.
+  const luecken = anlegen.isError ? vorlagenLuecken(anlegen.error) : null;
 
   return (
     <div className={v.uebungStarten}>
@@ -66,10 +70,14 @@ export function UebungStarten({ darstellung = "knopf", text, onGeoeffnet }: Uebu
       >
         {text ?? t("uebung.starten")}
       </Button>
-      {anlegen.isError && (
-        <p className={v.fehler} role="alert">
-          {fehlerText(anlegen.error)}
-        </p>
+      {luecken ? (
+        <VorlageFehlt luecken={luecken} uebung onKatalog={onGeoeffnet} />
+      ) : (
+        anlegen.isError && (
+          <p className={v.fehler} role="alert">
+            {fehlerText(anlegen.error)}
+          </p>
+        )
       )}
     </div>
   );
@@ -107,12 +115,15 @@ export function UebungLoeschen({
         onSchliessen();
       }}
       onBestaetigen={() =>
-        loeschen.mutate(turnierId, {
-          onSuccess: () => {
+        // Nicht `mutate(…, { onSuccess })`: Die Seite des gelöschten Turniers hängt sich sofort ab,
+        // dann kämen solche Rückrufe nicht mehr an. Das Versprechen erfüllt sich trotzdem.
+        void loeschen.mutateAsync(turnierId).then(
+          () => {
             onSchliessen();
             onGeloescht?.();
           },
-        })
+          () => undefined,
+        )
       }
     />
   );

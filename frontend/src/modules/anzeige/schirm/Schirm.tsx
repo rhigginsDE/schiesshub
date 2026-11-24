@@ -1,6 +1,7 @@
 import { MonitorOff, TriangleAlert, Unplug } from "lucide-react";
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { type Begriffssaetze, useBegriffe } from "../../../lib/begriffe";
 import { formatDatum, formatUhrzeit } from "../../../lib/format";
 import { uhrzeitInZone } from "../format";
 import {
@@ -35,7 +36,10 @@ interface SchirmProps {
  */
 export function Schirm({ quelle, vorschau = false }: SchirmProps) {
   const zustand = useFeed(quelle);
-  return <SchirmAnsicht zustand={zustand} quelle={quelle} vorschau={vorschau} />;
+  const begriffe = useBegriffe();
+  return (
+    <SchirmAnsicht zustand={zustand} quelle={quelle} vorschau={vorschau} begriffe={begriffe} />
+  );
 }
 
 /** Darstellung zu einem Feed-Zustand; getrennt vom Laden, damit Tests einen Feed vorgeben können. */
@@ -43,10 +47,13 @@ export function SchirmAnsicht({
   zustand,
   quelle,
   vorschau = false,
+  begriffe = null,
 }: {
   zustand: Pick<FeedZustand, "feed" | "laedt" | "sperre" | "getrenntSeit" | "versatzMs">;
   quelle: FeedQuelle;
   vorschau?: boolean;
+  /** Formelle Wörter je Verband (`useBegriffe`); ohne: der feste Rückfall */
+  begriffe?: Begriffssaetze | null;
 }) {
   const { i18n } = useTranslation("anzeige");
   const [buehneRef, groesse] = useGroesse<HTMLDivElement>();
@@ -59,8 +66,9 @@ export function SchirmAnsicht({
       hochkant: groesse.hoehe > groesse.breite,
       faktor: Math.max(1, Math.min(groesse.breite, groesse.hoehe) / FULL_HD_KURZ),
       sprache: i18n.language,
+      begriffe,
     }),
-    [jetzt, zustand.versatzMs, groesse.hoehe, groesse.breite, i18n.language],
+    [jetzt, zustand.versatzMs, groesse.hoehe, groesse.breite, i18n.language, begriffe],
   );
 
   return (
@@ -238,6 +246,7 @@ function zeitraum(kopf: FeedKopf, sprache: string): string | null {
 }
 
 function Kopf({ kopf, szene, vorschau }: { kopf: FeedKopf; szene: string; vorschau: boolean }) {
+  const { t } = useTranslation("anzeige");
   const Titel = vorschau ? "strong" : "h1";
   const { sprache } = useSchirm();
   const zeit = useServerZeit();
@@ -251,8 +260,17 @@ function Kopf({ kopf, szene, vorschau }: { kopf: FeedKopf; szene: string; vorsch
         </b>
       </div>
       <div className={s.titel}>
-        <Titel className={s.titelText}>{kopf.title}</Titel>
-        {unter && <span>{unter}</span>}
+        <div className={s.titelZeile}>
+          {/* Übungsturnier: ruhiges Kennzeichen in Info-Farbe, damit niemand Übungsergebnisse für
+              echte hält – nicht gold (Platz 1), nicht grün (läuft). */}
+          {kopf.is_practice && (
+            <span className={s.uebung} title={t("schirm.uebung_lang")}>
+              {t("schirm.uebung")}
+            </span>
+          )}
+          <Titel className={s.titelText}>{kopf.title}</Titel>
+        </div>
+        {unter && <span className={s.titelUnter}>{unter}</span>}
       </div>
       <div className={s.jetzt}>
         <span className={s.szenenName}>{szene}</span>

@@ -6,9 +6,10 @@ import {
   useRef,
   useState,
 } from "react";
+import { type Begriffe, type Begriffssaetze, begriffeFuer } from "../../../lib/begriffe";
 import { inSeiten, seiteZurZeit, type Takt, zeilenProSeite } from "../rotation";
 
-/** Was alle Szenen brauchen: Uhr, Ausrichtung, Sprache. */
+/** Was alle Szenen brauchen: Uhr, Ausrichtung, Sprache, formelle Wörter. */
 export interface SchirmLage {
   /** Geräteuhr in ms, tickt jede Sekunde (für Seiten und Restzeit) */
   jetzt: number;
@@ -22,6 +23,8 @@ export interface SchirmLage {
    */
   faktor: number;
   sprache: string;
+  /** Begriffssätze des Servers (`GET /terms`); `null`, solange nichts da ist (dann Rückfall) */
+  begriffe: Begriffssaetze | null;
 }
 
 export const SchirmKontext = createContext<SchirmLage>({
@@ -30,10 +33,20 @@ export const SchirmKontext = createContext<SchirmLage>({
   hochkant: false,
   faktor: 1,
   sprache: "de",
+  begriffe: null,
 });
 
 export function useSchirm(): SchirmLage {
   return useContext(SchirmKontext);
+}
+
+/**
+ * Formelle Wörter des Schirms für einen Verband (`federation` aus dem Feed): Schützenstand,
+ * Durchgang, Serie … nach dem Regelwerk des Verbands, ohne Verband der Standardsatz.
+ */
+export function useWoerter(verband?: string | null): Begriffe {
+  const { begriffe } = useSchirm();
+  return begriffeFuer(begriffe, verband);
 }
 
 /** Größe eines Elements, laufend gemessen. Ohne Layout (Tests) bleibt sie 0 × 0. */

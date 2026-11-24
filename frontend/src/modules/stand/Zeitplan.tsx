@@ -13,6 +13,7 @@ import {
 } from "../anmeldung/api";
 import { type StandRechte, useAnzeigename } from "./aktionen";
 import { belegungDurchgang, durchgangErledigt, sortiereDurchgaenge } from "./logik";
+import { AbbruchBemerkung } from "./Startliste";
 import s from "./stand.module.css";
 import { WettbewerbName } from "./Wettbewerb";
 
@@ -225,6 +226,7 @@ function PlatzInhalt({
           <WettbewerbName code={start.competition_code} name={start.competition_name} /> ·{" "}
           {t("bahn.start_nr", { nr: start.attempt })}
         </span>
+        <AbbruchBemerkung start={start} />
       </span>
       {!wartet && (
         <Chip
@@ -293,6 +295,7 @@ function StartZeile({ start, children }: { start: StationStart; children: ReactN
           <WettbewerbName code={start.competition_code} name={start.competition_name} /> ·{" "}
           {t("bahn.start_nr", { nr: start.attempt })}
         </span>
+        <AbbruchBemerkung start={start} />
       </span>
       {children}
     </li>

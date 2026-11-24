@@ -4,15 +4,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { bestimmeTurnier, sortiereTurniere } from "../../components/useAktivesTurnier";
 import { renderApp } from "../../test/app";
 import {
-  geaenderteWettbewerbe,
   heute,
-  leseKopieHinweis,
+  hinweisKennung,
+  katalogGeaendert,
   naechsterTermin,
   nameMitJahr,
   nameVergeben,
   tage,
 } from "./anfang";
-import { beispielTurnier, TURNIER_ID, WETTBEWERB_ID } from "./testdaten";
+import { beispielTurnier, beispielWettbewerb, TURNIER_ID, WETTBEWERB_ID } from "./testdaten";
 import type { KopierterWettbewerb, Turnier, TurnierUebersicht, TurnierVorlage } from "./typen";
 
 type Antwort = unknown | ((koerper: unknown) => Response | unknown);
@@ -114,10 +114,20 @@ describe("Turnier anlegen: drei Wege", () => {
     await userEvent.click(within(dialog).getByRole("button", { name: /Leer beginnen/ }));
 
     const name = within(dialog).getByRole("textbox", { name: /Name/ });
+    const datum = within(dialog).getByLabelText(/^Datum/) as HTMLInputElement;
+    await userEvent.clear(datum);
+    await userEvent.type(datum, "2026-12-05");
     await userEvent.type(name, "testturnier fallscheibe");
-    expect(within(dialog).getByText(/gibt es schon/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/An diesem Tag gibt es schon/)).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole("button", { name: "Anlegen und einrichten" }));
     expect(geschrieben).toHaveLength(0);
+
+    // Gleicher Name an einem anderen Tag ist erlaubt (wie die Serverregel).
+    await userEvent.clear(datum);
+    await userEvent.type(datum, "2026-12-06");
+    expect(within(dialog).queryByText(/gibt es schon/)).not.toBeInTheDocument();
+    await userEvent.clear(datum);
+    await userEvent.type(datum, "2026-12-05");
 
     await userEvent.clear(name);
     await userEvent.click(within(dialog).getByRole("button", { name: "Anlegen und einrichten" }));
@@ -129,7 +139,7 @@ describe("Turnier anlegen: drei Wege", () => {
     expect(geschrieben[0]).toMatchObject({ methode: "POST", pfad: "/tournaments" });
   });
 
-  it("wie ein früheres: Name mit neuem Jahr, sagt, was nicht mitkommt, und zeigt danach geänderte Katalog-Wettbewerbe", async () => {
+  it("wie ein früheres: Name mit neuem Jahr, Veranstalter vorbelegt, danach geänderte Katalog-Wettbewerbe vom Server", async () => {
     const quelle = {
       ...beispielTurnier("closed"),
       name: "Herbstpokal 2025",
@@ -143,6 +153,8 @@ describe("Turnier anlegen: drei Wege", () => {
       catalog_federation: "bds",
       catalog_code: "4401",
       catalog_changed: true,
+      catalog_stand_then: "2025-06-30",
+      catalog_stand_now: "2026-06-30",
       catalog_diff: {
         deviates: true,
         catalog_available: true,
@@ -156,7 +168,20 @@ describe("Turnier anlegen: drei Wege", () => {
         ],
       },
     };
-    const kopie = { ...beispielTurnier(), id: NEU_ID };
+    // Der Server meldet `catalog_changed` an jedem Abruf des kopierten Wettbewerbs.
+    const kopie = {
+      ...beispielTurnier(),
+      id: NEU_ID,
+      competitions: [
+        {
+          ...beispielWettbewerb(),
+          tournament_id: NEU_ID,
+          catalog_changed: true,
+          catalog_stand_then: "2025-06-30",
+          catalog_stand_now: "2026-06-30",
+        },
+      ],
+    };
     const geschrieben = api({
       "GET /tournaments": [quelle],
       [`POST /tournaments/${TURNIER_ID}/copy`]: (inhalt: unknown) => ({
@@ -183,30 +208,107 @@ describe("Turnier anlegen: drei Wege", () => {
     await userEvent.type(datum, "2031-05-01");
     expect(name).toHaveValue("Herbstpokal 2031");
 
+    // Veranstalter: vorbelegt mit dem des Vorbilds, änderbar.
+    const veranstalter = within(dialog).getByRole("textbox", { name: /Veranstalter/ });
+    expect(veranstalter).toHaveValue("SV Musterstadt");
+    await userEvent.clear(veranstalter);
+    await userEvent.type(veranstalter, "SG Nachbarort");
+
     await userEvent.click(within(dialog).getByRole("button", { name: "Kopieren und einrichten" }));
     await waitFor(() => expect(geschrieben).toHaveLength(1));
     expect(geschrieben[0]).toMatchObject({
       pfad: `/tournaments/${TURNIER_ID}/copy`,
-      inhalt: { name: "Herbstpokal 2031", date_from: "2031-05-01" },
+      inhalt: { name: "Herbstpokal 2031", date_from: "2031-05-01", organizer: "SG Nachbarort" },
     });
-    // Nur der geänderte Wettbewerb ist zu prüfen.
-    expect(leseKopieHinweis(NEU_ID)?.wettbewerbe.map((w) => w.id)).toEqual([WETTBEWERB_ID]);
+    // Nichts mehr nur auf diesem Gerät gemerkt.
+    expect(window.localStorage.getItem(`schiesshub.kopie.${NEU_ID}`)).toBeNull();
 
-    // In der Turnierverwaltung: der Hinweis mit dem Weg zum Prüfen.
+    // In der Einrichtung: der Hinweis aus `catalog_changed`, mit Stand damals → heute.
     expect(
-      await screen.findByText("Seit „Herbstpokal 2025“ hat sich der Katalog geändert"),
+      await screen.findByText("Bei einem Wettbewerb hat sich der Katalog geändert"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Anders als im Katalog: Fallscheibe: 4 Serien statt 5"),
+      screen.getByText("Katalogstand damals 30.06.2025, heute 30.06.2026"),
     ).toBeInTheDocument();
     const pruefen = screen.getByRole("link", {
       name: "„Selbstladeflinte, offene Visierung“ prüfen",
     });
     expect(pruefen.getAttribute("href")).toContain(`wettbewerb=${WETTBEWERB_ID}`);
 
-    await userEvent.click(screen.getByRole("button", { name: "Geprüft, ausblenden" }));
+    // Ausblenden gilt nur auf diesem Gerät.
+    await userEvent.click(screen.getByRole("button", { name: "Auf diesem Gerät ausblenden" }));
     expect(screen.queryByText(/hat sich der Katalog geändert/)).not.toBeInTheDocument();
-    expect(leseKopieHinweis(NEU_ID)).toBeNull();
+  });
+
+  it("wie ein früheres: 409 am Namen steht in Klartext am Feld", async () => {
+    const quelle = { ...beispielTurnier("closed"), name: "Herbstpokal 2025" };
+    api({
+      "GET /tournaments": [quelle],
+      [`POST /tournaments/${TURNIER_ID}/copy`]: () =>
+        new Response(
+          JSON.stringify({
+            detail: "Ein Turnier mit diesem Namen und Datum gibt es schon.",
+            errors: [
+              { field: "name", message: "Ein Turnier mit diesem Namen und Datum gibt es schon." },
+            ],
+          }),
+          { status: 409, headers: { "Content-Type": "application/json" } },
+        ),
+    });
+    renderApp("/turnier");
+    const dialog = await dialogOeffnen();
+    await userEvent.click(within(dialog).getByRole("button", { name: /Wie ein früheres Turnier/ }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Kopieren und einrichten" }));
+    expect(
+      await within(dialog).findByText("Ein Turnier mit diesem Namen und Datum gibt es schon."),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByRole("textbox", { name: /Name/ })).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+  });
+
+  it("aus einer Vorlage: 409 template_unavailable sagt, was im Katalog fehlt", async () => {
+    api({
+      "GET /tournaments": [],
+      "GET /tournament-templates": [vorlage("fallscheibe", "Fallscheibe Flinte 15 m")],
+      "POST /tournaments/from-template": () =>
+        new Response(
+          JSON.stringify({
+            detail: "Die Vorlage passt nicht zum aktuellen Katalog.",
+            code: "template_unavailable",
+            template_id: "fallscheibe",
+            missing: [
+              {
+                kind: "competition",
+                federation: "bds",
+                code: "4403",
+                variant_id: null,
+                message_de: "Kennziffer 4403 (BDS)",
+              },
+              { kind: "classes", federation: "bds", message_de: "Klassen des Verbands BDS" },
+            ],
+          }),
+          { status: 409, headers: { "Content-Type": "application/json" } },
+        ),
+    });
+    renderApp("/turnier");
+    const dialog = await dialogOeffnen();
+    await userEvent.click(within(dialog).getByRole("button", { name: /Aus einer Vorlage/ }));
+    await userEvent.click(
+      await within(dialog).findByRole("radio", { name: "Fallscheibe Flinte 15 m" }),
+    );
+    await userEvent.click(within(dialog).getByRole("button", { name: "Anlegen und einrichten" }));
+
+    expect(
+      await within(dialog).findByText("Die Vorlage „Fallscheibe Flinte 15 m“ geht gerade nicht"),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText("Kennziffer 4403 (BDS) fehlt im Katalog.")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("Klassen des Verbands BDS fehlen im Katalog."),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText(/Angelegt wurde nichts/)).toBeInTheDocument();
+    expect(within(dialog).getByRole("link", { name: "Katalog ansehen" })).toBeInTheDocument();
   });
 
   it("aus einer Vorlage: Liste mit einem Satz, fehlende Disziplin gesperrt, Name vorbelegt", async () => {
@@ -321,27 +423,28 @@ describe("Hilfen für den Anfang", () => {
     expect(naechsterTermin("2024-02-29", "2024-11-23")).toBe("2025-02-28");
   });
 
-  it("erkennt doppelte Namen ohne Rücksicht auf Groß-/Kleinschreibung", () => {
-    const liste = [{ ...beispielTurnier(), name: "Herbstpokal  2026" }] as Turnier[];
-    expect(nameVergeben(" herbstpokal 2026", liste)).toBe(true);
-    expect(nameVergeben("Herbstpokal 2027", liste)).toBe(false);
-    expect(nameVergeben("", liste)).toBe(false);
+  it("doppelter Name wie der Server: nur am selben Anfangsdatum, ohne Übung und ohne sich selbst", () => {
+    const liste = [
+      { ...beispielTurnier(), id: "a", name: "Herbstpokal 2026", date_from: "2026-12-05" },
+      { ...beispielTurnier(), id: "u", name: "Übung", date_from: "2026-12-05", is_practice: true },
+    ] as Turnier[];
+    expect(nameVergeben(" herbstpokal 2026 ", "2026-12-05", liste)).toBe(true);
+    expect(nameVergeben("Herbstpokal 2026", "2026-12-06", liste)).toBe(false);
+    expect(nameVergeben("Herbstpokal 2026", "2026-12-05", liste, "a")).toBe(false);
+    expect(nameVergeben("Übung", "2026-12-05", liste)).toBe(false);
+    expect(nameVergeben("", "2026-12-05", liste)).toBe(false);
   });
 
-  it("zählt Turniertage und filtert geänderte Wettbewerbe", () => {
+  it("zählt Turniertage und findet Wettbewerbe mit geändertem Katalog", () => {
     expect(tage({ date_from: "2026-03-28", date_to: "2026-03-30" })).toBe(3);
     expect(tage({ date_from: "2026-03-28", date_to: "2026-03-28" })).toBe(1);
-    const basis = {
-      source_id: "q",
-      catalog_federation: "bds",
-      catalog_code: "4401",
-      catalog_diff: { deviates: true, catalog_available: true, differences: [] },
-    };
-    expect(
-      geaenderteWettbewerbe([
-        { ...basis, id: "a", name: "A", catalog_changed: true },
-        { ...basis, id: "b", name: "B", catalog_changed: false },
-      ]),
-    ).toEqual([{ id: "a", name: "A", punkte: [] }]);
+    const liste = [
+      { id: "b", catalog_changed: true, catalog_stand_now: "2026-06-30" },
+      { id: "a", catalog_changed: false, catalog_stand_now: "2026-06-30" },
+      { id: "c", catalog_changed: true, catalog_stand_now: null },
+    ];
+    expect(katalogGeaendert(liste).map((w) => w.id)).toEqual(["b", "c"]);
+    // Neue Änderung → neue Kennung → ein ausgeblendeter Hinweis erscheint wieder.
+    expect(hinweisKennung(katalogGeaendert(liste))).toBe("b@2026-06-30,c@-");
   });
 });

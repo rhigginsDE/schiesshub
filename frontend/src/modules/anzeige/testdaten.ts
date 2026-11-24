@@ -6,6 +6,8 @@ export function zeile(teil: Partial<FeedZeile> & Pick<FeedZeile, "start_id" | "p
   return {
     tied: false,
     needs_shootoff: false,
+    tie_unresolved: false,
+    tie_reason: null,
     group: "ranked",
     start_number: 1,
     attempt: 1,
@@ -51,6 +53,7 @@ export function rangliste(): FeedRangliste {
     direction: "absteigend",
     unit: "Ringe",
     combined: false,
+    tie_word: "gleiches Ergebnis",
     groups: [
       {
         class_id: "k1",
@@ -104,6 +107,7 @@ export function abbruchRangliste(): FeedRangliste {
     direction: "aufsteigend",
     unit: "s",
     combined: false,
+    tie_word: "gleiches Ergebnis",
     groups: [
       {
         class_id: "k1",
@@ -125,6 +129,8 @@ export function abbruchRangliste(): FeedRangliste {
             place: 3,
             tied: true,
             needs_shootoff: true,
+            tie_unresolved: true,
+            tie_reason: "shootoff",
             tie_note: "gleiches Ergebnis auf Platz 3: Stechen",
             display_name: "Bernd Muster",
             score_text: "26,00 s",
@@ -134,6 +140,8 @@ export function abbruchRangliste(): FeedRangliste {
             place: 3,
             tied: true,
             needs_shootoff: true,
+            tie_unresolved: true,
+            tie_reason: "shootoff",
             tie_note: "gleiches Ergebnis auf Platz 3: Stechen",
             display_name: "Clara Probe",
             score_text: "26,00 s",
@@ -400,6 +408,7 @@ export function beispielFeed(teil: Partial<Feed> = {}): Feed {
       tournament_status: "active",
       tournament_mode: "auto",
       timezone: "Europe/Berlin",
+      is_practice: false,
     },
     scenes: [szenen.live_ranking],
     skipped: [],

@@ -6,10 +6,12 @@ import {
   alsPosition,
   bahnFortschritt,
   feedUhrzeit,
+  gemeinsamerVerband,
   gesamtTeile,
   gleichstandHinweis,
   gleichstandWort,
   hauptSerie,
+  istHoechstergebnis,
   istPlatzierterAbbruch,
   laengstesWort,
   laufendeSerien,
@@ -265,49 +267,39 @@ describe("Formatierung", () => {
   });
 });
 
-describe("Gleichstand (Stechen, von Hand)", () => {
-  it("folgt den Angaben des Servers", () => {
-    expect(gleichstandHinweis({ tied: true, needs_shootoff: true, tie_note: "x" })).toBe("stechen");
-    expect(gleichstandHinweis({ tied: true, tie_reason: "shootoff" })).toBe("stechen");
-    expect(gleichstandHinweis({ tied: true, tie_reason: "manual", tie_note: "x" })).toBe("manuell");
-    expect(gleichstandHinweis({ tied: true, tie_reason: "missing_data" })).toBe("manuell");
-    // Feed: kein `tie_reason`, nur der Hinweistext.
-    expect(
-      gleichstandHinweis({
-        tied: true,
-        needs_shootoff: false,
-        tie_note: "Gleichstand nach Sportordnung manuell entscheiden",
-      }),
-    ).toBe("manuell");
+describe("Gleichstand (Stechen, von Hand, Höchstergebnis)", () => {
+  it("fordert nur bei offenem Gleichstand (tie_unresolved) etwas an", () => {
+    expect(gleichstandHinweis({ tie_unresolved: true, tie_reason: "shootoff" })).toBe("stechen");
+    expect(gleichstandHinweis({ tie_unresolved: true, needs_shootoff: true })).toBe("stechen");
+    expect(gleichstandHinweis({ tie_unresolved: true, tie_reason: "manual" })).toBe("manuell");
+    expect(gleichstandHinweis({ tie_unresolved: true, tie_reason: "missing_data" })).toBe(
+      "manuell",
+    );
+    // Entschieden oder ohne offene Frage: kein Hinweis, auch wenn noch Felder gesetzt sind
+    expect(gleichstandHinweis({ tie_unresolved: false, tie_reason: "shootoff" })).toBeNull();
+    expect(gleichstandHinweis({ tie_unresolved: false, needs_shootoff: true })).toBeNull();
+    expect(gleichstandHinweis({ tie_unresolved: false, tie_reason: "max_score" })).toBeNull();
+    expect(gleichstandHinweis({ tie_unresolved: false, tie_reason: null })).toBeNull();
   });
 
-  it("liest das formelle Wort (tie_word) vorn aus dem Hinweis des Servers", () => {
-    expect(gleichstandWort({ tie_note: "Ringgleichheit auf Platz 1: Stechen" })).toBe(
-      "Ringgleichheit",
-    );
-    expect(
-      gleichstandWort({
-        tie_note:
-          "Treffergleichheit: nach Sportordnung manuell entscheiden (nächstes Kriterium: x)",
-      }),
-    ).toBe("Treffergleichheit");
-    expect(gleichstandWort({ tie_note: "gleiches Ergebnis nicht auflösbar: Angaben fehlen" })).toBe(
-      "gleiches Ergebnis",
-    );
-    // Ein mitgeliefertes Wort (RankingOut.tie_word) hat Vorrang.
-    expect(
-      gleichstandWort({ tie_note: "Ringgleichheit auf Platz 1: Stechen" }, "Treffergleichheit"),
-    ).toBe("Treffergleichheit");
-    // Alter Text ohne erkennbares Wort, kein Hinweis: kein Wort
-    expect(
-      gleichstandWort({ tie_note: "Gleichstand nach Sportordnung manuell entscheiden (x: y)" }),
-    ).toBeNull();
-    expect(gleichstandWort({ tie_note: null })).toBeNull();
+  it("erkennt den nach Regel entschiedenen geteilten Platz (Höchstergebnis)", () => {
+    expect(istHoechstergebnis({ tie_reason: "max_score", tie_unresolved: false })).toBe(true);
+    expect(istHoechstergebnis({ tie_reason: "shootoff", tie_unresolved: true })).toBe(false);
+    expect(istHoechstergebnis({ tie_reason: null, tie_unresolved: false })).toBe(false);
   });
 
-  it("ein geteilter Platz ohne offene Frage (z. B. Fallscheibe) bleibt ohne Hinweis", () => {
-    expect(gleichstandHinweis({ tied: true, needs_shootoff: false, tie_note: null })).toBeNull();
-    expect(gleichstandHinweis({ tied: false, needs_shootoff: false })).toBeNull();
+  it("nimmt das formelle Wort aus tie_word, leer kein Wort", () => {
+    expect(gleichstandWort("Ergebnisgleichheit")).toBe("Ergebnisgleichheit");
+    expect(gleichstandWort(" Ringgleichheit ")).toBe("Ringgleichheit");
+    expect(gleichstandWort("")).toBeNull();
+    expect(gleichstandWort(null)).toBeNull();
+  });
+
+  it("findet den gemeinsamen Verband der Abläufe, sonst keinen", () => {
+    expect(gemeinsamerVerband([{ federation: "DSB" }, { federation: "dsb" }])).toBe("dsb");
+    expect(gemeinsamerVerband([{ federation: "bds" }, { federation: "dsb" }])).toBeNull();
+    expect(gemeinsamerVerband([{ federation: "bds" }, { federation: null }])).toBeNull();
+    expect(gemeinsamerVerband([])).toBeNull();
   });
 
   it("richtet die Serienspalten nach dem längsten Wert und lässt sie weg, wenn sie nicht passen", () => {

@@ -27,20 +27,32 @@ export function AbschnittKopf({
   );
 }
 
-/** Wettbewerbsname mit der Kennziffer davor (falls es eine gibt). */
+/**
+ * Wettbewerbsname mit der Kennziffer davor (falls es eine gibt). `kennziffer`: das Wort des
+ * Verbands dafür („Kennziffer“, DSB „Kennzahl“) als Beschriftung der Nummer beim Überfahren.
+ */
 export function WettbewerbTitel({
   code,
   name,
   klein,
+  kennziffer,
 }: {
   code?: string | null;
   name: string;
   /** In einer Unterzeile: Kennziffer in Zeilengröße statt Überschriftgröße */
   klein?: boolean;
+  kennziffer?: string;
 }) {
   return (
     <>
-      {code && <span className={`num ${klein ? s.kennzifferKlein : s.kennziffer}`}>{code}</span>}
+      {code && (
+        <span
+          className={`num ${klein ? s.kennzifferKlein : s.kennziffer}`}
+          title={kennziffer ? `${kennziffer} ${code}` : undefined}
+        >
+          {code}
+        </span>
+      )}
       {name}
     </>
   );

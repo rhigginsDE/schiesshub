@@ -20,6 +20,7 @@ import { ExportKnoepfe } from "../../../components/ExportKnoepfe";
 import { useFehlerText } from "../../../components/FehlerHinweis";
 import { zeigeMeldung } from "../../../components/Meldungen";
 import { bestimmeTurnier } from "../../../components/useAktivesTurnier";
+import { useBegriffe } from "../../../lib/begriffe";
 import { uebersichtAbfrage } from "../../turnier/abfragen";
 import type { Turnier } from "../../turnier/typen";
 import {
@@ -475,6 +476,7 @@ function Vorschau({
   const fehlerText = useFehlerText();
   const quelle = useMemo(() => ({ art: "anzeige" as const, id: anzeige.id }), [anzeige.id]);
   const gespeichert = useFeed(quelle);
+  const begriffe = useBegriffe();
   const vorschau = useEntwurfsFeed(
     anzeige.id,
     entwurf,
@@ -508,7 +510,7 @@ function Vorschau({
         </Button>
       </div>
       <div className={s.rahmen} data-entwurf={zeigtEntwurf || undefined}>
-        <SchirmAnsicht zustand={zustand} quelle={quelle} vorschau />
+        <SchirmAnsicht zustand={zustand} quelle={quelle} vorschau begriffe={begriffe} />
       </div>
       {zeigtEntwurf ? (
         <p className={s.vorschauHinweis} role="status">

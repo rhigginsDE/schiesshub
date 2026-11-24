@@ -54,6 +54,20 @@ describe("begriffeFuer", () => {
     expect(begriffeFuer(undefined)).toEqual(BEGRIFFE_RUECKFALL);
   });
 
+  it("hat im Rückfall die Mehrzahlen und Serienwörter (Standardsatz des Servers)", () => {
+    expect(BEGRIFFE_RUECKFALL).toMatchObject({
+      ergebnislisten: "Ergebnislisten",
+      durchgaenge: "Durchgänge",
+      serie: "Serie",
+      serien: "Serien",
+      wertungsserien: "Wertungsserien",
+      klassen: "Wettbewerbsklassen",
+    });
+    // Leere Wörter im Satz des Verbands füllt der Rückfall je Begriff auf
+    const ohneSerie = { default: standard, federations: { dsb: { serien: "" } as Begriffe } };
+    expect(begriffeFuer(ohneSerie, "dsb").serien).toBe("Serien");
+  });
+
   it("verändert den Rückfall nicht", () => {
     begriffeFuer(saetze, "dsb");
     expect(BEGRIFFE_RUECKFALL.kennziffer).toBe("Kennziffer");

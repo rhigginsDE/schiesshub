@@ -323,7 +323,7 @@ const SCHUSS_ZEHNTEL: FeldBeschreibung = {
   value_max: "10.9",
   zero_allowed: true,
 };
-/** Seriensumme bei Zehntelwertung (10 Schuss). */
+/** Seriensumme bei Zehntelwertung (10 Schuss): 0 oder 1,0 bis 109,0, wie der Server sie beschreibt. */
 const SUMME_ZEHNTEL: FeldBeschreibung = {
   key: "sum",
   label: "Seriensumme",
@@ -331,8 +331,9 @@ const SUMME_ZEHNTEL: FeldBeschreibung = {
   required: true,
   decimals: 1,
   step: "0.1",
-  value_min: "0.0",
+  value_min: "1.0",
   value_max: "109.0",
+  zero_allowed: true,
 };
 /** Treffer je Ziel (Trap): ein Wert je Ziel, 1 oder 0. */
 const ZIELE: FeldBeschreibung = {
@@ -405,7 +406,7 @@ describe("Zehntel: Kommazahlen lesen und schreiben", () => {
   it("nennt die Grenzen aus der Formularbeschreibung", () => {
     expect(kommaGrenzen(SCHUSS_ZEHNTEL)).toEqual({ stellen: 1, min: 10, max: 109, null: true });
     expect(kommaBereich(SCHUSS_ZEHNTEL)).toEqual({ min: "1,0", max: "10,9", null: true });
-    expect(kommaBereich(SUMME_ZEHNTEL)).toEqual({ min: "0,0", max: "109,0", null: false });
+    expect(kommaBereich(SUMME_ZEHNTEL)).toEqual({ min: "1,0", max: "109,0", null: true });
   });
 });
 
@@ -452,8 +453,8 @@ describe("Zehntel: Eingabe am Feld", () => {
     });
     expect(zuViel).toMatchObject({ abgelehnt: true, grund: "zu_gross" });
     expect(tippen(SUMME_ZEHNTEL, "104,3")).toMatchObject({ wert: "104.3", weiter: true });
-    // Bei der Summe kann „0“ noch „0,5“ werden: kein selbsttätiges Weiter.
-    expect(tippen(SUMME_ZEHNTEL, "0")).toMatchObject({ wert: "0.0", weiter: false });
+    // Seriensumme 0 oder 1,0 bis 109,0: „0“ ist fertig (0,5 gibt es nicht), es geht weiter.
+    expect(tippen(SUMME_ZEHNTEL, "0")).toMatchObject({ wert: "0.0", weiter: true });
   });
 
   it("Ziffernfeld sperrt nur, was nicht passt", () => {
@@ -462,6 +463,9 @@ describe("Zehntel: Eingabe am Feld", () => {
     const nullKomma = tippen(SCHUSS_ZEHNTEL, ",").eingabe;
     expect(zifferErlaubt(SCHUSS_ZEHNTEL, nullKomma, "0")).toBe(true);
     expect(zifferErlaubt(SCHUSS_ZEHNTEL, nullKomma, "5")).toBe(false);
+    // Seriensumme 0 oder 1,0 bis …: „0,5“ sperrt das Ziffernfeld ebenso (nur aus den Grenzen).
+    const summeNullKomma = tippen(SUMME_ZEHNTEL, ",").eingabe;
+    expect(zifferErlaubt(SUMME_ZEHNTEL, summeNullKomma, "5")).toBe(false);
   });
 
   it("Rück bearbeitet den gespeicherten Wert", () => {

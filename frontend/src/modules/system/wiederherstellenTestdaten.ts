@@ -2,9 +2,12 @@ import type { Quelle, Vorschau, WiederherstellungsStatus } from "./wiederherstel
 
 /** Testdaten für die Wiederherstellung (Logik- und Seitentests). */
 
+/** Dieselbe Sicherung auf Stick und Server: ein Eintrag, die Stick-Kopie vorn. */
 export const QUELLE_STICK: Quelle = {
   id: "usb:snapshot-20261123T210253Z.shb",
   location: "usb",
+  locations: ["usb", "local"],
+  other_ids: ["local:snapshot-20261123T210253Z.dump"],
   file_name: "snapshot-20261123T210253Z.shb",
   created_at: "2026-11-23T21:02:53Z",
   size_bytes: 297089,
@@ -19,6 +22,8 @@ export const QUELLE_SERVER: Quelle = {
   ...QUELLE_STICK,
   id: "local:snapshot-20261123T210253Z.dump",
   location: "local",
+  locations: ["local"],
+  other_ids: [],
   file_name: "snapshot-20261123T210253Z.dump",
   encrypted: false,
   needs_passphrase: false,
@@ -76,12 +81,45 @@ export function vorschau(teil: Partial<Vorschau> = {}): Vorschau {
       pin_changed: false,
       admins_in_backup: 1,
       lockout_risk: false,
-      message_de: "Du bleibst angemeldet.",
+      message_de: "Konto und Gerät sind in der Sicherung; du bleibst angemeldet.",
+      reasons: [
+        {
+          code: "stays_signed_in",
+          message_de: "Konto und Gerät sind in der Sicherung; du bleibst angemeldet.",
+        },
+      ],
     },
     restorable: true,
+    // Nicht mehr gelesen (der Server streicht sie); die Oberfläche nimmt problem_items/note_items.
     problems: [],
     notes: [],
+    problem_items: [],
+    note_items: [],
     ...teil,
+  };
+}
+
+/** Ältere Sicherung, die nur auf dem Server liegt. */
+export const QUELLE_ALT: Quelle = {
+  ...QUELLE_SERVER,
+  id: "local:snapshot-20261123T180000Z.dump",
+  file_name: "snapshot-20261123T180000Z.dump",
+  created_at: "2026-11-23T18:00:00Z",
+};
+
+/** Zugang, wenn dein Konto und dieses Gerät in der Sicherung fehlen. */
+export function ausgesperrt(): Vorschau["access"] {
+  return {
+    ...vorschau().access,
+    account_in_backup: false,
+    account_is_admin_in_backup: false,
+    device_in_backup: false,
+    session_in_backup: false,
+    lockout_risk: true,
+    message_de: "In der Sicherung fehlt dein Konto und dieses Gerät. …",
+    reasons: [
+      { code: "lockout", message_de: "In der Sicherung fehlt dein Konto und dieses Gerät. …" },
+    ],
   };
 }
 

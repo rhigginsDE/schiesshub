@@ -22,8 +22,10 @@ export class EingabeFehler extends ApiFehler {
     status: number,
     detail: string | undefined,
     felder: FeldFehler[],
+    inhalt?: unknown,
+    code?: string,
   ) {
-    super(art, pfad, status, detail, undefined, felder);
+    super(art, pfad, status, detail, undefined, felder, inhalt, code);
     this.name = "EingabeFehler";
   }
 }
@@ -68,9 +70,15 @@ export async function turnierSenden<T = void>(
   } catch (fehler) {
     if (!(fehler instanceof ApiFehler) || fehler.status === undefined) throw fehler;
     if (fehler.art === "format") throw fehler;
-    throw new EingabeFehler(fehler.art, pfad, fehler.status, zusammenfassung(fehler), [
-      ...fehler.felder,
-    ]);
+    throw new EingabeFehler(
+      fehler.art,
+      pfad,
+      fehler.status,
+      zusammenfassung(fehler),
+      [...fehler.felder],
+      fehler.inhalt,
+      fehler.code,
+    );
   }
 }
 
@@ -101,4 +109,39 @@ export function feldFehlerFuer(
     if (allgemein) ergebnis[""] = allgemein;
   }
   return ergebnis;
+}
+
+/** Eine Lücke im Katalog, wegen der eine Vorlage gerade nicht geht (`TemplateGapOut`). */
+export interface VorlagenLuecke {
+  kind: "competition" | "classes";
+  federation: string;
+  code?: string | null;
+  variant_id?: string | null;
+  /** Fertiger Text des Servers, z. B. „Kennziffer 4403 (BDS)“ */
+  message_de: string;
+}
+
+/**
+ * 409 `template_unavailable` (Vorlage oder Übungsturnier): was im Katalog fehlt. `null` bei jedem
+ * anderen Fehler.
+ */
+export function vorlagenLuecken(fehler: unknown): VorlagenLuecke[] | null {
+  if (!(fehler instanceof ApiFehler) || fehler.status !== 409) return null;
+  const inhalt = fehler.inhalt as { code?: unknown; missing?: unknown } | undefined;
+  if ((fehler.code ?? inhalt?.code) !== "template_unavailable") return null;
+  const liste = Array.isArray(inhalt?.missing) ? (inhalt.missing as unknown[]) : [];
+  return liste.flatMap((eintrag) => {
+    if (!eintrag || typeof eintrag !== "object") return [];
+    const { kind, federation, code, variant_id, message_de } = eintrag as Record<string, unknown>;
+    if (typeof message_de !== "string" || !message_de.trim()) return [];
+    return [
+      {
+        kind: kind === "classes" ? "classes" : "competition",
+        federation: typeof federation === "string" ? federation : "",
+        code: typeof code === "string" ? code : null,
+        variant_id: typeof variant_id === "string" ? variant_id : null,
+        message_de: message_de.trim(),
+      },
+    ];
+  });
 }

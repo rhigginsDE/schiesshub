@@ -51,6 +51,7 @@ import {
   wertungGeaendert,
 } from "../wettbewerbFormular";
 import { AblaufEditor } from "./AblaufEditor";
+import { KatalogGeaendertHinweis } from "./KatalogStand";
 import w from "./wettbewerbe.module.css";
 
 interface WettbewerbBearbeitenProps {
@@ -228,6 +229,14 @@ export function WettbewerbBearbeiten({
         void speichern();
       }}
     >
+      {/* Der Katalog hat sich seit der Übernahme geändert: Stand damals → heute, übernehmen */}
+      <KatalogGeaendertHinweis
+        turnierId={turnier.id}
+        wettbewerb={wettbewerb}
+        gesperrt={gesperrt}
+        onUebernehmen={zuruecksetzenFragen}
+      />
+
       {/* Das, was fast jeder Wettbewerb braucht */}
       <fieldset className={s.ohneRahmen} disabled={gesperrt}>
         <div className={s.feldGruppe}>
@@ -553,7 +562,7 @@ export function WettbewerbBearbeiten({
                     <Button
                       variant="default"
                       leftSection={<RotateCcw aria-hidden />}
-                      disabled={gesperrt || abw.length === 0}
+                      disabled={gesperrt || (abw.length === 0 && !wettbewerb.catalog_changed)}
                       onClick={zuruecksetzenFragen}
                     >
                       {t("wettbewerb.zuruecksetzen")}
@@ -670,7 +679,9 @@ export function WettbewerbBearbeiten({
             ? t("wettbewerb.variante_titel", {
                 name: varianten.find((v) => v.id === rueckfrage.variante)?.name ?? "",
               })
-            : t("wettbewerb.zuruecksetzen_titel")
+            : wettbewerb.catalog_changed
+              ? t("katalog_stand.uebernehmen_titel")
+              : t("wettbewerb.zuruecksetzen_titel")
         }
         text={
           <>

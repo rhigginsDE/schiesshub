@@ -472,3 +472,175 @@
     grid-column: 2;
   }
 }
+
+/* ---------- Von Hand nachzutragen ---------- */
+.nachtragen {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.nachtragenKopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.tabelle {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.tabelle th {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--sh-linie-stark);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--sh-text-gedaempft);
+}
+
+.tabelle td {
+  padding: 10px;
+  border-bottom: 1px solid var(--sh-linie);
+  vertical-align: top;
+  color: var(--sh-text-weich);
+}
+
+.tabelle tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tabelle th:first-child,
+.startnummer {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.startnummer {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--sh-text);
+}
+
+.wettbewerb {
+  display: block;
+  font-weight: 600;
+  color: var(--sh-text);
+}
+
+.kennziffer {
+  display: block;
+  font-family: var(--sh-font-text);
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
+/* Schmal: jede Zeile eine Karte, die Spaltennamen stehen davor. */
+@media (max-width: 760px) {
+  .tabelle thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .tabelle tr {
+    display: grid;
+    gap: 4px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--sh-linie);
+  }
+
+  .tabelle tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .tabelle td {
+    display: grid;
+    grid-template-columns: 8rem minmax(0, 1fr);
+    align-items: baseline;
+    gap: 12px;
+    padding: 2px 0;
+    border: 0;
+  }
+
+  .tabelle td::before {
+    content: attr(data-beschriftung);
+    font-family: var(--sh-font-text);
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--sh-text-gedaempft);
+  }
+
+  .startnummer {
+    width: auto;
+    text-align: left;
+  }
+}
+
+/* Drucken nur dieser Liste (Wiederherstellen.tsx setzt data-druck am html-Element). */
+@media print {
+  :global(
+    html[data-druck="nachtragen"]
+      body
+      *:not(:has([data-druckliste])):not([data-druckliste]):not([data-druckliste] *)
+  ) {
+    /* biome-ignore lint/complexity/noImportantStyles: beim Drucken muss die App vollständig verschwinden */
+    display: none !important;
+  }
+
+  /* Die Rahmen um die Liste (Panel, Seite) drucken nicht mit. */
+  :global(html[data-druck="nachtragen"] body *:has([data-druckliste])) {
+    position: static;
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    background: none;
+    /* Spalten und Breiten des Bildschirm-Layouts gelten auf Papier nicht. */
+    display: block;
+    width: auto;
+    max-width: none;
+  }
+
+  :global(html[data-druck="nachtragen"]) .nachtragen {
+    width: 100%;
+  }
+
+  :global(html[data-druck="nachtragen"]),
+  :global(html[data-druck="nachtragen"] body) {
+    /* biome-ignore lint/complexity/noImportantStyles: der dunkle App-Hintergrund darf nicht mitgedruckt werden */
+    background: none !important;
+    color-scheme: light;
+  }
+
+  /* Systemfarben des Papiers statt der Bildschirmfarben, damit es auch im dunklen Schema lesbar ist. */
+  :global(html[data-druck="nachtragen"]) .nachtragen,
+  :global(html[data-druck="nachtragen"]) .nachtragen * {
+    color: CanvasText;
+    border-color: GrayText;
+  }
+
+  .nichtDrucken {
+    display: none;
+  }
+
+  .tabelle tr {
+    break-inside: avoid;
+  }
+}
+
+/* Ausweg neben dem Hauptweg (z. B. „Passwort vergessen?“): durch eine Linie abgesetzt. */
+.nebenweg {
+  padding-top: 16px;
+  border-top: 1px solid var(--sh-linie);
+}

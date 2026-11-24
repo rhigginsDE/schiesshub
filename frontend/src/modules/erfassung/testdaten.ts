@@ -66,6 +66,7 @@ function serie(
     scoring_break_after: false,
     max_rings: null,
     hints: [],
+    hint_items: [],
     ...teil,
   };
 }
@@ -87,6 +88,8 @@ function abschnitt(id: string, name: string, series: SerieForm[]): Formular["sec
     pause_between_shots_s: null,
     max_rings: null,
     hints: [],
+    hint_items: [],
+    aufgelegt: false,
   };
 }
 

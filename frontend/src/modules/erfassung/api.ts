@@ -19,6 +19,9 @@ export type Formular = Schemas["FormDescription"];
 export type AbschnittForm = Schemas["SectionForm"];
 export type SerieForm = Schemas["SeriesForm"];
 export type FeldBeschreibung = Schemas["FieldSpec"];
+/** Hinweis der Maske mit Art (`kind`), damit nichts am Wortlaut erkannt werden muss. */
+export type Hinweis = Schemas["HintItem"];
+export type HinweisArt = Hinweis["kind"];
 export type StatusOption = Schemas["StatusOption"];
 export type PositionForm = Schemas["PositionForm"];
 export type ErgebnisStand = Schemas["ResultState"];

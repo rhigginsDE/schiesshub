@@ -2,6 +2,7 @@ import { MantineProvider } from "@mantine/core";
 import { act, render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { BEGRIFFE_RUECKFALL, type Begriffssaetze } from "../../lib/begriffe";
 import { theme } from "../../theme";
 import { SchirmAnsicht } from "./schirm/Schirm";
 import type { FeedQuelle, FeedZustand } from "./schirm/useFeed";
@@ -18,9 +19,38 @@ function mitTheme(kind: ReactNode) {
   return <MantineProvider theme={theme}>{kind}</MantineProvider>;
 }
 
-function zeige(feed: Feed | null, teil: Partial<FeedZustand> = {}, quelle = QUELLE) {
-  return render(mitTheme(<SchirmAnsicht zustand={zustand(feed, teil)} quelle={quelle} />));
+function zeige(
+  feed: Feed | null,
+  teil: Partial<FeedZustand> = {},
+  quelle = QUELLE,
+  begriffe: Begriffssaetze | null = null,
+) {
+  return render(
+    mitTheme(<SchirmAnsicht zustand={zustand(feed, teil)} quelle={quelle} begriffe={begriffe} />),
+  );
 }
+
+/**
+ * Begriffssätze wie vom Server, mit einem erfundenen Verband „probe“, dessen Wörter sich überall
+ * unterscheiden – so zeigt der Test, dass jedes Wort aus dem Satz des Verbands kommt.
+ */
+const BEGRIFFE: Begriffssaetze = {
+  default: BEGRIFFE_RUECKFALL,
+  federations: {
+    dsb: { ...BEGRIFFE_RUECKFALL, kennziffer: "Kennzahl", trefferaufnahme: "Auswertung" },
+    probe: {
+      ...BEGRIFFE_RUECKFALL,
+      durchgang: "Block",
+      schuetzenstand: "Platz-am-Stand",
+      schuetzenstaende: "Plätze-am-Stand",
+      schiessstand: "Stand",
+      serie: "Runde",
+      serien: "Runden",
+      trefferaufnahme: "Auswertung",
+      kennziffer: "Kennzahl",
+    },
+  },
+};
 
 afterEach(() => vi.useRealTimers());
 
@@ -143,6 +173,7 @@ describe("Bildschirm", () => {
     const basis = rangliste();
     const ranking = {
       ...basis,
+      tie_word: "Ringgleichheit",
       groups: [
         {
           class_id: "k1",
@@ -157,6 +188,8 @@ describe("Bildschirm", () => {
               place: 1,
               tied: true,
               needs_shootoff: true,
+              tie_unresolved: true,
+              tie_reason: "shootoff",
               tie_note: "Ringgleichheit auf Platz 1: Stechen",
               display_name: "Hanna Zehntel",
               score_text: "208,4 Ringe",
@@ -167,6 +200,8 @@ describe("Bildschirm", () => {
               place: 1,
               tied: true,
               needs_shootoff: true,
+              tie_unresolved: true,
+              tie_reason: "shootoff",
               tie_note: "Ringgleichheit auf Platz 1: Stechen",
               display_name: "Ida Zehntel",
               score_text: "208,4 Ringe",
@@ -176,7 +211,9 @@ describe("Bildschirm", () => {
               start_id: "z3",
               place: 3,
               tied: true,
-              tie_note: "Gleichstand nach Sportordnung manuell entscheiden (nächstes Kriterium: x)",
+              tie_unresolved: true,
+              tie_reason: "manual",
+              tie_note: "Ringgleichheit: nach Sportordnung manuell entscheiden",
               display_name: "Jan Zehntel",
               score_text: "201,0 Ringe",
               series: [zehntel(1, "100.0"), zehntel(2, "101.0")],
@@ -191,11 +228,10 @@ describe("Bildschirm", () => {
     expect(within(liste).getByText("104,3")).toBeVisible();
     expect(within(liste).getByText("101,0")).toBeVisible();
     expect(within(liste).getAllByText("208,4")).toHaveLength(2);
-    // Das formelle Wort steht vorn im Hinweis des Servers (tie_note) und erscheint mit.
+    // Das formelle Wort kommt aus `tie_word` der Rangliste.
     expect(within(liste).getAllByText("Ringgleichheit: Stechen")).toHaveLength(2);
     expect(within(liste).queryByText(/Gleichstand/)).toBeNull();
-    // Ohne erkennbares Wort bleibt der Hinweis kurz.
-    expect(within(liste).getByText("manuell entscheiden")).toBeVisible();
+    expect(within(liste).getByText("Ringgleichheit: manuell entscheiden")).toBeVisible();
     const namen = Array.from(liste.querySelectorAll("[data-gruppe] b")).map((b) => b.textContent);
     expect(namen.map((n) => n?.replace(/^\d+/, ""))).toEqual([
       "Hanna Zehntel",
@@ -536,5 +572,212 @@ describe("Bildschirm", () => {
     const buehne = document.querySelector<HTMLElement>('[style*="--sh-bg"]');
     expect(buehne?.style.getPropertyValue("--sh-bg").toUpperCase()).toBe("#F2F4F7");
     expect(buehne?.style.colorScheme).toBe("light");
+  });
+});
+
+describe("Bildschirm: Gleichstand nach Server, Wörter je Verband, Übung", () => {
+  it("Höchstergebnis: geteilter Platz entschieden, dezent erklärt, ohne Aufforderung", () => {
+    const basis = rangliste();
+    const geteilt = (start_id: string, display_name: string) =>
+      zeile({
+        start_id,
+        place: 1,
+        tied: true,
+        tie_unresolved: false,
+        tie_reason: "max_score",
+        tie_note: "Höchstergebnis: gleicher Platz",
+        display_name,
+        score_text: "400 Ringe",
+      });
+    const ranking = {
+      ...basis,
+      tie_word: "Ergebnisgleichheit",
+      federation: "dsb",
+      groups: [
+        {
+          class_id: "k1",
+          class_name: "Schützenklasse",
+          class_short: "S",
+          more: 0,
+          unplaced: [],
+          rows: [geteilt("h1", "Hanna Höchst"), geteilt("h2", "Ida Höchst")],
+        },
+      ],
+    };
+    for (const szene of [szenen.live_ranking, szenen.winners] as const) {
+      const { unmount } = zeige(
+        beispielFeed({ scenes: [{ ...szene, ranking }] as Feed["scenes"] }),
+      );
+      const region = screen.getByRole("region", { name: szene.title });
+      const hinweise = within(region).getAllByText("Höchstergebnis: gleicher Platz");
+      expect(hinweise).toHaveLength(2);
+      for (const hinweis of hinweise) {
+        expect(hinweis).toHaveAttribute("data-geteilt", "entschieden");
+        expect(hinweis.className).not.toMatch(/(^|\s)\S*gleichstand(\s|$)/);
+      }
+      expect(within(region).queryByText(/Stechen|manuell/)).toBeNull();
+      unmount();
+    }
+  });
+
+  it("Hinweis „Stechen“ nur bei offenem Gleichstand, nicht nach dem Wortlaut von tie_note", () => {
+    const basis = rangliste();
+    const ranking = {
+      ...basis,
+      tie_word: "Ringgleichheit",
+      groups: [
+        {
+          class_id: "k1",
+          class_name: "Schützenklasse",
+          class_short: "S",
+          more: 0,
+          unplaced: [],
+          rows: [
+            // Stechen schon geschossen: entschieden, auch wenn der alte Text noch dasteht
+            zeile({
+              start_id: "e1",
+              place: 1,
+              tied: false,
+              needs_shootoff: false,
+              tie_unresolved: false,
+              tie_reason: null,
+              tie_note: "Ringgleichheit auf Platz 1: Stechen",
+              display_name: "Erich Entschieden",
+            }),
+            zeile({
+              start_id: "o1",
+              place: 2,
+              tied: true,
+              tie_unresolved: true,
+              tie_reason: "missing_data",
+              tie_note: null,
+              display_name: "Olga Offen",
+            }),
+          ],
+        },
+      ],
+    };
+    const live = szenen.live_ranking as SzeneVon<"live_ranking">;
+    zeige(beispielFeed({ scenes: [{ ...live, ranking }] }));
+    const liste = screen.getByRole("region", { name: "Live-Wertung" });
+    expect(within(liste).queryByText(/Stechen/)).toBeNull();
+    expect(within(liste).getByText("Ringgleichheit: manuell entscheiden")).toHaveAttribute(
+      "data-geteilt",
+      "offen",
+    );
+  });
+
+  it("Startliste: Wörter des Verbands, Kennzeichen des Abbruchs vom Server, Rückfall ohne", () => {
+    const start = szenen.startlist as SzeneVon<"startlist">;
+    const [erste] = start.startlist.starts as [FeedPerson];
+    const startlist = {
+      ...start.startlist,
+      competition_code: "1.10",
+      federation: "probe",
+      starts: [
+        erste,
+        {
+          ...erste,
+          start_id: "a1",
+          start_number: 7,
+          status: "aborted" as const,
+          abort_reason: "dnf" as const,
+          abort_label: "abgebrochen",
+        },
+        {
+          ...erste,
+          start_id: "a2",
+          start_number: 8,
+          status: "aborted" as const,
+          abort_reason: "dsq" as const,
+          abort_label: null,
+        },
+      ],
+    };
+    zeige(beispielFeed({ scenes: [{ ...start, startlist }] }), {}, QUELLE, BEGRIFFE);
+    const liste = screen.getByRole("region", { name: "Startliste" });
+    expect(within(liste).getAllByText(/^Block 3 · \d\d:\d\d · Platz-am-Stand 2$/)).toHaveLength(3);
+    expect(within(liste).getByText("abgebrochen")).toBeVisible();
+    expect(within(liste).queryByText("Abbruch (AB)")).toBeNull();
+    expect(within(liste).getByText("disqualifiziert")).toBeVisible();
+    expect(within(liste).getByText("1.10")).toHaveAttribute("title", "Kennzahl 1.10");
+  });
+
+  it("Standanzeige und Live-Wertung: Wörter des Verbands aus `federation`", () => {
+    const basis = szenen.range as SzeneVon<"range">;
+    const [ablauf] = basis.range.procedures;
+    if (!ablauf) throw new Error("Testdaten ohne Ablauf");
+    const szene: SzeneVon<"range"> = {
+      ...basis,
+      range: {
+        ...basis.range,
+        procedures: [
+          {
+            ...ablauf,
+            federation: "probe",
+            current: [{ lane: 2, start_id: "p3", section_id: "praezision", series_number: 1 }],
+            // Trefferaufnahme nach der 1. Serie der Präzision (Serien-Übersicht)
+            sections: ablauf.sections.map((abschnitt) =>
+              abschnitt.id === "praezision"
+                ? {
+                    ...abschnitt,
+                    series: abschnitt.series.map((serie) => ({
+                      ...serie,
+                      hit_review_after: serie.number === 1,
+                    })),
+                  }
+                : abschnitt,
+            ),
+          },
+        ],
+      },
+    };
+    const { unmount } = zeige(beispielFeed({ scenes: [szene] }), {}, QUELLE, BEGRIFFE);
+    const stand = screen.getByRole("region", { name: "Schießstand Kurzwaffe 25 m" });
+    expect(within(stand).getByText("Disziplin am Stand")).toBeVisible();
+    expect(within(stand).getByText("Am Stand")).toBeVisible();
+    expect(within(stand).getByText("Es zählen 2 von 3 Runden")).toBeVisible();
+    expect(within(stand).getByText("Runde 3")).toBeVisible();
+    expect(within(stand).getByText("Jetzt · Platz-am-Stand 2")).toBeVisible();
+    expect(within(stand).getAllByText("Auswertung").length).toBeGreaterThan(0);
+    expect(within(stand).getByText("Block 4 · 14:20")).toBeVisible();
+    expect(within(stand).getByText("Platz-am-Stand")).toBeVisible();
+    expect(
+      within(stand).getByText("gerade am Schießstand Flinte 15 m, Platz-am-Stand 1"),
+    ).toBeVisible();
+    unmount();
+
+    const live = szenen.live_ranking as SzeneVon<"live_ranking">;
+    zeige(
+      beispielFeed({ scenes: [{ ...live, ranking: { ...rangliste(), federation: "PROBE" } }] }),
+      {},
+      QUELLE,
+      BEGRIFFE,
+    );
+    expect(screen.getByText("Runde 1")).toBeInTheDocument();
+  });
+
+  it("ohne Begriffe vom Server: die bisherigen Wörter (Rückfall)", () => {
+    const start = szenen.startlist as SzeneVon<"startlist">;
+    zeige(
+      beispielFeed({
+        scenes: [{ ...start, startlist: { ...start.startlist, federation: "dsb" } }],
+      }),
+    );
+    const liste = screen.getByRole("region", { name: "Startliste" });
+    expect(within(liste).getByText(/Durchgang 3 · \d\d:\d\d · Schützenstand 2/)).toBeVisible();
+  });
+
+  it("Übungsturnier: Kennzeichen „Übung“ im Kopf, sonst nicht", () => {
+    const { unmount } = zeige(beispielFeed());
+    expect(screen.queryByText("Übung")).toBeNull();
+    unmount();
+    const feed = beispielFeed();
+    zeige({ ...feed, header: { ...feed.header, is_practice: true } });
+    const marke = screen.getByText("Übung");
+    expect(marke).toBeVisible();
+    const kopf = marke.closest("header") as HTMLElement;
+    expect(marke).toHaveAttribute("title", expect.stringMatching(/Übungsturnier/));
+    expect(within(kopf).getByRole("heading", { level: 1, name: "Herbstpokal 2026" })).toBeVisible();
   });
 });

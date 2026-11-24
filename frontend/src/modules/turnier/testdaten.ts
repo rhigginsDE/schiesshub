@@ -53,6 +53,9 @@ export function beispielWettbewerb(): Wettbewerb {
     heat_minutes: null,
     changeover_minutes: 5,
     definition_revision: 1,
+    catalog_changed: false,
+    catalog_stand_then: "2026-06-30",
+    catalog_stand_now: "2026-06-30",
   } as Wettbewerb;
 }
 
