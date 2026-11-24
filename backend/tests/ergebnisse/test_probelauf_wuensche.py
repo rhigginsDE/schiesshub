@@ -159,7 +159,9 @@ async def test_status_set_but_values_missing(api: Api, fallscheibe: Setup) -> No
     )
     abort = preview["abort_preview"]
     assert (abort["would_place"], abort["reason_code"]) == (False, "missing_values")
-    assert abort["message_de"] == "Serie 3: Anzahl stehender Scheiben fehlt."
+    assert abort["message_de"] == (
+        "Es fehlt noch: Serie 3 (Stehende Scheiben). Ohne diesen Wert bleibt der Start ohne Platz."
+    )
     assert abort["missing_fields"] == [
         {"path": "sections.fallscheibe.series[2]", "key": "standing", "label": "Stehende Scheiben"}
     ]

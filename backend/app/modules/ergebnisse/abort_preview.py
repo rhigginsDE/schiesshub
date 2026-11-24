@@ -214,8 +214,10 @@ def _incomplete(
 def _missing_fields(
     defn: Definition | None, mode: str, raw: Mapping[str, Any] | None, items: Sequence[_Open]
 ) -> tuple[list[MissingField], list[str]]:
-    """Pflichtwerte, die in Serien mit gesetztem Serienstatus fehlen, und der Satz je Wert
-    („Serie 3: Anzahl stehender Scheiben fehlt.“) – aus derselben Prüfung wie das Abschließen."""
+    """Pflichtwerte, die in Serien mit gesetztem Serienstatus fehlen – aus derselben Prüfung wie
+    das Abschließen – und ein Satz, der alle nennt: „Es fehlen noch: Serie 2 (Stehende
+    Scheiben) und Serie 3 (Zeit, Stehende Scheiben). Ohne diese Werte bleibt der Start ohne
+    Platz.“"""
     if defn is None or not items:
         return [], []
     try:
@@ -230,7 +232,6 @@ def _missing_fields(
     }
     ring_key = "shots" if form.capture_mode == "shot" else "sum"
     fields: list[MissingField] = []
-    texts: list[str] = []
     for item in items:
         path = item.path
         for issue in issues:
@@ -243,8 +244,19 @@ def _missing_fields(
             label = labels.get(path, {}).get(key, key)
             if all((f.path, f.key) != (path, key) for f in fields):
                 fields.append(MissingField(path=path, key=key, label=label))
-            texts.append(f"{issue.message.rstrip('.')}.")
-    return fields, texts
+    if not fields:
+        return [], []
+    per_series = [
+        f"{item.label} ({', '.join(f.label for f in fields if f.path == item.path)})"
+        for item in items
+        if any(f.path == item.path for f in fields)
+    ]
+    single = len(fields) == 1
+    text = (
+        f"Es {'fehlt' if single else 'fehlen'} noch: {_join_all(per_series)}. Ohne "
+        f"{'diesen Wert' if single else 'diese Werte'} bleibt der Start ohne Platz."
+    )
+    return fields, [text]
 
 
 def _definition(competition: Competition) -> Definition | None:
@@ -279,6 +291,13 @@ def _open_series(defn: Definition | None, computed: ComputedResult | None) -> li
 
 def _offers_shooter_abort(defn: Definition) -> bool:
     return any(ABORTED_BY_SHOOTER in defn.series_statuses(plan) for plan in defn.sections)
+
+
+def _join_all(parts: Sequence[str]) -> str:
+    """[„a“, „b“, „c“] → „a, b und c“."""
+    if len(parts) < 2:
+        return "".join(parts)
+    return f"{', '.join(parts[:-1])} und {parts[-1]}"
 
 
 def _join(labels: Sequence[str]) -> str:

@@ -275,6 +275,8 @@ def _series_text(plan: SectionPlan, raw: RawSeries, result: SeriesResult) -> str
                 text += f", {result.tens} Zehner"
             if result.inner_tens is not None:
                 text += f", {result.inner_tens} Innenzehner"
+            if result.status == UNFINISHED:
+                text = f"{STATUS_LABELS[UNFINISHED]} → {text}"
         parts.append(text)
     if plan.standing or result.status in FIXED_TIME:
         parts.append(_penalty_text(plan, result))
@@ -312,7 +314,13 @@ def _fixed_time_text(plan: SectionPlan, result: SeriesResult) -> str:
         surcharge = format_seconds_value(plan.spec.zuschlag_stoerung_vor_erstem_schuss_s)
         text += f" + {surcharge} s Zuschlag = {format_cs(result.total_cs or 0)}"
         if result.standing is not None:
-            text += "; stehende Scheiben werden nicht gewertet"
+            # `status.field_role`: Bei der Störung zählen stehende Scheiben nicht.
+            standing = plural(
+                result.standing,
+                "erfasste stehende Scheibe wird",
+                "erfasste stehende Scheiben werden",
+            )
+            text += f"; {standing} nicht gewertet"
     elif plan.standing and result.standing is None:
         text += " (stehende Scheiben noch nicht erfasst)"
     elif plan.standing and result.standing is not None:
@@ -322,6 +330,7 @@ def _fixed_time_text(plan: SectionPlan, result: SeriesResult) -> str:
             f"{format_seconds_value(per_target)} s = {format_cs(result.total_cs or 0)}"
         )
     if result.measured_time_cs is not None:
+        # `status.field_role`: Bei Abbruch und Störung zählt die gemessene Zeit nicht.
         text += f"; gemessene Zeit {format_cs(result.measured_time_cs)} wird nicht gewertet"
     return text
 

@@ -116,11 +116,6 @@ def test_series_with_too_few_shots_without_status_stays_incomplete() -> None:
             "Serie 1: als nicht beendet erfasst, aber alle 5 Schuss erfasst",
         ),
         (
-            {"status": "unfinished", "sum": 30, "time_cs": 900},
-            "",
-            "Serie 1: nicht beendete Serie nur mit Einzelschüssen",
-        ),
-        (
             {"status": "unfinished", "shots": [10]},
             "time_cs",
             "Serie 1: Zeit fehlt",
@@ -160,12 +155,14 @@ def test_speed_form_offers_unfinished_status() -> None:
             "key": "normal",
             "label": "regulär",
             "required_fields": ["shots", "time_cs"],
+            "optional_fields": [],
             "unscored_fields": [],
         },
         {
             "key": "unfinished",
             "label": "Serie nicht beendet",
             "required_fields": ["shots", "time_cs"],
+            "optional_fields": [],
             "unscored_fields": [],
         },
     ]
@@ -234,7 +231,42 @@ def test_standing_targets_are_ignored_after_malfunction() -> None:
         GK, "shot", fallscheibe({"status": "malfunction_before_first_shot", "standing": 5})
     )
     assert result.sections[0].series[0].total_cs == 11000
-    assert result.steps[0].endswith("= 110,00 s; stehende Scheiben werden nicht gewertet")
+    assert result.steps[0].endswith(
+        "= 110,00 s; 5 erfasste stehende Scheiben werden nicht gewertet"
+    )
+    assert raw_kept(GK, {"status": "malfunction_before_first_shot", "standing": 1}).endswith(
+        "; 1 erfasste stehende Scheibe wird nicht gewertet"
+    )
+
+
+def raw_kept(data: dict, series: dict) -> str:
+    """Rechenweg der ersten Serie."""
+    return compute(data, "shot", fallscheibe(series)).steps[0]
+
+
+def test_unfinished_series_as_series_sum() -> None:
+    """Nicht beendete Serie als Seriensumme: Die Summe ist die der bis dahin erzielten Ringe
+    (K 6.10); früher wurde sie abgelehnt und ging verloren."""
+    series = {"status": "unfinished", "sum": 27, "time_cs": 4512}
+    raw = speed(*FULL_SPEED[:2], series, FULL_SPEED[3])
+    assert validate_raw(SPEED, "series", raw, partial=False) == []
+    result = compute(SPEED, "series", raw)
+    third = result.sections[0].series[2]
+    assert (third.status, third.complete, third.rings, third.time_cs) == (
+        "unfinished",
+        True,
+        27,
+        4512,
+    )
+    assert result.score == 151 - 73
+    assert result.steps[2] == (
+        "Serie 3: Serie nicht beendet → Seriensumme 27 Ringe, Zeit des letzten Schusses 45,12 s"
+    )
+    options = first_field(SPEED, "series", "status").options or []
+    assert [(o.key, o.required_fields) for o in options] == [
+        ("normal", ["sum", "time_cs"]),
+        ("unfinished", ["sum", "time_cs"]),
+    ]
 
 
 def test_regular_series_over_limit_recommends_time_limit_status() -> None:

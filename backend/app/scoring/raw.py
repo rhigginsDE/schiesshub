@@ -26,6 +26,9 @@
   nie Pflicht.
 - Zeiten sind ganze Hundertstel größer 0. Braucht der Status der Serie keine gemessene Zeit
   (Zeitlimit, Abbruch, Störung), stört eine 0 nicht (sie wird ignoriert).
+- Kein Schlüssel, den die Maske für die Serie kennt, wird wegen des Status abgelehnt; was der
+  Status nicht wertet, bleibt in den Rohwerten stehen (`status.field_role`). Eine nicht
+  beendete Serie geht auch als Seriensumme (die bis dahin erzielten Ringe).
 - **Plausibilität:** Eine gemessene Zeit, die zählt (Serie regulär oder nicht beendet,
   Gesamtzeit eines Abschnitts), darf höchstens `PLAUSIBLE_FACTOR` (3) × Zeitlimit betragen
   (`max_zeit_je_serie_s` bzw. `max_gesamtzeit_s`), ohne Limit höchstens `PLAUSIBLE_MAX_S`
@@ -60,7 +63,7 @@ from app.scoring.plan import (
     SeriesPlan,
     Shot,
 )
-from app.scoring.status import MALFUNCTION, NORMAL, STATUS_LABELS, UNFINISHED, SeriesStatus
+from app.scoring.status import NORMAL, STATUS_LABELS, UNFINISHED, SeriesStatus, field_role
 
 RING_KEYS = ("shots", "sum", "tens", "inner_tens")
 PLAUSIBLE_FACTOR = Decimal(3)
@@ -245,14 +248,14 @@ class _Reader:
         result = RawSeries(status=status)
         if plan.rings:
             result = replace(result, **self.rings(plan, series_plan, data, path, label, status))
+        # Jeder Schlüssel der Maske wird bei jedem Status angenommen und geprüft (Typ, Bereich);
+        # was nicht zählt (`field_role` = „unscored“), ist nie Pflicht und bleibt erhalten.
         if plan.series_time:
+            scored = field_role(status, "time_cs") == "required"
             time_cs = self.time(
-                data.get("time_cs"),
-                f"{path}.time_cs",
-                f"{label}: Zeit",
-                required=status in (NORMAL, UNFINISHED),
+                data.get("time_cs"), f"{path}.time_cs", f"{label}: Zeit", required=scored
             )
-            if status in (NORMAL, UNFINISHED):
+            if scored:
                 time_cs = self.plausible(
                     plan, time_cs, plan.spec.max_zeit_je_serie_s, f"{path}.time_cs", f"{label}: "
                 )
@@ -263,7 +266,7 @@ class _Reader:
                 data.get("standing"),
                 f"{path}.standing",
                 label,
-                required=status != MALFUNCTION,
+                required=field_role(status, "standing") == "required",
             )
             result = replace(result, standing=standing)
         return result
@@ -305,9 +308,6 @@ class _Reader:
         has_sum_fields = any(key in data for key in ("sum", "tens", "inner_tens"))
         if shots_data is not None and has_sum_fields:
             self.add(path, f"{label}: entweder Einzelschüsse oder Seriensumme, nicht beides")
-            return {}
-        if status == UNFINISHED and has_sum_fields:
-            self.add(path, f"{label}: nicht beendete Serie nur mit Einzelschüssen")
             return {}
         if shots_data is not None:
             return {"shots": self.shots(plan, shots_data, count, f"{path}.shots", label, status)}

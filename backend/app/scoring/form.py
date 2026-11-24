@@ -16,15 +16,7 @@ from app.scoring.numbers import TENTH, format_number, format_seconds_value, plur
 from app.scoring.plan import MAX_TENTHS, MIN_TENTHS, SectionPlan, SeriesPlan
 from app.scoring.raw import plausible_max_s
 from app.scoring.spec import CaptureMode, Direction, PositionSpec
-from app.scoring.status import (
-    ABORTED,
-    FIXED_TIME,
-    MALFUNCTION,
-    NORMAL,
-    STATUS_LABELS,
-    UNFINISHED,
-    SeriesStatus,
-)
+from app.scoring.status import STATUS_LABELS, SeriesStatus, field_role
 from app.scoring.tiebreak import series_sums_fit_blocks
 
 HAND = {
@@ -54,9 +46,17 @@ class _Frozen(BaseModel):
 class StatusOption(_Frozen):
     """Ein möglicher Ablauf der Serie und die Felder, die er verlangt."""
 
+    """Jedes Wertfeld der Serie (alle `fields` außer `status`) steht in genau einer der drei
+    Listen (`status.field_role`). Die Maske schickt beim Speichern alle schon erfassten
+    Schlüssel mit, unabhängig vom Status; der Server nimmt sie an, speichert sie unverändert
+    und wertet nur, was der Status vorsieht."""
+
     key: SeriesStatus
     label: str
     required_fields: list[str]
+    """Gewertet und für ein vollständiges Ergebnis nötig."""
+    optional_fields: list[str] = []
+    """Gewertet, wenn erfasst, aber nicht nötig (Zehner/Innenzehner bei Seriensumme)."""
     unscored_fields: list[str] = []
     """Felder, die bei diesem Status erfasst sein dürfen und in den Rohwerten erhalten bleiben,
     aber nicht gewertet werden – z. B. die gemessene Zeit bei „Abbruch durch den Schützen“
@@ -423,18 +423,82 @@ def _series_form(
     defn: Definition, plan: SectionPlan, series: SeriesPlan, mode: CaptureMode, path: str
 ) -> SeriesForm:
     spec = plan.spec
-    fields: list[FieldSpec] = []
+    fields = _value_fields(defn, plan, series, mode)
     statuses = defn.series_statuses(plan)
     if len(statuses) > 1:
-        fields.append(
-            FieldSpec(
-                key="status",
-                label="Ablauf der Serie",
-                kind="choice",
-                required=False,
-                options=[_status_option(plan, status, mode) for status in statuses],
-            )
+        keys = [field.key for field in fields]
+        status_field = FieldSpec(
+            key="status",
+            label="Ablauf der Serie",
+            kind="choice",
+            required=False,
+            options=[_status_option(status, keys) for status in statuses],
         )
+        fields = [status_field, *fields]
+
+    hints = _Hints()
+    position = _position_form(series.position) if series.position else None
+    if position is not None:
+        hints.add("position", _position_text(position))
+    if series.distance_m is not None:
+        hints.add("distance", f"Distanz {format_seconds_value(series.distance_m)} m")
+    shots = series.shots
+    if shots is not None and plan.per_target:
+        # „ein Wert je Ziel“ nur, wenn je Ziel erfasst wird; bei Seriensumme nur die Zahl.
+        per_target_text = ", ein Wert je Ziel" if mode == "shot" else ""
+        hints.add("shots", f"{shots} Ziele{per_target_text}")
+    elif shots is not None:
+        hints.add("shots", f"{shots} Schuss")
+    if spec.max_schuss_je_serie is not None:
+        hints.add("max_shots", f"höchstens {spec.max_schuss_je_serie} Schuss")
+    if plan.targets is not None:
+        hints.add("targets", f"{plan.targets} Scheiben")
+    if series.fixed_time_s is not None:
+        hints.add("fixed_time", f"Schießzeit {_s(series.fixed_time_s)}")
+    if spec.zeit_je_schuss_s is not None or spec.pause_zwischen_schuessen_s is not None:
+        parts = []
+        if spec.zeit_je_schuss_s is not None:
+            parts.append(f"{_s(spec.zeit_je_schuss_s)} Sicht")
+        if spec.pause_zwischen_schuessen_s is not None:
+            parts.append(f"{_s(spec.pause_zwischen_schuessen_s)} Pause")
+        hints.add("time_per_shot", f"je Schuss {', '.join(parts)}")
+    if series.max_time_s is not None:
+        hints.add("max_time", f"Zeitlimit {_s(series.max_time_s)}")
+    if spec.zuschlag_je_stehender_scheibe_s is not None:
+        hints.add(
+            "penalty", f"{_s(spec.zuschlag_je_stehender_scheibe_s)} Zuschlag je stehender Scheibe"
+        )
+    if series.scoring_break_after:
+        hints.add("scoring_break", "danach Trefferaufnahme")
+    if series.struck:
+        hints.add("struck", "gestrichen (nicht gewertet)", first=True)
+        fields = [field.model_copy(update={"required": False}) for field in fields]
+
+    prefix = f"{plan.name}, " if defn.multi_section else ""
+    return SeriesForm(
+        index=series.index,
+        number=series.number,
+        label=f"{prefix}Serie {series.number}",
+        path=f"{path}.series[{series.index}]",
+        fields=fields,
+        shots=shots,
+        distance_m=series.distance_m,
+        time_limit_s=series.fixed_time_s,
+        max_time_s=series.max_time_s,
+        position=position,
+        struck=series.struck,
+        scoring_break_after=series.scoring_break_after,
+        max_rings=shots * plan.max_ring if shots is not None else None,
+        hints=hints.texts,
+        hint_items=hints.items,
+    )
+
+
+def _value_fields(
+    defn: Definition, plan: SectionPlan, series: SeriesPlan, mode: CaptureMode
+) -> list[FieldSpec]:
+    """Wertfelder der Serie (ohne `status`), in der Reihenfolge der Maske."""
+    fields: list[FieldSpec] = []
     shots = series.shots
     if shots is not None:
         if mode == "shot" and plan.tenths:
@@ -527,62 +591,7 @@ def _series_form(
                 max=plan.targets,
             )
         )
-
-    hints = _Hints()
-    position = _position_form(series.position) if series.position else None
-    if position is not None:
-        hints.add("position", _position_text(position))
-    if series.distance_m is not None:
-        hints.add("distance", f"Distanz {format_seconds_value(series.distance_m)} m")
-    if shots is not None and plan.per_target:
-        # „ein Wert je Ziel“ nur, wenn je Ziel erfasst wird; bei Seriensumme nur die Zahl.
-        per_target_text = ", ein Wert je Ziel" if mode == "shot" else ""
-        hints.add("shots", f"{shots} Ziele{per_target_text}")
-    elif shots is not None:
-        hints.add("shots", f"{shots} Schuss")
-    if spec.max_schuss_je_serie is not None:
-        hints.add("max_shots", f"höchstens {spec.max_schuss_je_serie} Schuss")
-    if plan.targets is not None:
-        hints.add("targets", f"{plan.targets} Scheiben")
-    if series.fixed_time_s is not None:
-        hints.add("fixed_time", f"Schießzeit {_s(series.fixed_time_s)}")
-    if spec.zeit_je_schuss_s is not None or spec.pause_zwischen_schuessen_s is not None:
-        parts = []
-        if spec.zeit_je_schuss_s is not None:
-            parts.append(f"{_s(spec.zeit_je_schuss_s)} Sicht")
-        if spec.pause_zwischen_schuessen_s is not None:
-            parts.append(f"{_s(spec.pause_zwischen_schuessen_s)} Pause")
-        hints.add("time_per_shot", f"je Schuss {', '.join(parts)}")
-    if series.max_time_s is not None:
-        hints.add("max_time", f"Zeitlimit {_s(series.max_time_s)}")
-    if spec.zuschlag_je_stehender_scheibe_s is not None:
-        hints.add(
-            "penalty", f"{_s(spec.zuschlag_je_stehender_scheibe_s)} Zuschlag je stehender Scheibe"
-        )
-    if series.scoring_break_after:
-        hints.add("scoring_break", "danach Trefferaufnahme")
-    if series.struck:
-        hints.add("struck", "gestrichen (nicht gewertet)", first=True)
-        fields = [field.model_copy(update={"required": False}) for field in fields]
-
-    prefix = f"{plan.name}, " if defn.multi_section else ""
-    return SeriesForm(
-        index=series.index,
-        number=series.number,
-        label=f"{prefix}Serie {series.number}",
-        path=f"{path}.series[{series.index}]",
-        fields=fields,
-        shots=shots,
-        distance_m=series.distance_m,
-        time_limit_s=series.fixed_time_s,
-        max_time_s=series.max_time_s,
-        position=position,
-        struck=series.struck,
-        scoring_break_after=series.scoring_break_after,
-        max_rings=shots * plan.max_ring if shots is not None else None,
-        hints=hints.texts,
-        hint_items=hints.items,
-    )
+    return fields
 
 
 def _duration(seconds: Decimal) -> str:
@@ -592,28 +601,15 @@ def _duration(seconds: Decimal) -> str:
     return _s(seconds)
 
 
-def _status_option(plan: SectionPlan, status: SeriesStatus, mode: CaptureMode) -> StatusOption:
-    fields: list[str] = []
-    if status == NORMAL:
-        if plan.rings:
-            fields.append("shots" if mode == "shot" else "sum")
-        if plan.series_time:
-            fields.append("time_cs")
-        if plan.standing:
-            fields.append("standing")
-    elif status == UNFINISHED:
-        fields = ["shots", "time_cs"]
-    elif status in ABORTED and plan.standing:
-        fields = ["standing"]
-    unscored: list[str] = []
-    if status in FIXED_TIME:
-        # Feste Serienzeit statt der gemessenen; bei Störung zählen auch stehende Scheiben nicht.
-        if plan.series_time:
-            unscored.append("time_cs")
-        if status == MALFUNCTION and plan.standing:
-            unscored.append("standing")
+def _status_option(status: SeriesStatus, keys: list[str]) -> StatusOption:
+    """Ordnet jedes Wertfeld der Serie (`keys`, Reihenfolge der Maske) einer Liste zu."""
+    roles = {key: field_role(status, key) for key in keys}
     return StatusOption(
-        key=status, label=STATUS_LABELS[status], required_fields=fields, unscored_fields=unscored
+        key=status,
+        label=STATUS_LABELS[status],
+        required_fields=[key for key in keys if roles[key] == "required"],
+        optional_fields=[key for key in keys if roles[key] == "optional"],
+        unscored_fields=[key for key in keys if roles[key] == "unscored"],
     )
 
 
