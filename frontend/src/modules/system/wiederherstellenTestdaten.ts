@@ -90,9 +90,6 @@ export function vorschau(teil: Partial<Vorschau> = {}): Vorschau {
       ],
     },
     restorable: true,
-    // Nicht mehr gelesen (der Server streicht sie); die Oberfläche nimmt problem_items/note_items.
-    problems: [],
-    notes: [],
     problem_items: [],
     note_items: [],
     ...teil,

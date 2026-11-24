@@ -226,6 +226,7 @@ export function stand(teil: Partial<ErgebnisStand> = {}): ErgebnisStand {
 
 export function maske(form: Formular, aktuell: ErgebnisStand): Maske {
   return {
+    derived_values: [],
     header: {
       start_number: 7,
       display_name: "Markus Brandt",

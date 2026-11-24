@@ -195,7 +195,6 @@ describe("Ablauf der Wiederherstellung", () => {
         keys_installed: [],
         keys_set_aside: [],
         after_backup_ok: false,
-        notes: [],
         note_items: [
           { code: "after_backup_failed", message_de: "x" },
           { code: "module_restart_failed", message_de: "y" },
@@ -258,7 +257,6 @@ describe("Ablauf der Wiederherstellung", () => {
         keys_installed: [],
         keys_set_aside: [],
         after_backup_ok: true,
-        notes: [],
       },
     });
     expect(uebersprungeneStarts(status)).toHaveLength(1);

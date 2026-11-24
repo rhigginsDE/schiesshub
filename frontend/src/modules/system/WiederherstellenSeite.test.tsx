@@ -81,7 +81,6 @@ function fertig(): WiederherstellungsStatus {
       keys_installed: [],
       keys_set_aside: [],
       after_backup_ok: true,
-      notes: ["ALTER HINWEIS"],
       note_items: [
         {
           code: "module_restart_failed",
@@ -284,7 +283,6 @@ describe("Sicherung wiederherstellen (geführt)", () => {
           vorschau({
             source: QUELLE_SERVER,
             restorable: false,
-            problems: ["ALTER TEXT"],
             problem_items: [
               { code: "schema_newer", message_de: "Die Sicherung ist neuer als die App." },
               { code: "etwas_neues", message_de: "Ein Problem, das die App noch nicht kennt." },
@@ -331,7 +329,6 @@ describe("Sicherung wiederherstellen (geführt)", () => {
           vorschau({
             source: QUELLE_SERVER,
             confirm: QUELLE_SERVER.id,
-            notes: ["ALTER HINWEIS"],
             note_items: [
               {
                 code: "server_copy_without_keys",
