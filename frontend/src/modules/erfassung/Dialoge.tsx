@@ -15,13 +15,21 @@ import {
   type Formular,
   type Rohwerte,
 } from "./api";
-import { gemeinsamerStatus, nurWerteFehlen, type OffeneSerie, orteText } from "./aufgeben";
+import {
+  aufzaehlung,
+  gemeinsamerStatus,
+  nurWerteFehlen,
+  type OffeneSerie,
+  offeneJeAbschnitt,
+  orteText,
+} from "./aufgeben";
 import { wertText } from "./eingabe";
 import s from "./erfassung.module.css";
 import {
   type Aenderung,
   entwurfAus,
-  feldAktiv,
+  feldErfassbar,
+  feldUngewertet,
   gleicheRohwerte,
   NORMAL,
   schuesseAus,
@@ -256,9 +264,11 @@ function ServerSerien({ form, stand }: { form: Formular; stand: ErgebnisStand })
                   .filter((feld) => feld.kind !== "choice")
                   .map((feld) => ({
                     feld,
-                    text: !feldAktiv(option, feld.key)
+                    text: !feldErfassbar(option, feld.key)
                       ? t("feld.entfaellt")
                       : feldText(feld, feld.kind === "shots" ? schuesseAus(roh) : roh[feld.key], t),
+                    // Erfasst, aber vom Serienstatus nicht gewertet: Wert bleibt sichtbar.
+                    ungewertet: feldUngewertet(option, feld.key),
                   }));
                 return (
                   <li key={serie.index} className={s.pruefZeile}>
@@ -270,10 +280,13 @@ function ServerSerien({ form, stand }: { form: Formular; stand: ErgebnisStand })
                       {option && option.key !== NORMAL && (
                         <span className={s.statusMarke}>{option.label}</span>
                       )}
-                      {werte.map(({ feld, text }) => (
+                      {werte.map(({ feld, text, ungewertet }) => (
                         <span key={feld.key}>
                           <span className="gedaempft">{feld.label} </span>
                           <strong className="num">{text}</strong>
+                          {ungewertet && (
+                            <span className="gedaempft"> ({t("feld.ungewertet")})</span>
+                          )}
                         </span>
                       ))}
                     </span>
@@ -363,6 +376,10 @@ interface AbbruchDialogProps extends VorgangProps {
   offeneSerien?: readonly OffeneSerie[];
   /** Hauptaktion bei offenen Serien: Status eintragen bzw. zur Serie */
   onSerienAbschliessen?: () => void;
+  /** Zu einer angefangenen Serie springen (Pfad `sections.x.series.2`); schließt die Rückfrage */
+  onZuSerie?: (pfad: string) => void;
+  /** Die Wertung hat mehrere Abschnitte (offene Serien mit Abschnittsnamen nennen) */
+  mehrereAbschnitte?: boolean;
   /** Alle Eingaben sind beim Server; sonst wartet der Abbruch */
   bereit?: boolean;
 }
@@ -379,6 +396,8 @@ export function AbbruchDialog({
   auskunft = null,
   offeneSerien = [],
   onSerienAbschliessen,
+  onZuSerie,
+  mehrereAbschnitte = false,
   bereit = true,
 }: AbbruchDialogProps) {
   const { t } = useTranslation("erfassung");
@@ -398,9 +417,11 @@ export function AbbruchDialog({
       text={t("abbruch.text", { wer })}
       bestaetigen={
         offeneDa
-          ? status && !nurWerteFehlen(offeneSerien)
-            ? t("abbruch.offen.eintragen", { status })
-            : t("abbruch.offen.zur_serie")
+          ? auskunft?.reason_code === "missing_values"
+            ? t("abbruch.offen.zum_feld")
+            : status && !nurWerteFehlen(offeneSerien)
+              ? t("abbruch.offen.eintragen", { status })
+              : t("abbruch.offen.zur_serie")
           : t("abbruch.bestaetigen")
       }
       abbrechen={t("dialog.abbrechen")}
@@ -438,6 +459,8 @@ export function AbbruchDialog({
           name={name}
           trotzdemGesperrt={laedt || !bereit}
           onTrotzdem={offeneDa ? () => onBestaetigen("dnf", bemerkung()) : undefined}
+          onZuSerie={onZuSerie}
+          mehrereAbschnitte={mehrereAbschnitte}
         />
       )}
       {auskunftLaedt && (
@@ -463,27 +486,103 @@ export function AbbruchDialog({
 }
 
 /**
+ * Offene Serien laut Server (`open_series_items`), je Abschnitt: angefangene und noch nicht
+ * geschossene getrennt. Angefangene führen mit einem Tipp zur Serie (`onZuSerie`), wenn es dort
+ * etwas zu erfassen gibt.
+ */
+export function OffeneSerienListe({
+  auskunft,
+  mehrereAbschnitte,
+  onZuSerie,
+}: {
+  auskunft: AufgebenAuskunft;
+  mehrereAbschnitte: boolean;
+  onZuSerie?: (pfad: string) => void;
+}) {
+  const { t } = useTranslation("erfassung");
+  const abschnitte = offeneJeAbschnitt(auskunft);
+  if (abschnitte.length === 0) return null;
+  const serien = (liste: readonly { nummer: number }[]) =>
+    t("abbruch.offene_serien.serien", {
+      count: liste.length,
+      nummern: aufzaehlung(
+        liste.map((x) => String(x.nummer)),
+        t("abbruch.und"),
+      ),
+    });
+  return (
+    <div className={s.offeneSerien} data-offene-serien-liste>
+      <span className="h-label">{t("abbruch.offene_serien.titel")}</span>
+      <ul>
+        {abschnitte.map((abschnitt) => {
+          const teile = [
+            abschnitt.angefangen.length > 0 &&
+              t("abbruch.offene_serien.angefangen", { serien: serien(abschnitt.angefangen) }),
+            abschnitt.nichtGeschossen.length > 0 &&
+              t("abbruch.offene_serien.nicht_geschossen", {
+                serien: serien(abschnitt.nichtGeschossen),
+              }),
+          ].filter((x): x is string => typeof x === "string");
+          const text = teile.join(" · ");
+          return (
+            <li key={abschnitt.abschnittId}>
+              <span>
+                {mehrereAbschnitte
+                  ? t("abbruch.offene_serien.abschnitt", { name: abschnitt.name, text })
+                  : text}
+              </span>
+              {onZuSerie &&
+                abschnitt.angefangen.map((serie) => (
+                  <button
+                    key={serie.pfad}
+                    type="button"
+                    className={s.zurSerie}
+                    onClick={() => onZuSerie(serie.pfad)}
+                  >
+                    {t("abbruch.offene_serien.zur_serie", { nr: serie.nummer })}
+                  </button>
+                ))}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/**
  * Was ein Aufgeben jetzt bewirkt, nach der Vorabauskunft des Servers (`abort_preview`): gewertet
  * mit dem bisherigen Ergebnis, oder ohne Platz – mit dem Grund in Klartext und, wo es einen gibt,
  * dem Weg zur Wertung. Bei angefangenen Serien (`liste`) ist das der Status „Abbruch durch den
- * Schützen“ bzw. die Serie fertig zu erfassen; „Trotzdem aufgeben, ohne Platz“ bleibt als
- * Nebenweg.
+ * Schützen“ bzw. die Serie fertig zu erfassen; fehlen bei gesetztem Status nur Werte
+ * (`missing_values`), sagt der Server, welche. „Trotzdem aufgeben, ohne Platz“ bleibt als Nebenweg.
  */
 export function AufgebenHinweis({
   auskunft,
   liste,
   name,
+  mehrereAbschnitte = false,
   onTrotzdem,
   trotzdemGesperrt = false,
+  onZuSerie,
 }: {
   auskunft: AufgebenAuskunft;
   liste: readonly OffeneSerie[];
   name: string;
+  mehrereAbschnitte?: boolean;
   /** Nebenweg „Trotzdem aufgeben, ohne Platz“ (leise, unter dem Hinweis) */
   onTrotzdem?: () => void;
   trotzdemGesperrt?: boolean;
+  onZuSerie?: (pfad: string) => void;
 }) {
   const { t } = useTranslation("erfassung");
+  const serienListe = (
+    <OffeneSerienListe
+      auskunft={auskunft}
+      mehrereAbschnitte={mehrereAbschnitte}
+      onZuSerie={onZuSerie}
+    />
+  );
   if (auskunft.would_place) {
     return (
       <div className={s.banner} data-ton="info" role="status" data-aufgeben="gewertet">
@@ -495,6 +594,7 @@ export function AufgebenHinweis({
               : t("abbruch.auskunft.gewertet", { name })}
           </strong>
           <p className={s.klein}>{t("abbruch.auskunft.gewertet_text")}</p>
+          {serienListe}
         </div>
       </div>
     );
@@ -506,20 +606,22 @@ export function AufgebenHinweis({
     name,
     status: status ?? "",
   };
-  if (auskunft.reason_code === "incomplete_series" && liste.length > 0) {
+  const fehlendeWerte = auskunft.reason_code === "missing_values";
+  if ((auskunft.reason_code === "incomplete_series" || fehlendeWerte) && liste.length > 0) {
     return (
       <div className={s.banner} data-ton="warn" role="alert" data-offene-serien>
         <TriangleAlert aria-hidden />
         <div>
           <strong>{t("abbruch.offen.titel", werte)}</strong>
           <p>
-            {nurWerteFehlen(liste)
-              ? t("abbruch.offen.text_gesetzt", werte)
+            {fehlendeWerte
+              ? auskunft.message_de
               : status
                 ? t("abbruch.offen.text", werte)
                 : t("abbruch.offen.text_fertig", werte)}
           </p>
           <p className={s.klein}>{t("abbruch.offen.folge", werte)}</p>
+          {serienListe}
           {onTrotzdem && (
             <button
               type="button"
@@ -540,6 +642,7 @@ export function AufgebenHinweis({
       <div>
         <strong>{t("abbruch.auskunft.ohne_platz", { name })}</strong>
         <p>{auskunftGrundText(auskunft, name, t)}</p>
+        {serienListe}
       </div>
     </div>
   );
@@ -563,29 +666,35 @@ export function auskunftGrundText(
 }
 
 /**
- * Am aufgegebenen Start, den die Rangliste ohne Platz führt: der Grund (Text der Rangliste) und
- * die zwei Wege – Serienstatus als Korrektur nachtragen (der Start bleibt aufgegeben und wird mit
- * dem bisherigen Ergebnis gewertet) oder den Abbruch zurücknehmen.
+ * Am aufgegebenen Start, den der Server ohne Platz führt (`abort_preview` des abgebrochenen
+ * Starts): der Grund (Text des Servers), die offenen Serien und die zwei Wege – Serienstatus bzw.
+ * fehlende Werte als Korrektur nachtragen (der Start bleibt aufgegeben und wird mit dem bisherigen
+ * Ergebnis gewertet) oder den Abbruch zurücknehmen.
  */
 export function OhnePlatzHinweis({
-  grund,
+  auskunft,
   liste,
   name,
+  mehrereAbschnitte = false,
   darf,
   onNachtragen,
   onKorrigieren,
   onZuruecknehmen,
+  onZuSerie,
 }: {
-  /** Grund laut Rangliste (`abort_note`) */
-  grund: string | null;
-  /** Angefangene, nicht fertige Serien laut Wertung des Servers */
+  /** Vorabauskunft des Servers zum abgebrochenen Start (`would_place: false`) */
+  auskunft: AufgebenAuskunft;
+  /** Serien, an denen die Wertung laut Server scheitert (`serienDerAuskunft`) */
   liste: readonly OffeneSerie[];
   name: string;
+  mehrereAbschnitte?: boolean;
   /** Recht `result.correct` */
   darf: boolean;
   onNachtragen: () => void;
   onKorrigieren: () => void;
   onZuruecknehmen: () => void;
+  /** Zu einer angefangenen Serie (als Korrektur) */
+  onZuSerie?: (pfad: string) => void;
 }) {
   const { t } = useTranslation("erfassung");
   const status = gemeinsamerStatus(liste);
@@ -595,34 +704,36 @@ export function OhnePlatzHinweis({
     name,
     status: status ?? "",
   };
+  const grund = auskunft.message_de.trim();
   return (
     <div className={s.banner} data-ton="warn" role="status" data-ohne-platz>
       <TriangleAlert aria-hidden />
       <div>
         <strong>{t("abbruch.ohne_platz.titel")}</strong>
-        <p>
-          {grund
-            ? t("abbruch.ohne_platz.grund", { grund })
-            : t("abbruch.ohne_platz.ohne_grund", { name })}
-        </p>
+        <p>{grund || t("abbruch.ohne_platz.ohne_grund", { name })}</p>
+        <OffeneSerienListe
+          auskunft={auskunft}
+          mehrereAbschnitte={mehrereAbschnitte}
+          onZuSerie={darf ? onZuSerie : undefined}
+        />
         {darf ? (
           <ul className={s.wege}>
             <li>
               <p>
                 {nurWerteFehlen(liste)
                   ? t("abbruch.ohne_platz.weg_werte", werte)
-                  : status
+                  : status && liste.length > 0
                     ? t("abbruch.ohne_platz.weg_status", werte)
                     : t("abbruch.ohne_platz.weg_korrektur", werte)}
               </p>
               <Button
                 variant="default"
                 leftSection={<PencilLine aria-hidden />}
-                onClick={status ? onNachtragen : onKorrigieren}
+                onClick={liste.length > 0 ? onNachtragen : onKorrigieren}
               >
                 {nurWerteFehlen(liste)
                   ? t("abbruch.ohne_platz.werte_nachtragen")
-                  : status
+                  : status && liste.length > 0
                     ? t("abbruch.ohne_platz.nachtragen")
                     : t("korrektur.knopf")}
               </Button>

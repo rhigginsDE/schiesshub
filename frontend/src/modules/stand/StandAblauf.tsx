@@ -467,6 +467,7 @@ export function StandAblauf({ uebersicht, standId }: StandAblaufProps) {
             auskunft={abbruchAuskunft}
             liste={abbruchOffene}
             name={anzeigename(abbruch.start).text}
+            mehrereAbschnitte={(abbruchMaske.data?.form.sections.length ?? 0) > 1}
             trotzdemGesperrt={abbrechen.isPending}
             onTrotzdem={
               abbruchOffene.length > 0

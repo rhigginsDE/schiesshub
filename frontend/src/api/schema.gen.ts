@@ -1207,7 +1207,7 @@ export interface paths {
         };
         /**
          * Eingabemaske eines Starts
-         * @description Maske für die aktuelle Definition des Wettbewerbs, Kopf des Starts (mit `result.capture` voller Name, sonst nach Anzeige-Einstellung; dazu Kennziffer des Wettbewerbs und Stand), aktueller Rohwert und Zwischenstand. `capture_mode` wählt nur die Darstellung (Einzelschuss oder Seriensumme); ohne Angabe gilt die des Wettbewerbs. Rohwerte dürfen beides enthalten und werden gleich gewertet. `abort_preview`: ob ein Aufgeben jetzt (dnf) platziert würde, gerechnet wie die Rangliste (null bei abgeschlossenen und abgebrochenen Starts).
+         * @description Maske für die aktuelle Definition des Wettbewerbs, Kopf des Starts (mit `result.capture` voller Name, sonst nach Anzeige-Einstellung; dazu Kennziffer des Wettbewerbs und Stand), aktueller Rohwert und Zwischenstand. `capture_mode` wählt nur die Darstellung (Einzelschuss oder Seriensumme); ohne Angabe gilt die des Wettbewerbs. Rohwerte dürfen beides enthalten und werden gleich gewertet. `abort_preview`: ob ein Aufgeben jetzt (dnf) platziert würde, gerechnet wie die Rangliste; bei abgebrochenen Starts, wie dieser Abbruch gewertet wird (null bei abgeschlossenen Starts).
          */
         get: operations["ergebnisse_get_form"];
         put?: never;
@@ -1249,7 +1249,7 @@ export interface paths {
         put?: never;
         /**
          * Rohwerte probeweise werten (ohne Speichern)
-         * @description Rechnet `raw` gegen die aktuelle Definition des Wettbewerbs durch und liefert Validierungsfehler und berechneten Stand, speichert aber nichts (kein Ereignis, kein Statuswechsel). `errors`: Fehler, die auch `PUT …/raw` meldete; `finalize_errors`: was zum Abschließen oder Korrigieren fehlt; `abort_preview`: ob ein Aufgeben mit diesen Rohwerten platziert würde. Für „Korrigieren“ und Eingaben, die erst später gespeichert werden.
+         * @description Rechnet `raw` gegen die aktuelle Definition des Wettbewerbs durch und liefert Validierungsfehler und berechneten Stand, speichert aber nichts (kein Ereignis, kein Statuswechsel). `errors`: Fehler, die auch `PUT …/raw` meldete; `finalize_errors`: was zum Abschließen oder Korrigieren fehlt; `abort_preview`: ob ein Aufgeben mit diesen Rohwerten platziert würde (bei abgebrochenen Starts: wie die Korrektur gewertet würde). Für „Korrigieren“ und Eingaben, die erst später gespeichert werden.
          */
         post: operations["ergebnisse_preview"];
         delete?: never;
@@ -2387,6 +2387,9 @@ export interface components {
         /**
          * AbortPreview
          * @description Was ein Aufgeben jetzt (Abbruchgrund `dnf`) bewirken würde – gerechnet wie die Rangliste.
+         *
+         *     Bei einem schon abgebrochenen Start: wie dieser Abbruch gewertet wird (bei `dnf` dieselbe
+         *     Rechnung; bei `dns`/`dsq` ohne Platz).
          */
         AbortPreview: {
             /** Would Place */
@@ -2395,13 +2398,23 @@ export interface components {
              * Reason Code
              * @enum {string}
              */
-            reason_code: "placed" | "no_values" | "incomplete_series" | "no_rule" | "missing_section_time" | "invalid";
+            reason_code: "placed" | "no_values" | "incomplete_series" | "missing_values" | "no_rule" | "missing_section_time" | "invalid" | "not_started" | "disqualified";
             /** Message De */
             message_de: string;
             /** Open Series */
             open_series: number[];
             /** Score Text */
             score_text: string | null;
+            /**
+             * Open Series Items
+             * @default []
+             */
+            open_series_items: components["schemas"]["OpenSeriesItem"][];
+            /**
+             * Missing Fields
+             * @default []
+             */
+            missing_fields: components["schemas"]["MissingField"][];
         };
         /** AbortRequest */
         AbortRequest: {
@@ -4366,6 +4379,8 @@ export interface components {
             tie_unresolved: boolean;
             /** Tie Note */
             tie_note?: string | null;
+            /** Tie Note Long */
+            tie_note_long?: string | null;
             /** Abort Label */
             abort_label?: string | null;
             /** Abort Note */
@@ -5294,6 +5309,18 @@ export interface components {
             /** Since */
             since: string | null;
         };
+        /**
+         * MissingField
+         * @description Ein Pflichtwert, der in einer Serie mit gesetztem Serienstatus noch fehlt.
+         */
+        MissingField: {
+            /** Path */
+            path: string;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+        };
         /** MixTeam */
         MixTeam: {
             /** Name */
@@ -5362,6 +5389,25 @@ export interface components {
              * @default
              */
             text: string;
+        };
+        /**
+         * OpenSeriesItem
+         * @description Eine gewertete Serie, die noch nicht vollständig erfasst ist.
+         */
+        OpenSeriesItem: {
+            /** Section Id */
+            section_id: string;
+            /** Section Name */
+            section_name: string;
+            /** Series */
+            series: number;
+            /** Path */
+            path: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "not_shot" | "started";
         };
         /**
          * Order
@@ -5838,6 +5884,8 @@ export interface components {
             needs_shootoff: boolean;
             /** Tie Note */
             tie_note?: string | null;
+            /** Tie Note Long */
+            tie_note_long?: string | null;
             /**
              * Group
              * @enum {string}
@@ -6960,6 +7008,11 @@ export interface components {
             label: string;
             /** Required Fields */
             required_fields: string[];
+            /**
+             * Unscored Fields
+             * @default []
+             */
+            unscored_fields: string[];
         };
         /** StatusOut */
         StatusOut: {

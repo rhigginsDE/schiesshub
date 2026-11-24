@@ -54,7 +54,6 @@ import {
   maskeAbfrage,
   type Notiz,
   neuerSchluessel,
-  ranglistenZeileAbfrage,
   SeqKonflikt,
   type SerieForm,
   vorschauAbfrage,
@@ -64,7 +63,6 @@ import {
   ABBRUCH_DURCH_SCHUETZEN,
   gemeinsamerStatus,
   type OffeneSerie,
-  offeneSerien,
   orteText,
   serienDerAuskunft,
 } from "./aufgeben";
@@ -142,11 +140,14 @@ function tastaturZurueck() {
   }
 }
 
-/** Trägt „Abbruch durch den Schützen“ in die Serien ein, die den Status kennen. */
+/**
+ * Trägt „Abbruch durch den Schützen“ in die Serien ein, die den Status kennen und noch keinen
+ * haben (ein schon gesetzter Status, z. B. „Zeitlimit erreicht“, bleibt).
+ */
 function mitAbbruchStatus(entwurf: Entwurf, serien: readonly OffeneSerie[]): Entwurf {
   let e = entwurf;
   for (const offen of serien) {
-    if (!offen.abbruchStatus) continue;
+    if (!offen.abbruchStatus || offen.statusGesetzt) continue;
     e = setzeWert(
       e,
       { abschnitt: offen.abschnitt.id, serie: offen.serie.index, key: "status" },
@@ -156,20 +157,36 @@ function mitAbbruchStatus(entwurf: Entwurf, serien: readonly OffeneSerie[]): Ent
   return e;
 }
 
-/** Erstes leeres Feld in diesen Serien (dorthin geht die Eingabe nach dem Status). */
+/**
+ * Erstes leeres Feld in diesen Serien (dorthin geht die Eingabe nach dem Status): zuerst ein Wert,
+ * den der Server als fehlend nennt (`missing_fields`), sonst das erste offene Feld der Serie.
+ */
 function erstesFeldIn(
   refs: readonly FeldRef[],
   entwurf: Entwurf,
   serien: readonly OffeneSerie[],
 ): FeldRef | null {
   for (const offen of serien) {
-    const ziel = erstesOffenes(
-      refs.filter((r) => r.abschnitt === offen.abschnitt.id && r.serie === offen.serie.index),
-      entwurf,
+    const inSerie = refs.filter(
+      (r) => r.abschnitt === offen.abschnitt.id && r.serie === offen.serie.index,
     );
+    const fehlt = inSerie.find((r) => offen.fehlend.includes(r.key) && !hatWert(entwurf, r));
+    const ziel = fehlt ?? erstesOffenes(inSerie, entwurf);
     if (ziel) return ziel;
   }
   return null;
+}
+
+/** Erstes offenes Feld einer Serie (Pfad `sections.x.series.2`), sonst ihr erstes Feld. */
+function erstesFeldDerSerie(
+  refs: readonly FeldRef[],
+  entwurf: Entwurf,
+  pfad: string,
+): FeldRef | null {
+  const inSerie = refs.filter(
+    (r) => r.serie !== null && serienPfad(r.abschnitt, r.serie) === pfad && !r.ungewertet,
+  );
+  return erstesOffenes(inSerie, entwurf) ?? inSerie[0] ?? null;
 }
 
 interface TerminalProps {
@@ -797,23 +814,33 @@ function Flaeche({
   // Die Auskunft der Maske gilt für deren Stand. Hat die Sitzung inzwischen einen neueren (eigene
   // Eingabe, Ereignis noch nicht da), fragt das Terminal den Server mit genau diesen Rohwerten
   // (`POST …/preview`, nichts wird gespeichert).
+  // Beim aufgegebenen Start sagt dieselbe Auskunft, wie der Abbruch gewertet wird (mit Platz oder
+  // ohne, und warum) – sie kommt mit der Maske, ohne eigene Abfrage der Rangliste.
   const offenerStart = !abgeschlossen && !abgebrochen;
+  const aufgegeben = abgebrochen && basis.abort_reason === "dnf";
   const auskunftDerMaske = maske.current.seq === basis.seq;
   const basisRoh = basis.raw ?? {};
   const auskunftAbfrage = useQuery({
     ...vorschauAbfrage(turnierId, startId, basisRoh, stabil(basisRoh)),
-    enabled: offenerStart && !auskunftDerMaske && (dialog === "abbruch" || vorgemerkt !== null),
+    enabled:
+      !auskunftDerMaske &&
+      ((offenerStart && (dialog === "abbruch" || vorgemerkt !== null)) || abgebrochen),
   });
-  /** `undefined`: wird geladen; `null`: keine (erledigter Start) */
-  const auskunft: AufgebenAuskunft | null | undefined = !offenerStart
+  /** `undefined`: wird geladen; `null`: keine (abgeschlossener Start) */
+  const auskunftJetzt: AufgebenAuskunft | null | undefined = abgeschlossen
     ? null
     : auskunftDerMaske
       ? (maske.abort_preview ?? null)
       : auskunftAbfrage.data
         ? (auskunftAbfrage.data.abort_preview ?? null)
         : undefined;
+  /** Auskunft zum Aufgeben (nur offene Starts) */
+  const auskunft = offenerStart ? auskunftJetzt : null;
+  /** Wie der schon abgebrochene Start gewertet wird (nur abgebrochene Starts) */
+  const abbruchAuskunft = abgebrochen ? auskunftJetzt : null;
   // Angefangene Serien, an denen das Aufgeben laut Server scheitert.
   const offene = serienDerAuskunft(form, basis.computed, auskunft);
+  const mehrereAbschnitte = form.sections.length > 1;
 
   const abbruchOeffnen = (grund: Abbruchgrund | null) => {
     setAbbruchGrund(grund);
@@ -895,16 +922,24 @@ function Flaeche({
 
   // --- Aufgegeben ohne Platz: Serienstatus nachtragen oder Abbruch zurücknehmen ---
 
-  // Ob der aufgegebene Start einen Platz hat, sagt die Rangliste des Servers (mit Grund).
-  const aufgegeben = abgebrochen && basis.abort_reason === "dnf";
-  const ranglistenZeile = useQuery({
-    ...ranglistenZeileAbfrage(turnierId, kopf.competition_id, kopf.class_id, startId),
-    enabled: aufgegeben,
-  });
-  const ohnePlatz =
-    aufgegeben && !korrektur && ranglistenZeile.data != null && ranglistenZeile.data.place === null;
-  // Angefangene, nicht fertige Serien laut Wertung des Servers: dort setzt das Nachtragen an.
-  const ohnePlatzSerien = ohnePlatz ? offeneSerien(form, basis.computed) : [];
+  // Ob der aufgegebene Start einen Platz hat, sagt die Auskunft des Servers (mit Grund). Solange
+  // sie lädt, stehen weder der Hinweis noch die Knöpfe da (sonst springen sie).
+  const ohnePlatz = aufgegeben && !korrektur && abbruchAuskunft?.would_place === false;
+  const abbruchWegeBereit = !aufgegeben || abbruchAuskunft !== undefined;
+  // Serien, an denen die Wertung laut Server scheitert: dort setzt das Nachtragen an.
+  const ohnePlatzSerien = ohnePlatz ? serienDerAuskunft(form, basis.computed, abbruchAuskunft) : [];
+
+  /** Zu einer angefangenen Serie springen: beim offenen Start direkt, sonst als Korrektur. */
+  const zuSerie = (pfad: string) => {
+    setDialog(null);
+    tastaturZurueck();
+    if (abgebrochen && !korrektur) {
+      sitzung.setzeAutomatisch(false);
+      korrekturBeginnen();
+    }
+    const e = sitzung.lesen().entwurf;
+    gehe(erstesFeldDerSerie(liste(e), e, pfad));
+  };
 
   /**
    * Korrektur mit „Abbruch durch den Schützen“ in den offenen Serien vorbelegt. Gespeichert wird
@@ -1085,15 +1120,17 @@ function Flaeche({
             onDochNicht={() => setVorgemerkt(null)}
           />
         )}
-        {ohnePlatz && (
+        {ohnePlatz && abbruchAuskunft && (
           <OhnePlatzHinweis
-            grund={ranglistenZeile.data?.abort_note ?? null}
+            auskunft={abbruchAuskunft}
             liste={ohnePlatzSerien}
             name={pruefKopf.name}
+            mehrereAbschnitte={mehrereAbschnitte}
             darf={darfKorrigieren}
             onNachtragen={serienstatusNachtragen}
             onKorrigieren={korrekturBeginnen}
             onZuruecknehmen={() => oeffneDialog("zuruecknehmen")}
+            onZuSerie={zuSerie}
           />
         )}
 
@@ -1259,6 +1296,12 @@ function Flaeche({
                   {t("abbruch.bemerkung_ist", { text: basis.abort_remark })}
                 </p>
               )}
+              {/* Wie der Abbruch gewertet wird (Text des Servers); ohne Platz steht er im Hinweis. */}
+              {abgebrochen && !ohnePlatz && abbruchAuskunft?.message_de && (
+                <p className={s.klein} data-abbruch-auskunft>
+                  {abbruchAuskunft.message_de}
+                </p>
+              )}
               {naechsterVorschlag && (
                 <Button
                   size="lg"
@@ -1291,7 +1334,7 @@ function Flaeche({
                 </>
               )}
               {/* Ohne Platz stehen beide Wege mit Erklärung im Hinweis links. */}
-              {abgebrochen && darfKorrigieren && !ohnePlatz && (
+              {abgebrochen && darfKorrigieren && !ohnePlatz && abbruchWegeBereit && (
                 <>
                   <Button
                     variant="default"
@@ -1400,6 +1443,8 @@ function Flaeche({
           auskunft={auskunft}
           offeneSerien={offene}
           onSerienAbschliessen={serienAbschliessen}
+          onZuSerie={zuSerie}
+          mehrereAbschnitte={mehrereAbschnitte}
           bereit={allesBeimServer || phase === "abgelehnt"}
         />
       )}
@@ -1485,7 +1530,7 @@ function feldTitel(
     ref.schuss !== undefined
       ? t(istJeZiel(ref.feld) ? "tasten.ziel" : "tasten.schuss", { nr: ref.schuss + 1 })
       : ref.feld.label;
-  return `${ort} · ${was}`;
+  return ref.ungewertet ? `${ort} · ${was} · ${t("feld.ungewertet")}` : `${ort} · ${was}`;
 }
 
 function Kopf({
@@ -1628,10 +1673,8 @@ function Gesamtstand({
   const nochNichts = gleicheRohwerte(basis.raw, {});
   const nebenwerte: { name: string; wert: string }[] = [];
   const treffer = zaehltTreffer(wertung.unit);
-  // Zehner und Innenzehner nur, wenn der Server sie liefert (bei Trefferzählung `null`). Ältere
-  // gespeicherte Stände der Wurfscheibe haben noch 0 statt `null`: dort bleibt die Einheit der
-  // Rückfall, bis der Server sie neu rechnet.
-  const zehnerDa = wertung.rings !== null && !treffer;
+  // Zehner und Innenzehner nur, wenn der Server sie liefert (bei Trefferzählung `null`).
+  const zehnerDa = wertung.rings !== null;
   if (wertung.tens !== null && zehnerDa) {
     nebenwerte.push({ name: t("gesamt.zehner"), wert: formatWert(wertung.tens) });
   }

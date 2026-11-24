@@ -36,7 +36,8 @@ export type Abbruchgrund = NonNullable<ErgebnisStand["abort_reason"]>;
 export type StartStatus = ErgebnisStand["status"];
 /**
  * Vorabauskunft des Servers (`abort_preview`): Würde ein Aufgeben jetzt (dnf) platziert? Gerechnet
- * wie die Rangliste; `null` bei abgeschlossenen und abgebrochenen Starts.
+ * wie die Rangliste. Beim abgebrochenen Start: wie dieser Abbruch gewertet wird (`dns`/`dsq` ohne
+ * Platz); `null` nur bei abgeschlossenen Starts.
  */
 export type AufgebenAuskunft = Schemas["AbortPreview"];
 export type AuskunftGrund = AufgebenAuskunft["reason_code"];
@@ -45,8 +46,6 @@ export type AbgeleiteterWert = Schemas["DerivedValue"];
 /** Notiz zur ganzen Maske mit Art (`form.note_items`). */
 export type Notiz = Schemas["NoteItem"];
 export type NotizArt = Notiz["kind"];
-export type Rangliste = Schemas["RankingOut"];
-export type RanglistenZeile = Schemas["RankingRow"];
 
 /** Rohwerte eines Starts, Format: docs/DATENMODELL.md („Rohwerte“). */
 export type Rohwerte = Record<string, unknown>;
@@ -61,8 +60,6 @@ export const erfassungSchluessel = {
   verlauf: (turnierId: string, startId: string) =>
     ["erfassung", turnierId, "verlauf", startId] as const,
   pruefliste: (turnierId: string) => ["erfassung", turnierId, "pruefliste"] as const,
-  rangliste: (turnierId: string, wettbewerbId: string, klasseId: string) =>
-    ["erfassung", turnierId, "rangliste", wettbewerbId, klasseId] as const,
 };
 
 /**
@@ -136,29 +133,6 @@ export const erfassungStartlisteAbfrage = (turnierId: string, voll: boolean) =>
         parameter: { names: voll ? "full" : undefined },
         signal,
       }),
-  });
-
-/**
- * Platz eines Starts in der Rangliste seines Wettbewerbs (nur seine Klasse). Für den aufgegebenen
- * Start: Ob er platziert ist, sagt allein die Rangliste des Servers; ohne Platz nennt sie den Grund
- * (`abort_note`). `null`, wenn der Start nicht in der Liste steht.
- */
-export const ranglistenZeileAbfrage = (
-  turnierId: string,
-  wettbewerbId: string,
-  klasseId: string,
-  startId: string,
-) =>
-  queryOptions({
-    queryKey: erfassungSchluessel.rangliste(turnierId, wettbewerbId, klasseId),
-    queryFn: ({ signal }) =>
-      apiGet<Rangliste>(
-        `/tournaments/${kodiert(turnierId)}/competitions/${kodiert(wettbewerbId)}/ranking`,
-        { parameter: { class_id: klasseId }, signal },
-      ),
-    select: (liste): RanglistenZeile | null =>
-      liste.groups.flatMap((gruppe) => gruppe.rows).find((zeile) => zeile.start_id === startId) ??
-      null,
   });
 
 export const prueflisteAbfrage = (turnierId: string) =>

@@ -325,7 +325,7 @@ describe("Erfassungsterminal", () => {
     expect(screen.getByText("Kein Feld aktiv. Feld antippen.")).toBeInTheDocument();
   });
 
-  it("Status „Zeitlimit“ sperrt die Zeit und sendet sie nicht", async () => {
+  it("Status „Zeitlimit“: leere Zeit bleibt antippbar, wird nicht gewertet und nicht verlangt", async () => {
     const aufrufe = routen();
     const user = userEvent.setup();
     anzeigen();
@@ -334,8 +334,11 @@ describe("Erfassungsterminal", () => {
     await user.click(
       (await screen.findAllByRole("option", { name: /Zeitlimit/, hidden: true }))[0] as HTMLElement,
     );
-    expect(screen.getAllByRole("button", { name: "Zeit: entfällt" })[0]).toBeDisabled();
+    expect(
+      screen.getAllByRole("button", { name: "Zeit: leer, wird nicht gewertet" })[0],
+    ).toBeEnabled();
     await user.click(document.body);
+    // Die Eingabe geht in die stehenden Scheiben, nicht in die nicht gewertete Zeit.
     await user.keyboard("2");
     await waitFor(
       () =>
@@ -347,6 +350,48 @@ describe("Erfassungsterminal", () => {
     expect(aufrufe.filter((a) => a.methode === "PUT").at(-1)?.inhalt).toMatchObject({
       raw: { sections: { fallscheibe: { series: [{ status: "time_limit", standing: 2 }] } } },
     });
+  });
+
+  it("Abbruch durch den Schützen: die erfasste Zeit bleibt sichtbar, änderbar und wird gesendet", async () => {
+    const aufrufe = routen();
+    const user = userEvent.setup();
+    anzeigen();
+    await screen.findByRole("heading", { name: "Markus Brandt" });
+    await user.keyboard("12,84");
+    await user.click(statusFelder()[0] as HTMLElement);
+    await user.click(
+      (
+        await screen.findAllByRole("option", { name: "Abbruch durch den Schützen", hidden: true })
+      )[0] as HTMLElement,
+    );
+    const zeit = screen.getByRole("button", { name: "Zeit: 12,84 s, wird nicht gewertet" });
+    expect(zeit).toBeEnabled();
+    expect(within(zeit).getByText("wird nicht gewertet")).toBeInTheDocument();
+    // Nach der Statuswahl geht die Eingabe in die stehenden Scheiben.
+    await user.keyboard("1");
+    await waitFor(
+      () =>
+        expect(aufrufe.filter((a) => a.methode === "PUT").at(-1)?.inhalt).toMatchObject({
+          raw: {
+            sections: {
+              fallscheibe: {
+                series: [{ status: "aborted_by_shooter", time_cs: 1284, standing: 1 }],
+              },
+            },
+          },
+        }),
+      { timeout: 3000 },
+    );
+    // Die Zeit lässt sich weiter ändern: antippen, neu tippen.
+    await user.click(zeit);
+    await user.keyboard("13,5{Enter}");
+    await waitFor(
+      () =>
+        expect(aufrufe.filter((a) => a.methode === "PUT").at(-1)?.inhalt).toMatchObject({
+          raw: { sections: { fallscheibe: { series: [{ time_cs: 1350, standing: 1 }] } } },
+        }),
+      { timeout: 3000 },
+    );
   });
 
   it("QA G-5: nach der Statuswahl kommen getippte Werte im aktiven Feld an", async () => {

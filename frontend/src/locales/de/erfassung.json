@@ -128,7 +128,8 @@
     "leer_wert": "leer",
     "fehler": "Fehler",
     "zeit_zu_gross": "Diese Zeit ist nicht plausibel: höchstens {{grenze}} s. Bitte mit dem Startzettel vergleichen.",
-    "abgeleitet": "aus den Einzelwerten berechnet"
+    "abgeleitet": "aus den Einzelwerten berechnet",
+    "ungewertet": "wird nicht gewertet"
   },
   "schuss": {
     "reihe": "Schüsse {{serie}}",
@@ -277,14 +278,22 @@
       "titel_other": "{{orte}} sind noch nicht fertig erfasst.",
       "text_one": "Damit {{name}} mit dem bisherigen Ergebnis gewertet wird, trag für diese Serie „{{status}}“ ein.",
       "text_other": "Damit {{name}} mit dem bisherigen Ergebnis gewertet wird, trag für diese Serien „{{status}}“ ein.",
-      "text_gesetzt_one": "„{{status}}“ ist für diese Serie schon eingetragen, es fehlen aber noch Werte. Trag sie ein, damit {{name}} mit dem bisherigen Ergebnis gewertet wird.",
-      "text_gesetzt_other": "„{{status}}“ ist für diese Serien schon eingetragen, es fehlen aber noch Werte. Trag sie ein, damit {{name}} mit dem bisherigen Ergebnis gewertet wird.",
       "text_fertig_one": "Damit {{name}} mit dem bisherigen Ergebnis gewertet wird, erfasse diese Serie fertig.",
       "text_fertig_other": "Damit {{name}} mit dem bisherigen Ergebnis gewertet wird, erfasse diese Serien fertig.",
       "folge": "Gibst du jetzt trotzdem auf, steht {{name}} ohne Platz in der Rangliste.",
       "eintragen": "„{{status}}“ eintragen",
       "zur_serie": "Zur Serie",
+      "zum_feld": "Zum fehlenden Feld",
       "trotzdem": "Trotzdem aufgeben, ohne Platz"
+    },
+    "offene_serien": {
+      "titel": "Offene Serien",
+      "serien_one": "Serie {{nummern}}",
+      "serien_other": "Serien {{nummern}}",
+      "angefangen": "{{serien}} angefangen",
+      "nicht_geschossen": "{{serien}} noch nicht geschossen",
+      "abschnitt": "{{name}}: {{text}}",
+      "zur_serie": "Zu Serie {{nr}}"
     },
     "vorgemerkt": {
       "titel": "Aufgeben vorbereitet",
@@ -297,7 +306,6 @@
     },
     "ohne_platz": {
       "titel": "Ohne Platz in der Rangliste",
-      "grund": "Grund: {{grund}}.",
       "ohne_grund": "{{name}} steht nach dem Aufgeben ohne Platz in der Rangliste.",
       "weg_status_one": "Serienstatus nachtragen: Trag für {{orte}} „{{status}}“ ein und speichere das als Korrektur mit Grund. Dann wird {{name}} mit dem bisherigen Ergebnis gewertet; der Start bleibt aufgegeben.",
       "weg_status_other": "Serienstatus nachtragen: Trag für {{orte}} „{{status}}“ ein und speichere das als Korrektur mit Grund. Dann wird {{name}} mit dem bisherigen Ergebnis gewertet; der Start bleibt aufgegeben.",
@@ -305,7 +313,7 @@
       "nachtragen": "Serienstatus nachtragen",
       "weg_zuruecknehmen": "Oder den Abbruch zurücknehmen, wenn {{name}} doch weiterschießt oder das Aufgeben ein Irrtum war. Der Start ist danach wieder offen.",
       "ohne_recht": "Nachtragen oder zurücknehmen kann nur, wer Ergebnisse korrigieren darf.",
-      "weg_werte": "Werte nachtragen: Für {{orte}} ist „{{status}}“ eingetragen, es fehlen noch Werte. Trag sie als Korrektur mit Grund nach; dann wird {{name}} mit dem bisherigen Ergebnis gewertet. Der Start bleibt aufgegeben.",
+      "weg_werte": "Werte nachtragen: Für {{orte}} ist ein Serienstatus eingetragen, es fehlen noch Werte. Trag sie als Korrektur mit Grund nach; dann wird {{name}} mit dem bisherigen Ergebnis gewertet. Der Start bleibt aufgegeben.",
       "werte_nachtragen": "Werte nachtragen"
     },
     "pruefe": "Der Server prüft, ob der Start gewertet würde …",

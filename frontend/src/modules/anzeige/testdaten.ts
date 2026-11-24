@@ -183,6 +183,8 @@ export function abbruchRangliste(): FeedRangliste {
  */
 export function getrenntRangliste(): FeedRangliste {
   const hinweis = "Ringgleichheit, entschieden nach: letzte Zehnerserie";
+  // Voller Wortlaut des Servers (`tie_note_long`), am Schirm nur als Titel.
+  const lang = `${hinweis}, dann rückwärts in 10-Schuss-Serien`;
   return {
     competition_id: "w10",
     competition_name: "Luftgewehr",
@@ -210,6 +212,7 @@ export function getrenntRangliste(): FeedRangliste {
             tie_reason: "resolved",
             tie_criterion: "letzte_serie_rueckwaerts",
             tie_note: hinweis,
+            tie_note_long: lang,
             display_name: "Bernd Muster",
             score_text: "385 Ringe",
           }),
@@ -219,6 +222,7 @@ export function getrenntRangliste(): FeedRangliste {
             tie_reason: "resolved",
             tie_criterion: "letzte_serie_rueckwaerts",
             tie_note: hinweis,
+            tie_note_long: lang,
             display_name: "Clara Probe",
             score_text: "385 Ringe",
           }),

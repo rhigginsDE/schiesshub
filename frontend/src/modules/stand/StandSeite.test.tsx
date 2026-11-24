@@ -418,6 +418,23 @@ describe("Schießstand", { timeout: 15000 }, () => {
             message_de: "Serie 2 ist unvollständig erfasst.",
             open_series: [2, 3],
             score_text: null,
+            open_series_items: [
+              {
+                section_id: "fallscheibe",
+                section_name: "Fallscheibe",
+                series: 2,
+                path: "sections.fallscheibe.series[1]",
+                state: "started",
+              },
+              {
+                section_id: "fallscheibe",
+                section_name: "Fallscheibe",
+                series: 3,
+                path: "sections.fallscheibe.series[2]",
+                state: "not_shot",
+              },
+            ],
+            missing_fields: [],
           },
           ...erfassungMaske(FALLSCHEIBE, {
             ...erfassungStand(),

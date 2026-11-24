@@ -6,7 +6,9 @@
  *
  * Der Entwurf hat dieselbe Form wie die Rohwerte (`{sections: {<id>: {series: […], time_cs}}}`),
  * kann aber Werte enthalten, die der gewählte Serienstatus nicht braucht (sie bleiben erhalten,
- * falls der Status zurückgestellt wird). `rohwerteAus` macht daraus, was gesendet wird.
+ * falls der Status zurückgestellt wird). `rohwerteAus` macht daraus, was gesendet wird. Werte, die
+ * der Status erfasst haben darf, aber nicht wertet (`unscored_fields`, z. B. die gemessene Zeit bei
+ * „Abbruch durch den Schützen“), gehen immer mit: Nichts Erfasstes verschwindet stillschweigend.
  */
 import type {
   AbschnittForm,
@@ -42,6 +44,11 @@ export interface FeldRef {
   /** Nur bei Schüssen: Index des Schusses in der Serie */
   schuss?: number;
   feld: FeldBeschreibung;
+  /**
+   * Der gewählte Serienstatus wertet dieses Feld nicht (`unscored_fields`): Es bleibt sichtbar und
+   * änderbar, wird mitgesendet, ist aber keine Lücke und wird nicht von selbst angesteuert.
+   */
+  ungewertet?: boolean;
 }
 
 export const NORMAL = "normal";
@@ -235,6 +242,21 @@ export function feldAktiv(option: StatusOption | null, key: string): boolean {
   return option.required_fields.includes(key);
 }
 
+/**
+ * Ob ein Feld beim gewählten Status erfasst sein darf, aber nicht gewertet wird (`unscored_fields`
+ * des Servers, z. B. die gemessene Zeit bei „Abbruch durch den Schützen“). So ein Wert bleibt in
+ * der Maske sichtbar und änderbar und geht mit den Rohwerten mit.
+ */
+export function feldUngewertet(option: StatusOption | null, key: string): boolean {
+  if (feldAktiv(option, key)) return false;
+  return option?.unscored_fields?.includes(key) ?? false;
+}
+
+/** Ob ein Feld beim gewählten Status in der Maske erfasst werden kann (gewertet oder nicht). */
+export function feldErfassbar(option: StatusOption | null, key: string): boolean {
+  return feldAktiv(option, key) || feldUngewertet(option, key);
+}
+
 // --- Rohwerte bauen ----------------------------------------------------------------------------
 
 function leer(serie: SerieEntwurf): boolean {
@@ -242,7 +264,8 @@ function leer(serie: SerieEntwurf): boolean {
 }
 
 /**
- * Die Rohwerte zum Senden: nur Werte, die der Status der Serie braucht; leere Serien als `null`,
+ * Die Rohwerte zum Senden: Werte, die der Status der Serie braucht oder erfasst haben darf
+ * (`required_fields` und `unscored_fields`); leere Serien als `null`,
  * leere Abschnitte und nachlaufende leere Serien entfallen. Teile, die das Formular nicht kennt
  * (z. B. nach einer Änderung der Wertung), bleiben stehen; der Server meldet sie dann.
  */
@@ -263,7 +286,7 @@ export function rohwerteAus(form: Formular, entwurf: Entwurf): Rohwerte {
         // Zehner und Innenzehner gehören zur Seriensumme: Sie gehen mit, wenn die Summe gilt.
         const zurSumme =
           (RING_SUMME as readonly string[]).includes(key) && feldAktiv(option, "sum");
-        if (!feldAktiv(option, key) && !zurSumme) continue;
+        if (!feldErfassbar(option, key) && !zurSumme) continue;
         neu[key] = wert;
       }
       return leer(neu) ? null : neu;
@@ -310,7 +333,10 @@ export interface ReihenfolgeOptionen {
   aufgeklappt?: ReadonlySet<string>;
 }
 
-/** Felder einer Serie in Eingabereihenfolge (ohne Status-Auswahl und ohne deaktivierte Felder). */
+/**
+ * Felder einer Serie in Eingabereihenfolge (ohne Status-Auswahl und ohne Felder, die beim Status
+ * entfallen). Nicht gewertete Felder stehen mit `ungewertet` darin: antippbar, aber übersprungen.
+ */
 export function serienFelder(
   entwurf: Entwurf,
   abschnitt: AbschnittForm,
@@ -319,7 +345,8 @@ export function serienFelder(
   const option = statusAus(entwurf, abschnitt.id, serie);
   const refs: FeldRef[] = [];
   for (const feld of serie.fields) {
-    if (feld.kind === "choice" || !feldAktiv(option, feld.key)) continue;
+    if (feld.kind === "choice" || !feldErfassbar(option, feld.key)) continue;
+    const ungewertet = feldUngewertet(option, feld.key) ? { ungewertet: true } : {};
     if (feld.kind === "shots") {
       for (let schuss = 0; schuss < (feld.count ?? 0); schuss++) {
         refs.push({
@@ -329,6 +356,7 @@ export function serienFelder(
           key: feld.key,
           schuss,
           feld,
+          ...ungewertet,
         });
       }
     } else {
@@ -338,6 +366,7 @@ export function serienFelder(
         serie: serie.index,
         key: feld.key,
         feld,
+        ...ungewertet,
       });
     }
   }
@@ -384,7 +413,8 @@ export function zeitenUeberGrenze(
 ): { ref: FeldRef; grenze: number }[] {
   return reihenfolge(form, entwurf).flatMap((ref) => {
     const grenze = ref.feld.max;
-    if (ref.feld.kind !== "time" || grenze == null) return [];
+    // Eine nicht gewertete Zeit prüft der Server nicht auf Plausibilität.
+    if (ref.feld.kind !== "time" || grenze == null || ref.ungewertet) return [];
     const wert = wertAus(entwurf, ref);
     return typeof wert === "number" && wert > grenze ? [{ ref, grenze }] : [];
   });
@@ -410,11 +440,13 @@ export function erreichbar(entwurf: Entwurf, ref: FeldRef): FeldRef {
 /**
  * Erstes Feld ohne Wert (Pflichtfelder zuerst). Sind alle gefüllt, keins: Ein vorhandener Wert wird
  * nur nach ausdrücklicher Auswahl (Antippen) geändert, nie von selbst angesteuert und überschrieben.
+ * Nicht gewertete Felder werden nie von selbst angesteuert.
  */
 export function erstesOffenes(refs: readonly FeldRef[], entwurf: Entwurf): FeldRef | null {
+  const kandidaten = refs.filter((ref) => !ref.ungewertet);
   return (
-    refs.find((ref) => ref.feld.required && !hatWert(entwurf, ref)) ??
-    refs.find((ref) => !hatWert(entwurf, ref)) ??
+    kandidaten.find((ref) => ref.feld.required && !hatWert(entwurf, ref)) ??
+    kandidaten.find((ref) => !hatWert(entwurf, ref)) ??
     null
   );
 }
@@ -434,14 +466,17 @@ export function zielNachStatus(
   return erstesOffenes(inSerie, entwurf) ?? erstesOffenes(refs, entwurf);
 }
 
+/** Nächster Eingabeplatz; nicht gewertete Felder überspringt die Weiterschaltung. */
 export function naechstes(refs: readonly FeldRef[], id: string | null): FeldRef | null {
   const index = refs.findIndex((ref) => ref.id === id);
-  return index >= 0 ? (refs[index + 1] ?? null) : null;
+  if (index < 0) return null;
+  return refs.slice(index + 1).find((ref) => !ref.ungewertet) ?? null;
 }
 
 export function voriges(refs: readonly FeldRef[], id: string | null): FeldRef | null {
   const index = refs.findIndex((ref) => ref.id === id);
-  return index > 0 ? (refs[index - 1] ?? null) : null;
+  if (index <= 0) return null;
+  return refs.slice(0, index).findLast((ref) => !ref.ungewertet) ?? null;
 }
 
 // --- Vollständigkeit ---------------------------------------------------------------------------
@@ -460,13 +495,13 @@ export interface Fehlstelle {
 
 /**
  * Was nach der Formularbeschreibung noch fehlt: Pflichtfelder ohne Wert, die beim gewählten
- * Ablauf der Serie gebraucht werden. Ob das Ergebnis vollständig ist, entscheidet der Server; das
- * hier sagt nur, wo die Lücken sind.
+ * Ablauf der Serie gebraucht werden (nicht gewertete nie). Ob das Ergebnis vollständig ist,
+ * entscheidet der Server; das hier sagt nur, wo die Lücken sind.
  */
 export function fehlstellen(form: Formular, entwurf: Entwurf): Fehlstelle[] {
   const liste: Fehlstelle[] = [];
   for (const ref of reihenfolge(form, entwurf)) {
-    if (!ref.feld.required || hatWert(entwurf, ref)) continue;
+    if (!ref.feld.required || ref.ungewertet || hatWert(entwurf, ref)) continue;
     const pfad =
       ref.serie === null ? `sections.${ref.abschnitt}` : serienPfad(ref.abschnitt, ref.serie);
     let eintrag = liste.find((f) => f.pfad === pfad);

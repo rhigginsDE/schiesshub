@@ -34,8 +34,9 @@ import {
   type Abgeleitet,
   type Entwurf,
   type FeldRef,
-  feldAktiv,
+  feldErfassbar,
   feldId,
+  feldUngewertet,
   meldungenFuer,
   NORMAL,
   type PfadMeldung,
@@ -291,7 +292,8 @@ function SerieKarte(props: SerieKarteProps) {
                       key={feld.key}
                       {...props}
                       feld={feld}
-                      aktivFeld={feldAktiv(option, feld.key)}
+                      aktivFeld={feldErfassbar(option, feld.key)}
+                      ungewertet={feldUngewertet(option, feld.key)}
                     />
                   ) : (
                     <Feldknopf
@@ -304,7 +306,8 @@ function SerieKarte(props: SerieKarteProps) {
                         key: feld.key,
                         feld,
                       }}
-                      aktiv={feldAktiv(option, feld.key)}
+                      aktiv={feldErfassbar(option, feld.key)}
+                      ungewertet={feldUngewertet(option, feld.key)}
                     />
                   ),
                 )}
@@ -326,8 +329,10 @@ function SerieKarte(props: SerieKarteProps) {
 
 interface FeldknopfProps extends MaskeProps {
   feldRef: FeldRef;
-  /** Vom Status der Serie gebraucht (sonst „entfällt“) */
+  /** Beim Status der Serie erfassbar (sonst „entfällt“) */
   aktiv: boolean;
+  /** Erfassbar, aber vom Status nicht gewertet: Hilfetext „wird nicht gewertet“ am Feld */
+  ungewertet?: boolean;
 }
 
 /**
@@ -344,6 +349,7 @@ function kurzerStatus(text: string): string {
 function Feldknopf({
   feldRef,
   aktiv,
+  ungewertet = false,
   entwurf,
   aktivId,
   eingabe,
@@ -367,9 +373,17 @@ function Feldknopf({
   // Der Name beginnt mit dem sichtbaren Text (Feld, Wert, Einheit, Bereich), damit Sprachsteuerung
   // trifft; dazu „leer“ und ein Fehler am Feld.
   const einheit = aktiv && feld.kind === "time" && text !== "" ? ` ${t("einheit.sekunden")}` : "";
-  const bereichText = zeigtBerechnet ? t("feld.abgeleitet") : aktiv ? feldBereich(feld, t) : null;
+  // Nicht gewertet (Serienstatus): ruhiger Hilfetext statt Bereich, der Wert bleibt sichtbar.
+  const bereichText = zeigtBerechnet
+    ? t("feld.abgeleitet")
+    : ungewertet
+      ? t("feld.ungewertet")
+      : aktiv
+        ? feldBereich(feld, t)
+        : null;
   const bereich = bereichText ? `, ${bereichText}` : "";
-  const freiwillig = !feld.required && aktiv ? ` · ${t("feld.freiwillig")}` : "";
+  const zeigtFreiwillig = !feld.required && aktiv && !ungewertet;
+  const freiwillig = zeigtFreiwillig ? ` · ${t("feld.freiwillig")}` : "";
   const wertName = !aktiv ? t("feld.entfaellt") : text || t("feld.leer");
   const fehlerName = feldFehler.map((m) => `, ${t("feld.fehler")}: ${m.meldung}`).join("");
   const name = `${feld.label}${freiwillig}: ${wertName}${einheit}${bereich}${fehlerName}`;
@@ -383,6 +397,7 @@ function Feldknopf({
       data-leer={text === "" || undefined}
       data-entfaellt={!aktiv || undefined}
       data-abgeleitet={zeigtBerechnet || undefined}
+      data-ungewertet={ungewertet || undefined}
       disabled={!aktiv || !bearbeitbar}
       aria-pressed={istAktiv}
       aria-label={name}
@@ -392,7 +407,7 @@ function Feldknopf({
       <span className={s.feldName}>
         {hatFehler && <CircleAlert aria-hidden className={s.feldFehlerSymbol} />}
         {feld.label}
-        {!feld.required && aktiv && <span className={s.freiwillig}> · {t("feld.freiwillig")}</span>}
+        {zeigtFreiwillig && <span className={s.freiwillig}> · {t("feld.freiwillig")}</span>}
       </span>
       <span className={`${s.feldWert} num`}>
         {!aktiv ? t("feld.entfaellt") : text || " "}
@@ -409,6 +424,7 @@ function Feldknopf({
 interface SchussreiheProps extends SerieKarteProps {
   feld: FeldBeschreibung;
   aktivFeld: boolean;
+  ungewertet: boolean;
 }
 
 function Schussreihe({
@@ -416,6 +432,7 @@ function Schussreihe({
   serie,
   feld,
   aktivFeld,
+  ungewertet,
   entwurf,
   aktivId,
   eingabe,
@@ -446,6 +463,7 @@ function Schussreihe({
         {feld.label}
         {!aktivFeld && ` · ${t("feld.entfaellt")}`}
       </span>
+      {ungewertet && <span className={s.feldBereich}>{t("feld.ungewertet")}</span>}
       <ol
         className={s.schuesse}
         style={{ "--spalten": spalten } as CSSProperties}

@@ -629,7 +629,7 @@ describe("Bildschirm: Gleichstand nach Server, Wörter je Verband, Übung", () =
 
   it("durch die Kette entschieden: kein geteilter Platz, Hinweis nur in der Live-Wertung", () => {
     const ranking = getrenntRangliste();
-    // Das Wort vorn fällt auf dem Schirm weg; der volle Text steht im `title`.
+    // Das Wort vorn fällt auf dem Schirm weg; der volle Wortlaut (`tie_note_long`) steht im `title`.
     const hinweis = "entschieden nach: letzte Zehnerserie";
 
     const live = szenen.live_ranking as SzeneVon<"live_ranking">;
@@ -639,7 +639,10 @@ describe("Bildschirm: Gleichstand nach Server, Wörter je Verband, Übung", () =
     expect(hinweise).toHaveLength(2);
     for (const h of hinweise) {
       expect(h).toHaveAttribute("data-geteilt", "getrennt");
-      expect(h).toHaveAttribute("title", "Ringgleichheit, entschieden nach: letzte Zehnerserie");
+      expect(h).toHaveAttribute(
+        "title",
+        "Ringgleichheit, entschieden nach: letzte Zehnerserie, dann rückwärts in 10-Schuss-Serien",
+      );
     }
     expect(within(liste).queryByText("geteilt")).toBeNull();
     expect(within(liste).queryByText(/Stechen|manuell/)).toBeNull();

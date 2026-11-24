@@ -7,21 +7,29 @@ const STATUS_FELD: FeldBeschreibung = {
   kind: "choice",
   required: false,
   options: [
-    { key: "normal", label: "regulär", required_fields: ["time_cs", "standing"] },
+    {
+      key: "normal",
+      label: "regulär",
+      required_fields: ["time_cs", "standing"],
+      unscored_fields: [],
+    },
     {
       key: "time_limit",
       label: "Zeitlimit erreicht (Abbruch durch den Schießleiter)",
       required_fields: ["standing"],
+      unscored_fields: ["time_cs"],
     },
     {
       key: "aborted_by_shooter",
       label: "Abbruch durch den Schützen",
       required_fields: ["standing"],
+      unscored_fields: ["time_cs"],
     },
     {
       key: "malfunction_before_first_shot",
       label: "Waffenstörung vor dem ersten Wertungsschuss",
       required_fields: [],
+      unscored_fields: ["time_cs", "standing"],
     },
   ],
 };

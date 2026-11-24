@@ -135,7 +135,8 @@ function Gleichstand({
       <Element
         className={geteilt.art === "offen" ? s.gleichstand : s.gleichstandEntschieden}
         data-geteilt={geteilt.art}
-        title={zeile.tie_note ?? undefined}
+        // Am Schirm der kurze Hinweis; der volle Wortlaut des Servers als Titel.
+        title={zeile.tie_note_long ?? zeile.tie_note ?? undefined}
       >
         {geteilt.text}
       </Element>

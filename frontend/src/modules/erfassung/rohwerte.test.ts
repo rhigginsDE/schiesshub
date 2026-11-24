@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { Formular } from "./api";
 import {
   aenderungen,
   aenderungsOrt,
@@ -14,12 +15,29 @@ import {
   rohwerteAus,
   setzeWert,
   uebrigeMeldungen,
+  voriges,
   zeitenUeberGrenze,
   zielNachStatus,
 } from "./rohwerte";
 import { FALLSCHEIBE, PRAEZISION } from "./testdaten";
 
 const leer = entwurfAus({});
+
+/** Fallscheibe, deren Status keine `unscored_fields` kennt (älterer Server): Die Zeit entfällt. */
+const OHNE_UNGEWERTETE: Formular = {
+  ...FALLSCHEIBE,
+  sections: FALLSCHEIBE.sections.map((abschnitt) => ({
+    ...abschnitt,
+    series: abschnitt.series.map((serie) => ({
+      ...serie,
+      fields: serie.fields.map((feld) =>
+        feld.options
+          ? { ...feld, options: feld.options.map((o) => ({ ...o, unscored_fields: [] })) }
+          : feld,
+      ),
+    })),
+  })),
+};
 
 describe("Rohwerte aus dem Entwurf", () => {
   it("baut Serien nach dem Format des Servers, leere Serien als null", () => {
@@ -30,17 +48,55 @@ describe("Rohwerte aus dem Entwurf", () => {
     });
   });
 
-  it("lässt Felder weg, die der gewählte Status nicht braucht, und behält sie im Entwurf", () => {
+  it("lässt Felder weg, die der gewählte Status weder braucht noch erlaubt, und behält sie im Entwurf", () => {
     let e = setzeWert(leer, { abschnitt: "fallscheibe", serie: 0, key: "time_cs" }, 1500);
     e = setzeWert(e, { abschnitt: "fallscheibe", serie: 0, key: "standing" }, 2);
     e = setzeWert(e, { abschnitt: "fallscheibe", serie: 0, key: "status" }, "time_limit");
-    expect(rohwerteAus(FALLSCHEIBE, e)).toEqual({
+    expect(rohwerteAus(OHNE_UNGEWERTETE, e)).toEqual({
       sections: { fallscheibe: { series: [{ status: "time_limit", standing: 2 }] } },
     });
     // Zurück auf „regulär“: Die Zeit ist wieder da, „status“ entfällt (Standard).
     e = setzeWert(e, { abschnitt: "fallscheibe", serie: 0, key: "status" }, "normal");
-    expect(rohwerteAus(FALLSCHEIBE, e)).toEqual({
+    expect(rohwerteAus(OHNE_UNGEWERTETE, e)).toEqual({
       sections: { fallscheibe: { series: [{ time_cs: 1500, standing: 2 }] } },
+    });
+  });
+
+  it("Abbruch durch den Schützen: die erfasste Zeit geht mit (nicht gewertet, nie verworfen)", () => {
+    let e = setzeWert(leer, { abschnitt: "fallscheibe", serie: 1, key: "time_cs" }, 2500);
+    e = setzeWert(e, { abschnitt: "fallscheibe", serie: 1, key: "status" }, "aborted_by_shooter");
+    expect(rohwerteAus(FALLSCHEIBE, e)).toEqual({
+      sections: {
+        fallscheibe: { series: [null, { time_cs: 2500, status: "aborted_by_shooter" }] },
+      },
+    });
+    e = setzeWert(e, { abschnitt: "fallscheibe", serie: 1, key: "standing" }, 1);
+    e = setzeWert(e, { abschnitt: "fallscheibe", serie: 1, key: "status" }, "time_limit");
+    expect(rohwerteAus(FALLSCHEIBE, e)).toEqual({
+      sections: {
+        fallscheibe: { series: [null, { time_cs: 2500, status: "time_limit", standing: 1 }] },
+      },
+    });
+    // Waffenstörung: Zeit und stehende Scheiben bleiben beide erhalten.
+    e = setzeWert(
+      e,
+      { abschnitt: "fallscheibe", serie: 1, key: "status" },
+      "malfunction_before_first_shot",
+    );
+    expect(rohwerteAus(FALLSCHEIBE, e)).toEqual({
+      sections: {
+        fallscheibe: {
+          series: [null, { time_cs: 2500, status: "malfunction_before_first_shot", standing: 1 }],
+        },
+      },
+    });
+  });
+
+  it("die Gesamtzeit eines Abschnitts hängt an keinem Serienstatus", () => {
+    let e = setzeWert(leer, { abschnitt: "fallscheibe", serie: null, key: "time_cs" }, 9000);
+    e = setzeWert(e, { abschnitt: "fallscheibe", serie: 0, key: "status" }, "aborted_by_shooter");
+    expect(rohwerteAus(FALLSCHEIBE, e)).toEqual({
+      sections: { fallscheibe: { series: [{ status: "aborted_by_shooter" }], time_cs: 9000 } },
     });
   });
 
@@ -104,16 +160,40 @@ describe("Reihenfolge der Eingabeplätze", () => {
     expect(ids).toContain("sections.fallscheibe.series.2.standing");
   });
 
-  it("lässt Felder aus, die der Status nicht braucht", () => {
+  it("lässt Felder aus, die der Status weder braucht noch erlaubt", () => {
     const e = setzeWert(leer, { abschnitt: "fallscheibe", serie: 0, key: "status" }, "time_limit");
-    const ids = reihenfolge(FALLSCHEIBE, e).map((r) => r.id);
+    const ids = reihenfolge(OHNE_UNGEWERTETE, e).map((r) => r.id);
     expect(ids[0]).toBe("sections.fallscheibe.series.0.standing");
-    const stoerung = setzeWert(
-      leer,
-      { abschnitt: "fallscheibe", serie: 0, key: "status" },
-      "malfunction_before_first_shot",
+  });
+
+  it("nicht gewertete Felder: antippbar, aber keine Lücke und nie von selbst angesteuert", () => {
+    let e = setzeWert(leer, { abschnitt: "fallscheibe", serie: 0, key: "time_cs" }, 1200);
+    e = setzeWert(e, { abschnitt: "fallscheibe", serie: 0, key: "standing" }, 0);
+    e = setzeWert(e, { abschnitt: "fallscheibe", serie: 1, key: "status" }, "aborted_by_shooter");
+    const refs = reihenfolge(FALLSCHEIBE, e);
+    const zeit = refs.find((r) => r.id === "sections.fallscheibe.series.1.time_cs");
+    expect(zeit?.ungewertet).toBe(true);
+    expect(refs.find((r) => r.id === "sections.fallscheibe.series.1.standing")?.ungewertet).toBe(
+      undefined,
     );
-    expect(reihenfolge(FALLSCHEIBE, stoerung)[0]?.id).toBe("sections.fallscheibe.series.1.time_cs");
+    // Erstes offenes Feld: die stehenden Scheiben, nicht die leere, nicht gewertete Zeit.
+    expect(erstesOffenes(refs, e)?.id).toBe("sections.fallscheibe.series.1.standing");
+    // Weiter von Serie 1 springt über die Zeit hinweg, zurück ebenso.
+    expect(naechstes(refs, "sections.fallscheibe.series.0.standing")?.id).toBe(
+      "sections.fallscheibe.series.1.standing",
+    );
+    expect(voriges(refs, "sections.fallscheibe.series.1.standing")?.id).toBe(
+      "sections.fallscheibe.series.0.standing",
+    );
+    // Von der angetippten Zeit geht es mit „weiter“ in die stehenden Scheiben.
+    expect(naechstes(refs, "sections.fallscheibe.series.1.time_cs")?.id).toBe(
+      "sections.fallscheibe.series.1.standing",
+    );
+    // Lücken: nur die stehenden Scheiben, keine Zeit.
+    expect(fehlstellen(FALLSCHEIBE, e).map((f) => f.felder)).toEqual([["Stehende Scheiben"]]);
+    // Eine nicht gewertete Zeit über der Grenze ist kein Fehler am Feld.
+    const lang = setzeWert(e, { abschnitt: "fallscheibe", serie: 1, key: "time_cs" }, 20000);
+    expect(zeitenUeberGrenze(FALLSCHEIBE, lang)).toEqual([]);
   });
 
   it("Schüsse sind einzelne Plätze; ein Tipp hinter die Lücke springt zur Lücke", () => {
