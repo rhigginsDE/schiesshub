@@ -301,7 +301,10 @@ class FeedRankRow(BaseModel):
     # Geteilt und nicht entschieden (manual, missing_data, shootoff); false bei max_score
     # (gleicher Platz nach Regel) und ohne geteilten Platz.
     tie_unresolved: bool = False
+    # Kurzfassung für den Bildschirm („Ringgleichheit, entschieden nach: letzte Zehnerserie“);
+    # `tie_note_long` mit dem vollen Wortlaut des Kriteriums (wie `RankingRow`).
     tie_note: str | None = None
+    tie_note_long: str | None = None
     # Fertiger Text zum Abbruchgrund für die Anzeige: „Abbruch (AB)“, „nicht angetreten“,
     # „disqualifiziert“; null ohne Abbruch.
     abort_label: str | None = None

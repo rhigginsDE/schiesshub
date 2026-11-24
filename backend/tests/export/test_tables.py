@@ -430,3 +430,19 @@ def test_resolved_tie_is_explained_in_note_column() -> None:
     report = tables.winners_report(META, [tables.winner_section(COMPETITION, "Ringe", result)])
     cells = [row.cells for row in report.sections[0].tables[0].rows]
     assert [c[-1] for c in cells] == [note, note, ""]
+
+
+def test_note_column_uses_long_tie_note() -> None:
+    short = "Ringgleichheit, entschieden nach: letzte Zehnerserie"
+    long = f"{short}, dann rückwärts in 10-Schuss-Serien (Wurfscheibe: je Serie)"
+    tie = {
+        "tie_reason": "resolved",
+        "tie_criterion": "letzte_serie_rueckwaerts",
+        "tie_note": short,
+        "tie_note_long": long,
+    }
+    rows = [ranking_row(1, 7, "190", **tie), ranking_row(2, 3, "190", **tie)]
+    result = tables.winner_tables(ranking(group(OPEN, rows)), class_names=CLASS_NAMES)
+    report = tables.winners_report(META, [tables.winner_section(COMPETITION, "Ringe", result)])
+    cells = [row.cells for row in report.sections[0].tables[0].rows]
+    assert [c[-1] for c in cells] == [long, long]

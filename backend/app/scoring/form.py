@@ -16,7 +16,15 @@ from app.scoring.numbers import TENTH, format_number, format_seconds_value, plur
 from app.scoring.plan import MAX_TENTHS, MIN_TENTHS, SectionPlan, SeriesPlan
 from app.scoring.raw import plausible_max_s
 from app.scoring.spec import CaptureMode, Direction, PositionSpec
-from app.scoring.status import ABORTED, NORMAL, STATUS_LABELS, UNFINISHED, SeriesStatus
+from app.scoring.status import (
+    ABORTED,
+    FIXED_TIME,
+    MALFUNCTION,
+    NORMAL,
+    STATUS_LABELS,
+    UNFINISHED,
+    SeriesStatus,
+)
 from app.scoring.tiebreak import series_sums_fit_blocks
 
 HAND = {
@@ -49,6 +57,12 @@ class StatusOption(_Frozen):
     key: SeriesStatus
     label: str
     required_fields: list[str]
+    unscored_fields: list[str] = []
+    """Felder, die bei diesem Status erfasst sein dürfen und in den Rohwerten erhalten bleiben,
+    aber nicht gewertet werden – z. B. die gemessene Zeit bei „Abbruch durch den Schützen“
+    (es zählt `zeit_bei_abbruch_s`). Die Maske soll sie mitsenden, nicht verwerfen
+    (Ergebnisse werden nie überschrieben); der Rechenweg nennt sie („gemessene Zeit … wird
+    nicht gewertet“)."""
 
 
 class FieldSpec(_Frozen):
@@ -591,7 +605,16 @@ def _status_option(plan: SectionPlan, status: SeriesStatus, mode: CaptureMode) -
         fields = ["shots", "time_cs"]
     elif status in ABORTED and plan.standing:
         fields = ["standing"]
-    return StatusOption(key=status, label=STATUS_LABELS[status], required_fields=fields)
+    unscored: list[str] = []
+    if status in FIXED_TIME:
+        # Feste Serienzeit statt der gemessenen; bei Störung zählen auch stehende Scheiben nicht.
+        if plan.series_time:
+            unscored.append("time_cs")
+        if status == MALFUNCTION and plan.standing:
+            unscored.append("standing")
+    return StatusOption(
+        key=status, label=STATUS_LABELS[status], required_fields=fields, unscored_fields=unscored
+    )
 
 
 def _time_field(label: str, maximum_s: Decimal) -> FieldSpec:

@@ -156,11 +156,17 @@ def test_speed_form_offers_unfinished_status() -> None:
     assert status.kind == "choice"
     assert not status.required
     assert [o.model_dump() for o in status.options or []] == [
-        {"key": "normal", "label": "regulär", "required_fields": ["shots", "time_cs"]},
+        {
+            "key": "normal",
+            "label": "regulär",
+            "required_fields": ["shots", "time_cs"],
+            "unscored_fields": [],
+        },
         {
             "key": "unfinished",
             "label": "Serie nicht beendet",
             "required_fields": ["shots", "time_cs"],
+            "unscored_fields": [],
         },
     ]
     assert all(

@@ -96,7 +96,7 @@ async def form(
         competition_capture_mode=competition.capture_mode,
         form=description,
         current=state,
-        abort_preview=abort_preview(competition, state.raw, state.status),
+        abort_preview=abort_preview(competition, state.raw, state.status, state.abort_reason),
         derived_values=derived_values(description, state.raw, state.computed),
     )
 

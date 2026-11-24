@@ -9,7 +9,8 @@ Bei `starts.hooks` meldet sich das Modul viermal an: als Ergebnisprüfer (Starts
 lassen sich nicht stornieren oder mit ihrer Anmeldung löschen), als Abbruch-Handler (auch
 `POST …/starts/{id}/abort` schreibt das Ereignis `aborted`), als Fortschritt-Lieferant (die
 Sichten am Stand zeigen je Schützenstand, wie weit erfasst ist) und als Lieferant der
-Abbruch-Bemerkungen (`abort_remarks`).
+Abbruch-Bemerkungen (`abort_remarks`). Beim Start gleicht es einmal gespeicherte Stände reiner
+Trefferzählung an (`recompute.sync_hits_only_tens`: Zehner 0 → null).
 """
 
 from fastapi import FastAPI
@@ -18,7 +19,11 @@ from app.core.events import register_event_names
 from app.core.module import ModuleManifest
 from app.modules.ergebnisse import models  # noqa: F401  (registriert die Tabellen)
 from app.modules.ergebnisse.progress import lane_progress
-from app.modules.ergebnisse.recompute import on_definition_changed, recompute_competition
+from app.modules.ergebnisse.recompute import (
+    on_definition_changed,
+    recompute_competition,
+    sync_hits_only_tens_on_startup,
+)
 from app.modules.ergebnisse.router import (
     PERMISSION_CAPTURE,
     PERMISSION_CORRECT,
@@ -47,6 +52,8 @@ async def on_startup(app: FastAPI) -> None:
     start_hooks.register_abort_handler(abort_from_starts)
     start_hooks.register_progress_provider(lane_progress)
     start_hooks.register_abort_note_provider(abort_remarks)
+    # Einmaliger Abgleich: gespeicherte Stände reiner Trefferzählung ohne Zehner (0 → null).
+    await sync_hits_only_tens_on_startup(app.state.session_factory)
 
 
 async def on_shutdown(app: FastAPI) -> None:

@@ -282,7 +282,8 @@ def _winner_row(
         tied=row.tied,
         tie_unresolved=row.tie_unresolved,
         tie_reason=row.tie_reason,
-        tie_note=row.tie_note,
+        # Export: voller Wortlaut des Kriteriums (Spalte „Hinweis“).
+        tie_note=row.tie_note_long or row.tie_note,
         group=row.group,
         entry_id=row.entry_id,
         start_number=row.start_number,

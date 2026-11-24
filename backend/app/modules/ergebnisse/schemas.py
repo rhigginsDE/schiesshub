@@ -99,26 +99,70 @@ class ResultState(BaseModel):
 
 
 AbortPreviewCode = Literal[
-    "placed", "no_values", "incomplete_series", "no_rule", "missing_section_time", "invalid"
+    "placed",
+    "no_values",
+    "incomplete_series",
+    "missing_values",
+    "no_rule",
+    "missing_section_time",
+    "invalid",
+    "not_started",
+    "disqualified",
 ]
 
 
+class OpenSeriesItem(BaseModel):
+    """Eine gewertete Serie, die noch nicht vollständig erfasst ist."""
+
+    section_id: str
+    section_name: str
+    # Nummer der Serie im Abschnitt (wie `SeriesForm.number`).
+    series: int
+    # Pfad wie in der Maske (`SeriesForm.path`), z. B. „sections.parcours.series[2]“.
+    path: str
+    # not_shot: noch nichts erfasst; started: teilweise erfasst (oder nur der Serienstatus).
+    state: Literal["not_shot", "started"]
+
+
+class MissingField(BaseModel):
+    """Ein Pflichtwert, der in einer Serie mit gesetztem Serienstatus noch fehlt."""
+
+    # Pfad der Serie wie `SeriesForm.path`.
+    path: str
+    # Feldschlüssel wie `FieldSpec.key` (z. B. standing, time_cs, shots, sum).
+    key: str
+    # Name des Felds in der Maske („Stehende Scheiben“).
+    label: str
+
+
 class AbortPreview(BaseModel):
-    """Was ein Aufgeben jetzt (Abbruchgrund `dnf`) bewirken würde – gerechnet wie die Rangliste."""
+    """Was ein Aufgeben jetzt (Abbruchgrund `dnf`) bewirken würde – gerechnet wie die Rangliste.
+
+    Bei einem schon abgebrochenen Start: wie dieser Abbruch gewertet wird (bei `dnf` dieselbe
+    Rechnung; bei `dns`/`dsq` ohne Platz)."""
 
     would_place: bool
-    # placed: würde platziert; no_values: noch kein Wertungswert; incomplete_series: Serie nur
-    # teilweise erfasst; no_rule: keine Regel für nicht geschossene Serien; missing_section_time:
-    # Gesamtzeit eines Abschnitts fehlt; invalid: Rohwerte nicht wertbar.
+    # placed: würde platziert (bzw. kommt nach diesem Ergebnis in die Rangliste); no_values: noch
+    # kein Wertungswert; incomplete_series: Serie angefangen, ohne Serienstatus nicht wertbar;
+    # missing_values: Serienstatus gesetzt, aber Pflichtwerte fehlen (`missing_fields`);
+    # no_rule: keine Regel für nicht geschossene Serien; missing_section_time: Gesamtzeit eines
+    # Abschnitts fehlt; invalid: Rohwerte nicht wertbar; not_started: abgebrochen als „nicht
+    # angetreten“ (dns); disqualified: disqualifiziert (dsq).
     reason_code: AbortPreviewCode
     # Satz für die Bedienung mit den Wörtern des Verbands, z. B. „Würde nach dem bisherigen
     # Ergebnis platziert (250,00 s).“
     message_de: str
     # Nummern der gewerteten Serien, die noch nicht vollständig erfasst sind (über alle
-    # Abschnitte; bei mehreren Abschnitten kann eine Nummer mehrfach vorkommen).
+    # Abschnitte; bei mehreren Abschnitten kann eine Nummer mehrfach vorkommen). Eindeutig:
+    # `open_series_items`.
     open_series: list[int]
     # Ergebnis, nach dem platziert würde („250,00 s“); null ohne Platz.
     score_text: str | None
+    # Dieselben Serien wie `open_series` mit Abschnitt, Pfad und Stand.
+    open_series_items: list[OpenSeriesItem] = []
+    # Bei `missing_values` (auch neben `incomplete_series`): was in Serien mit gesetztem
+    # Serienstatus noch fehlt; sonst leer.
+    missing_fields: list[MissingField] = []
 
 
 class PreviewOut(BaseModel):
@@ -139,8 +183,8 @@ class PreviewOut(BaseModel):
     # Wertung mit Rechenweg; null, solange `errors` nicht leer ist.
     computed: ComputedResult | None
     score: Decimal | None
-    # Würde ein Aufgeben mit diesen Rohwerten platziert? null, wenn sich der Start nicht (mehr)
-    # abbrechen lässt (abgeschlossen oder schon abgebrochen).
+    # Würde ein Aufgeben mit diesen Rohwerten platziert? Bei einem abgebrochenen Start: wie er
+    # mit diesen Rohwerten gewertet würde (Vorschau einer Korrektur). null bei abgeschlossenen.
     abort_preview: AbortPreview | None = None
 
 
@@ -199,8 +243,8 @@ class FormOut(BaseModel):
     competition_capture_mode: CaptureMode
     form: FormDescription
     current: ResultState
-    # Würde ein Aufgeben jetzt platziert (aktuelle Rohwerte)? null bei abgeschlossenen oder
-    # abgebrochenen Starts.
+    # Würde ein Aufgeben jetzt platziert (aktuelle Rohwerte)? Bei abgebrochenen Starts: wie
+    # dieser Abbruch gewertet wird. null bei abgeschlossenen Starts.
     abort_preview: AbortPreview | None = None
     # Nur in der Seriensumme: Feldwerte, die aus erfassten Einzelwerten folgen (Seriensumme,
     # Zehner, Innenzehner, Treffer je Serie). Leer in der Einzelschuss-Maske.
@@ -289,8 +333,13 @@ class RankingRow(BaseModel):
     tie_criterion: str | None = None
     needs_shootoff: bool = False
     # Hinweis zum Anzeigen mit dem Wort des Verbands, z. B. „Ringgleichheit auf Platz 2:
-    # Stechen“, „Höchstergebnis: gleicher Platz“; Kriterien im Klartext.
+    # Stechen“, „Höchstergebnis: gleicher Platz“; Kriterien im Kurztext für den Bildschirm
+    # („Ringgleichheit, entschieden nach: letzte Zehnerserie“).
     tie_note: str | None = None
+    # Derselbe Hinweis mit dem vollen Wortlaut des Kriteriums („…, entschieden nach: letzte
+    # Zehnerserie, dann rückwärts in 10-Schuss-Serien (Wurfscheibe: je Serie)“); für Listen
+    # zum Nachlesen und den Export (Spalte „Hinweis“). null wie `tie_note`.
+    tie_note_long: str | None = None
     # ranked: regulär; last: unvollständig (live), hinten; unranked: ohne Platz (abgebrochen,
     # unvollständig in einer endgültigen Liste, prüfen).
     group: Literal["ranked", "last", "unranked"]

@@ -25,6 +25,7 @@ from app.scoring import (
     Issue,
     compute,
     compute_aborted,
+    load_definition,
     rank_key,
     validate_raw,
 )
@@ -207,6 +208,55 @@ def evaluate_aborted(
         labels = outcome.unshot if outcome.reason == "no_rule" else outcome.incomplete
         return AbortedEvaluation(has_values=True, reason=outcome.reason, labels=tuple(labels))
     return AbortedEvaluation(has_values=True, computed=outcome.computed, rank_keys=keys)
+
+
+def hits_only_of(stored_definition: Mapping[str, Any]) -> bool:
+    """Zählen alle Abschnitte nur Treffer (`Definition.hits_only`)? False, wenn die Wertung die
+    Definition nicht lesen kann."""
+    try:
+        return load_definition(scoring_definition(stored_definition)).hits_only
+    except DefinitionError, KeyError, TypeError:
+        return False
+
+
+def without_tens(computed: Mapping[str, Any]) -> dict[str, Any]:
+    """Gespeicherter Stand ohne Zehner/Innenzehner (gesamt und je Serie): Reine Trefferzählung
+    kennt keine Zehner; ältere Stände hatten hier 0 statt null."""
+    result = dict(computed)
+    result["tens"] = result["inner_tens"] = None
+    sections = result.get("sections")
+    if isinstance(sections, list):
+        result["sections"] = [
+            {
+                **section,
+                "series": [
+                    {**series, "tens": None, "inner_tens": None}
+                    if isinstance(series, Mapping)
+                    else series
+                    for series in section.get("series") or []
+                ],
+            }
+            if isinstance(section, Mapping)
+            else section
+            for section in sections
+        ]
+    return result
+
+
+def has_stale_tens(computed: Mapping[str, Any] | None, *, series: bool = True) -> bool:
+    """Enthält ein gespeicherter Stand Zehner/Innenzehner (gesamt oder, mit `series`, je
+    Serie)?"""
+    if not computed:
+        return False
+    if computed.get("tens") is not None or computed.get("inner_tens") is not None:
+        return True
+    return series and any(
+        isinstance(series, Mapping)
+        and (series.get("tens") is not None or series.get("inner_tens") is not None)
+        for section in computed.get("sections") or []
+        if isinstance(section, Mapping)
+        for series in section.get("series") or []
+    )
 
 
 # --- Verlauf -------------------------------------------------------------------

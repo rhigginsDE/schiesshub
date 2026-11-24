@@ -103,8 +103,8 @@ async def _may_capture(request: Request) -> bool:
         "Zwischenstand. `capture_mode` wählt nur die Darstellung (Einzelschuss oder "
         "Seriensumme); ohne Angabe gilt die des Wettbewerbs. Rohwerte dürfen beides enthalten "
         "und werden gleich gewertet. `abort_preview`: ob ein Aufgeben jetzt (dnf) platziert "
-        "würde, gerechnet wie die Rangliste (null bei abgeschlossenen und abgebrochenen "
-        "Starts)."
+        "würde, gerechnet wie die Rangliste; bei abgebrochenen Starts, wie dieser Abbruch "
+        "gewertet wird (null bei abgeschlossenen Starts)."
     ),
     responses=WRITE,
 )
@@ -167,7 +167,8 @@ async def put_raw(
         "Validierungsfehler und berechneten Stand, speichert aber nichts (kein Ereignis, kein "
         "Statuswechsel). `errors`: Fehler, die auch `PUT …/raw` meldete; `finalize_errors`: was "
         "zum Abschließen oder Korrigieren fehlt; `abort_preview`: ob ein Aufgeben mit diesen "
-        "Rohwerten platziert würde. Für „Korrigieren“ und Eingaben, die erst später "
+        "Rohwerten platziert würde (bei abgebrochenen Starts: wie die Korrektur gewertet "
+        "würde). Für „Korrigieren“ und Eingaben, die erst später "
         "gespeichert werden."
     ),
     responses=WRITE,

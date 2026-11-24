@@ -47,7 +47,9 @@ def test_document_terms_common_or_standard() -> None:
 
 
 def test_tie_notes_use_plain_criterion_text() -> None:
-    note = begriffe.tie_note("manual", "trefferfolge_rueckwaerts", 1, "Treffergleichheit")
+    note = begriffe.tie_note(
+        "manual", "trefferfolge_rueckwaerts", 1, "Treffergleichheit", long=True
+    )
     assert note == (
         "Treffergleichheit: nach Sportordnung manuell entscheiden (nächstes Kriterium: "
         "Trefferfolge ab der letzten Scheibe rückwärts bis zum ersten Fehler)"

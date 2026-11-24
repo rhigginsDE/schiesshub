@@ -201,14 +201,15 @@ def _row(
     placement: Placement | None,
     tie_word: str = begriffe.NEUTRAL_TIE,
     terms: Begriffe | None = None,
+    hits_only: bool = False,
 ) -> RankingRow:
     computed = candidate.computed
     person = candidate.person
-    tie_note = (
-        begriffe.tie_note(placement.tie_reason, placement.tie_criterion, placement.place, tie_word)
-        if placement is not None and placement.tie_note is not None
-        else None
-    )
+    tie_note = tie_note_long = None
+    if placement is not None and placement.tie_note is not None:
+        args = (placement.tie_reason, placement.tie_criterion, placement.place, tie_word)
+        tie_note = begriffe.tie_note(*args, hits_only=hits_only)
+        tie_note_long = begriffe.tie_note(*args, long=True)
     return RankingRow(
         place=placement.place if placement is not None else None,
         tied=placement.tied if placement is not None else False,
@@ -217,6 +218,7 @@ def _row(
         tie_criterion=placement.tie_criterion if placement is not None else None,
         needs_shootoff=placement.needs_shootoff if placement is not None else False,
         tie_note=tie_note,
+        tie_note_long=tie_note_long,
         group=placement.group if placement is not None else "unranked",
         start_id=candidate.start.id,
         entry_id=candidate.entry.id,
@@ -386,6 +388,7 @@ async def _ranking(
     rules = tie_rules(defn) if defn is not None else None
     terms = begriffe.terms_for(competition.catalog_federation)
     word = _tie_word(competition, defn, terms)
+    hits_only = defn is not None and defn.hits_only
 
     # Gruppen gibt es für jede Klasse mit Starts, auch wenn noch kein Ergebnis zählt.
     def group_of(candidate: Candidate) -> uuid.UUID | None:
@@ -416,7 +419,7 @@ async def _ranking(
     )
     for group_key in order:
         members = grouped.get(group_key, [])
-        rows = _rank_group(members, rule, policy, rules, word, terms)
+        rows = _rank_group(members, rule, policy, rules, word, terms, hits_only)
         if competition.combined_ranking and class_id is not None:
             rows = [row for row in rows if row.class_id == class_id]
         group_class = classes.get(group_key) if group_key is not None else None
@@ -481,6 +484,7 @@ def _rank_group(
     rules: TieRules | None = None,
     tie_word: str = begriffe.NEUTRAL_TIE,
     terms: Begriffe | None = None,
+    hits_only: bool = False,
 ) -> list[RankingRow]:
     rankable = [c for c in members if c.rankable]
     unrankable = [c for c in members if not c.rankable]
@@ -494,7 +498,9 @@ def _rank_group(
         if lengths and lengths != {1 + len(rules.slots)}:
             rules = None
     placements = rank(contenders, policy, rules)
-    rows = [_row(by_id[placement.id], placement, tie_word, terms) for placement in placements]
+    rows = [
+        _row(by_id[placement.id], placement, tie_word, terms, hits_only) for placement in placements
+    ]
     # Nach einer Änderung der Wertung nicht wertbar: ohne Platz, zum Prüfen – vor den
     # Abgebrochenen ohne Platz, die immer am Ende stehen.
     cut = next(

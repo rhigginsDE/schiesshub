@@ -189,6 +189,17 @@ async def test_abort_preview_in_form_and_preview(api: Api, fallscheibe: Setup) -
         "message_de": "Noch kein Wertungsschuss erfasst: Abbruch (AB) ohne Platz.",
         "open_series": [1, 2, 3, 4],
         "score_text": None,
+        "open_series_items": [
+            {
+                "section_id": "fallscheibe",
+                "section_name": form["form"]["sections"][0]["name"],
+                "series": number,
+                "path": f"sections.fallscheibe.series[{number - 1}]",
+                "state": "not_shot",
+            }
+            for number in (1, 2, 3, 4)
+        ],
+        "missing_fields": [],
     }
 
     await api.shoot(tid, sid, falls(serie(15), serie(15)), final=False)
@@ -215,15 +226,23 @@ async def test_abort_preview_in_form_and_preview(api: Api, fallscheibe: Setup) -
         ),
         "open_series": [3, 4],
         "score_text": None,
+        "open_series_items": [
+            {**item, "state": "started" if item["series"] == 3 else "not_shot"}
+            for item in preview["open_series_items"]
+        ],
+        "missing_fields": [],
     }
 
     # Dieselbe Rechnung wie die Rangliste: aufgegeben → Platz mit 250,00 s.
     await api.ok("POST", f"{path}/result/abort", json={"abort_reason": "dnf"})
     (row,) = (await api.ranking(tid, fallscheibe.cid))["groups"][0]["rows"]
     assert (row["place"], row["score_text"]) == (1, preview["score_text"])
-    # Abgebrochen: keine Auskunft mehr.
+    # Abgebrochen: Auskunft, wie dieser Abbruch gewertet wird.
     form = await api.ok("GET", f"{path}/form")
-    assert form["abort_preview"] is None
+    assert form["abort_preview"]["reason_code"] == "placed"
+    assert form["abort_preview"]["message_de"].startswith(
+        "Abbruch (AB): kommt nach dem bisherigen Ergebnis in die Rangliste (250,00 s)."
+    )
 
 
 async def test_abort_preview_rings_counts_unshot_as_zero(api: Api, precision: Setup) -> None:

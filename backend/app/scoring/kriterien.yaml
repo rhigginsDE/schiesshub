@@ -1,9 +1,15 @@
 # Klartext der Gleichstandskriterien (`wertung.gleichstand`) für Hinweise in Listen, Anzeige und
 # Eingabemaske („nächstes Kriterium: Trefferfolge ab der letzten Scheibe rückwärts …“).
 #
-# Schlüssel = Kriterien-ID wie im Katalog. Jede ID, die in `catalog/` vorkommt, braucht hier einen
-# Text (Test: `tests/scoring/test_criteria_texts.py`). Unbekannte IDs zeigt die App lesbar
-# gemacht (Unterstriche → Leerzeichen).
+# Schlüssel = Kriterien-ID wie im Katalog. Jede ID, die in `catalog/` vorkommt, braucht hier
+# beide Texte (Tests: `tests/scoring/test_criteria_texts.py`, `test_catalog_external.py`):
+#
+# - `lang`: voller Wortlaut (Rangliste `tie_note_long`, Export-Spalte „Hinweis“, Eingabemaske).
+# - `kurz`: für den Bildschirm (`tie_note`, Anzeige), z. B. „Ringgleichheit, entschieden nach:
+#   letzte Zehnerserie“. Wendet die Wertung ein Kriterium je nach Disziplin verschieden an, steht
+#   je Fall ein Text: `standard` und `treffer` (alle Abschnitte zählen nur Treffer, Wurfscheibe).
+#
+# Unbekannte IDs zeigt die App lesbar gemacht (Unterstriche → Leerzeichen).
 #
 # Wortlaut: DSB-Sportordnung (Stand 01.01.2027) nach `schiesshub-intern/Business/Recherche/
 # dsb-begriffe.md` bzw. den Kommentaren der Katalogdateien (Fundstelle je Zeile); BDS nach
@@ -12,48 +18,99 @@
 
 kriterien:
   # Ringwertung allgemein (DSB 0.12.1 Nr. 2 und 3; BDS A 9.03)
-  zehner: "Anzahl der Zehner"
-  innenzehner: "Anzahl der Innenzehner"
+  zehner:
+    lang: "Anzahl der Zehner"
+    kurz: "Anzahl der Zehner"
+  innenzehner:
+    lang: "Anzahl der Innenzehner"
+    kurz: "Anzahl der Innenzehner"
   # DSB 0.12.1 Nr. 2: „Zahl der 10er, 9er, 8er usw.“
-  neuner_abwaerts: "Anzahl der Neuner, Achter, Siebener usw."
+  neuner_abwaerts:
+    lang: "Anzahl der Neuner, Achter, Siebener usw."
+    kurz: "Anzahl der Neuner, Achter usw."
   # BDS L 11.04, L 12.04 (Mehrdistanz): Durchgangszeit entscheidet
-  parcours_zeit: "kürzere Durchgangszeit"
+  parcours_zeit:
+    lang: "kürzere Durchgangszeit"
+    kurz: "kürzere Durchgangszeit"
   # DSB 0.12.1 Nr. 1, 9.4.1: letzte Zehnerserie, dann in 10-Schuss-Serien zurück; Flinte 3.9.1.2:
-  # letzte Serie (25 Wurfscheiben) rückwärts
-  letzte_serie_rueckwaerts: "letzte Zehnerserie, dann rückwärts in 10-Schuss-Serien (Wurfscheibe: je Serie)"
+  # letzte Serie (25 Wurfscheiben) rückwärts. Welche Regel gilt, entscheidet die Wertung
+  # (`tiebreak.py`): reine Trefferzählung → je Serie.
+  letzte_serie_rueckwaerts:
+    lang: "letzte Zehnerserie, dann rückwärts in 10-Schuss-Serien (Wurfscheibe: je Serie)"
+    kurz:
+      standard: "letzte Zehnerserie"
+      treffer: "letzte Serie"
   # DSB 5.10.1: Schusswerte vom Ende zum Anfang
-  schuesse_rueckwaerts: "Schusswerte vom letzten Schuss rückwärts"
+  schuesse_rueckwaerts:
+    lang: "Schusswerte vom letzten Schuss rückwärts"
+    kurz: "Schusswerte rückwärts"
   # DSB 4.6.1.1: höheres Ergebnis im Schnelllauf bzw. im 2. Durchgang
-  ergebnis_zweite_haelfte: "höheres Ergebnis der zweiten Hälfte (Schnelllauf bzw. 2. Durchgang)"
+  ergebnis_zweite_haelfte:
+    lang: "höheres Ergebnis der zweiten Hälfte (Schnelllauf bzw. 2. Durchgang)"
+    kurz: "Ergebnis der zweiten Hälfte"
   # DSB 5.14.2.2
-  mehr_treffer: "mehr Treffer"
+  mehr_treffer:
+    lang: "mehr Treffer"
+    kurz: "mehr Treffer"
   # DSB 9.4.1: Gesamtergebnis in Zehnteln
-  zehntel_gesamt: "Gesamtergebnis in Zehnteln"
+  zehntel_gesamt:
+    lang: "Gesamtergebnis in Zehnteln"
+    kurz: "Gesamtergebnis in Zehnteln"
   # DSB 6.7.8.6 (Bogen 3D)
-  elfer: "Anzahl der Elfer"
+  elfer:
+    lang: "Anzahl der Elfer"
+    kurz: "Anzahl der Elfer"
   # DSB 6.4.3.1.1 (Bogen Halle)
-  neuner: "Anzahl der Neuner"
+  neuner:
+    lang: "Anzahl der Neuner"
+    kurz: "Anzahl der Neuner"
   # DSB 6.6.7.6 (Bogen Feld)
-  sechser: "Anzahl der Sechser"
-  fuenfer: "Anzahl der Fünfer"
+  sechser:
+    lang: "Anzahl der Sechser"
+    kurz: "Anzahl der Sechser"
+  fuenfer:
+    lang: "Anzahl der Fünfer"
+    kurz: "Anzahl der Fünfer"
   # DSB 2.9, 3.9.1.1, 4.6.1 u. a.
-  stechen: "Stechen"
+  stechen:
+    lang: "Stechen"
+    kurz: "Stechen"
   # DSB 5.10.1 (Armbrust national)
-  abstand_letzter_schuss: "Abstand des letzten Schusses vom Zentrum"
+  abstand_letzter_schuss:
+    lang: "Abstand des letzten Schusses vom Zentrum"
+    kurz: "Abstand letzter Schuss"
   # DSB 5.11.4 (Armbrust national, Stern)
-  abstand_letzter_treffer: "Abstand des letzten Treffers vom Plattlmittelpunkt"
+  abstand_letzter_treffer:
+    lang: "Abstand des letzten Treffers vom Plattlmittelpunkt"
+    kurz: "Abstand letzter Treffer"
   # DSB 5.12.1.1 (Armbrust national, Kombination)
-  besseres_teilergebnis_scheibe: "besseres Scheibenergebnis"
+  besseres_teilergebnis_scheibe:
+    lang: "besseres Scheibenergebnis"
+    kurz: "besseres Scheibenergebnis"
   # DSB 5.11.4: ab Platz 4 ist ein Fehlschuss in einer späteren Runde besser
-  fehlschuss_spaeter: "Fehlschuss in einer späteren Runde"
+  fehlschuss_spaeter:
+    lang: "Fehlschuss in einer späteren Runde"
+    kurz: "späterer Fehlschuss"
   # DSB 7.7.5.1 (Vorderlader)
-  geringste_abweichung_aeusserster_schuss: "geringste Abweichung des am weitesten vom Zentrum liegenden Schusses"
+  geringste_abweichung_aeusserster_schuss:
+    lang: "geringste Abweichung des am weitesten vom Zentrum liegenden Schusses"
+    kurz: "äußerster Schuss"
   # DSB 5.10.1
-  innensechser: "Anzahl der Innensechser"
-  mouchen: "Anzahl der Mouchen"
+  innensechser:
+    lang: "Anzahl der Innensechser"
+    kurz: "Anzahl der Innensechser"
+  mouchen:
+    lang: "Anzahl der Mouchen"
+    kurz: "Anzahl der Mouchen"
   # DSB 4.6.1.1: wer den niedrigsten Schusswert hat, wird nachgestellt
-  niedrigste_schusswerte: "niedrigste Schusswerte (wer den niedrigsten hat, wird nachgestellt)"
+  niedrigste_schusswerte:
+    lang: "niedrigste Schusswerte (wer den niedrigsten hat, wird nachgestellt)"
+    kurz: "niedrigste Schusswerte"
   # DSB 3.9.1.2 (Flinte)
-  trefferfolge_rueckwaerts: "Trefferfolge ab der letzten Scheibe rückwärts bis zum ersten Fehler"
+  trefferfolge_rueckwaerts:
+    lang: "Trefferfolge ab der letzten Scheibe rückwärts bis zum ersten Fehler"
+    kurz: "Trefferfolge rückwärts"
   # DSB 5.10.1: wer mehr schlechte Schusswerte hat, wird nachgestellt
-  weniger_schlechte_schuesse: "weniger schlechte Schusswerte"
+  weniger_schlechte_schuesse:
+    lang: "weniger schlechte Schusswerte"
+    kurz: "weniger schlechte Schusswerte"

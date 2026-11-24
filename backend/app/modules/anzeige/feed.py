@@ -283,6 +283,7 @@ def _rank_row(context: Context, row: RankingRow) -> FeedRankRow:
         tie_criterion=row.tie_criterion,
         tie_unresolved=row.tie_unresolved,
         tie_note=row.tie_note,
+        tie_note_long=row.tie_note_long,
         abort_label=row.abort_label,
         abort_note=row.abort_note,
     )

@@ -32,7 +32,15 @@ from app.modules.auth.audit import record_audit
 from app.modules.ergebnisse import journal
 from app.modules.ergebnisse.abort_preview import abort_preview
 from app.modules.ergebnisse.models import ResultCurrent, ResultEvent
-from app.modules.ergebnisse.rules import Evaluation, evaluate, request_hash, scoring_definition
+from app.modules.ergebnisse.rules import (
+    Evaluation,
+    evaluate,
+    has_stale_tens,
+    hits_only_of,
+    request_hash,
+    scoring_definition,
+    without_tens,
+)
 from app.modules.ergebnisse.schemas import PreviewOut, ResultState
 from app.modules.starts.common import (
     ConflictError,
@@ -177,7 +185,7 @@ def state_of(loaded: Loaded, now: datetime) -> ResultState:
         abort_reason=start.abort_reason,
         seq=current.last_seq,
         raw=current.raw,
-        computed=current.computed,
+        computed=_stored_computed(loaded),
         score=current.score,
         is_final=current.is_final,
         finalized_at=current.finalized_at,
@@ -187,6 +195,20 @@ def state_of(loaded: Loaded, now: datetime) -> ResultState:
         review_reason=current.review_reason,
         definition_revision=current.definition_revision,
     )
+
+
+def _stored_computed(loaded: Loaded) -> dict[str, Any] | None:
+    """Gespeicherter Stand wie die Rangliste ihn zeigt: bei reiner Trefferzählung ohne Zehner
+    (ältere Stände hatten 0; `recompute.sync_hits_only_tens` gleicht sie beim Start an)."""
+    assert loaded.current is not None
+    computed = loaded.current.computed
+    if (
+        computed is not None
+        and has_stale_tens(computed)
+        and hits_only_of(loaded.competition.definition)
+    ):
+        return without_tens(computed)
+    return computed
 
 
 async def server_now(session: AsyncSession) -> datetime:
@@ -279,7 +301,9 @@ async def preview(
         finalize_errors=raw_issues(full).errors,
         computed=evaluation.computed if evaluation is not None else None,
         score=evaluation.score if evaluation is not None else None,
-        abort_preview=abort_preview(loaded.competition, raw, loaded.start.status),
+        abort_preview=abort_preview(
+            loaded.competition, raw, loaded.start.status, loaded.start.abort_reason
+        ),
     )
 
 

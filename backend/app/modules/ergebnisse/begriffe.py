@@ -21,7 +21,7 @@ DSB: `dsb.yaml` (Ergebnisgleichheit 0.12, Treffergleichheit 3.45.6 Flinte).
 from collections.abc import Iterable, Sequence
 
 from app.core.begriffe import Begriffe, begriffe_fuer
-from app.scoring.criteria import criterion_text
+from app.scoring.criteria import criterion_short, criterion_text
 from app.scoring.ranking import MAX_SCORE_NOTE
 
 ABORT_FALLBACK = "abgebrochen"
@@ -97,25 +97,35 @@ def tie_word(
     return NEUTRAL_TIE
 
 
-def tie_note(reason: str | None, criterion: str | None, place: int | None, word: str) -> str | None:
+def tie_note(
+    reason: str | None,
+    criterion: str | None,
+    place: int | None,
+    word: str,
+    *,
+    long: bool = False,
+    hits_only: bool = False,
+) -> str | None:
     """Hinweis zu einem geteilten Platz für Listen und Anzeige; Kriterien im Klartext.
 
+    Standard ist die Kurzfassung für den Bildschirm (`tie_note`, Kurztext des Kriteriums passend
+    zur Anwendung, `hits_only`: reine Trefferzählung); `long=True` der volle Wortlaut
+    (`tie_note_long`, Export).
+
     `resolved`: im Ergebnis gleich, durch die Gleichstandskette entschieden („Ringgleichheit,
-    entschieden nach: Anzahl der Zehner“)."""
+    entschieden nach: letzte Zehnerserie“)."""
+    text = criterion_text(criterion) if long else criterion_short(criterion, hits_only=hits_only)
     match reason:
         case "resolved":
-            return f"{word}, entschieden nach: {criterion_text(criterion)}"
+            return f"{word}, entschieden nach: {text}"
         case "max_score":
             return MAX_SCORE_NOTE
         case "shootoff":
             return f"{word} auf Platz {place}: Stechen"
         case "manual":
-            return (
-                f"{word}: nach Sportordnung manuell entscheiden "
-                f"(nächstes Kriterium: {criterion_text(criterion)})"
-            )
+            return f"{word}: nach Sportordnung manuell entscheiden (nächstes Kriterium: {text})"
         case "missing_data":
-            detail = f" für „{criterion_text(criterion)}“" if criterion else ""
+            detail = f" für „{text}“" if criterion else ""
             return (
                 f"{word} nicht auflösbar: Angaben{detail} fehlen (z. B. Seriensumme statt "
                 "Einzelschüssen); nach Sportordnung manuell entscheiden"

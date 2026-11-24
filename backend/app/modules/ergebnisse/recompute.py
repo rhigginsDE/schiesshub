@@ -7,13 +7,17 @@
   Änderung (siehe `on_definition_changed`);
 - von Hand über `POST /tournaments/{tid}/competitions/{cid}/recompute`;
 - beim Lesen, wenn ein Stand noch mit einer älteren Revision gerechnet ist
-  (`ensure_current`), etwa wenn eine Erfassung gleichzeitig mit einer Änderung lief.
+  (`ensure_current`), etwa wenn eine Erfassung gleichzeitig mit einer Änderung lief;
+- einmalig beim Start des Moduls für Wettbewerbe mit reiner Trefferzählung, deren gespeicherte
+  Stände noch Zehner (0) tragen (`sync_hits_only_tens`; ältere Versionen der Wertung). Danach
+  findet die Prüfung nichts mehr: idempotent.
 
 Rohwerte gehen dabei nie verloren: Sie kommen aus den Ereignissen, gestrichene Serien bleiben in
 `raw`. Abgeschlossene Ergebnisse, die nach der neuen Definition unvollständig sind oder sich
 nicht werten lassen, bleiben abgeschlossen und werden als „prüfen“ markiert (`needs_review`).
 """
 
+import logging
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass
@@ -21,13 +25,24 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.db import SessionFactory
 from app.core.security import Actor
 from app.modules.auth.audit import record_audit
 from app.modules.ergebnisse.models import ResultCurrent, ResultEvent
-from app.modules.ergebnisse.rules import EventRecord, evaluate, replay, scoring_definition
+from app.modules.ergebnisse.rules import (
+    EventRecord,
+    evaluate,
+    has_stale_tens,
+    hits_only_of,
+    replay,
+    scoring_definition,
+)
 from app.modules.ergebnisse.service import apply_evaluation
 from app.modules.starts.models import Start
 from app.modules.turnier.models import Competition
+
+logger = logging.getLogger("schiesshub.ergebnisse")
+TRIGGER_HITS_ONLY = "hits_only_tens"
 
 
 @dataclass(frozen=True, slots=True)
@@ -134,3 +149,60 @@ async def ensure_current(session: AsyncSession, competition: Competition) -> boo
     await recompute_competition(session, competition.id, Actor(), trigger="stale")
     await session.commit()
     return True
+
+
+@dataclass(frozen=True, slots=True)
+class HitsOnlySync:
+    competition_ids: list[uuid.UUID]
+    recomputed: int
+    needs_review: int
+
+
+async def sync_hits_only_tens(session: AsyncSession) -> HitsOnlySync | None:
+    """Rechnet Wettbewerbe mit reiner Trefferzählung neu, deren gespeicherte Stände noch Zehner
+    tragen (früher 0, heute null); bestätigt nicht. None, wenn nichts zu tun war."""
+    rows = await session.execute(
+        select(ResultCurrent.competition_id, ResultCurrent.computed).where(
+            ResultCurrent.computed.is_not(None)
+        )
+    )
+    # Nur die Gesamtzahl: Sie ist nach dem Neurechnen bei Trefferzählung immer null (idempotent).
+    candidates = {cid for cid, computed in rows if has_stale_tens(computed, series=False)}
+    competitions = [
+        competition
+        for competition in await session.scalars(
+            select(Competition).where(Competition.id.in_(candidates))
+        )
+        if hits_only_of(competition.definition)
+    ]
+    if not competitions:
+        return None
+    recomputed = review = 0
+    competitions.sort(key=lambda item: str(item.id))
+    for competition in competitions:
+        result = await recompute_competition(
+            session, competition.id, Actor(), trigger=TRIGGER_HITS_ONLY
+        )
+        recomputed += result.recomputed
+        review += result.needs_review
+    return HitsOnlySync([c.id for c in competitions], recomputed, review)
+
+
+async def sync_hits_only_tens_on_startup(session_factory: SessionFactory) -> None:
+    """Einmaliger Abgleich beim Start (`sync_hits_only_tens`); ein Fehler hält den Start nicht
+    auf (die Rangliste und `GET …/form` zeigen die Zehner ohnehin als null)."""
+    try:
+        async with session_factory() as session:
+            result = await sync_hits_only_tens(session)
+            await session.commit()
+    except Exception:
+        logger.exception("Abgleich der Trefferzählung (Zehner → null) fehlgeschlagen.")
+        return
+    if result is not None:
+        logger.info(
+            "Trefferzählung: %d Wettbewerb(e) neu gerechnet, %d Starts (gespeicherte Zehner "
+            "0 → null), %d zum Prüfen.",
+            len(result.competition_ids),
+            result.recomputed,
+            result.needs_review,
+        )
