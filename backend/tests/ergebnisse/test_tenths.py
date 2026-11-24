@@ -93,6 +93,7 @@ async def test_tenths_full_path(api: Api) -> None:
     assert events[2]["changes"] == [
         {
             "path": "sections.lg.series[1].shots",
+            "label": "Serie 2 · Schüsse",
             "before": [10.0, "9.9"],
             "after": [10.0, "10,1"],
         }

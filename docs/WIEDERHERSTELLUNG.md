@@ -42,7 +42,8 @@ nur auslösen („Jetzt sichern“), nicht einrichten und nicht wiederherstellen
    Liegt dieselbe Sicherung an mehreren Orten (Server, Stick, „vor Wiederherstellung“), steht sie
    nur einmal da. Gewählt wird dann die Kopie vom Stick, weil nur sie die Schlüssel enthält;
    `locations` nennt alle Orte, `other_ids` die Kennungen der übrigen Kopien (etwa die vom Server,
-   die ohne Sicherungspasswort lesbar ist).
+   die ohne Sicherungspasswort lesbar ist); `other_sources` dieselben Kopien mit Ort und ob sie
+   ein Passwort brauchen (`needs_passphrase`) bzw. Schlüssel enthalten (`contains_keys`).
 2. **Prüfen lassen.** Für Sicherungen vom Stick das Sicherungspasswort eingeben. Die App prüft
    Prüfsumme und Passwort und zeigt eine Vorschau:
    - Zeitpunkt der Sicherung, App-Version und Datenbank-Stand. Eine ältere Sicherung wird nach dem
@@ -96,7 +97,7 @@ in `message_de` dürfen sich ändern, die Kennungen nicht):
 | Problem | `restore_running` | es läuft schon eine Wiederherstellung |
 | Hinweis | `no_file_checksum` | Datei ohne Prüfsumme, geprüft wurde die Datenbank darin |
 | Hinweis | `server_copy_without_keys` | Sicherung vom Server, es gelten die Schlüssel des Servers |
-| Hinweis | `other_app_version` | Sicherung von einer anderen App-Version |
+| Hinweis | `other_app_version` | Sicherung von einer anderen App-Version; die Nummern stehen in `app_version` und `app_version_current` (Vorschau und Ergebnis) |
 | Hinweis (Ergebnis) | `module_restart_failed` | ein Modul startete nicht neu, Server neu starten |
 | Hinweis (Ergebnis) | `after_backup_failed` | Sicherung des neuen Stands fehlgeschlagen |
 | Zugang | `enforcement_off` | Berechtigungsprüfung aus, Zugang bleibt |

@@ -98,6 +98,7 @@ async def test_fallscheibe_full_path(api: Api, fallscheibe: Setup) -> None:
     assert [e["type"] for e in events] == ["raw_set", "raw_set", "finalized"]
     assert events[0]["changes"][0] == {
         "path": "sections.fallscheibe.series[0].standing",
+        "label": "Serie 1 · Stehende Scheiben",
         "before": None,
         "after": 1,
     }
@@ -326,7 +327,12 @@ async def test_correct_needs_reason_and_stays_final(api: Api, precision: Setup) 
     assert events[-1]["type"] == "corrected"
     assert events[-1]["reason"] == "Zählfehler Serie 2"
     assert events[-1]["changes"] == [
-        {"path": "sections.praezision.series[1].shots", "before": [9] * 5, "after": [9, 9, 9, 9, 8]}
+        {
+            "path": "sections.praezision.series[1].shots",
+            "label": "Serie 2 · Schüsse",
+            "before": [9] * 5,
+            "after": [9, 9, 9, 9, 8],
+        }
     ]
 
 

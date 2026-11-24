@@ -129,6 +129,44 @@ class _Hints:
         return [item.text for item in self.items]
 
 
+NoteKind = Literal[
+    "tenths",
+    "tie_break_series_sum",
+    "tens_optional",
+    "competition_time_total",
+    "max_score",
+    "shootoff",
+    "tie_break_manual",
+]
+
+
+class NoteItem(_Frozen):
+    """Hinweis zur ganzen Maske mit Art (`FormDescription.note_items`).
+
+    `tenths` (Zehntelwertung), `tie_break_series_sum` (ein Gleichstandskriterium lässt sich aus
+    Seriensummen nicht rechnen), `tens_optional` (Zehner/Innenzehner freiwillig, aber für den
+    Gleichstand gebraucht), `competition_time_total` (gemeinsame Wettkampfzeit), `max_score`
+    (Höchstergebnis: gleicher Platz), `shootoff` (Stechen bis Platz N), `tie_break_manual`
+    (ab einem Kriterium entscheidet ein Mensch)."""
+
+    kind: NoteKind
+    text: str
+
+
+class _Notes:
+    """Sammelt Hinweise der Maske als Text (`notes`) und mit Art (`note_items`)."""
+
+    def __init__(self) -> None:
+        self.items: list[NoteItem] = []
+
+    def add(self, kind: NoteKind, text: str) -> None:
+        self.items.append(NoteItem(kind=kind, text=text))
+
+    @property
+    def texts(self) -> list[str]:
+        return [item.text for item in self.items]
+
+
 class StanceForm(_Frozen):
     haltung: str
     hand: str | None
@@ -216,6 +254,8 @@ class FormDescription(_Frozen):
     series_expected: int
     max_rings: Decimal | int | None
     notes: list[str]
+    note_items: list[NoteItem] = []
+    """Dieselben Hinweise wie `notes` (gleiche Reihenfolge), mit Art (`NoteItem.kind`)."""
     ring_decimals: int = 0
     """Nachkommastellen der Ringwerte (1 bei Zehntelwertung)."""
     competition_time_total_s: Decimal | None = None
@@ -234,51 +274,61 @@ def describe_form(definition: Mapping[str, Any] | Definition, capture_mode: str)
     sections = [_section_form(defn, plan, mode) for plan in defn.sections]
     ring_sections = [plan for plan in defn.sections if plan.rings]
     evaluated, manual_from = defn.tie_chain
-    notes = []
+    notes = _Notes()
     if defn.tenths and ring_sections:
-        notes.append(
+        notes.add(
+            "tenths",
             "Zehntelwertung: je Schuss 0 oder 1,0 bis 10,9 (Komma oder Punkt); Zehner sind alle "
-            "Schüsse ab 10,0."
+            "Schüsse ab 10,0.",
         )
     if mode == "series" and ring_sections:
         if "neuner_abwaerts" in defn.tie_breakers:
-            notes.append(
-                "Bei Seriensumme lässt sich ein Gleichstand nicht nach Neunern abwärts auflösen."
+            notes.add(
+                "tie_break_series_sum",
+                "Bei Seriensumme lässt sich ein Gleichstand nicht nach Neunern abwärts auflösen.",
             )
         if "letzte_serie_rueckwaerts" in evaluated and not series_sums_fit_blocks(defn):
-            notes.append(
+            notes.add(
+                "tie_break_series_sum",
                 "Bei Seriensumme lässt sich ein Gleichstand nicht nach Zehnerserien auflösen "
-                "(die Serien ergeben keine 10-Schuss-Blöcke)."
+                "(die Serien ergeben keine 10-Schuss-Blöcke).",
             )
         shot_only = [c for c in evaluated if c in SHOT_ONLY_CRITERIA]
         if shot_only:
-            notes.append(
+            notes.add(
+                "tie_break_series_sum",
                 "Bei Seriensumme lässt sich ein Gleichstand nicht nach "
-                f"{', '.join(SHOT_ONLY_CRITERIA[c] for c in shot_only)} auflösen."
+                f"{', '.join(SHOT_ONLY_CRITERIA[c] for c in shot_only)} auflösen.",
             )
         if "zehner" in defn.tie_breakers or "innenzehner" in defn.tie_breakers:
-            notes.append(
+            notes.add(
+                "tens_optional",
                 "Zehner und Innenzehner sind freiwillig, werden aber für den Gleichstand gebraucht."
                 if not defn.tenths
-                else "Zehner sind freiwillig, werden aber für den Gleichstand gebraucht."
+                else "Zehner sind freiwillig, werden aber für den Gleichstand gebraucht.",
             )
     if defn.competition_time_total_s is not None:
-        notes.append(
-            f"Gemeinsame Wettkampfzeit aller Abschnitte: {_duration(defn.competition_time_total_s)}"
+        notes.add(
+            "competition_time_total",
+            "Gemeinsame Wettkampfzeit aller Abschnitte: "
+            f"{_duration(defn.competition_time_total_s)}",
         )
     if defn.scoring.hoechstergebnis_gleicher_rang and defn.max_score is not None:
-        notes.append(
+        notes.add(
+            "max_score",
             f"Höchstergebnis ({format_number(defn.max_score)} {defn.unit}): bei "
-            "Ergebnisgleichheit gleicher Platz, ohne Gleichstandsregel und ohne Stechen."
+            "Ergebnisgleichheit gleicher Platz, ohne Gleichstandsregel und ohne Stechen.",
         )
     if defn.scoring.stechen_bis_platz is not None:
-        notes.append(
-            f"Gleichstand bis Platz {defn.scoring.stechen_bis_platz} entscheidet ein Stechen."
+        notes.add(
+            "shootoff",
+            f"Gleichstand bis Platz {defn.scoring.stechen_bis_platz} entscheidet ein Stechen.",
         )
     if manual_from is not None:
-        notes.append(
+        notes.add(
+            "tie_break_manual",
             f"Gleichstand ab „{criterion_text(manual_from)}“ nach Sportordnung manuell entscheiden "
-            "(rechnet der Server nicht)."
+            "(rechnet der Server nicht).",
         )
     return FormDescription(
         variant_id=defn.variant_id,
@@ -294,7 +344,8 @@ def describe_form(definition: Mapping[str, Any] | Definition, capture_mode: str)
         max_rings=sum((plan.max_rings or 0 for plan in ring_sections), 0)
         if ring_sections
         else None,
-        notes=notes,
+        notes=notes.texts,
+        note_items=notes.items,
         ring_decimals=1 if defn.tenths else 0,
         competition_time_total_s=defn.competition_time_total_s,
         shootoff_until_place=defn.scoring.stechen_bis_platz,
@@ -470,7 +521,9 @@ def _series_form(
     if series.distance_m is not None:
         hints.add("distance", f"Distanz {format_seconds_value(series.distance_m)} m")
     if shots is not None and plan.per_target:
-        hints.add("shots", f"{shots} Ziele, ein Wert je Ziel")
+        # „ein Wert je Ziel“ nur, wenn je Ziel erfasst wird; bei Seriensumme nur die Zahl.
+        per_target_text = ", ein Wert je Ziel" if mode == "shot" else ""
+        hints.add("shots", f"{shots} Ziele{per_target_text}")
     elif shots is not None:
         hints.add("shots", f"{shots} Schuss")
     if spec.max_schuss_je_serie is not None:

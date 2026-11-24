@@ -85,6 +85,7 @@ from app.modules.backup.schemas import (
     ComparisonOut,
     JournalReportOut,
     KeysCheckOut,
+    OtherSourceOut,
     RestoreExecuteIn,
     RestoreMessageOut,
     RestorePreviewIn,
@@ -592,6 +593,15 @@ class RestoreManager:
                         update={
                             "locations": [source.location, *(item.location for item in others)],
                             "other_ids": [item.id for item in others],
+                            "other_sources": [
+                                OtherSourceOut(
+                                    id=item.id,
+                                    location=item.location,  # type: ignore[arg-type]
+                                    needs_passphrase=item.encrypted,
+                                    contains_keys=item.contains_keys,
+                                )
+                                for item in others
+                            ],
                         }
                     )
                 )
@@ -1157,8 +1167,6 @@ class RestoreManager:
             keys=analysis.keys.out(),
             access=analysis.access,
             restorable=not problems,
-            problems=_texts(problems),
-            notes=_texts(analysis.notes),
             problem_items=problems,
             note_items=analysis.notes,
         )
@@ -1405,8 +1413,9 @@ class RestoreManager:
                     keys_installed=list(analysis.keys.install),
                     keys_set_aside=[aside.name for _target, aside in moved],
                     after_backup_ok=after_ok,
-                    notes=_texts(notes),
                     note_items=notes,
+                    app_version=(analysis.opened.manifest or {}).get("app_version"),
+                    app_version_current=__version__,
                     skipped_starts=journal_out.skipped_starts if journal_out else [],
                 )
             job.state = "succeeded"

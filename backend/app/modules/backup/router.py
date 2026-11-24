@@ -249,7 +249,7 @@ async def restore_sources(restore: RestoreDep, _actor: RestoreActor) -> RestoreS
     summary="Sicherung prüfen und Vorschau der Wiederherstellung (ändert nichts)",
     description=(
         "Prüft Prüfsumme und Passwort, liest den Abzug und vergleicht ihn mit dem jetzigen "
-        "Stand. `restorable` ist false, wenn `problems` etwas nennt. `confirm` gehört in "
+        "Stand. `restorable` ist false, wenn `problem_items` etwas nennt. `confirm` gehört in "
         "`POST /backup/restore/execute`."
     ),
     responses=ERRORS,

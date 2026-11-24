@@ -297,6 +297,9 @@ async def test_restore_round_trip(
     local_id = "local:" + source_id.split(":", 1)[1].removesuffix(".shb") + ".dump"
     assert listed[source_id]["locations"] == ["usb", "local"]
     assert listed[source_id]["other_ids"] == [local_id]
+    assert listed[source_id]["other_sources"] == [
+        {"id": local_id, "location": "local", "needs_passphrase": False, "contains_keys": False}
+    ]
     assert local_id not in listed
     stems = [item["file_name"].rsplit(".", 1)[0] for item in sources["sources"]]
     assert len(stems) == len(set(stems))
@@ -318,7 +321,7 @@ async def test_restore_round_trip(
             json={"source_id": source_id, "passphrase": PASSPHRASE},
         )
     ).json()
-    assert preview["restorable"] is True, preview["problems"]
+    assert preview["restorable"] is True, preview["problem_items"]
     assert preview["schema_check"]["state"] == "same", preview["schema_check"]
     assert preview["keys"]["field_keys"] == "same"
     (tournament,) = preview["tournaments"]
@@ -335,7 +338,8 @@ async def test_restore_round_trip(
     assert preview["access"]["lockout_risk"] is False, preview["access"]
     assert [r["code"] for r in preview["access"]["reasons"]] == ["enforcement_off"]
     assert preview["problem_items"] == []
-    assert preview["notes"] == [item["message_de"] for item in preview["note_items"]]
+    assert "notes" not in preview
+    assert "problems" not in preview
     # Die Kopie auf dem Server lässt sich ebenso ansehen (ohne Passwort, ohne Schlüssel).
     local_preview = (
         await backup.client.post(f"{API}/backup/restore/preview", json={"source_id": local_id})
@@ -388,6 +392,8 @@ async def test_restore_round_trip(
     assert result["previous_database"].startswith(make_url(test_database_url).database)
     assert result["pre_restore_backup"].startswith("pre-restore/")
     assert result["after_backup_ok"] is True
+    assert "notes" not in result
+    assert result["app_version_current"]
     assert status["maintenance"] is False
     # Die Wartung endete erst nach der Probeabfrage gegen die neue Datenbank.
     assert probes == [True]
@@ -520,7 +526,7 @@ async def test_older_schema_is_upgraded_newer_is_refused(
     assert newer["restorable"] is False
     assert newer["schema_check"]["state"] == "newer"
     assert [p["code"] for p in newer["problem_items"]] == ["schema_newer"]
-    assert newer["problems"] == [newer["problem_items"][0]["message_de"]]
+    assert newer["problem_items"][0]["message_de"]
 
     await _older_dump(
         test_database_url, snapshots / "snapshot-20260102T100000Z.dump", "0015_auth_rechte"
@@ -530,7 +536,7 @@ async def test_older_schema_is_upgraded_newer_is_refused(
         await backup.client.post(f"{API}/backup/restore/preview", json={"source_id": source_id})
     ).json()
     assert preview["schema_check"]["state"] == "older", preview
-    assert preview["restorable"] is True, preview["problems"]
+    assert preview["restorable"] is True, preview["problem_items"]
     await backup.client.post(
         f"{API}/backup/restore/execute", json={"source_id": source_id, "confirm": source_id}
     )

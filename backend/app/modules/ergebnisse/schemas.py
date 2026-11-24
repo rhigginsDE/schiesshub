@@ -177,6 +177,22 @@ class FormHeader(BaseModel):
     lane: int | None
 
 
+class DerivedValue(BaseModel):
+    """Feldwert, den der Server aus anderen erfassten Werten rechnet (nicht gespeichert).
+
+    Beispiel: Maske in Seriensumme, Serie 1 wurde Schuss für Schuss bzw. je Ziel erfasst →
+    `{"path": "sections.trap.series[0]", "key": "sum", "value": 23, "source": "shots"}`."""
+
+    # Pfad der Serie wie `SeriesForm.path`.
+    path: str
+    # Feldschlüssel wie `FieldSpec.key`: sum, tens, inner_tens.
+    key: str
+    # Zahl; bei Zehntelwertung Text mit einer Nachkommastelle („97.4“).
+    value: Decimal | int
+    # Woraus gerechnet: shots (Einzelwerte bzw. Werte je Ziel).
+    source: Literal["shots"]
+
+
 class FormOut(BaseModel):
     header: FormHeader
     # Erfassungsart des Wettbewerbs; `form.capture_mode` ist die tatsächlich gezeigte.
@@ -186,6 +202,9 @@ class FormOut(BaseModel):
     # Würde ein Aufgeben jetzt platziert (aktuelle Rohwerte)? null bei abgeschlossenen oder
     # abgebrochenen Starts.
     abort_preview: AbortPreview | None = None
+    # Nur in der Seriensumme: Feldwerte, die aus erfassten Einzelwerten folgen (Seriensumme,
+    # Zehner, Innenzehner, Treffer je Serie). Leer in der Einzelschuss-Maske.
+    derived_values: list[DerivedValue] = []
 
 
 # --- Verlauf -------------------------------------------------------------------
@@ -193,6 +212,9 @@ class FormOut(BaseModel):
 
 class RawChangeOut(BaseModel):
     path: str
+    # Ort und Feld in Worten, z. B. „Serie 1 · Treffer je Ziel“, „Serie 2 · Zeit“,
+    # „Serie 1 · Schuss 3“; unbekannte Pfade unverändert.
+    label: str
     before: Any
     after: Any
 

@@ -8,9 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.auth.models import Device, UserAccount
 from app.modules.ergebnisse.abort_preview import abort_preview
+from app.modules.ergebnisse.fields import change_label, derived_values
 from app.modules.ergebnisse.models import ResultCurrent, ResultEvent
 from app.modules.ergebnisse.recompute import ensure_current
-from app.modules.ergebnisse.rules import EVENT_LABELS, raw_changes
+from app.modules.ergebnisse.rules import EVENT_LABELS, raw_changes, scoring_definition
 from app.modules.ergebnisse.schemas import (
     CaptureMode,
     EventOut,
@@ -25,7 +26,7 @@ from app.modules.starts.models import Entry, Start
 from app.modules.teilnehmer.models import Club, Person
 from app.modules.teilnehmer.names import clean_text, display_name
 from app.modules.turnier.models import Competition, Range, TournamentClass
-from app.scoring import DefinitionError, describe_form
+from app.scoring import Definition, DefinitionError, describe_form, load_definition
 
 
 async def form(
@@ -96,13 +97,15 @@ async def form(
         form=description,
         current=state,
         abort_preview=abort_preview(competition, state.raw, state.status),
+        derived_values=derived_values(description, state.raw, state.computed),
     )
 
 
 async def event_list(
     session: AsyncSession, tournament_id: uuid.UUID, start_id: uuid.UUID
 ) -> list[EventOut]:
-    await get_start(session, tournament_id, start_id)
+    context = await get_start(session, tournament_id, start_id)
+    defn = _definition(context.competition)
     events = list(
         await session.scalars(
             select(ResultEvent).where(ResultEvent.start_id == start_id).order_by(ResultEvent.seq)
@@ -129,7 +132,12 @@ async def event_list(
         changes = []
         if raw is not None:
             changes = [
-                RawChangeOut(path=change.path, before=change.before, after=change.after)
+                RawChangeOut(
+                    path=change.path,
+                    label=change_label(defn, change.path),
+                    before=change.before,
+                    after=change.after,
+                )
                 for change in raw_changes(previous, raw)
             ]
             previous = raw
@@ -152,6 +160,13 @@ async def event_list(
             )
         )
     return result
+
+
+def _definition(competition: Competition) -> Definition | None:
+    try:
+        return load_definition(scoring_definition(competition.definition))
+    except DefinitionError, KeyError, TypeError:
+        return None
 
 
 async def review_list(session: AsyncSession, tournament_id: uuid.UUID) -> list[ReviewItemOut]:

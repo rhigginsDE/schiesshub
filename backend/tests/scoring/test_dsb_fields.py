@@ -621,6 +621,31 @@ def test_trap_is_captured_per_target() -> None:
     assert messages(definition, raw_shots([1, 2])) == ["Serie 1, Ziel 2: Wert 1 oder 0, nicht 2"]
     result = compute(definition, "shot", raw_shots([1] * 20 + [0] * 5))
     assert (result.score, result.hits, result.complete) == (20, 20, True)
+    # „ein Wert je Ziel“ nur in der Erfassungsart je Ziel.
+    assert "25 Ziele, ein Wert je Ziel" in shot_form.hints
+    series_form = describe_form(definition, "series").sections[0].series[0]
+    assert "25 Ziele" in series_form.hints
+    assert not any("je Ziel" in hint for hint in series_form.hints)
+    # Hinweise der Maske mit Art.
+    notes = describe_form(definition, "shot")
+    assert [item.kind for item in notes.note_items] == ["shootoff"]
+    assert notes.notes == [item.text for item in notes.note_items]
+
+
+def test_missing_tie_breakers_with_text() -> None:
+    definition = ring_definition(serien=1, schuss=2, gleichstand=["zehner", "innenzehner"])
+    result = compute(definition, "series", raw_sums({"sum": 18}))
+    assert result.tie_breakers_missing == ["zehner", "innenzehner"]
+    dumped = result.model_dump(mode="json")
+    assert dumped["tie_breakers_missing_items"] == [
+        {"id": "zehner", "text": "Anzahl der Zehner"},
+        {"id": "innenzehner", "text": "Anzahl der Innenzehner"},
+    ]
+    # Gespeicherte Stände (mit oder ohne das Feld) lassen sich wieder einlesen.
+    again = ComputedResult.model_validate(dumped)
+    assert again.tie_breakers_missing_items == result.tie_breakers_missing_items
+    dumped.pop("tie_breakers_missing_items")
+    assert ComputedResult.model_validate(dumped).tie_breakers_missing_items[0].id == "zehner"
 
 
 def test_count_criteria_for_field_archery() -> None:

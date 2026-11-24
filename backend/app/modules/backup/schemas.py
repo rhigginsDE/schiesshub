@@ -136,6 +136,18 @@ class RestoreMessageOut(BaseModel):
     message_de: str
 
 
+class OtherSourceOut(BaseModel):
+    """Eine weitere Kopie derselben Sicherung an einem anderen Ort."""
+
+    # Kennung für Vorschau und Ausführung (wie `RestoreSourceOut.id`).
+    id: str
+    location: RestoreLocation
+    # Verschlüsselt: braucht das Sicherungspasswort (Abzüge vom Server meist nicht).
+    needs_passphrase: bool
+    # Enthält das Schlüsselverzeichnis (nur Kopien vom Stick).
+    contains_keys: bool
+
+
 class RestoreSourceOut(BaseModel):
     """Eine Sicherung, die sich wiederherstellen lässt.
 
@@ -157,6 +169,8 @@ class RestoreSourceOut(BaseModel):
     locations: list[RestoreLocation] = Field(default_factory=list)
     # Kennungen derselben Sicherung an den anderen Orten, in der Reihenfolge von `locations`.
     other_ids: list[str] = Field(default_factory=list)
+    # Dieselben Kopien mit Ort und ob sie ein Passwort brauchen bzw. Schlüssel enthalten.
+    other_sources: list[OtherSourceOut] = Field(default_factory=list)
     file_name: str
     # Zeitpunkt der Sicherung (UTC), aus dem Dateinamen.
     created_at: datetime
@@ -280,10 +294,7 @@ class RestorePreviewOut(BaseModel):
     keys: KeysCheckOut
     access: AccessCheckOut
     restorable: bool
-    # Gründe, warum es nicht geht (`restorable` false), und Hinweise – als Text …
-    problems: list[str]
-    notes: list[str]
-    # … und mit Kennung (gleiche Reihenfolge und Texte).
+    # Gründe, warum es nicht geht (`restorable` false), und Hinweise, je mit Kennung.
     problem_items: list[RestoreMessageOut] = Field(default_factory=list)
     note_items: list[RestoreMessageOut] = Field(default_factory=list)
 
@@ -339,8 +350,11 @@ class RestoreResultOut(BaseModel):
     keys_installed: list[str]
     keys_set_aside: list[str]
     after_backup_ok: bool | None
-    notes: list[str]
     note_items: list[RestoreMessageOut] = Field(default_factory=list)
+    # App-Version, von der die Sicherung stammt, und die laufende (bei Hinweis
+    # `other_app_version` verschieden); `app_version` null, wenn die Sicherung sie nicht nennt.
+    app_version: str | None = None
+    app_version_current: str | None = None
     # Wie `journal.skipped_starts` (leer ohne Nachtragen).
     skipped_starts: list[SkippedStartOut] = Field(default_factory=list)
 

@@ -6,8 +6,9 @@ Alle Modelle lassen sich mit `model_dump(mode="json")` als JSON speichern und mi
 
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
 
+from app.scoring.criteria import criterion_text
 from app.scoring.errors import Issue
 from app.scoring.spec import Direction
 from app.scoring.status import SeriesStatus
@@ -15,6 +16,13 @@ from app.scoring.status import SeriesStatus
 
 class _Frozen(BaseModel):
     model_config = ConfigDict(frozen=True)
+
+
+class TieBreakerItem(_Frozen):
+    """Ein Gleichstandskriterium mit Klartext (`app/scoring/kriterien.yaml`)."""
+
+    id: str
+    text: str
 
 
 class SeriesResult(_Frozen):
@@ -99,6 +107,17 @@ class ComputedResult(_Frozen):
     """Summe der Gesamtzeiten der Abschnitte mit Sollzeit/Abbruchzeit; None, solange eine fehlt."""
     tie_breakers_missing: list[str]
     """Gleichstandskriterien der Definition ohne Angaben (z. B. Seriensumme ohne Zehner)."""
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def tie_breakers_missing_items(self) -> list[TieBreakerItem]:
+        """`tie_breakers_missing` mit Klartext, z. B. `{"id": "zehner", "text": "Anzahl der
+        Zehner"}`. Wird aus der ID abgeleitet (auch für gespeicherte Stände)."""
+        return [
+            TieBreakerItem(id=item, text=criterion_text(item) or item)
+            for item in self.tie_breakers_missing
+        ]
+
     sections: list[SectionResult]
     progress: Progress
     steps: list[str]
