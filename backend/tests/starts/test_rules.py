@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 import pytest
 
 from app.modules.starts.rules import (
+    REASON_REQUIRED,
     START_STATUSES,
     TRANSITIONS,
     RuleError,
@@ -36,6 +37,8 @@ ALLOWED = {
     ("captured", "final"),
     ("captured", "aborted"),
     ("final", "captured"),
+    ("aborted", "registered"),
+    ("aborted", "captured"),
 }
 
 
@@ -48,7 +51,7 @@ def test_transition_table_is_exactly_the_documented_one() -> None:
 @pytest.mark.parametrize(("current", "to"), sorted(itertools.product(START_STATUSES, repeat=2)))
 def test_every_pair_is_allowed_or_rejected(current: str, to: str) -> None:
     kwargs = {"abort_reason": "dns"} if to == "aborted" else {}
-    if (current, to) == ("final", "captured"):
+    if (current, to) in REASON_REQUIRED:
         kwargs["reason"] = "Schreibfehler"
     if (current, to) in ALLOWED:
         check_transition(current, to, **kwargs)  # type: ignore[arg-type]
@@ -70,6 +73,13 @@ def test_reopening_needs_a_reason() -> None:
     with pytest.raises(RuleError, match="Wiederöffnen"):
         check_transition("final", "captured", reason="  ")
     check_transition("final", "captured", reason="Ringzahl falsch übertragen")
+
+
+def test_undoing_an_abort_needs_a_reason() -> None:
+    for to in ("registered", "captured"):
+        with pytest.raises(RuleError, match="Zurücknehmen eines Abbruchs"):
+            check_transition("aborted", to)  # type: ignore[arg-type]
+        check_transition("aborted", to, reason="Versehentlich abgebrochen")  # type: ignore[arg-type]
 
 
 def test_has_result() -> None:

@@ -57,6 +57,7 @@ ACTION_TEXTS: dict[str, str] = {
     "start.cancelled": "Start storniert",
     "start.aborted": "Start abgebrochen",
     "start.reopened": "Abgeschlossenes Ergebnis wieder geöffnet",
+    "start.abort_undone": "Abbruch eines Starts zurückgenommen",
     "start.moved": "Reihenfolge am Schießstand geändert",
     "start.returned": "Start zurückgestellt",
     "start.lane_released": "Schützenstand freigegeben",

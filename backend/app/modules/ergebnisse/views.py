@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.auth.models import Device, UserAccount
+from app.modules.ergebnisse.abort_preview import abort_preview
 from app.modules.ergebnisse.models import ResultCurrent, ResultEvent
 from app.modules.ergebnisse.recompute import ensure_current
 from app.modules.ergebnisse.rules import EVENT_LABELS, raw_changes
@@ -94,6 +95,7 @@ async def form(
         competition_capture_mode=competition.capture_mode,
         form=description,
         current=state,
+        abort_preview=abort_preview(competition, state.raw, state.status),
     )
 
 

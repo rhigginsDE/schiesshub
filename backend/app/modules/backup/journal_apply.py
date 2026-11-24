@@ -55,7 +55,7 @@ _REQUIRED = (
     "payload",
     "created_at",
 )
-_TYPES = frozenset({"raw_set", "finalized", "corrected", "reopened", "aborted"})
+_TYPES = frozenset({"raw_set", "finalized", "corrected", "reopened", "aborted", "abort_undone"})
 
 
 class JournalFormatError(Exception):
@@ -343,7 +343,10 @@ def _target(status: str, record: dict[str, Any]) -> StartStatus | None:
         return "captured"
     if kind == "aborted":
         return "aborted"
-    return None  # corrected: bleibt abgeschlossen
+    if kind == "abort_undone":
+        restored = record["payload"].get("status")
+        return restored if restored in ("captured", "registered") else None
+    return None  # corrected: bleibt abgeschlossen (bzw. abgebrochen)
 
 
 async def _apply_start(
@@ -423,7 +426,9 @@ async def _apply_start(
                     start,
                     to,
                     actor,
-                    reason=record.get("reason") if record["type"] == "reopened" else None,
+                    reason=record.get("reason")
+                    if record["type"] in ("reopened", "abort_undone")
+                    else None,
                     abort_reason=abort_reason,
                 )
             except ConflictError as exc:

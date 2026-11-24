@@ -1,4 +1,4 @@
-"""Erfassen, Abschließen, Korrigieren, Wiederöffnen und Abbrechen eines Ergebnisses.
+"""Erfassen, Abschließen, Korrigieren, Wiederöffnen, Abbrechen und Abbruch zurücknehmen.
 
 Jeder Vorgang läuft in einer Transaktion:
 
@@ -30,6 +30,7 @@ from app.core.events import EventHub
 from app.core.security import Actor
 from app.modules.auth.audit import record_audit
 from app.modules.ergebnisse import journal
+from app.modules.ergebnisse.abort_preview import abort_preview
 from app.modules.ergebnisse.models import ResultCurrent, ResultEvent
 from app.modules.ergebnisse.rules import Evaluation, evaluate, request_hash, scoring_definition
 from app.modules.ergebnisse.schemas import PreviewOut, ResultState
@@ -278,6 +279,7 @@ async def preview(
         finalize_errors=raw_issues(full).errors,
         computed=evaluation.computed if evaluation is not None else None,
         score=evaluation.score if evaluation is not None else None,
+        abort_preview=abort_preview(loaded.competition, raw, loaded.start.status),
     )
 
 
@@ -559,10 +561,12 @@ async def correct(
     loaded, replay = await begin(session, tournament_id, start_id, request)
     if replay:
         return await finish(session, events, loaded, None)
+    if loaded.start.status == "aborted":
+        return await _correct_aborted(session, events, actor, loaded, request, raw, reason)
     if loaded.start.status != "final":
         raise ConflictError(
-            "Korrigieren geht nur bei einem abgeschlossenen Ergebnis; sonst die Rohwerte "
-            "einfach neu erfassen."
+            "Korrigieren geht nur bei einem abgeschlossenen oder abgebrochenen Start; sonst die "
+            "Rohwerte einfach neu erfassen."
         )
     check_raw(loaded, raw, partial=False)
     now = await server_now(session)
@@ -600,6 +604,41 @@ async def correct(
         score_before=before,
         score=_score_text(loaded.current),
         seq=event.seq,
+    )
+    return await finish(session, events, loaded, event)
+
+
+async def _correct_aborted(
+    session: AsyncSession,
+    events: EventHub,
+    actor: Actor,
+    loaded: Loaded,
+    request: Request,
+    raw: dict[str, Any],
+    reason: str,
+) -> ResultState:
+    """Korrektur der Rohwerte eines abgebrochenen Starts, ohne den Abbruch zurückzunehmen – etwa
+    um für die laufende Serie den Status „Abbruch durch den Schützen“ nachzutragen.
+
+    Rohwerte dürfen unvollständig sein (wie ein Zwischenstand). Das Ereignis `corrected` trägt
+    `final: false`: Der Stand bleibt offen, der Start abgebrochen (`rules.replay`)."""
+    check_raw(loaded, raw, partial=True)
+    before = _score_text(loaded.current)
+    event = append(
+        session, loaded, request, actor, "corrected", {"raw": raw, "final": False}, reason
+    )
+    store(session, loaded, raw, is_final=False, seq=event.seq)
+    audit(
+        session,
+        loaded,
+        actor,
+        "result.corrected",
+        reason=reason,
+        score_before=before,
+        score=_score_text(loaded.current),
+        seq=event.seq,
+        status="aborted",
+        abort_reason=loaded.start.abort_reason,
     )
     return await finish(session, events, loaded, event)
 
@@ -651,6 +690,47 @@ async def abort(
     )
     raw = loaded.current.raw if loaded.current is not None else {}
     # Vorhandene Rohwerte bleiben erhalten; der Stand gilt als offen.
+    store(session, loaded, raw, is_final=False, seq=event.seq)
+    return await finish(session, events, loaded, event)
+
+
+async def undo_abort(
+    session: AsyncSession,
+    events: EventHub,
+    actor: Actor,
+    tournament_id: uuid.UUID,
+    start_id: uuid.UUID,
+    reason: str,
+    base_seq: int | None,
+    idempotency_key: str | None,
+) -> ResultState:
+    """Nimmt einen Abbruch zurück (dns, dnf, dsq), mit Grund.
+
+    Neues Ereignis `abort_undone` (nichts wird überschrieben). Der Start kehrt in den Status vor
+    dem Abbruch zurück: „erfasst“, wenn es Rohwerte gibt (ein Ereignis `raw_set` oder
+    `corrected`), sonst „angemeldet“. Einen Schützenstand belegt er dabei nicht; aufgerufen wird
+    er nicht wieder (bei der Reihenfolge reiht er sich hinten ein)."""
+    request = Request(
+        "abort_undone", {"reason": reason, "base_seq": base_seq}, idempotency_key, base_seq
+    )
+    loaded, replay = await begin(session, tournament_id, start_id, request)
+    if replay:
+        return await finish(session, events, loaded, None)
+    if loaded.start.status != "aborted":
+        raise ConflictError("Zurücknehmen lässt sich nur der Abbruch eines abgebrochenen Starts.")
+    undone = loaded.start.abort_reason
+    captured = await session.scalar(
+        select(func.count()).where(
+            ResultEvent.start_id == loaded.start.id,
+            ResultEvent.type.in_(("raw_set", "corrected")),
+        )
+    )
+    to = "captured" if captured else "registered"
+    # Prüft den Übergang und schreibt das Audit-Protokoll (`start.abort_undone`) mit dem Grund.
+    await move(session, loaded, to, actor, reason=reason)
+    payload = {"undone_abort_reason": undone, "status": to}
+    event = append(session, loaded, request, actor, "abort_undone", payload, reason)
+    raw = loaded.current.raw if loaded.current is not None else {}
     store(session, loaded, raw, is_final=False, seq=event.seq)
     return await finish(session, events, loaded, event)
 

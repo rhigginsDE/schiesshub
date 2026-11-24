@@ -280,6 +280,7 @@ def _rank_row(context: Context, row: RankingRow) -> FeedRankRow:
         abort_reason=row.abort_reason,
         needs_shootoff=row.needs_shootoff,
         tie_reason=row.tie_reason,
+        tie_criterion=row.tie_criterion,
         tie_unresolved=row.tie_unresolved,
         tie_note=row.tie_note,
         abort_label=row.abort_label,

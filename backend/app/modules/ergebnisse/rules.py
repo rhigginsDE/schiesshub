@@ -35,6 +35,7 @@ EVENT_LABELS: dict[str, str] = {
     "corrected": "korrigiert",
     "reopened": "wieder geöffnet",
     "aborted": "abgebrochen",
+    "abort_undone": "Abbruch zurückgenommen",
 }
 
 
@@ -79,7 +80,9 @@ def replay(events: Iterable[EventRecord]) -> Replayed:
     Rohwerte kommen aus dem letzten `raw_set` oder `corrected`; `finalized` schließt ab,
     `reopened` öffnet wieder, `corrected` bleibt abgeschlossen und beginnt die Einspruchsfrist neu
     (außer mit `protest_restarted: false`, Einstellung `protest_restart_on_correction`).
-    Ein Abbruch ändert die Rohwerte nicht (der Abbruchgrund steht am Start).
+    Eine Korrektur eines abgebrochenen Starts (`final: false` in der Nutzlast) ersetzt nur die
+    Rohwerte; der Stand bleibt offen. Ein Abbruch und seine Rücknahme (`abort_undone`) ändern die
+    Rohwerte nicht (Status und Abbruchgrund stehen am Start).
     """
     raw: dict[str, Any] = {}
     is_final = False
@@ -90,6 +93,8 @@ def replay(events: Iterable[EventRecord]) -> Replayed:
         last_seq = event.seq
         if event.type in ("raw_set", "corrected"):
             raw = dict(event.payload["raw"])
+        if event.type == "corrected" and event.payload.get("final") is False:
+            continue  # Korrektur eines abgebrochenen Starts: nur Rohwerte
         if event.type in ("finalized", "corrected"):
             is_final = True
             # Eine Korrektur ohne Neubeginn der Frist (`protest_restarted: false`) behält den
@@ -169,6 +174,19 @@ class AbortedEvaluation:
     @property
     def placed(self) -> bool:
         return self.rank_keys is not None
+
+
+def aborted_for_raw(
+    stored_definition: Mapping[str, Any], capture_mode: str, raw: Mapping[str, Any] | None
+) -> AbortedEvaluation:
+    """Wertung eines Aufgebens (`dnf`) aus der gespeicherten Definition des Wettbewerbs
+    (`competition.definition`) und Rohwerten. Dieselbe Funktion für Rangliste, Anzeige, Export und
+    die Vorabauskunft der Eingabemaske (`abort_preview`)."""
+    try:
+        definition = scoring_definition(stored_definition)
+    except KeyError, TypeError:
+        return AbortedEvaluation(has_values=bool(raw), reason="invalid")
+    return evaluate_aborted(definition, capture_mode, raw)
 
 
 def evaluate_aborted(

@@ -98,8 +98,13 @@ def tie_word(
 
 
 def tie_note(reason: str | None, criterion: str | None, place: int | None, word: str) -> str | None:
-    """Hinweis zu einem geteilten Platz für Listen und Anzeige; Kriterien im Klartext."""
+    """Hinweis zu einem geteilten Platz für Listen und Anzeige; Kriterien im Klartext.
+
+    `resolved`: im Ergebnis gleich, durch die Gleichstandskette entschieden („Ringgleichheit,
+    entschieden nach: Anzahl der Zehner“)."""
     match reason:
+        case "resolved":
+            return f"{word}, entschieden nach: {criterion_text(criterion)}"
         case "max_score":
             return MAX_SCORE_NOTE
         case "shootoff":

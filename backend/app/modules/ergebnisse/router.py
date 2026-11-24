@@ -36,6 +36,7 @@ from app.modules.ergebnisse.schemas import (
     ResultState,
     ReviewItemOut,
     SeqConflictOut,
+    UndoAbortRequest,
 )
 from app.modules.ergebnisse.service import SeqConflict
 
@@ -101,7 +102,9 @@ async def _may_capture(request: Request) -> bool:
         "Wettbewerbs und Stand), aktueller Rohwert und "
         "Zwischenstand. `capture_mode` wählt nur die Darstellung (Einzelschuss oder "
         "Seriensumme); ohne Angabe gilt die des Wettbewerbs. Rohwerte dürfen beides enthalten "
-        "und werden gleich gewertet."
+        "und werden gleich gewertet. `abort_preview`: ob ein Aufgeben jetzt (dnf) platziert "
+        "würde, gerechnet wie die Rangliste (null bei abgeschlossenen und abgebrochenen "
+        "Starts)."
     ),
     responses=WRITE,
 )
@@ -163,8 +166,9 @@ async def put_raw(
         "Rechnet `raw` gegen die aktuelle Definition des Wettbewerbs durch und liefert "
         "Validierungsfehler und berechneten Stand, speichert aber nichts (kein Ereignis, kein "
         "Statuswechsel). `errors`: Fehler, die auch `PUT …/raw` meldete; `finalize_errors`: was "
-        "zum Abschließen oder Korrigieren fehlt. Für „Korrigieren“ und Eingaben, die erst "
-        "später gespeichert werden."
+        "zum Abschließen oder Korrigieren fehlt; `abort_preview`: ob ein Aufgeben mit diesen "
+        "Rohwerten platziert würde. Für „Korrigieren“ und Eingaben, die erst später "
+        "gespeichert werden."
     ),
     responses=WRITE,
 )
@@ -244,12 +248,14 @@ async def reopen(
 
 @router.post(
     f"{START}/correct",
-    summary="Abgeschlossenes Ergebnis korrigieren (mit Grund)",
+    summary="Abgeschlossenes oder abgebrochenes Ergebnis korrigieren (mit Grund)",
     description=(
         "Ersetzt die Rohwerte eines abgeschlossenen Ergebnisses; es bleibt abgeschlossen. Die "
         "Einspruchsfrist beginnt neu, außer das Turnier hat "
         "`settings.protest_restart_on_correction: false` (dann läuft sie ab dem Abschluss "
-        "weiter)."
+        "weiter). Bei einem abgebrochenen Start ersetzt die Korrektur nur die Rohwerte "
+        "(Zwischenstand erlaubt, etwa um den Serienstatus „Abbruch durch den Schützen“ "
+        "nachzutragen); der Start bleibt abgebrochen."
     ),
     responses=WRITE,
 )
@@ -306,6 +312,42 @@ async def abort(
             start_id,
             data.abort_reason,
             data.reason,
+            idempotency_key,
+        )
+    )
+
+
+@router.post(
+    f"{START}/result/undo-abort",
+    summary="Abbruch zurücknehmen (mit Grund)",
+    description=(
+        "Nimmt einen Abbruch (dns, dnf, dsq) zurück: neues Ereignis `abort_undone` im "
+        "Ergebnisprotokoll (nichts wird überschrieben), Eintrag `start.abort_undone` im "
+        "Audit-Protokoll. Der Start kehrt in den Status vor dem Abbruch zurück – „erfasst“, "
+        "wenn es Rohwerte gibt, sonst „angemeldet“ – ohne Schützenstand (er wird nicht wieder "
+        "aufgerufen). Danach lassen sich Rohwerte wieder erfassen, abschließen oder erneut "
+        "abbrechen."
+    ),
+    responses=WRITE,
+)
+async def undo_abort(
+    tournament_id: UUID,
+    start_id: UUID,
+    data: UndoAbortRequest,
+    session: SessionDep,
+    events: EventHubDep,
+    actor: Corrector,
+    idempotency_key: IdempotencyKey = None,
+) -> ResultState:
+    return await _write(
+        service.undo_abort(
+            session,
+            events,
+            actor,
+            tournament_id,
+            start_id,
+            data.reason,
+            data.base_seq,
             idempotency_key,
         )
     )

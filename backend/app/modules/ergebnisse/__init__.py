@@ -5,10 +5,11 @@ actor)` (rechnet alle Ergebnisse eines Wettbewerbs aus den Ereignissen neu, ohne
 und `abort_remarks(session, start_ids)` (Bemerkung zum Abbruch je Start, nur für die Bedienung).
 Bei einer neuen Revision der Wertung läuft sie automatisch über `turnier.hooks`.
 
-Bei `starts.hooks` meldet sich das Modul dreimal an: als Ergebnisprüfer (Starts mit Ereignissen
+Bei `starts.hooks` meldet sich das Modul viermal an: als Ergebnisprüfer (Starts mit Ereignissen
 lassen sich nicht stornieren oder mit ihrer Anmeldung löschen), als Abbruch-Handler (auch
-`POST …/starts/{id}/abort` schreibt das Ereignis `aborted`) und als Fortschritt-Lieferant (die
-Sichten am Stand zeigen je Bahn, wie weit erfasst ist).
+`POST …/starts/{id}/abort` schreibt das Ereignis `aborted`), als Fortschritt-Lieferant (die
+Sichten am Stand zeigen je Schützenstand, wie weit erfasst ist) und als Lieferant der
+Abbruch-Bemerkungen (`abort_remarks`).
 """
 
 from fastapi import FastAPI
@@ -45,6 +46,7 @@ async def on_startup(app: FastAPI) -> None:
     start_hooks.register_result_check(starts_with_events)
     start_hooks.register_abort_handler(abort_from_starts)
     start_hooks.register_progress_provider(lane_progress)
+    start_hooks.register_abort_note_provider(abort_remarks)
 
 
 async def on_shutdown(app: FastAPI) -> None:
@@ -52,6 +54,7 @@ async def on_shutdown(app: FastAPI) -> None:
     start_hooks.unregister_result_check(starts_with_events)
     start_hooks.unregister_abort_handler(abort_from_starts)
     start_hooks.unregister_progress_provider(lane_progress)
+    start_hooks.unregister_abort_note_provider(abort_remarks)
 
 
 manifest = ModuleManifest(

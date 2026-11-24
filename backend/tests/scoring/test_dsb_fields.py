@@ -335,7 +335,9 @@ def test_unknown_criterion_stops_with_manual_note() -> None:
         "Abstand des letzten Schusses vom Zentrum)"
     )
     assert not places["c"].tied
-    assert places["c"].tie_note is None
+    # c ist im Ergebnis gleich mit a und b, aber durch die Zehner getrennt.
+    assert (places["c"].tie_reason, places["c"].tie_criterion) == ("resolved", "zehner")
+    assert places["c"].tie_note == "Ringgleichheit, entschieden nach: Anzahl der Zehner"
 
 
 def test_shots_backwards_and_second_half() -> None:
@@ -376,10 +378,80 @@ def test_tenths_total_and_tenths_tie_chain() -> None:
     assert places["a"].tie_reason == "missing_data"
 
 
-def test_tenths_inner_tens_are_missing_data() -> None:
-    definition = tenths(serien=1, schuss=1, gleichstand=["innenzehner"])
-    result = compute(definition, "shot", raw_shots([10.5]))
-    assert result.tie_breakers_missing == ["innenzehner"]
+def test_tenths_inner_tens_are_not_missing_but_manual() -> None:
+    """Innenzehner gibt es bei Zehntelwertung nicht: Sie „fehlen“ nie (die Maske meldete sonst
+    dauerhaft „Für einen Gleichstand fehlt: Anzahl Innenzehner“), ein Gleichstand bis dorthin
+    ist manuell zu entscheiden."""
+    definition = tenths(serien=1, schuss=2, gleichstand=["zehner", "innenzehner"])
+    result = compute(definition, "shot", raw_shots([10.5, 9.5]))
+    assert result.tie_breakers_missing == []
+    assert tie_rules(definition).uncapturable == ["innenzehner"]
+    places = ranked(definition, {"a": raw_shots([10.5, 9.5]), "b": raw_shots([9.5, 10.5])})
+    assert [places[i].place for i in "ab"] == [1, 1]
+    assert (places["a"].tie_reason, places["a"].tie_criterion) == ("manual", "innenzehner")
+    assert places["a"].tie_unresolved
+    # Zehner fehlen dagegen wirklich, wenn eine Seriensumme ohne Zehner erfasst ist.
+    sums = compute(definition, "series", raw_sums({"sum": "20.0"}))
+    assert sums.tie_breakers_missing == ["zehner"]
+
+
+def test_series_capture_does_not_report_shot_criteria_as_missing() -> None:
+    definition = ring_definition(serien=2, schuss=5, gleichstand=["zehner", "neuner_abwaerts"])
+    result = compute(definition, "series", raw_sums({"sum": 45, "tens": 2}, {"sum": 44, "tens": 1}))
+    assert result.tie_breakers_missing == []
+    # Mit Einzelschüssen lässt sich „Neuner abwärts“ erfassen; ein Zwischenstand hat die Werte.
+    partial = compute(definition, "shot", raw_shots([10, 9]))
+    assert partial.tie_breakers_missing == []
+
+
+def test_hits_only_has_no_tens() -> None:
+    definition = ring_definition(
+        serien=1, schuss=5, section={"ringwerte": [1, 0]}, gleichstand=["zehner"]
+    )
+    result = compute(definition, "shot", raw_shots([1, 0, 1, 1, 1]))
+    assert (result.tens, result.inner_tens) == (None, None)
+    assert result.sections[0].series[0].tens is None
+    assert result.tie_breakers_missing == []
+    assert tie_rules(definition).uncapturable == ["zehner"]
+
+
+def test_tie_resolved_by_chain_names_the_criterion() -> None:
+    definition = ring_definition(serien=1, schuss=2, gleichstand=["zehner", "neuner_abwaerts"])
+    places = ranked(
+        definition,
+        {
+            "a": raw_shots([10, 8]),  # 18, 1 Zehner
+            "b": raw_shots([9, 9]),  # 18, 0 Zehner, 2 Neuner
+            "c": raw_shots([9, 9]),  # wie b: geteilt
+            "d": raw_shots([10, 7]),  # 17: eigenes Ergebnis
+            "e": raw_shots([10, 6]),  # 16, 1 Zehner
+            "f": raw_shots([9, 7]),  # 16, 0 Zehner
+        },
+    )
+    a, b, d, e = places["a"], places["b"], places["d"], places["e"]
+    assert (a.place, a.tied, a.tie_unresolved) == (1, False, False)
+    assert (a.tie_reason, a.tie_criterion) == ("resolved", "zehner")
+    assert a.tie_note == "Ringgleichheit, entschieden nach: Anzahl der Zehner"
+    # b und c bleiben nach allen Kriterien gleich: geteilt, nicht „resolved“.
+    assert (b.place, b.tied, b.tie_reason) == (2, True, None)
+    assert (d.place, d.tie_reason, d.tie_note) == (4, None, None)
+    assert (e.tie_reason, places["f"].tie_reason) == ("resolved", "resolved")
+    assert places["f"].tie_criterion == "zehner"
+
+
+def test_tie_resolved_further_down_the_chain() -> None:
+    definition = ring_definition(serien=1, schuss=3, gleichstand=["zehner", "neuner_abwaerts"])
+    # 27 = 27 = 27: c hat 2 Zehner (entschieden nach Zehnern); a und b bleiben gleich.
+    places = ranked(
+        definition,
+        {"a": raw_shots([10, 9, 8]), "b": raw_shots([10, 8, 9]), "c": raw_shots([10, 10, 7])},
+    )
+    assert (places["c"].place, places["c"].tie_criterion) == (1, "zehner")
+    assert places["a"].tied
+    # Gleich viele Zehner, mehr Neuner: entschieden nach „Neuner abwärts“.
+    places = ranked(definition, {"a": raw_shots([10, 9, 7]), "b": raw_shots([10, 8, 8])})
+    assert (places["a"].place, places["a"].tie_criterion) == (1, "neuner_abwaerts")
+    assert (places["b"].place, places["b"].tie_criterion) == (2, "neuner_abwaerts")
 
 
 # --- Stechen ---------------------------------------------------------------------------

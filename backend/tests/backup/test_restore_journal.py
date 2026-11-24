@@ -328,3 +328,43 @@ async def test_install_keys_accepts_identical_files(tmp_path: Path) -> None:
     (target / "keys" / "field-keys.json").write_text('{"format": 2}', encoding="utf-8")
     with pytest.raises(restore.RestoreError, match="bereits andere Schlüssel"):
         restore.install_keys(source, target)
+
+
+async def test_apply_takes_back_an_undone_abort(backup: BackupApp, engine: AsyncEngine) -> None:
+    """`abort_undone` aus der Mitschrift: Ereignis angehängt, Start wieder „erfasst“."""
+    api = _api(backup)
+    setup = await make_setup(api, definition=precision_definition(), capture_mode="shot")
+    a = await _start(api, setup, "Anna Zurück")
+    await api.shoot(setup.tid, a, PARTIAL, final=False)  # seq 1
+    path = api.start_path(setup.tid, a)
+    await api.ok("POST", f"{path}/result/abort", json={"abort_reason": "dnf"})  # seq 2
+    await api.ok("POST", f"{path}/result/undo-abort", json={"reason": "Versehen"})  # seq 3
+    entries = [
+        entry
+        for path in sorted((backup.env.data_dir / "backups" / "journal").glob("*.ndjson"))
+        for entry in journal_apply.load_journal(path, None)
+    ]
+    records = journal_apply.result_records(entries)
+    undone = next(record for record in records if record["type"] == "abort_undone")
+    assert undone["payload"] == {"undone_abort_reason": "dnf", "status": "captured"}
+    expected = await _state(engine, [a])
+    # Wie eine Sicherung zwischen Abbruch und Rücknahme.
+    async with engine.begin() as connection:
+        await connection.execute(text("ALTER TABLE result_event DISABLE TRIGGER USER"))
+        await connection.execute(
+            text("DELETE FROM result_event WHERE id = :id"), {"id": uuid.UUID(undone["event_id"])}
+        )
+        await connection.execute(text("ALTER TABLE result_event ENABLE TRIGGER USER"))
+        await connection.execute(
+            text("UPDATE result_current SET last_seq = 2 WHERE start_id = :id"),
+            {"id": uuid.UUID(a)},
+        )
+        await connection.execute(
+            text("UPDATE start SET status = 'aborted', abort_reason = 'dnf' WHERE id = :id"),
+            {"id": uuid.UUID(a)},
+        )
+
+    report = await journal_apply.apply_records(backup.app.state.session_factory, records)
+    assert (report.applied, report.present, report.conflicts) == (1, 2, [])
+    assert report.status_changes == 1
+    assert await _state(engine, [a]) == expected

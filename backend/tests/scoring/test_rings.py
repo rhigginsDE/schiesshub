@@ -76,7 +76,8 @@ def test_series_sum_with_optional_tens() -> None:
 
     assert result.score == Decimal(168)
     assert (result.tens, result.inner_tens, result.ring_counts) == (7, None, None)
-    assert result.tie_breakers_missing == ["innenzehner", "neuner_abwaerts"]
+    # „Neuner abwärts“ braucht Einzelschüsse: bei Seriensumme fehlt es nicht, es geht nicht.
+    assert result.tie_breakers_missing == ["innenzehner"]
     assert result.steps[0] == "Serie 1: Seriensumme 92 Ringe, 5 Zehner, 2 Innenzehner"
 
 
@@ -84,7 +85,7 @@ def test_series_sum_without_tens_marks_all_tie_breakers_missing() -> None:
     result = compute(PRAEZISION, "series", raw({"sum": 92}, {"sum": 76}))
 
     assert result.score == Decimal(168)
-    assert result.tie_breakers_missing == ["zehner", "innenzehner", "neuner_abwaerts"]
+    assert result.tie_breakers_missing == ["zehner", "innenzehner"]
 
 
 def test_mixed_capture_in_one_start() -> None:

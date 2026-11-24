@@ -460,8 +460,9 @@ def _row_notes(
         notes.append("unvollständig")
     if row.scored:
         notes.extend(_series_status_notes(row.series, headers))
-    if row.tie_reason == "max_score" and row.tie_note:
-        # Höchstergebnis: gleicher Platz nach Regel (entschieden, aber erklärungsbedürftig).
+    if row.tie_reason in ("max_score", "resolved") and row.tie_note:
+        # Höchstergebnis: gleicher Platz nach Regel; durch die Kette entschieden: wonach.
+        # Entschieden, aber erklärungsbedürftig.
         notes.append(row.tie_note)
     if row.tie_unresolved:
         # Stechen oder manuell zu entscheiden: der Hinweis der Rangliste; sonst kurz.

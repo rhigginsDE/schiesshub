@@ -42,6 +42,43 @@ COUNTED_VALUE = {"elfer": 11, "neuner": 9, "sechser": 6, "fuenfer": 5}
 
 Values = list[int | None]
 
+# Kriterien, die Einzelschüsse brauchen: aus Seriensummen nie zu rechnen.
+SHOT_CRITERIA = frozenset(
+    {
+        "neuner_abwaerts",
+        "schuesse_rueckwaerts",
+        "mehr_treffer",
+        "elfer",
+        "neuner",
+        "sechser",
+        "fuenfer",
+    }
+)
+
+
+def criterion_capturable(defn: Definition, criterion: str, capture_mode: str | None = None) -> bool:
+    """Lässt sich das Kriterium bei dieser Definition (und Erfassungsart) überhaupt erfassen?
+
+    Nein heißt: Die Angaben fehlen nicht, weil jemand sie nicht eingegeben hat, sondern weil es
+    sie hier grundsätzlich nicht gibt – ein Gleichstand ist dort nach Sportordnung manuell zu
+    entscheiden (wie ein Kriterium, das die Wertung nicht rechnet):
+
+    - `innenzehner` bei Zehntelwertung (kein „X“), `zehner`/`innenzehner` bei reiner
+      Trefferzählung (Wurfscheibe: Werte 0/1);
+    - nur mit `capture_mode="series"`: Kriterien, die Einzelschüsse brauchen, und
+      `letzte_serie_rueckwaerts`, wenn die Serien keine 10-Schuss-Blöcke ergeben.
+    """
+    if criterion == "innenzehner" and defn.tenths:
+        return False
+    if criterion in ("zehner", "innenzehner") and defn.hits_only:
+        return False
+    if capture_mode == "series":
+        if criterion in SHOT_CRITERIA:
+            return False
+        if criterion == "letzte_serie_rueckwaerts" and not series_sums_fit_blocks(defn):
+            return False
+    return True
+
 
 def criterion_slots(defn: Definition, criterion: str) -> int:
     """Anzahl Vergleichswerte des Kriteriums (hängt nur von der Definition ab)."""

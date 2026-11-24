@@ -21,7 +21,7 @@ from app.scoring.raw import RawSeries, read_raw, series_label
 from app.scoring.registry import SectionInput, SectionScore
 from app.scoring.results import ComputedResult, Progress, SectionResult, SeriesResult
 from app.scoring.status import FIXED_TIME, MALFUNCTION, NORMAL, STATUS_LABELS, UNFINISHED
-from app.scoring.tiebreak import criterion_values
+from app.scoring.tiebreak import criterion_capturable, criterion_values
 
 TIME_LIMIT_NOTE = (
     "Der Katalog legt dafür keine Wertung fest; die Zeit geht unverändert ein – "
@@ -135,8 +135,9 @@ def compute(
         score_text=f"{format_number(evaluation.score)} {defn.unit}",
         complete=complete,
         rings=tally.rings,
-        tens=tally.tens,
-        inner_tens=tally.inner_tens,
+        # Reine Trefferzählung (Wurfscheibe): Zehner gibt es nicht.
+        tens=None if defn.hits_only else tally.tens,
+        inner_tens=None if defn.hits_only else tally.inner_tens,
         ring_counts=tally.ring_counts,
         time_cs=tally.time_cs(inputs),
         penalty_cs=tally.penalty_cs,
@@ -158,8 +159,14 @@ def compute(
         hits=tally.hits,
     )
     # Gerechnete Gleichstandskriterien, für die Angaben fehlen (z. B. Seriensumme ohne Zehner).
+    # Was sich hier grundsätzlich nicht erfassen lässt (Innenzehner bei Zehntelwertung, Neuner
+    # abwärts bei Seriensumme), „fehlt“ nicht: Dort entscheidet ein Mensch (`tie_rules`).
     evaluated, _ = defn.tie_chain
-    missing = [c for c in evaluated if None in criterion_values(defn, result, c)]
+    missing = [
+        c
+        for c in evaluated
+        if criterion_capturable(defn, c, capture_mode) and None in criterion_values(defn, result, c)
+    ]
     return result.model_copy(update={"tie_breakers_missing": missing})
 
 
@@ -196,7 +203,7 @@ def _series_result(
             # Zehner: jeder Schuss ab 10,0; Innenzehner gibt es nicht.
             rings = to_tenths(Decimal(rings))
             tens = sum(1 for value in shot_values if value >= MAX_RING)
-        else:
+        elif not plan.hits_only:
             tens = shot_values.count(MAX_RING)
             inner_tens = raw.shots.count(INNER_TEN)
     elif plan.rings and raw.total is not None:

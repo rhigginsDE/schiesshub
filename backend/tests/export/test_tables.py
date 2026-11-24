@@ -417,3 +417,16 @@ def test_startlist_sorting() -> None:
     empty = tables.startlist_report(META, [], "competition")
     assert empty.sections == ()
     assert empty.empty_text == tables.NO_STARTS
+
+
+def test_resolved_tie_is_explained_in_note_column() -> None:
+    note = "Ringgleichheit, entschieden nach: Anzahl der Zehner"
+    rows = [
+        ranking_row(1, 7, "92", tie_reason="resolved", tie_criterion="zehner", tie_note=note),
+        ranking_row(2, 3, "92", tie_reason="resolved", tie_criterion="zehner", tie_note=note),
+        ranking_row(3, 5, "90"),
+    ]
+    result = tables.winner_tables(ranking(group(OPEN, rows)), class_names=CLASS_NAMES)
+    report = tables.winners_report(META, [tables.winner_section(COMPETITION, "Ringe", result)])
+    cells = [row.cells for row in report.sections[0].tables[0].rows]
+    assert [c[-1] for c in cells] == [note, note, ""]

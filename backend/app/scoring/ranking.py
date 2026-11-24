@@ -58,7 +58,7 @@ from app.scoring.criteria import criterion_text
 from app.scoring.definition import Definition, load_definition
 from app.scoring.numbers import to_hundredths
 from app.scoring.results import ComputedResult
-from app.scoring.tiebreak import criterion_slots, criterion_values
+from app.scoring.tiebreak import criterion_capturable, criterion_slots, criterion_values
 
 RankKey = list[int | None]
 MAX_SCORE_NOTE = "Höchstergebnis: gleicher Platz"
@@ -117,7 +117,7 @@ class RankPolicy(_Frozen):
         )
 
 
-TieReason = Literal["missing_data", "manual", "shootoff", "max_score"]
+TieReason = Literal["missing_data", "manual", "shootoff", "max_score", "resolved"]
 
 
 class TieRules(_Frozen):
@@ -134,6 +134,10 @@ class TieRules(_Frozen):
     max_score_key: int | None = None
     """Höchstergebnis als erster Schlüsselwert (Hundertstel), nur mit
     `hoechstergebnis_gleicher_rang`: Wer es erreicht, teilt den Platz ohne Kette und Stechen."""
+    uncapturable: list[str] = []
+    """Gerechnete Kriterien, die sich bei dieser Definition grundsätzlich nicht erfassen lassen
+    (Innenzehner bei Zehntelwertung): Bleiben Starts bis dorthin gleich, ist das „manuell“, nicht
+    „Angaben fehlen“."""
 
 
 class Placement(_Frozen):
@@ -149,7 +153,9 @@ class Placement(_Frozen):
     """`missing_data`: für `tie_criterion` fehlen Rohdaten; `manual`: `tie_criterion` rechnet die
     Wertung nicht (nach Sportordnung entscheiden); `shootoff`: Stechen (`stechen_bis_platz`);
     `max_score`: Höchstergebnis erreicht, gleicher Platz nach Regel (DSB-SpO 0.12.1) – das ist
-    entschieden (`tie_unresolved` bleibt aus)."""
+    entschieden (`tie_unresolved` bleibt aus); `resolved`: im Ergebnis gleich, aber durch die
+    Gleichstandskette getrennt – `tie_criterion` ist das entscheidende Kriterium (nicht geteilt,
+    `tied` und `tie_unresolved` bleiben aus)."""
     tie_criterion: str | None = None
     needs_shootoff: bool = False
     tie_note: str | None = None
@@ -189,6 +195,7 @@ def tie_rules(definition: Mapping[str, Any] | Definition) -> TieRules:
         manual_from=manual_from,
         shootoff_until=defn.scoring.stechen_bis_platz,
         max_score_key=to_hundredths(maximum) if maximum is not None else None,
+        uncapturable=[c for c in evaluated if not criterion_capturable(defn, c)],
     )
 
 
@@ -218,17 +225,18 @@ def rank(
         shootoff = rules.shootoff_until if rules is not None and group == "ranked" else None
         for members, reason, criterion in _tiers(groups[group], 0, rules, next_place, shootoff):
             tied = len(members) > 1
+            shown = tied or reason == "resolved"
             placements.extend(
                 Placement(
                     id=member.id,
                     place=next_place,
                     tied=tied,
-                    tie_unresolved=tied and reason not in (None, "max_score"),
+                    tie_unresolved=tied and reason not in (None, "max_score", "resolved"),
                     group=group,
-                    tie_reason=reason if tied else None,
-                    tie_criterion=criterion if tied else None,
+                    tie_reason=reason if shown else None,
+                    tie_criterion=criterion if shown else None,
                     needs_shootoff=tied and reason == "shootoff",
-                    tie_note=_tie_note(reason, criterion, next_place) if tied else None,
+                    tie_note=_tie_note(reason, criterion, next_place) if shown else None,
                 )
                 for member in members
             )
@@ -321,13 +329,19 @@ def _tiers(
     rules: TieRules | None = None,
     first_place: int = 1,
     shootoff_until: int | None = None,
+    decided_by: str | None = None,
 ) -> list[Tier]:
     """Teilt Gleiche rekursiv nach dem nächsten Kriterium; liefert Gruppen in Rangfolge mit dem
-    Grund, warum eine Gruppe mit mehreren gleich bleibt (None: alle Kriterien gleich)."""
+    Grund, warum eine Gruppe mit mehreren gleich bleibt (None: alle Kriterien gleich).
+
+    Ein einzelner Start, den erst ein Kriterium der Kette von Ergebnisgleichen getrennt hat,
+    bekommt `resolved` und dieses Kriterium (`decided_by`, das zuletzt trennende)."""
     if not members:
         return []
     length = len(members[0].key or [])
     if len(members) < 2:
+        if decided_by is not None:
+            return [(members, "resolved", decided_by)]
         return [(members, None, None)]
     # Höchstergebnis (DSB-SpO 0.12.1 Satz 1): nicht unterschieden – vor Stechen und Kette.
     maximum = rules.max_score_key if rules is not None else None
@@ -340,15 +354,20 @@ def _tiers(
         return [(members, "manual" if manual else None, manual)]
     values = [(member.key or [])[level] for member in members]
     present = [value for value in values if value is not None]
+    slots = rules.slots if rules is not None else []
+    criterion = slots[level - 1] if 0 < level <= len(slots) else None
     if len(present) < len(values):
-        slots = rules.slots if rules is not None else []
-        criterion = slots[level - 1] if 0 < level <= len(slots) else None
+        if rules is not None and criterion in rules.uncapturable:
+            return [(members, "manual", criterion)]
         return [(members, "missing_data", criterion)]
+    distinct = sorted(set(present), reverse=True)
+    # Trennt dieses Kriterium (nicht das Ergebnis selbst), ist es das entscheidende.
+    decided = criterion if level > 0 and len(distinct) > 1 else decided_by
     tiers: list[Tier] = []
     place = first_place
-    for value in sorted(set(present), reverse=True):
+    for value in distinct:
         same = [m for m, v in zip(members, values, strict=True) if v == value]
-        tiers.extend(_tiers(same, level + 1, rules, place, shootoff_until))
+        tiers.extend(_tiers(same, level + 1, rules, place, shootoff_until, decided))
         place += len(same)
     return tiers
 
@@ -356,6 +375,8 @@ def _tiers(
 def _tie_note(reason: TieReason | None, criterion: str | None, place: int) -> str | None:
     """Hinweis ohne Verbandswort; Listen ersetzen ihn durch `ergebnisse.begriffe.tie_note`."""
     match reason:
+        case "resolved":
+            return f"Ringgleichheit, entschieden nach: {criterion_text(criterion)}"
         case "shootoff":
             return f"Ringgleichheit auf Platz {place}: Stechen"
         case "max_score":

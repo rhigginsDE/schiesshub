@@ -132,9 +132,10 @@ Ergebnisse werden nie überschrieben.
 |---|---|
 | `raw_set` | Rohwerte eingegeben oder geändert, solange der Start offen ist |
 | `finalized` | Ergebnis abgeschlossen |
-| `corrected` | Korrektur nach dem Abschluss, `reason` ist Pflicht; `payload.protest_restarted` sagt, ob die Einspruchsfrist neu begann |
+| `corrected` | Korrektur nach dem Abschluss, `reason` ist Pflicht; `payload.protest_restarted` sagt, ob die Einspruchsfrist neu begann. An einem abgebrochenen Start mit `payload.final: false`: nur neue Rohwerte, der Start bleibt abgebrochen |
 | `reopened` | Abschluss zurückgenommen, `reason` ist Pflicht |
 | `aborted` | Start abgebrochen |
+| `abort_undone` | Abbruch zurückgenommen, `reason` ist Pflicht; `payload.undone_abort_reason` (dns, dnf, dsq) und `payload.status` (zurück auf `captured` oder `registered`) |
 
 **`result_current`**: `start_id`, `competition_id`, `raw` (JSONB), `computed` (JSONB), `score`, `rank_keys` (JSONB), `is_final`, `finalized_at`, `provisional_until`, `last_seq` (Nummer des letzten Ereignisses), `definition_revision` (Revision der Wertung, mit der gerechnet wurde), `needs_review` und `review_reason` (abgeschlossen, aber nach einer Änderung der Wertung unvollständig oder nicht wertbar).
 
@@ -200,6 +201,6 @@ Berechtigungen sind Texte wie `tournament.edit`, `entry.edit`, `result.capture`,
 
 **`backup_run`**: `started_at`, `finished_at`, `kind` (`snapshot`, `journal`), `target` (`local`, `usb`), `file_name`, `size_bytes`, `sha256`, `ok`, `error`.
 
-**`audit_log`**: `at`, `user_id`, `device_id`, `action`, `entity`, `entity_id`, `details` (JSONB). Für Änderungen an Turnier-Einstellungen, Rollen, Anmeldungen und Starts. Ergebnisvorgänge stehen zusätzlich zum Ergebnisprotokoll hier, damit das System-Protokoll sie zeigt: `result.finalized`, `result.corrected`, `start.reopened`, `start.aborted`, `result.recomputed`; ebenso Änderungen am Ablauf am Schießstand: `start.moved`, `start.returned`, `start.lane_released`, `start.slot_assigned`, `start.slot_cleared`, `heat.created`, `heat.updated`, `heat.deleted`. `details` nennt Startnummer, Versuch, Kennziffer und Name des Wettbewerbs, Grund und Ergebnis, nie den Namen der Person.
+**`audit_log`**: `at`, `user_id`, `device_id`, `action`, `entity`, `entity_id`, `details` (JSONB). Für Änderungen an Turnier-Einstellungen, Rollen, Anmeldungen und Starts. Ergebnisvorgänge stehen zusätzlich zum Ergebnisprotokoll hier, damit das System-Protokoll sie zeigt: `result.finalized`, `result.corrected`, `start.reopened`, `start.aborted`, `start.abort_undone`, `result.recomputed`; ebenso Änderungen am Ablauf am Schießstand: `start.moved`, `start.returned`, `start.lane_released`, `start.slot_assigned`, `start.slot_cleared`, `heat.created`, `heat.updated`, `heat.deleted`. `details` nennt Startnummer, Versuch, Kennziffer und Name des Wettbewerbs, Grund und Ergebnis, nie den Namen der Person.
 
 Die Katalog-Tabellen (`catalog_*`) werden beim Start aus `catalog/` gefüllt und sind in der App nur lesbar.

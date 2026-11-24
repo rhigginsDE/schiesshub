@@ -37,17 +37,20 @@ from app.core.models import Timestamps, UUIDPrimaryKey
 
 
 class ResultEvent(UUIDPrimaryKey, Base):
-    """Ein Ereignis zu einem Start: Eingabe, Abschluss, Korrektur, Wiederöffnen, Abbruch."""
+    """Ein Ereignis zu einem Start: Eingabe, Abschluss, Korrektur, Wiederöffnen, Abbruch und
+    dessen Rücknahme."""
 
     __tablename__ = "result_event"
     __table_args__ = (
         UniqueConstraint("start_id", "seq"),
         CheckConstraint("seq >= 1", name="seq"),
         CheckConstraint(
-            "type IN ('raw_set', 'finalized', 'corrected', 'reopened', 'aborted')", name="type"
+            "type IN ('raw_set', 'finalized', 'corrected', 'reopened', 'aborted', 'abort_undone')",
+            name="type",
         ),
         CheckConstraint(
-            "type NOT IN ('corrected', 'reopened') OR (reason IS NOT NULL AND btrim(reason) <> '')",
+            "type NOT IN ('corrected', 'reopened', 'abort_undone') "
+            "OR (reason IS NOT NULL AND btrim(reason) <> '')",
             name="reason",
         ),
         # Ein Schlüssel gilt je Start genau einmal (Wiederholung nach Verbindungsabbruch).
@@ -66,7 +69,8 @@ class ResultEvent(UUIDPrimaryKey, Base):
     seq: Mapped[int] = mapped_column(Integer)
     type: Mapped[str] = mapped_column(String(20))
     # raw_set/corrected: {"raw": …}; finalized/corrected: {"provisional_until": …};
-    # aborted: {"abort_reason": …}.
+    # corrected an einem abgebrochenen Start: {"raw": …, "final": false};
+    # aborted: {"abort_reason": …}; abort_undone: {"undone_abort_reason": …, "status": …}.
     payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
     reason: Mapped[str | None] = mapped_column(Text)
     # Wer und womit (ohne Fremdschlüssel, damit das Protokoll bleibt). Leer ohne Anmeldung.

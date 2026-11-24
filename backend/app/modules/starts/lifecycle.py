@@ -91,7 +91,9 @@ async def transition(
     """Wechselt den Status eines Starts, ohne zu committen.
 
     - `to="aborted"` verlangt `abort_reason` (dns, dnf, dsq).
-    - `final → captured` (Wiederöffnen) verlangt `reason`; er landet im Audit-Protokoll.
+    - `final → captured` (Wiederöffnen) und `aborted → captured|registered` (Abbruch
+      zurücknehmen) verlangen `reason`; er landet im Audit-Protokoll (`start.reopened` bzw.
+      `start.abort_undone`). Zurückgenommen wird der Abbruchgrund gelöscht.
     - Für `to="called"` muss `start.lane` gesetzt sein (das erledigen Aufruf-Funktionen).
 
     Fehler: `ConflictError` (HTTP 409) bei verbotenem Übergang oder abgeschlossenem Turnier.
@@ -103,6 +105,7 @@ async def transition(
     assert competition is not None
     await writable_tournament(session, entry.tournament_id)
     previous: StartStatus = start.status
+    previous_abort = start.abort_reason
     try:
         check_transition(previous, to, abort_reason=abort_reason, reason=reason)
     except RuleError as exc:
@@ -129,10 +132,16 @@ async def transition(
         await renumber_queue(session, competition.range_id)
 
     if to == "aborted" or (previous, to) in REASON_REQUIRED:
+        if to == "aborted":
+            action = "start.aborted"
+        elif previous == "aborted":
+            action = "start.abort_undone"
+        else:
+            action = "start.reopened"
         record_audit(
             session,
             actor,
-            "start.aborted" if to == "aborted" else "start.reopened",
+            action,
             "start",
             start.id,
             {
@@ -144,7 +153,7 @@ async def transition(
                 "start_number": entry.start_number,
                 "attempt": start.attempt,
                 "from": previous,
-                "abort_reason": abort_reason,
+                "abort_reason": abort_reason or previous_abort,
                 "reason": reason,
             },
         )

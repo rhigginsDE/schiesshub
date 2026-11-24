@@ -19,7 +19,7 @@ from app.scoring import ComputedResult, FormDescription
 
 Reason = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
 Seq = Annotated[int, Field(ge=0)]
-EventType = Literal["raw_set", "finalized", "corrected", "reopened", "aborted"]
+EventType = Literal["raw_set", "finalized", "corrected", "reopened", "aborted", "abort_undone"]
 CaptureMode = Literal["shot", "series"]
 # Stand eines Ergebnisses in Ranglisten: vorläufig (Einspruchsfrist läuft), endgültig, läuft
 # (nur `scope=live`), abgebrochen, prüfen (nach Änderung der Wertung nicht wertbar).
@@ -66,6 +66,12 @@ class AbortResultRequest(StrictModel):
     reason: Reason | None = None
 
 
+class UndoAbortRequest(StrictModel):
+    # Pflicht: warum der Abbruch zurückgenommen wird (steht am Ereignis und im Audit-Protokoll).
+    reason: Reason
+    base_seq: Seq | None = None
+
+
 # --- Stand eines Starts --------------------------------------------------------------
 
 
@@ -92,6 +98,29 @@ class ResultState(BaseModel):
     abort_remark: str | None = None
 
 
+AbortPreviewCode = Literal[
+    "placed", "no_values", "incomplete_series", "no_rule", "missing_section_time", "invalid"
+]
+
+
+class AbortPreview(BaseModel):
+    """Was ein Aufgeben jetzt (Abbruchgrund `dnf`) bewirken würde – gerechnet wie die Rangliste."""
+
+    would_place: bool
+    # placed: würde platziert; no_values: noch kein Wertungswert; incomplete_series: Serie nur
+    # teilweise erfasst; no_rule: keine Regel für nicht geschossene Serien; missing_section_time:
+    # Gesamtzeit eines Abschnitts fehlt; invalid: Rohwerte nicht wertbar.
+    reason_code: AbortPreviewCode
+    # Satz für die Bedienung mit den Wörtern des Verbands, z. B. „Würde nach dem bisherigen
+    # Ergebnis platziert (250,00 s).“
+    message_de: str
+    # Nummern der gewerteten Serien, die noch nicht vollständig erfasst sind (über alle
+    # Abschnitte; bei mehreren Abschnitten kann eine Nummer mehrfach vorkommen).
+    open_series: list[int]
+    # Ergebnis, nach dem platziert würde („250,00 s“); null ohne Platz.
+    score_text: str | None
+
+
 class PreviewOut(BaseModel):
     """Probe-Rechnung von Rohwerten gegen die aktuelle Definition; nichts ist gespeichert."""
 
@@ -110,6 +139,9 @@ class PreviewOut(BaseModel):
     # Wertung mit Rechenweg; null, solange `errors` nicht leer ist.
     computed: ComputedResult | None
     score: Decimal | None
+    # Würde ein Aufgeben mit diesen Rohwerten platziert? null, wenn sich der Start nicht (mehr)
+    # abbrechen lässt (abgeschlossen oder schon abgebrochen).
+    abort_preview: AbortPreview | None = None
 
 
 class SeqConflictOut(BaseModel):
@@ -151,6 +183,9 @@ class FormOut(BaseModel):
     competition_capture_mode: CaptureMode
     form: FormDescription
     current: ResultState
+    # Würde ein Aufgeben jetzt platziert (aktuelle Rohwerte)? null bei abgeschlossenen oder
+    # abgebrochenen Starts.
+    abort_preview: AbortPreview | None = None
 
 
 # --- Verlauf -------------------------------------------------------------------
@@ -224,8 +259,10 @@ class RankingRow(BaseModel):
     # missing_data: Rohdaten für `tie_criterion` fehlen; manual: `tie_criterion` rechnet der
     # Server nicht (nach Sportordnung entscheiden); shootoff: Stechen (`stechen_bis_platz`);
     # max_score: Höchstergebnis erreicht, gleicher Platz nach Regel (DSB-SpO 0.12.1) – entschieden,
-    # `tie_unresolved` bleibt false.
-    tie_reason: Literal["missing_data", "manual", "shootoff", "max_score"] | None = None
+    # `tie_unresolved` bleibt false; resolved: im Ergebnis gleich, durch die Gleichstandskette
+    # getrennt (`tied` und `tie_unresolved` false, `tie_criterion` das entscheidende Kriterium,
+    # `tie_note` z. B. „Ringgleichheit, entschieden nach: Anzahl der Zehner“).
+    tie_reason: Literal["missing_data", "manual", "shootoff", "max_score", "resolved"] | None = None
     # Interne ID des Kriteriums (zum Auswerten, nicht zum Anzeigen; Klartext steht in `tie_note`).
     tie_criterion: str | None = None
     needs_shootoff: bool = False

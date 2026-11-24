@@ -21,7 +21,10 @@ nur ausgewählt, gruppiert und dargestellt. Personen erscheinen nur so, wie sie 
 - `abort_remark`: Bemerkung der Bedienung beim Abbrechen (nur in dieser Rangliste, nicht in
   Anzeige und Export).
 - Einheit: aus der aktuellen Definition („Treffer“ bei reiner Trefferzählung); ein gespeichertes
-  Ergebnis mit anderer Einheit wird beim Lesen angeglichen.
+  Ergebnis mit anderer Einheit wird beim Lesen angeglichen. Bei reiner Trefferzählung sind
+  `tens`/`inner_tens` immer null.
+- Gleichstand: Zeilen mit gleichem Ergebnis, die die Gleichstandskette trennt, tragen
+  `tie_reason="resolved"`, das entscheidende Kriterium und den Hinweis dazu.
 - `scope=final`: abgeschlossene Ergebnisse und Abbrüche; ein unvollständiges Ergebnis (nach
   einer Änderung der Wertung) steht ohne Platz da.
 - `scope=live`: zusätzlich laufende Zwischenstände (Status `registered`/`called`/`captured` mit
@@ -47,7 +50,7 @@ from app.core.begriffe import Begriffe
 from app.modules.ergebnisse import begriffe
 from app.modules.ergebnisse.models import ResultCurrent
 from app.modules.ergebnisse.recompute import ensure_current
-from app.modules.ergebnisse.rules import AbortedEvaluation, evaluate_aborted, scoring_definition
+from app.modules.ergebnisse.rules import AbortedEvaluation, aborted_for_raw, scoring_definition
 from app.modules.ergebnisse.schemas import (
     CompetitionSummary,
     LeaderOut,
@@ -239,7 +242,11 @@ def _row(
 
 
 async def _candidates(
-    session: AsyncSession, competition: Competition, now: datetime, unit: str | None = None
+    session: AsyncSession,
+    competition: Competition,
+    now: datetime,
+    unit: str | None = None,
+    hits_only: bool = False,
 ) -> list[Candidate]:
     rows = await session.execute(
         select(Start, Entry, Person, Club.name, TournamentClass, ResultCurrent)
@@ -266,6 +273,17 @@ async def _candidates(
             computed = computed.model_copy(
                 update={"unit": unit, "score_text": f"{format_number(computed.score)} {unit}"}
             )
+        if (
+            computed is not None
+            and hits_only
+            and (computed.tens, computed.inner_tens)
+            != (
+                None,
+                None,
+            )
+        ):
+            # Reine Trefferzählung kennt keine Zehner (ältere Stände hatten hier 0).
+            computed = computed.model_copy(update={"tens": None, "inner_tens": None})
         candidates.append(
             Candidate(
                 start,
@@ -292,11 +310,7 @@ def aborted_evaluation(
         return None
     if current is None:
         return AbortedEvaluation(has_values=False)
-    try:
-        definition = scoring_definition(competition.definition)
-    except KeyError, TypeError:
-        return AbortedEvaluation(has_values=bool(current.raw), reason="invalid")
-    return evaluate_aborted(definition, competition.capture_mode, current.raw)
+    return aborted_for_raw(competition.definition, competition.capture_mode, current.raw)
 
 
 def list_result(
@@ -360,7 +374,9 @@ async def _ranking(
     }
     defn = _definition(competition)
     unit = defn.unit if defn is not None else None
-    every = await _candidates(session, competition, now, unit)
+    every = await _candidates(
+        session, competition, now, unit, hits_only=defn is not None and defn.hits_only
+    )
     remarks = await abort_remarks(
         session, [c.start.id for c in every if c.start.abort_reason is not None]
     )

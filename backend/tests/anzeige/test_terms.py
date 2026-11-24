@@ -62,3 +62,21 @@ async def test_startlist_person_has_abort_label_and_federation(api: Api, setup: 
     by_id = {person["start_id"]: person for person in startlist["starts"]}
     assert by_id[sid]["abort_label"] == "nicht angetreten"
     assert by_id[open_sid]["abort_label"] is None
+
+
+async def test_rows_show_which_criterion_resolved_a_tie(api: Api, setup: Setup) -> None:
+    sids = []
+    for name in ("Anna Zehner", "Berta Neuner"):
+        entry = await api.entry(setup.tid, setup.class_id, name)
+        sids.append(await api.start(setup.tid, entry, setup.cid))
+    # 91 = 91; Anna hat 2 Zehner, Berta 1: entschieden nach Zehnern.
+    await api.shoot(setup.tid, sids[0], shots([10, 10, 9, 9, 8], [9] * 5))
+    await api.shoot(setup.tid, sids[1], shots([10, 9, 9, 9, 9], [9] * 5))
+    display_id = await api.show({"id": "live", "kind": "live_ranking"})
+    feed = await api.feed(display_id)
+    found = {row["start_id"]: row for row in rows(feed["scenes"][0])}
+    for sid, place in zip(sids, (1, 2), strict=True):
+        row = found[sid]
+        assert (row["place"], row["tied"], row["tie_unresolved"]) == (place, False, False)
+        assert (row["tie_reason"], row["tie_criterion"]) == ("resolved", "zehner")
+        assert row["tie_note"] == "Ringgleichheit, entschieden nach: Anzahl der Zehner"

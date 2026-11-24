@@ -87,6 +87,8 @@ Die Kriterien in `wertung.gleichstand` werden der Reihe nach verglichen (`app/sc
 - `letzte_serie_rueckwaerts`: letzte Zehnerserie, dann in 10-Schuss-Blöcken rückwärts über alle gewerteten Schüsse (DSB-SpO 0.12.1 Nr. 1, Auflage 9.4.1), unabhängig von der Serienlänge der Disziplin. Aus Seriensummen nur, wenn jede Serie ganz in einem Block liegt (10er-Serien direkt, 5er-Serien paarweise vom Ende her). *Annahme:* Ist die Schusszahl kein Vielfaches von 10, ist der vorderste Block kürzer. Zählen alle Abschnitte nur Treffer (Wurfscheibe), gilt die Serie, wie sie definiert ist (DSB-SpO 3.9.1.2). Der BDS-Katalog nutzt das Kriterium nicht.
 - `hoechstergebnis_gleicher_rang` (nur Modell `ringe`): Wer das erzielbare Höchstergebnis erreicht (je gewerteter Serie Schusszahl × höchster Ringwert; Zehntelwertung 10,9), teilt den Platz ohne Kette, Stechen oder „manuell“ (DSB-SpO 0.12.1 Satz 1; `tie_reason: max_score`, Hinweis „Höchstergebnis: gleicher Platz“).
 - `stechen_bis_platz`: Gleichstand bis Platz N entscheidet ein Stechen, das die Wertung nicht erfasst.
+- Kriterien, die sich bei einer Disziplin grundsätzlich nicht erfassen lassen (Innenzehner bei Zehntelwertung, Zehner bei reiner Trefferzählung; bei Erfassung als Seriensumme auch Kriterien, die Einzelschüsse brauchen), meldet das Ergebnis nicht als fehlend (`tie_breakers_missing`); bleibt ein Gleichstand bis dorthin, ist er manuell zu entscheiden.
+- Trennt ein Kriterium Starts mit gleichem Ergebnis, nennt die Rangliste es (`tie_reason: resolved`, `tie_criterion`, Hinweis z. B. „Ringgleichheit, entschieden nach: Anzahl der Zehner“) – auch in Anzeige und Export (Spalte „Hinweis“).
 
 ### Formelle Wörter je Verband
 
@@ -104,6 +106,8 @@ Wie Sporthandbuch K 1.14 / L 1.12: Wer nach dem Kommando „Feuer“ abbricht (A
 | `ringe_minus_zeit` | Regel fehlt (keine Zeit des letzten Schusses) | zählt, wenn die Zeit erfasst ist |
 
 Fehlt eine Regel oder ist eine Serie nicht wertbar, bleibt der Start ohne Platz mit dem Hinweis „Ergebnis nicht vergleichbar: …“. Ohne Platz bleiben außerdem nicht angetreten, disqualifiziert und ein Abbruch ohne Wertungswert (Abbruch im Probeschießen, „AB“). Das gewertete Ergebnis rechnet die Rangliste beim Lesen aus Rohwerten und aktueller Definition; gespeichert bleibt der Zwischenstand der Erfassung. Rangliste, Anzeige und Export nutzen dieselbe Funktion (`ergebnisse.ranking`). Bei Mehrfachstart zählt ein platzierter Abbruch wie ein reguläres Ergebnis. Formelle Wörter der Listen: siehe „Formelle Wörter je Verband“.
+
+Ob ein Aufgeben jetzt platziert würde, sagt die Eingabemaske vorab (`abort_preview` in `GET …/form` und `POST …/preview`), gerechnet mit derselben Funktion wie die Rangliste. Ein Abbruch lässt sich mit Grund zurücknehmen (`POST …/starts/{id}/result/undo-abort`, Recht `result.correct`): neues Ereignis `abort_undone`, der Start geht zurück auf „erfasst“ (mit Rohwerten) bzw. „angemeldet“, ohne Schützenstand. Die Rohwerte eines abgebrochenen Starts lassen sich auch korrigieren, ohne den Abbruch zurückzunehmen (`POST …/correct` mit Grund; etwa um den Serienstatus „Abbruch durch den Schützen“ nachzutragen).
 
 ## Ablauf am Schießstand
 

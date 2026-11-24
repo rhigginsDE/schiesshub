@@ -25,7 +25,9 @@ STATUS_LABELS: dict[str, str] = {
 }
 
 # Erlaubte Übergänge. `called → registered` ist „zurückstellen“, `final → captured` das
-# Wiederöffnen eines abgeschlossenen Ergebnisses durch das Ergebnis-Modul (mit Grund).
+# Wiederöffnen eines abgeschlossenen Ergebnisses durch das Ergebnis-Modul (mit Grund),
+# `aborted → captured`/`aborted → registered` das Zurücknehmen eines Abbruchs (mit Grund; zurück
+# in den Status davor: erfasst mit Rohwerten, sonst angemeldet).
 # `registered → captured` ist die nachträgliche Erfassung ohne Aufrufen (kleine Vereine rufen
 # nicht auf); bei der Reihenfolge bleibt der Schützenstand dann leer.
 TRANSITIONS: Mapping[StartStatus, frozenset[StartStatus]] = {
@@ -33,9 +35,11 @@ TRANSITIONS: Mapping[StartStatus, frozenset[StartStatus]] = {
     "called": frozenset({"registered", "captured", "aborted"}),
     "captured": frozenset({"final", "aborted"}),
     "final": frozenset({"captured"}),
-    "aborted": frozenset(),
+    "aborted": frozenset({"registered", "captured"}),
 }
-REASON_REQUIRED: frozenset[tuple[StartStatus, StartStatus]] = frozenset({("final", "captured")})
+REASON_REQUIRED: frozenset[tuple[StartStatus, StartStatus]] = frozenset(
+    {("final", "captured"), ("aborted", "captured"), ("aborted", "registered")}
+)
 
 # Ab hier hat ein Start einen Schützenstand belegt oder ein Ergebnis; eine Anmeldung damit
 # bleibt stehen.
@@ -75,6 +79,8 @@ def check_transition(
     if to != "aborted" and abort_reason is not None:
         raise RuleError("Ein Abbruchgrund gehört nur zum Abbrechen eines Starts.")
     if (current, to) in REASON_REQUIRED and not (reason and reason.strip()):
+        if current == "aborted":
+            raise RuleError("Zum Zurücknehmen eines Abbruchs wird ein Grund benötigt.")
         raise RuleError("Zum Wiederöffnen eines abgeschlossenen Starts wird ein Grund benötigt.")
 
 
