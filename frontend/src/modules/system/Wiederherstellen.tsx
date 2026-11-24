@@ -12,15 +12,15 @@ import {
   Info,
   LifeBuoy,
   LoaderCircle,
+  Printer,
   RefreshCw,
   ShieldAlert,
   TriangleAlert,
 } from "lucide-react";
-import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiSenden } from "../../api/client";
 import { useDarf } from "../../app/berechtigungen";
-import { WARTUNG_SCHLUESSEL } from "../../app/wartung";
 import { FehlerHinweis } from "../../components/FehlerHinweis";
 import { Fehlerzustand, Leerzustand } from "../../components/Zustand";
 import { formatDatum, formatZahl } from "../../lib/format";
@@ -32,21 +32,40 @@ import {
   aktuellerSchritt,
   ausfuehrenAnfrage,
   datenUnveraendert,
+  ergebnisHinweise,
+  fehltInSicherung,
+  grundText,
   istKurzeUnterbrechung,
   istZugangWeg,
+  kopieOhnePasswort,
+  type Meldung,
+  meldungTexte,
   nachDerWahl,
   nachtragenMoeglich,
+  orteDerQuelle,
   type Quelle,
   quellenAbfrage,
+  quellenZusammenfassen,
+  serverTexte,
   startAnsicht,
   statusAbfrage,
+  type UebersprungenerStart,
+  type Uebersetzer,
+  uebersprungeneStarts,
   umschaltenLaeuft,
   type Vorschau,
   verloreneEingaben,
   WIEDERHERSTELLEN_SCHLUESSEL,
   type WiederherstellungsSchritt,
   type WiederherstellungsStatus,
+  type Zugang,
 } from "./wiederherstellenAblauf";
+
+/** `t` als einfache Funktion, für die Texte nach Kennungen in wiederherstellenAblauf.ts. */
+function useUebersetzer(): Uebersetzer {
+  const { t } = useTranslation("system");
+  return (schluessel, werte) => t(schluessel, { ...werte });
+}
 
 /** So viele Sicherungen zeigt die Auswahl, bevor „Ältere zeigen“ nötig ist. */
 const QUELLEN_KURZ = 6;
@@ -113,12 +132,9 @@ function Ablauf() {
     statusAbfrage(gewaehlteAnsicht === null || gewaehlteAnsicht === "fortschritt"),
   );
   const ansicht = gewaehlteAnsicht ?? (status.isPending ? null : startAnsicht(status.data));
-  // Fertig oder gescheitert: Die Wartung ist vorbei; den Hinweis der Kopfzeile gleich neu prüfen,
-  // auch wenn das Ereignis `backup.maintenance` diesem Gerät entgangen ist.
-  const beendet = status.data?.state === "succeeded" || status.data?.state === "failed";
-  useEffect(() => {
-    if (beendet) void queryClient.invalidateQueries({ queryKey: WARTUNG_SCHLUESSEL });
-  }, [beendet, queryClient]);
+  // Das Ende der Wartung (und das Neuladen aller Daten) erfährt die App-Shell selbst: über das
+  // Ereignis `backup.maintenance`, das der Server erst schickt, wenn die neuen Daten antworten,
+  // und über ihr eigenes Nachfragen, solange die Wartung läuft (app/wartung.ts).
 
   const vorschauLaden = useMutation({
     mutationFn: (eingabe: { quelle: Quelle; passwort: string }) =>
@@ -203,6 +219,11 @@ function Ablauf() {
           laedt={vorschauLaden.isPending}
           fehler={vorschauLaden.error}
           onPruefen={() => vorschauLaden.mutate({ quelle, passwort })}
+          onKopie={(kopie) => {
+            setQuelle(kopie);
+            setPasswort("");
+            vorschauLaden.mutate({ quelle: kopie, passwort: "" });
+          }}
           onZurueck={neuBeginnen}
         />
       ) : ansicht === "vorschau" && vorschau ? (
@@ -312,7 +333,7 @@ function Waehlen({
   const [alle, setAlle] = useState(false);
   const [fehlt, setFehlt] = useState(false);
 
-  const liste = quellen.data?.sources ?? [];
+  const liste = quellenZusammenfassen(quellen.data?.sources ?? []);
   const sichtbar = alle ? liste : liste.slice(0, QUELLEN_KURZ);
   // Eine Auswahl unter „Ältere“ bleibt sichtbar.
   const gewaehlteQuelle = liste.find((quelle) => quelle.id === auswahl) ?? null;
@@ -472,7 +493,11 @@ function QuelleKarte({ quelle }: { quelle: Quelle }) {
           <span className={`${s.quelleZeit} num`}>
             {formatZeitpunkt(quelle.created_at, sprache)}
           </span>
-          <span className={s.quelleWann}>{ortText(t, quelle.location)}</span>
+          <span className={s.quelleWann}>
+            {new Intl.ListFormat(sprache, { type: "conjunction" }).format(
+              orteDerQuelle(quelle).map((ort) => t(`wiederherstellen.orte.${ort}`)),
+            )}
+          </span>
         </span>
         <span className={s.quelleMerkmale}>{merkmale.join(" · ")}</span>
       </span>
@@ -489,6 +514,7 @@ function Passwort({
   laedt,
   fehler,
   onPruefen,
+  onKopie,
   onZurueck,
 }: {
   quelle: Quelle;
@@ -497,10 +523,13 @@ function Passwort({
   laedt: boolean;
   fehler: unknown;
   onPruefen: () => void;
+  /** Dieselbe Sicherung vom Server, ohne Passwort */
+  onKopie: (kopie: Quelle) => void;
   onZurueck: () => void;
 }) {
   const { t, i18n } = useTranslation("system");
   const [leer, setLeer] = useState(false);
+  const kopie = kopieOhnePasswort(quelle);
   const absenden = (ereignis: FormEvent) => {
     ereignis.preventDefault();
     if (!passwort) {
@@ -550,6 +579,17 @@ function Passwort({
           </Button>
         </div>
         {laedt && <p className={s.klein}>{t("wiederherstellen.liest")}</p>}
+        {kopie && (
+          <div className={`${s.abschnitt} ${s.nebenweg}`}>
+            <h4 className={s.abschnittTitel}>{t("wiederherstellen.passwort_vergessen_titel")}</h4>
+            <p className={s.text}>{t("wiederherstellen.passwort_vergessen_text")}</p>
+            <div>
+              <Button variant="default" onClick={() => onKopie(kopie)} disabled={laedt}>
+                {t("wiederherstellen.passwort_vergessen_knopf")}
+              </Button>
+            </div>
+          </div>
+        )}
       </form>
     </section>
   );
@@ -592,11 +632,14 @@ function VorschauAnsicht({
   onZurueck: () => void;
 }) {
   const { t, i18n } = useTranslation("system");
+  const uebersetzen = useUebersetzer();
   const sprache = i18n.language;
   const zahl = (wert: number) => formatZahl(wert, {}, sprache);
   const [aussperrenFehlt, setAussperrenFehlt] = useState(false);
   const { access: zugang } = vorschau;
   const zeit = formatZeitpunkt(vorschau.created_at ?? vorschau.source.created_at, sprache);
+  const hinweise = meldungTexte(vorschau.note_items, uebersetzen);
+  const ort = ortText(t, vorschau.source.location);
 
   const weiter = () => {
     if (zugang.lockout_risk && !aussperren) {
@@ -614,19 +657,24 @@ function VorschauAnsicht({
             <h3 className="h-section" id="wiederherstellen-vorschau">
               {t("wiederherstellen.vorschau_titel")}
             </h3>
-            <p className={s.text}>
-              {t("wiederherstellen.gewaehlt", { zeit, ort: ortText(t, vorschau.source.location) })}
-            </p>
+            <p className={s.text}>{t("wiederherstellen.gewaehlt", { zeit, ort })}</p>
           </div>
           <Kasten ton="krit" icon={<CircleX aria-hidden />}>
             <strong>{t("wiederherstellen.nicht_moeglich_titel")}</strong>
             <ul>
-              {vorschau.problems.map((problem) => (
+              {meldungTexte(vorschau.problem_items, uebersetzen).map((problem) => (
                 <li key={problem}>{problem}</li>
               ))}
             </ul>
             <span>{t("wiederherstellen.nicht_moeglich_text")}</span>
           </Kasten>
+          <Einzelheiten
+            zeilen={[
+              ...serverTexte(vorschau.problem_items),
+              ...serverTexte(vorschau.note_items),
+              `${t("wiederherstellen.datei")}: ${vorschau.source.file_name}`,
+            ]}
+          />
           <div className={s.aktionen}>
             <Button onClick={onZurueck}>{t("wiederherstellen.andere_waehlen")}</Button>
           </div>
@@ -643,7 +691,7 @@ function VorschauAnsicht({
             {t("wiederherstellen.vorschau_titel")}
           </h3>
           <p className={s.text}>
-            {t("wiederherstellen.gewaehlt", { zeit, ort: ortText(t, vorschau.source.location) })}
+            {t("wiederherstellen.gewaehlt", { zeit, ort })}
             {vorschau.persons !== null &&
               ` · ${t("wiederherstellen.teilnehmer", { count: vorschau.persons, anzahl: zahl(vorschau.persons) })}`}
           </p>
@@ -686,39 +734,35 @@ function VorschauAnsicht({
             <li>{t("wiederherstellen.ersetzt_text")}</li>
             <li>{t("wiederherstellen.vorher_gesichert")}</li>
             <li>{t("wiederherstellen.bleibt")}</li>
-            <li>
-              {zugang.enforced_after && !zugang.enforced_now
-                ? t("wiederherstellen.pin_wird_pflicht")
-                : t("wiederherstellen.pin_bleibt")}
-            </li>
+            {/* Ist Koppeln und PIN weder jetzt noch danach Pflicht, sagt das „Dein Zugang danach“. */}
+            {zugang.enforced_now && <li>{t("wiederherstellen.pin_bleibt")}</li>}
+            {zugang.enforced_after && !zugang.enforced_now && (
+              <li>{t("wiederherstellen.pin_wird_pflicht")}</li>
+            )}
           </ul>
         </div>
 
-        {(zugang.lockout_risk || zugang.pin_changed) && (
+        <ZugangDanach zugang={zugang}>
+          <Checkbox
+            size="md"
+            checked={aussperren}
+            onChange={(e) => {
+              onAussperren(e.currentTarget.checked);
+              if (e.currentTarget.checked) setAussperrenFehlt(false);
+            }}
+            label={t("wiederherstellen.aussperren_bestaetigen")}
+            error={aussperrenFehlt ? t("wiederherstellen.aussperren_fehlt") : undefined}
+          />
+        </ZugangDanach>
+
+        {hinweise.length > 0 && (
           <div className={s.abschnitt}>
-            <h4 className={s.abschnittTitel}>{t("wiederherstellen.zugang_titel")}</h4>
-            {zugang.pin_changed && !zugang.lockout_risk && (
-              <Kasten ton="warn" icon={<TriangleAlert aria-hidden />}>
-                <span>{t("wiederherstellen.pin_geaendert")}</span>
-              </Kasten>
-            )}
-            {zugang.lockout_risk && (
-              <Kasten ton="krit" icon={<ShieldAlert aria-hidden />}>
-                <strong>{t("wiederherstellen.aussperren_titel")}</strong>
-                <span>{t("wiederherstellen.aussperren_text")}</span>
-                <span>{zugang.message_de}</span>
-                <Checkbox
-                  size="md"
-                  checked={aussperren}
-                  onChange={(e) => {
-                    onAussperren(e.currentTarget.checked);
-                    if (e.currentTarget.checked) setAussperrenFehlt(false);
-                  }}
-                  label={t("wiederherstellen.aussperren_bestaetigen")}
-                  error={aussperrenFehlt ? t("wiederherstellen.aussperren_fehlt") : undefined}
-                />
-              </Kasten>
-            )}
+            <h4 className={s.abschnittTitel}>{t("wiederherstellen.hinweise_titel")}</h4>
+            <ul className={s.liste}>
+              {hinweise.map((hinweis) => (
+                <li key={hinweis}>{hinweis}</li>
+              ))}
+            </ul>
           </div>
         )}
 
@@ -727,8 +771,8 @@ function VorschauAnsicht({
             vorschau.comparison.summary_de,
             vorschau.schema_check.message_de,
             vorschau.keys.message_de,
-            zugang.message_de,
-            ...vorschau.notes,
+            ...serverTexte(zugang.reasons),
+            ...serverTexte(vorschau.note_items),
             `${t("wiederherstellen.datei")}: ${vorschau.source.file_name}`,
           ]}
         />
@@ -828,6 +872,62 @@ function Vergleich({
               : t("wiederherstellen.nachtragen_aus")
           }
         />
+      )}
+    </div>
+  );
+}
+
+/** Kennungen, die erklären, warum du danach nicht mehr in die Verwaltung kommst. */
+const SPERR_GRUENDE: ReadonlySet<string> = new Set(["lockout", "enforcement_on_after_restore"]);
+
+/**
+ * Was nach der Wiederherstellung mit deinem Zugang geschieht, nach den Kennungen des Servers.
+ * `children` ist die Bestätigung, die bei drohendem Aussperren nötig ist.
+ */
+function ZugangDanach({ zugang, children }: { zugang: Zugang; children: ReactNode }) {
+  const { t, i18n } = useTranslation("system");
+  const uebersetzen = useUebersetzer();
+  const fehlt = fehltInSicherung(zugang);
+  const was =
+    fehlt.length > 0
+      ? new Intl.ListFormat(i18n.language, { type: "conjunction" }).format(
+          fehlt.map((teil) => t(`wiederherstellen.fehlt.${teil}`)),
+        )
+      : t("wiederherstellen.fehlt.unbekannt");
+  const texte = (meldungen: Meldung[]) => meldungTexte(meldungen, uebersetzen, { was });
+
+  const gruende = zugang.reasons ?? [];
+  const sperre = gruende.filter((grund) => zugang.lockout_risk && SPERR_GRUENDE.has(grund.code));
+  const pin = gruende.filter((grund) => grund.code === "pin_changed");
+  const sonst = gruende.filter((grund) => !sperre.includes(grund) && !pin.includes(grund));
+  if (gruende.length === 0 && !zugang.lockout_risk) return null;
+
+  return (
+    <div className={s.abschnitt}>
+      <h4 className={s.abschnittTitel}>{t("wiederherstellen.zugang_titel")}</h4>
+      {sonst.length > 0 && (
+        <ul className={s.liste}>
+          {texte(sonst).map((text) => (
+            <li key={text}>{text}</li>
+          ))}
+        </ul>
+      )}
+      {pin.length > 0 && (
+        <Kasten ton="warn" icon={<TriangleAlert aria-hidden />}>
+          {texte(pin).map((text) => (
+            <span key={text}>{text}</span>
+          ))}
+        </Kasten>
+      )}
+      {zugang.lockout_risk && (
+        <Kasten ton="krit" icon={<ShieldAlert aria-hidden />}>
+          <strong>{t("wiederherstellen.aussperren_titel")}</strong>
+          {texte(sperre).map((text) => (
+            <span key={text}>{text}</span>
+          ))}
+          <span>{t("wiederherstellen.aussperren_text")}</span>
+          {children}
+        </Kasten>
       )}
     </div>
   );
@@ -1086,6 +1186,7 @@ function Fortschritt({
 
 function Ergebnis({ status }: { status: WiederherstellungsStatus }) {
   const { t, i18n } = useTranslation("system");
+  const uebersetzen = useUebersetzer();
   const sprache = i18n.language;
   const ergebnis = status.result;
   if (!ergebnis) return null;
@@ -1093,6 +1194,9 @@ function Ergebnis({ status }: { status: WiederherstellungsStatus }) {
   const bericht = ergebnis.journal;
   const fehlen = bericht ? bericht.missing_events + bericht.conflicts : 0;
   const zeit = status.source ? formatZeitpunkt(status.source.created_at, sprache) : "";
+  const hinweise = ergebnisHinweise(status);
+  const hinweisTexte = meldungTexte(hinweise, uebersetzen);
+  const starts = uebersprungeneStarts(status);
 
   return (
     <>
@@ -1118,6 +1222,14 @@ function Ergebnis({ status }: { status: WiederherstellungsStatus }) {
           )}
         </ul>
       </Kasten>
+      {hinweisTexte.length > 0 && (
+        <Kasten ton="warn" icon={<TriangleAlert aria-hidden />}>
+          {hinweisTexte.map((text) => (
+            <span key={text}>{text}</span>
+          ))}
+        </Kasten>
+      )}
+      {starts.length > 0 && <NachtragenListe starts={starts} zeit={zeit} />}
       <div className={s.abschnitt}>
         <h4 className={s.abschnittTitel}>{t("wiederherstellen.naechster_schritt")}</h4>
         <p className={s.text}>{t("wiederherstellen.naechster_text")}</p>
@@ -1125,7 +1237,7 @@ function Ergebnis({ status }: { status: WiederherstellungsStatus }) {
       <Einzelheiten
         zeilen={[
           ...(bericht?.lines ?? []),
-          ...ergebnis.notes,
+          ...serverTexte(ergebnis.note_items),
           `${t("wiederherstellen.datenbank")}: ${ergebnis.database}`,
           `${t("wiederherstellen.vorherige_datenbank")}: ${ergebnis.previous_database}`,
           ergebnis.pre_restore_backup &&
@@ -1133,5 +1245,90 @@ function Ergebnis({ status }: { status: WiederherstellungsStatus }) {
         ]}
       />
     </>
+  );
+}
+
+/** Merkmal am html-Element, solange die Liste gedruckt wird (Druckregeln in der CSS-Datei). */
+const DRUCK_MERKMAL = "nachtragen";
+
+function listeDrucken() {
+  const wurzel = document.documentElement;
+  wurzel.dataset.druck = DRUCK_MERKMAL;
+  const aufraeumen = () => {
+    if (wurzel.dataset.druck === DRUCK_MERKMAL) delete wurzel.dataset.druck;
+    window.removeEventListener("afterprint", aufraeumen);
+  };
+  window.addEventListener("afterprint", aufraeumen);
+  window.print();
+}
+
+/**
+ * Starts, deren Ergebnisse sich nicht nachtragen ließen: zum Abarbeiten mit den Startzetteln in
+ * der Hand, auch ausgedruckt.
+ */
+function NachtragenListe({ starts, zeit }: { starts: UebersprungenerStart[]; zeit: string }) {
+  const { t } = useTranslation("system");
+  const uebersetzen = useUebersetzer();
+  const spalte = (name: string) => t(`wiederherstellen.spalte.${name}`);
+  return (
+    <section className={s.nachtragen} data-druckliste="" aria-labelledby="nachtragen-titel">
+      <div className={s.nachtragenKopf}>
+        <h4 className={s.abschnittTitel} id="nachtragen-titel">
+          {t("wiederherstellen.nachtragen_liste_titel")}
+        </h4>
+        <Button
+          variant="default"
+          className={s.nichtDrucken}
+          leftSection={<Printer aria-hidden />}
+          onClick={listeDrucken}
+        >
+          {t("wiederherstellen.drucken")}
+        </Button>
+      </div>
+      <p className={s.text}>{t("wiederherstellen.nachtragen_liste_text")}</p>
+      {zeit && (
+        <p className={s.klein}>{t("wiederherstellen.nachtragen_liste_sicherung", { zeit })}</p>
+      )}
+      <table className={s.tabelle}>
+        <thead>
+          <tr>
+            <th scope="col">{spalte("startnummer")}</th>
+            <th scope="col">{spalte("wettbewerb")}</th>
+            <th scope="col">{spalte("start")}</th>
+            <th scope="col">{spalte("grund")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {starts.map((start) => (
+            <tr
+              key={`${start.competition_code}-${start.start_number}-${start.attempt}-${start.reason_code}`}
+              data-grund={start.reason_code}
+            >
+              <td data-beschriftung={spalte("startnummer")} className={`${s.startnummer} num`}>
+                {start.start_number ?? "–"}
+              </td>
+              <td data-beschriftung={spalte("wettbewerb")}>
+                <span>
+                  <span className={s.wettbewerb}>
+                    {start.competition_name ?? t("wiederherstellen.wettbewerb_unbekannt")}
+                  </span>
+                  {start.competition_code && (
+                    <span className={s.kennziffer}>
+                      {t("wiederherstellen.kennziffer", { kennziffer: start.competition_code })}
+                    </span>
+                  )}
+                </span>
+              </td>
+              <td data-beschriftung={spalte("start")}>
+                {start.attempt !== null
+                  ? t("wiederherstellen.start_nr", { nummer: start.attempt })
+                  : "–"}
+              </td>
+              <td data-beschriftung={spalte("grund")}>{grundText(start, uebersetzen)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
   );
 }

@@ -5,12 +5,13 @@ import { useTranslation } from "react-i18next";
 import { PositionsAblauf } from "../../components/anschlag/PositionsAblauf";
 import type { Position } from "../../components/anschlag/typen";
 import {
+  abschnittAufgelegt,
   abschnittsHinweise,
   feldBereich,
   formatWert,
   formatZeit,
   serienAnzeige,
-  zaehltTreffer,
+  serienHinweise,
 } from "./anzeige";
 import type {
   AbschnittForm,
@@ -65,12 +66,16 @@ export interface MaskeProps {
 
 /** Abschnitte und Serien genau so, wie die Formularbeschreibung des Servers sie vorgibt. */
 export function Maske(props: MaskeProps) {
+  const { t } = useTranslation("erfassung");
   const { form, wertung } = props;
   const mehrere = form.sections.length > 1;
   return (
     <div className={s.maske}>
       {form.sections.map((abschnitt) => {
-        const hinweise = abschnittsHinweise(form, abschnitt.id);
+        const hinweise = [
+          ...abschnittsHinweise(form, abschnitt.id),
+          ...(abschnittAufgelegt(form, abschnitt.id) ? [t("vorgaben.aufgelegt")] : []),
+        ];
         return (
           <Abschnitt
             key={abschnitt.id}
@@ -221,9 +226,9 @@ function SerieKarte(props: SerieKarteProps) {
   const fehler = meldungenFuer(props.fehler, pfad);
   const warnungen = meldungenFuer(props.warnungen, pfad);
   const wertungSerie = wertungAbschnitt?.series[serie.index];
-  const anzeige = serienAnzeige(wertungSerie, t, zaehltTreffer(props.form.unit));
+  const anzeige = serienAnzeige(wertungSerie, t, props.form.unit);
   const statusText = option && option.key !== NORMAL ? option.label : null;
-  const hinweise = serie.hints.filter((h) => !(serie.struck && h.startsWith("gestrichen")));
+  const hinweise = serienHinweise(serie);
 
   return (
     <article
@@ -308,7 +313,7 @@ function SerieKarte(props: SerieKarteProps) {
       <div className={s.serienWert} data-veraltet={veraltet || undefined} aria-live="polite">
         <span className="h-label">{t("serie.wert")}</span>
         <strong className="num">{anzeige.wert}</strong>
-        {anzeige.einheit && <span className={s.einheit}>{t(`einheit.${anzeige.einheit}`)}</span>}
+        {anzeige.einheit && <span className={s.einheit}>{anzeige.einheit}</span>}
         {anzeige.zusatz && <span className={`${s.zusatz} num`}>{anzeige.zusatz}</span>}
         {statusText && <span className={s.statusMarke}>{statusText}</span>}
       </div>

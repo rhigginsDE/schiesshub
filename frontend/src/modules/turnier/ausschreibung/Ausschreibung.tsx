@@ -65,6 +65,71 @@ export function zumSpeichern(entwurf: AusschreibungDaten): AusschreibungDaten {
 
 const LEER: AusschreibungDaten = { title: null, facts: {}, blocks: [] };
 
+/**
+ * Reihenfolge der Standardgliederung (wie `announcement_outline.py`), nur um einen fehlenden
+ * Abschnitt an sinnvoller Stelle einzufügen. Automatische Abschnitte zählen nach Art.
+ */
+const STANDARD_REIHENFOLGE: readonly string[] = [
+  "begruessung",
+  "veranstalter-und-ort",
+  "dates",
+  "teilnahmeberechtigung",
+  "competitions",
+  "ranges",
+  "classes",
+  "fees",
+  "anmeldung",
+  "ablauf",
+  "sicherheit",
+  "wertung",
+  "einsprueche",
+  "datenschutz",
+  "kontakt",
+];
+
+/** Platz eines Abschnitts in der Standardgliederung: automatische nach Art, Texte nach ID. */
+function standardPlatz(baustein: Pick<Baustein, "id" | "kind">): number {
+  return STANDARD_REIHENFOLGE.indexOf(baustein.kind === "text" ? baustein.id : baustein.kind);
+}
+
+/** Ist dieser Abschnitt der Standardgliederung schon im Dokument? Wie der Server: Art bzw. ID. */
+function schonDa(bausteine: readonly Baustein[], vorschlag: Baustein): boolean {
+  return bausteine.some((b) =>
+    vorschlag.kind === "text" ? b.id === vorschlag.id : b.kind === vorschlag.kind,
+  );
+}
+
+/** Vom Server gemeldete fehlende Abschnitte, ohne die inzwischen im Entwurf eingefügten. */
+export function fehlendeAbschnitte(
+  vorschlaege: readonly Baustein[] | undefined,
+  bausteine: readonly Baustein[],
+): Baustein[] {
+  return (vorschlaege ?? []).filter((vorschlag) => !schonDa(bausteine, vorschlag));
+}
+
+/**
+ * Fügt einen fehlenden Abschnitt an sinnvoller Stelle ein: hinter den nächsten Vorgänger aus der
+ * Standardgliederung, sonst vor den nächsten Nachfolger, sonst ans Ende.
+ */
+export function abschnittEinfuegen(bausteine: readonly Baustein[], neu: Baustein): Baustein[] {
+  const platz = standardPlatz(neu);
+  const liste = [...bausteine];
+  if (platz >= 0) {
+    let vorgaenger = -1;
+    let nachfolger = -1;
+    liste.forEach((b, i) => {
+      const p = standardPlatz(b);
+      if (p < 0) return;
+      if (p < platz) vorgaenger = i;
+      else if (p > platz && nachfolger < 0) nachfolger = i;
+    });
+    const ziel = vorgaenger >= 0 ? vorgaenger + 1 : nachfolger >= 0 ? nachfolger : liste.length;
+    liste.splice(ziel, 0, neu);
+    return liste;
+  }
+  return [...liste, neu];
+}
+
 export function Ausschreibung({
   turnier,
   gesperrt,
@@ -111,8 +176,10 @@ function Editor({
   const speichern = useAusschreibungSpeichern(turnier.id);
   const server = useQuery(ausschreibungDokumentAbfrage(turnier.id));
   const saetze = useBegriffe();
+  // Nur Ausgabe des Servers, gehört nicht in den Entwurf.
+  const { missing_default_blocks: vorschlaege, ...gespeichert } = quelle;
   const entwurf = useEntwurf<AusschreibungDaten>(
-    { ...LEER, ...quelle, facts: quelle.facts ?? {} },
+    { ...LEER, ...gespeichert, facts: gespeichert.facts ?? {} },
     {
       speichern: async () => {
         try {
@@ -126,6 +193,7 @@ function Editor({
   );
   const { werte } = entwurf;
   const [gewaehlt, setGewaehlt] = useState<string | null>(werte.blocks[0]?.id ?? null);
+  const fehlend = fehlendeAbschnitte(vorschlaege, werte.blocks);
   const [ansicht, setAnsicht] = useState<"bearbeiten" | "vorschau">("bearbeiten");
   const [erstellt] = useState(() => new Date());
 
@@ -237,6 +305,36 @@ function Editor({
         <h3 className="h-label" id="as-bausteine">
           {t("ausschreibung.bausteine")}
         </h3>
+        {/* Älteren Dokumenten fehlt womöglich ein Abschnitt der Standardgliederung: anbieten. */}
+        {fehlend.length > 0 && !gesperrt && (
+          <div className={s.fehltHinweis} role="status">
+            {fehlend.map((vorschlag) => {
+              const name =
+                vorschlag.heading.trim() || t(`ausschreibung.art.${vorschlag.kind}`, begriffe);
+              return (
+                <div key={`${vorschlag.kind}-${vorschlag.id}`} className={s.fehltZeile}>
+                  <span>{t("ausschreibung.fehlt_abschnitt", { name })}</span>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    leftSection={<Plus aria-hidden />}
+                    aria-label={t("ausschreibung.fehlt_einfuegen_lang", { name })}
+                    onClick={() => {
+                      // Gleiche ID schon vergeben (z. B. eigener Text „schiessstaende“): neue ID.
+                      const neu = werte.blocks.some((b) => b.id === vorschlag.id)
+                        ? { ...vorschlag, id: neueBausteinId(werte.blocks) }
+                        : { ...vorschlag };
+                      setze({ blocks: abschnittEinfuegen(werte.blocks, neu) });
+                      setGewaehlt(neu.id);
+                    }}
+                  >
+                    {t("ausschreibung.fehlt_einfuegen")}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
         <ul className={s.liste}>
           {werte.blocks.map((b, i) => (
             <li

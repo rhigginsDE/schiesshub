@@ -1,10 +1,43 @@
-import { type QueryKey, useQueryClient } from "@tanstack/react-query";
+import { type QueryClient, type QueryKey, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { schluessel } from "./abfragen";
 import { API_BASIS } from "./client";
 
-/** Ereignisname vom Server → Query-Keys, deren Daten danach neu geladen werden. */
-export type EreignisZuordnung = Record<string, readonly QueryKey[]>;
+/**
+ * Behandlung eines Ereignisses mit seiner Nutzlast (`data`, als JSON gelesen; `undefined`, wenn
+ * keine da ist), z. B. ein gelöschtes Turnier aus dem Cache nehmen. Läuft vor dem Neuladen.
+ */
+export type EreignisBehandlung = (daten: unknown, queryClient: QueryClient) => void;
+
+/**
+ * Ereignisname vom Server → Query-Keys, deren Daten danach neu geladen werden. Ein Eintrag darf
+ * auch eine `EreignisBehandlung` sein; alle Behandlungen laufen vor dem Neuladen.
+ */
+export type EreignisZuordnung = Record<string, readonly (QueryKey | EreignisBehandlung)[]>;
+
+function leseNutzlast(ereignis: Event): unknown {
+  const roh = (ereignis as MessageEvent).data;
+  if (typeof roh !== "string" || roh === "") return undefined;
+  try {
+    return JSON.parse(roh);
+  } catch {
+    return undefined;
+  }
+}
+
+/** Erst die Behandlungen (mit Nutzlast), dann die Query-Keys neu laden. */
+export function ereignisAnwenden(
+  eintraege: EreignisZuordnung[string],
+  daten: unknown,
+  queryClient: QueryClient,
+): void {
+  for (const eintrag of eintraege) {
+    if (typeof eintrag === "function") eintrag(daten, queryClient);
+  }
+  for (const eintrag of eintraege) {
+    if (typeof eintrag !== "function") void queryClient.invalidateQueries({ queryKey: eintrag });
+  }
+}
 
 const NEU_VERBINDEN_MS = 5000;
 
@@ -45,12 +78,10 @@ export function useServerEreignisse(zuordnung: EreignisZuordnung): void {
           timer = setTimeout(verbinden, NEU_VERBINDEN_MS);
         }
       });
-      for (const [ereignis, keys] of Object.entries(zuordnung)) {
-        quelle.addEventListener(ereignis, () => {
-          for (const queryKey of keys) {
-            void queryClient.invalidateQueries({ queryKey });
-          }
-        });
+      for (const [name, eintraege] of Object.entries(zuordnung)) {
+        quelle.addEventListener(name, (ereignis) =>
+          ereignisAnwenden(eintraege, leseNutzlast(ereignis), queryClient),
+        );
       }
     };
 

@@ -35,6 +35,7 @@ import { ablaufKurz, planungKurz, startsKurz } from "../klartext";
 import s from "../turnier.module.css";
 import type { TurnierUebersicht, Wettbewerb } from "../typen";
 import { KatalogAbweichung } from "./KatalogAbweichung";
+import { KatalogGeaendertChip } from "./KatalogStand";
 import { gruppenNachWaffenart, sucheImKatalog } from "./katalogSuche";
 import { WettbewerbBearbeiten } from "./WettbewerbBearbeiten";
 import w from "./wettbewerbe.module.css";
@@ -630,6 +631,11 @@ function WettbewerbKarte({
             <span className="num">
               {formatGeld(wettbewerb.fee_first_cents, turnier.settings.currency, sprache)}
             </span>
+            {wettbewerb.catalog_changed && (
+              <span>
+                <KatalogGeaendertChip wettbewerb={wettbewerb} />
+              </span>
+            )}
           </span>
           <KatalogAbweichung turnierId={turnier.id} wettbewerb={wettbewerb} />
         </button>

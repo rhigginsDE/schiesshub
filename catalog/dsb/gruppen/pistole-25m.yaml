@@ -23,6 +23,7 @@ wertung:
   # SpO 2.9: Plätze 1–3 ohne Finale per Stechen (Stechserie je Wettbewerb, siehe hinweis), außer bei Höchstringzahl;
   # übrige Plätze nach 0.12.1.
   gleichstand: ["stechen", "letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43) i. V. m. 2.9 (Teil 2 S. 11)
   stechen_bis_platz: 3
   geprueft: false
 ablaeufe:

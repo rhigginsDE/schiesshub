@@ -22,6 +22,7 @@ wertung:
   # geprüft 2026-11-22: Teil 11 hat keine eigene Regel; 0.12.1 gilt als allgemeine Regel für alle Disziplinen (Teil 0).
   #   Offen bleibt, ob die Lichtscheibe einen Innenzehner hat (Scheibe in Teil 11 nicht genannt).
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
   geprueft: false
 ablaeufe:
   licht-20:

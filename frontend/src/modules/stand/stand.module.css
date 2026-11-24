@@ -577,6 +577,13 @@
   overflow-wrap: break-word;
 }
 
+/* Bemerkung zum Abbruch (nur Bedienung, `abort_note`): ruhig unter dem Namen */
+.abbruchBemerkung {
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+  overflow-wrap: anywhere;
+}
+
 /* Zwischenüberschrift je Wettbewerb */
 .gruppeZeile th {
   padding: 18px 10px 8px;

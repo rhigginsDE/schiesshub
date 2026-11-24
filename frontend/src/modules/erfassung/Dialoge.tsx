@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Bestaetigung } from "../../components/Bestaetigung";
 import { Dialog } from "../../components/Dialog";
 import { useFehlerText } from "../../components/FehlerHinweis";
-import { formatWert, serienAnzeige, zaehltTreffer } from "./anzeige";
+import { formatWert, serienAnzeige } from "./anzeige";
 import {
   ABBRUCHGRUENDE,
   type Abbruchgrund,
@@ -250,11 +250,7 @@ function ServerSerien({ form, stand }: { form: Formular; stand: ErgebnisStand })
                 const option = statusAus(entwurf, abschnitt.id, serie);
                 const roh = serieAus(entwurf, abschnitt.id, serie.index);
                 if (serie.struck && Object.keys(roh).length === 0) return null;
-                const anzeige = serienAnzeige(
-                  wertungAbschnitt?.series[serie.index],
-                  t,
-                  zaehltTreffer(form.unit),
-                );
+                const anzeige = serienAnzeige(wertungAbschnitt?.series[serie.index], t, form.unit);
                 const werte = serie.fields
                   .filter((feld) => feld.kind !== "choice")
                   .map((feld) => ({
@@ -282,7 +278,7 @@ function ServerSerien({ form, stand }: { form: Formular; stand: ErgebnisStand })
                     </span>
                     <span className={`${s.pruefSerienWert} num`}>
                       {anzeige.wert}
-                      {anzeige.einheit && ` ${t(`einheit.${anzeige.einheit}`)}`}
+                      {anzeige.einheit && ` ${anzeige.einheit}`}
                     </span>
                   </li>
                 );

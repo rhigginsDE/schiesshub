@@ -30,6 +30,7 @@ wertung:
   # SpO 0.12.1: letzte 10er-Serie und rückwärts, dann Zahl der 10er, 9er, 8er …, dann Innenzehner; sonst gleicher Rang.
   # Wer das Höchstergebnis erreicht, wird ohne Finale nicht unterschieden.
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
   geprueft: false
 ablaeufe:
   luftpistole:

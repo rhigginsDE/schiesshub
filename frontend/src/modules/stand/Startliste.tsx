@@ -145,6 +145,7 @@ export function Startliste({ uebersicht, suche, onSuche }: StartlisteProps) {
                           {anzeigename(start).text}
                         </strong>
                         {start.club && <span className="gedaempft">{start.club}</span>}
+                        <AbbruchBemerkung start={start} />
                       </span>
                     </td>
                     <td data-label={spalten.klasse}>{start.class_short}</td>
@@ -166,6 +167,20 @@ export function Startliste({ uebersicht, suche, onSuche }: StartlisteProps) {
         </table>
       )}
     </section>
+  );
+}
+
+/**
+ * Bemerkung zum Abbruch eines abgebrochenen Starts, ruhig unter dem Namen. Der Server liefert sie
+ * nur mit `names=full` (Bedienung) und nur für abgebrochene Starts; auf dem Schirm steht sie nie.
+ */
+export function AbbruchBemerkung({ start }: { start: StationStart }) {
+  const { t } = useTranslation("stand");
+  if (start.status !== "aborted" || !start.abort_note) return null;
+  return (
+    <span className={s.abbruchBemerkung}>
+      {t("abbruch.bemerkung_ist", { text: start.abort_note })}
+    </span>
   );
 }
 

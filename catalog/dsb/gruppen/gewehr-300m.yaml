@@ -18,6 +18,7 @@ wertung:
   rangfolge: "absteigend"
   zehntelwertung: false
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
   # geprüft 2026-11-22: 1.90 gegen Teil 1 S. 20/21 und 0.21 (Teil 0 S. 79), 1.95 gegen 0.21 geprüft; DM 60 Schuss ohne Zehntel (Schusszahlentabelle).
   geprueft: true
 ablaeufe:

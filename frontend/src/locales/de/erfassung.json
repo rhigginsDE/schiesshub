@@ -84,8 +84,7 @@
     "ohne_bahn": "ohne Schützenstand",
     "versuch": "Start {{nr}} von {{von}}",
     "vorlaeufig": "vorläufig bis {{zeit}}",
-    "max_ringe": "Wertung: Ringe, höchstens {{max}}",
-    "max_treffer": "Wertung: Treffer, höchstens {{max}}",
+    "max": "Wertung: {{einheit}}, höchstens {{max}}",
     "richtung": {
       "absteigend": "höchster Wert gewinnt",
       "aufsteigend": "niedrigster Wert gewinnt"
@@ -117,7 +116,6 @@
   },
   "einheit": {
     "ringe": "Ringe",
-    "treffer": "Treffer",
     "sekunden": "s"
   },
   "feld": {
@@ -142,11 +140,6 @@
   },
   "vorgaben": {
     "titel": "Vorgaben des Wettbewerbs",
-    "probe": "Probeschüsse: {{wert}}",
-    "probe_unbegrenzt": "Probeschüsse: unbegrenzt",
-    "vorbereitung": "Vorbereitung und Probe: {{wert}}",
-    "wettkampfzeit": "Wettkampfzeit: {{wert}}",
-    "wettkampfzeit_gesamt": "Wettkampfzeit gesamt: {{wert}}",
     "aufgelegt": "aufgelegt"
   },
   "tasten": {
@@ -183,15 +176,19 @@
     "rechenweg": "Rechenweg",
     "gleichstand_fehlt": "Für einen Gleichstand fehlt: {{was}}",
     "gleichstand": {
-      "zehner": "Anzahl Zehner",
-      "innenzehner": "Anzahl Innenzehner",
-      "neuner_abwaerts": "Anzahl Neuner, Achter und weiter abwärts (nur mit Einzelschuss)",
-      "parcours_zeit": "Parcourszeit",
-      "letzte_serie_rueckwaerts": "Ringe der letzten Serie und rückwärts",
+      "zehner": "Anzahl der Zehner",
+      "innenzehner": "Anzahl der Innenzehner",
+      "neuner_abwaerts": "Anzahl der Neuner, Achter, Siebener usw.",
+      "parcours_zeit": "kürzere Durchgangszeit",
+      "letzte_serie_rueckwaerts": "letzte Zehnerserie, dann rückwärts in 10-Schuss-Serien (Wurfscheibe: je Serie)",
       "schuesse_rueckwaerts": "Schusswerte vom letzten Schuss rückwärts",
-      "trefferfolge_rueckwaerts": "Trefferfolge ab der letzten Scheibe rückwärts",
+      "ergebnis_zweite_haelfte": "höheres Ergebnis der zweiten Hälfte (Schnelllauf bzw. 2. Durchgang)",
+      "mehr_treffer": "mehr Treffer",
       "zehntel_gesamt": "Gesamtergebnis in Zehnteln",
-      "unbekannt": "eine weitere Angabe"
+      "elfer": "Anzahl der Elfer",
+      "neuner": "Anzahl der Neuner",
+      "sechser": "Anzahl der Sechser",
+      "fuenfer": "Anzahl der Fünfer"
     },
     "wird_berechnet": "wird neu berechnet"
   },
@@ -274,6 +271,7 @@
     "bestaetigen": "Start abbrechen",
     "erledigt": "{{wer}}: abgebrochen",
     "ist": "Abgebrochen: {{grund}}",
+    "bemerkung_ist": "Bemerkung: {{text}}",
     "kurz": {
       "dns": "nicht angetreten",
       "dnf": "aufgegeben",

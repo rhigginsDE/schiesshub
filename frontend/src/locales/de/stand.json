@@ -79,6 +79,7 @@
     "wer": "Startnummer {{nr}} · {{name}}",
     "wer_nr": "Startnummer {{nr}}",
     "bemerkung": "Bemerkung (freiwillig)",
+    "bemerkung_ist": "Bemerkung: {{text}}",
     "bemerkung_hilfe": "Steht im Protokoll, z. B. der Grund · {{anzahl}} von {{max}} Zeichen",
     "zur_erfassung": "In der Erfassung eintragen",
     "pruefe": "Erfasste Serien werden geprüft …"

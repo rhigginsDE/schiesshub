@@ -21,6 +21,7 @@ wertung:
   # Teil 5 hat für 5.10 keine eigene Regel, daher SpO 0.12.1: letzte Zehnerserie rückwärts, 10er/9er/8er …,
   #   Innenzehner, dann gleicher Rang. Volle Ringe; Zehntel sind in Teil 5 nicht vorgeschrieben.
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
   geprueft: false
 ablaeufe:
   armbrust-40:

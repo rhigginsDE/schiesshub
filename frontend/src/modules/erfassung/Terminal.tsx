@@ -34,7 +34,9 @@ import {
   formatWert,
   formatZeit,
   fortschrittText,
+  kriteriumText,
   restText,
+  ringEinheit,
   vorgaben,
   zaehltTreffer,
 } from "./anzeige";
@@ -1123,6 +1125,11 @@ function Flaeche({
                       grund: basis.abort_reason ? t(`abbruch.lang.${basis.abort_reason}`) : "",
                     })}
               </p>
+              {abgebrochen && basis.abort_remark && (
+                <p className={s.klein} data-bemerkung>
+                  {t("abbruch.bemerkung_ist", { text: basis.abort_remark })}
+                </p>
+              )}
               {naechsterVorschlag && (
                 <Button
                   size="lg"
@@ -1362,16 +1369,21 @@ function Kopf({
           <span className="gedaempft">
             {maske.form.variant_name !== "Standard" ? `${maske.form.variant_name} · ` : ""}
             {maske.form.max_rings != null
-              ? t(zaehltTreffer(maske.form.unit) ? "kopf.max_treffer" : "kopf.max_ringe", {
+              ? t("kopf.max", {
+                  einheit: ringEinheit(maske.form.unit, t),
                   max: formatWert(maske.form.max_rings),
                 })
               : t(`kopf.richtung.${maske.form.direction}`)}
           </span>
           {vorgabenListe.length > 0 && (
             <ul className={s.vorgaben} aria-label={t("vorgaben.titel")}>
-              {vorgabenListe.map((vorgabe) => (
-                <li key={vorgabe.art}>{t(`vorgaben.${vorgabe.art}`, { wert: vorgabe.wert })}</li>
-              ))}
+              {vorgabenListe.map((vorgabe) =>
+                vorgabe.art === "aufgelegt" ? (
+                  <li key="aufgelegt">{t("vorgaben.aufgelegt")}</li>
+                ) : (
+                  <li key={vorgabe.kind}>{vorgabe.text}</li>
+                ),
+              )}
             </ul>
           )}
         </div>
@@ -1500,11 +1512,7 @@ function Gesamtstand({
           <span className={s.klein}>
             {t("gesamt.gleichstand_fehlt", {
               was: wertung.tie_breakers_missing
-                .map((kriterium) =>
-                  t(`gesamt.gleichstand.${kriterium}`, {
-                    defaultValue: t("gesamt.gleichstand.unbekannt"),
-                  }),
-                )
+                .map((kriterium) => kriteriumText(kriterium, t))
                 .join(", "),
             })}
           </span>

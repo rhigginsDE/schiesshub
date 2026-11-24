@@ -137,6 +137,60 @@ describe("Erfassungsterminal", () => {
     expect(screen.getByText("gestrichen, zählt nicht")).toBeInTheDocument();
   });
 
+  it("zeigt am abgebrochenen Start die Bemerkung zum Abbruch (abort_remark)", async () => {
+    const abgebrochen = stand({
+      status: "aborted",
+      abort_reason: "dnf",
+      abort_remark: "Waffe defekt",
+    });
+    routen({
+      [`GET /tournaments/${T}/startlist?names=full`]: {
+        inhalt: [{ ...startZeile, status: "aborted", abort_reason: "dnf" }],
+      },
+      [`GET /tournaments/${T}/starts/${S}/form`]: { inhalt: maske(FALLSCHEIBE, abgebrochen) },
+      [`GET /tournaments/${T}/starts/${S}/form?capture_mode=series`]: {
+        inhalt: maske(FALLSCHEIBE, abgebrochen),
+      },
+    });
+    anzeigen();
+    expect(await screen.findByText("Abgebrochen: Aufgegeben")).toBeInTheDocument();
+    expect(screen.getByText("Bemerkung: Waffe defekt")).toBeInTheDocument();
+  });
+
+  it("Kopf: Vorgaben nach Art des Hinweises, nichts doppelt in der Abschnittszeile", async () => {
+    const abschnitt = FALLSCHEIBE.sections[0];
+    if (!abschnitt) throw new Error("Testdaten");
+    const form = {
+      ...FALLSCHEIBE,
+      sections: [
+        {
+          ...abschnitt,
+          aufgelegt: true,
+          hint_items: [
+            { kind: "competition_time" as const, text: "Wettkampfzeit 55 min" },
+            { kind: "sighters" as const, text: "Probeschüsse unbegrenzt" },
+            { kind: "target_time" as const, text: "Sollzeit 10 s" },
+          ],
+        },
+      ],
+    };
+    routen({
+      [`GET /tournaments/${T}/starts/${S}/form`]: { inhalt: maske(form, stand()) },
+      [`GET /tournaments/${T}/starts/${S}/form?capture_mode=series`]: {
+        inhalt: maske(form, stand()),
+      },
+    });
+    anzeigen();
+    const kopf = await screen.findByRole("list", { name: "Vorgaben des Wettbewerbs" });
+    expect(
+      within(kopf)
+        .getAllByRole("listitem")
+        .map((li) => li.textContent),
+    ).toEqual(["Probeschüsse unbegrenzt", "Wettkampfzeit 55 min", "aufgelegt"]);
+    expect(screen.getAllByText("Wettkampfzeit 55 min")).toHaveLength(1);
+    expect(screen.getByText("Sollzeit 10 s")).toBeInTheDocument();
+  });
+
   it("sendet Eingaben als Rohwerte, zeigt die Antwort und schließt ab", async () => {
     const aufrufe = routen({
       [`POST /tournaments/${T}/starts/${S}/finalize`]: (aufruf) => ({

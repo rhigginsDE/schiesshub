@@ -1,13 +1,23 @@
 import { Check, ChevronRight } from "lucide-react";
-import { type ReactNode, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { PositionsAblauf } from "../../../components/anschlag/PositionsAblauf";
+import type { Begriffe } from "../../../lib/begriffe";
 import { formatDauer, formatZahl } from "../../../lib/format";
 import {
   alsPosition,
   type BahnFortschritt,
   bahnFortschritt,
   feedUhrzeit,
+  gemeinsamerVerband,
   hatPositionen,
   hauptSerie,
   laufendeSerien,
@@ -26,19 +36,32 @@ import type {
   SzeneVon,
 } from "../typen";
 import { AbschnittKopf, LivePunkt, SeitenMarke, useName, WettbewerbTitel } from "./Bausteine";
-import { useGroesse, useSchirm, useSeiten } from "./messen";
+import { useGroesse, useSchirm, useSeiten, useWoerter } from "./messen";
 import s from "./schirm.module.css";
+
+/**
+ * Verband der Wörter in diesem Teil der Standanzeige: im Ablauf der seines Wettbewerbs, sonst der
+ * gemeinsame aller Abläufe am Schießstand (`gemeinsamerVerband`).
+ */
+const StandVerband = createContext<string | null>(null);
+
+/** Formelle Wörter (Schützenstand, Serie, Durchgang …) für den Verband dieses Teils. */
+function useStandWoerter(): Begriffe {
+  return useWoerter(useContext(StandVerband));
+}
 
 /** Kennzahlen eines Abschnitts aus dem Feed: gewertete Serien, Sollzeit, Zeitmessung. */
 function AbschnittFakten({ abschnitt }: { abschnitt: FeedAbschnitt }) {
   const { t } = useTranslation("anzeige");
   const { sprache } = useSchirm();
+  const woerter = useStandWoerter();
   const fakten: string[] = [];
   if (abschnitt.counted_series != null && abschnitt.counted_series < abschnitt.series_count) {
     fakten.push(
       t("schirm.ablauf.gewertet", {
         gewertet: abschnitt.counted_series,
         gesamt: abschnitt.series_count,
+        serien: woerter.serien,
       }),
     );
   }
@@ -60,10 +83,17 @@ function AbschnittFakten({ abschnitt }: { abschnitt: FeedAbschnitt }) {
   );
 }
 
-/** „Bahn 2“ oder „Bahnen 1, 3“ für die laufende Serie. */
+/** „Schützenstand 2“ oder „Schützenstände 1, 3“ für die laufende Serie. */
 function useBahnenText(): (bahnen: readonly number[]) => string {
   const { t } = useTranslation("anzeige");
-  return (bahnen) => t("schirm.ablauf.bahnen", { count: bahnen.length, bahnen: bahnen.join(", ") });
+  const woerter = useStandWoerter();
+  return (bahnen) =>
+    t("schirm.ablauf.bahnen", {
+      count: bahnen.length,
+      bahnen: bahnen.join(", "),
+      stand: woerter.schuetzenstand,
+      staende: woerter.schuetzenstaende,
+    });
 }
 
 /** Serien-Übersicht für Disziplinen ohne Positionen: Schuss, Zeit, Distanz, gestrichen, Trefferaufnahme. */
@@ -77,6 +107,7 @@ function SerienFolge({
   const { t } = useTranslation("anzeige");
   const { sprache } = useSchirm();
   const bahnenText = useBahnenText();
+  const woerter = useStandWoerter();
   return (
     <ol className={s.serienFolge} aria-label={abschnitt.name}>
       {abschnitt.series.map((serie, nr) => {
@@ -98,7 +129,9 @@ function SerienFolge({
                   {t("schirm.ablauf.jetzt_kurz", { bahnen: bahnenText(bahnen) })}
                 </span>
               )}
-              <span className={s.serienNr}>{t("schirm.ablauf.serie", { nr: serie.number })}</span>
+              <span className={s.serienNr}>
+                {t("schirm.ablauf.serie", { serie: woerter.serie, nr: serie.number })}
+              </span>
               {serie.shots != null && (
                 <span className={`num ${s.serienGross}`}>
                   {t("schirm.ablauf.schuss", { count: serie.shots })}
@@ -119,7 +152,7 @@ function SerienFolge({
               )}
             </div>
             {serie.hit_review_after ? (
-              <span className={s.aufnahme}>{t("schirm.ablauf.trefferaufnahme")}</span>
+              <span className={s.aufnahme}>{woerter.trefferaufnahme}</span>
             ) : (
               !letzte && <ChevronRight className={s.pfeil} aria-hidden />
             )}
@@ -251,37 +284,46 @@ function AblaufBlock({ ablauf, takt }: { ablauf: FeedAblauf; takt: Takt }) {
 
   const seite = geteilt ? seiteZurZeit(takt, jetzt, abschnitte.length) : 0;
   const sichtbar = geteilt ? abschnitte.slice(seite, seite + 1) : abschnitte;
-  const titel = <WettbewerbTitel code={ablauf.competition_code} name={ablauf.competition_name} />;
+  const woerter = useWoerter(ablauf.federation);
+  const titel = (
+    <WettbewerbTitel
+      code={ablauf.competition_code}
+      name={ablauf.competition_name}
+      kennziffer={woerter.kennziffer}
+    />
+  );
 
   return (
-    <div className={s.ablauf}>
-      <AbschnittKopf
-        kicker={t("schirm.ablauf.kicker")}
-        titel={titel}
-        meta={geteilt && <SeitenMarke seite={seite} seiten={abschnitte.length} />}
-      />
-      <p className={s.ablaufMeta}>
-        <span>{ablauf.variant_name}</span>
-        <span>{ablauf.scoring}</span>
-      </p>
-      {ablauf.notes.length > 0 && (
-        <ul className={s.hinweisListe}>
-          {ablauf.notes.map((text) => (
-            <li key={`n-${text}`}>{text}</li>
+    <StandVerband.Provider value={ablauf.federation ?? null}>
+      <div className={s.ablauf}>
+        <AbschnittKopf
+          kicker={t("schirm.ablauf.kicker", { schiessstand: woerter.schiessstand })}
+          titel={titel}
+          meta={geteilt && <SeitenMarke seite={seite} seiten={abschnitte.length} />}
+        />
+        <p className={s.ablaufMeta}>
+          <span>{ablauf.variant_name}</span>
+          <span>{ablauf.scoring}</span>
+        </p>
+        {ablauf.notes.length > 0 && (
+          <ul className={s.hinweisListe}>
+            {ablauf.notes.map((text) => (
+              <li key={`n-${text}`}>{text}</li>
+            ))}
+          </ul>
+        )}
+        <div ref={ref} className={s.abschnitte}>
+          {sichtbar.map((abschnitt) => (
+            <Abschnitt
+              key={abschnitt.id}
+              abschnitt={abschnitt}
+              nr={abschnitte.indexOf(abschnitt)}
+              ablauf={ablauf}
+            />
           ))}
-        </ul>
-      )}
-      <div ref={ref} className={s.abschnitte}>
-        {sichtbar.map((abschnitt) => (
-          <Abschnitt
-            key={abschnitt.id}
-            abschnitt={abschnitt}
-            nr={abschnitte.indexOf(abschnitt)}
-            ablauf={ablauf}
-          />
-        ))}
+        </div>
       </div>
-    </div>
+    </StandVerband.Provider>
   );
 }
 
@@ -291,6 +333,7 @@ function AblaufBlock({ ablauf, takt }: { ablauf: FeedAblauf; takt: Takt }) {
  */
 function FortschrittMarke({ fortschritt }: { fortschritt: BahnFortschritt }) {
   const { t } = useTranslation("anzeige");
+  const woerter = useStandWoerter();
   if (fortschritt.fertig) {
     return (
       <span className={s.bahnStand} data-fertig="">
@@ -299,7 +342,7 @@ function FortschrittMarke({ fortschritt }: { fortschritt: BahnFortschritt }) {
       </span>
     );
   }
-  const art = t(fortschritt.positionen ? "schirm.stand.position" : "schirm.stand.serie");
+  const art = fortschritt.positionen ? t("schirm.stand.position") : woerter.serie;
   return (
     <span className={s.bahnStand}>
       <span className={s.bahnStandArt}>
@@ -362,11 +405,12 @@ function PersonZeile({
 
 function AmStand({ stand, takt }: { stand: SzeneVon<"range">["range"]; takt: Takt }) {
   const { t } = useTranslation("anzeige");
+  const woerter = useStandWoerter();
   const seiten = useSeiten(stand.lanes, takt);
   return (
     <section className={s.standBlock}>
       <AbschnittKopf
-        kicker={t("schirm.stand.am_stand")}
+        kicker={t("schirm.stand.am_stand", { schiessstand: woerter.schiessstand })}
         titel={stand.range_name}
         meta={<SeitenMarke seite={seiten.seite} seiten={seiten.seiten} />}
       />
@@ -387,14 +431,19 @@ function AmStand({ stand, takt }: { stand: SzeneVon<"range">["range"]; takt: Tak
 /** „gerade auf Bahn 1, 25-m-Stand“: Die Person schießt gerade woanders (oder hier). */
 function useBesetztText(): (eintrag: FeedNaechsterEintrag) => string | null {
   const { t } = useTranslation("anzeige");
+  const woerter = useStandWoerter();
   return (eintrag) => {
     if (!eintrag.busy) return null;
     const stand = eintrag.busy_range_name;
     if (eintrag.busy_lane != null && stand) {
-      return t("schirm.stand.busy", { bahn: eintrag.busy_lane, stand });
+      return t("schirm.stand.busy", {
+        bahn: eintrag.busy_lane,
+        stand,
+        schuetzenstand: woerter.schuetzenstand,
+      });
     }
     if (stand) return t("schirm.stand.busy_ohne_bahn", { stand });
-    return t("schirm.stand.busy_kurz");
+    return t("schirm.stand.busy_kurz", { schuetzenstand: woerter.schuetzenstand });
   };
 }
 
@@ -403,6 +452,7 @@ function NaechsteZeile({ eintrag }: { eintrag: NaechsteEintrag }) {
   const { sprache } = useSchirm();
   const name = useName();
   const besetzt = useBesetztText();
+  const woerter = useStandWoerter();
 
   if (eintrag.art === "mehr") {
     return (
@@ -418,15 +468,21 @@ function NaechsteZeile({ eintrag }: { eintrag: NaechsteEintrag }) {
       <div className={s.naechsteKopf} data-zeile="">
         {/* Beschriftung der Zahlenspalte: Bahn (Zeitplan) oder Platz (Reihenfolge) */}
         <span className={s.naechsteSpalte}>
-          {t(zeitplan ? "schirm.stand.spalte_bahn" : "schirm.stand.spalte_platz")}
+          {zeitplan ? woerter.schuetzenstand : t("schirm.stand.spalte_platz")}
         </span>
         <span className={s.naechsteTitel}>
           <b className={s.naechsteWettbewerb}>
-            <WettbewerbTitel code={block.competition_code} name={block.competition_name} klein />
+            <WettbewerbTitel
+              code={block.competition_code}
+              name={block.competition_name}
+              kennziffer={woerter.kennziffer}
+              klein
+            />
           </b>
           <span className={s.naechsteWann}>
             {zeitplan
               ? t("schirm.stand.durchgang_um", {
+                  durchgang: woerter.durchgang,
                   nummer: block.heat_number,
                   zeit: feedUhrzeit(block.starts_at_local, block.starts_at, sprache),
                 })
@@ -500,16 +556,18 @@ export function StandAnzeige({ szene, takt }: { szene: SzeneVon<"range">; takt: 
   const teil = teilTakt(takt, seite, ablaeufe.length);
 
   return (
-    <section
-      className={s.szeneStand}
-      data-ohne-ablauf={ablauf ? undefined : ""}
-      aria-label={szene.title}
-    >
-      {ablauf && <AblaufBlock key={ablauf.competition_id} ablauf={ablauf} takt={teil} />}
-      <div className={s.standSeite}>
-        <AmStand stand={stand} takt={takt} />
-        <AlsNaechstes stand={stand} takt={takt} />
-      </div>
-    </section>
+    <StandVerband.Provider value={gemeinsamerVerband(ablaeufe)}>
+      <section
+        className={s.szeneStand}
+        data-ohne-ablauf={ablauf ? undefined : ""}
+        aria-label={szene.title}
+      >
+        {ablauf && <AblaufBlock key={ablauf.competition_id} ablauf={ablauf} takt={teil} />}
+        <div className={s.standSeite}>
+          <AmStand stand={stand} takt={takt} />
+          <AlsNaechstes stand={stand} takt={takt} />
+        </div>
+      </section>
+    </StandVerband.Provider>
   );
 }

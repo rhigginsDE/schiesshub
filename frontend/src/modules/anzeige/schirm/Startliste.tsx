@@ -1,25 +1,50 @@
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
-import { feedUhrzeit } from "../format";
+import { abbruchText, feedUhrzeit } from "../format";
 import type { Takt } from "../rotation";
 import type { FeedPerson, SzeneVon } from "../typen";
 import { AbschnittKopf, LivePunkt, SeitenMarke, useName, WettbewerbTitel } from "./Bausteine";
-import { useSchirm, useSeiten } from "./messen";
+import { useSchirm, useSeiten, useWoerter } from "./messen";
 import s from "./schirm.module.css";
 
-/** Wo und wann jemand schießt: Durchgang mit Uhrzeit und Bahn, sonst nur die Bahn. */
-export function usePlatzText(): (person: FeedPerson) => string {
+/**
+ * Wo und wann jemand schießt: Durchgang mit Uhrzeit und Schützenstand, sonst nur der
+ * Schützenstand – mit den Wörtern des Verbands (`verband`, aus `FeedStartlist.federation`).
+ */
+export function usePlatzText(verband?: string | null): (person: FeedPerson) => string {
   const { t } = useTranslation("anzeige");
   const { sprache } = useSchirm();
+  const woerter = useWoerter(verband);
+  const wort = { durchgang: woerter.durchgang, stand: woerter.schuetzenstand };
   return (person) => {
     const zeit = feedUhrzeit(person.heat_starts_at_local, person.heat_starts_at, sprache);
     if (person.heat_number != null && zeit) {
       return person.lane != null
-        ? t("schirm.platz.durchgang_bahn", { nummer: person.heat_number, zeit, bahn: person.lane })
-        : t("schirm.platz.durchgang", { nummer: person.heat_number, zeit });
+        ? t("schirm.platz.durchgang_bahn", {
+            ...wort,
+            nummer: person.heat_number,
+            zeit,
+            bahn: person.lane,
+          })
+        : t("schirm.platz.durchgang", { ...wort, nummer: person.heat_number, zeit });
     }
-    if (person.lane != null) return t("schirm.platz.bahn", { bahn: person.lane });
+    if (person.lane != null) return t("schirm.platz.bahn", { ...wort, bahn: person.lane });
     return "";
+  };
+}
+
+/**
+ * Status einer Person in der Startliste. Abgebrochen: das Kennzeichen des Servers
+ * (`abort_label`, je Verband), sonst der bisherige Text zum Grund.
+ */
+function useStatusText(): (person: FeedPerson) => string {
+  const { t } = useTranslation("anzeige");
+  return (person) => {
+    if (person.status === "aborted") {
+      const text = abbruchText(person, (grund) => t(`abbruch.${grund}`));
+      if (text) return text;
+    }
+    return t(`status.${person.status}`);
   };
 }
 
@@ -40,8 +65,10 @@ export function startlistenZeilen(
 export function StartlistenSzene({ szene, takt }: { szene: SzeneVon<"startlist">; takt: Takt }) {
   const { t } = useTranslation("anzeige");
   const name = useName();
-  const platzText = usePlatzText();
   const liste = szene.startlist;
+  const platzText = usePlatzText(liste.federation);
+  const statusText = useStatusText();
+  const woerter = useWoerter(liste.federation);
   const seiten = useSeiten(liste.starts, takt);
   const zeilen = startlistenZeilen(seiten.zeilen, seiten.spalten, seiten.eintraege.length);
   // Gemessen: spaltenweise füllen (erst links nach unten, dann rechts), wie man Listen liest.
@@ -56,7 +83,13 @@ export function StartlistenSzene({ szene, takt }: { szene: SzeneVon<"startlist">
   return (
     <section className={s.szeneStartliste} aria-label={szene.title}>
       <AbschnittKopf
-        titel={<WettbewerbTitel code={liste.competition_code} name={liste.competition_name} />}
+        titel={
+          <WettbewerbTitel
+            code={liste.competition_code}
+            name={liste.competition_name}
+            kennziffer={woerter.kennziffer}
+          />
+        }
         meta={
           <>
             {liste.range_name && <span>{liste.range_name}</span>}
@@ -87,9 +120,7 @@ export function StartlistenSzene({ szene, takt }: { szene: SzeneVon<"startlist">
                 {person.status !== "registered" && (
                   <span className={s.startStatus} data-status={person.status}>
                     {person.status === "called" && <LivePunkt />}
-                    {person.status === "aborted" && person.abort_reason
-                      ? t(`abbruch.${person.abort_reason}`)
-                      : t(`status.${person.status}`)}
+                    {statusText(person)}
                   </span>
                 )}
               </span>

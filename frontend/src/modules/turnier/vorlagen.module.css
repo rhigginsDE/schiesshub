@@ -155,6 +155,30 @@
   color: var(--sh-krit);
 }
 
+/* Vorlage passt nicht zum Katalog (409 template_unavailable) */
+
+.vorlageFehltKasten {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--sh-warn-linie);
+  border-radius: var(--sh-radius-m);
+  background: var(--sh-warn-flaeche);
+}
+
+.vorlageFehltSymbol {
+  flex: none;
+  margin-top: 2px;
+  color: var(--sh-warn);
+}
+
+.lueckenListe {
+  margin: 4px 0;
+  padding-left: 20px;
+  color: var(--sh-text);
+}
+
 /* Übungsturnier */
 
 .uebungStarten {

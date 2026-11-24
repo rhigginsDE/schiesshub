@@ -3,8 +3,15 @@
  * Hier wird nichts gerechnet, nur formatiert.
  */
 import type { TFunction } from "i18next";
-import { formatDauer, formatDezimalText, formatHundertstel } from "../../lib/format";
-import type { FeldBeschreibung, Formular, Fortschritt, SerienWertung } from "./api";
+import { formatDezimalText, formatHundertstel } from "../../lib/format";
+import type {
+  FeldBeschreibung,
+  Formular,
+  Fortschritt,
+  HinweisArt,
+  SerieForm,
+  SerienWertung,
+} from "./api";
 import { istKommaFeld, kommaBereich } from "./eingabe";
 
 /** Dezimalzahl des Servers („59.50“, „187“) mit gleich vielen Nachkommastellen: „59,50“. */
@@ -25,6 +32,18 @@ export function formatZeit(hundertstel: number | null | undefined): string {
  */
 export function zaehltTreffer(einheit: string | null | undefined): boolean {
   return einheit === "Treffer";
+}
+
+/**
+ * Gleichstandskriterium in Worten, z. B. für „Für einen Gleichstand fehlt: …“. Der Server liefert
+ * `tie_breakers_missing` nur als IDs; der Klartext des Servers steht in `scoring/kriterien.yaml`
+ * und ist hier für die Kriterien nachgeschrieben, die überhaupt fehlen können. Eine unbekannte ID
+ * wird wie beim Server lesbar gemacht („abstand_zum_rand“ → „abstand zum rand“).
+ */
+export function kriteriumText(kriterium: string, t: TFunction<"erfassung">): string {
+  return t(`gesamt.gleichstand.${kriterium}`, {
+    defaultValue: kriterium.replaceAll("_", " ").trim(),
+  });
 }
 
 /** „16 von 20 Schuss · 1 von 2 Serien“: nur, was diese Wertung zählt. `treffer`: Ziele statt Schuss. */
@@ -76,20 +95,31 @@ export function restText(
   return null;
 }
 
+/**
+ * Wort für Ringwerte (Serienwert, Höchstwert im Kopf): bei Trefferzählung die Einheit des Servers
+ * („Treffer“), sonst „Ringe“ – auch bei Modellen mit anderer Gesamteinheit („Punkte“), deren
+ * Serien Ringe zählen.
+ */
+export function ringEinheit(einheit: string | null | undefined, t: TFunction<"erfassung">): string {
+  return einheit && zaehltTreffer(einheit) ? einheit : t("einheit.ringe");
+}
+
 export interface SerienAnzeige {
   /** Hauptwert der Serie (Ringe oder Zeit mit Zuschlag) */
   wert: string;
-  einheit: "ringe" | "treffer" | "sekunden" | null;
+  /** Einheit zum Wert, fertig geschrieben („Ringe“, „Treffer“, „s“) */
+  einheit: string | null;
   /** Zusatz, z. B. „12,84 + 10,00“ */
   zusatz: string | null;
 }
 
-/** Ergebnis einer Serie, wie der Server es liefert. `treffer`: Wertung zählt Treffer statt Ringe. */
+/** Ergebnis einer Serie, wie der Server es liefert. `einheit`: Einheit der Wertung (Server). */
 export function serienAnzeige(
   serie: SerienWertung | undefined,
   t: TFunction<"erfassung">,
-  treffer = false,
+  einheit?: string | null,
 ): SerienAnzeige {
+  const sekunden = t("einheit.sekunden");
   // Noch nichts erfasst: kein „0,00 s“, das wie ein Ergebnis aussieht.
   if (!serie || serie.captured === false) return { wert: "–", einheit: null, zusatz: null };
   if (serie.total_cs !== null) {
@@ -104,17 +134,17 @@ export function serienAnzeige(
       serie.rings !== null ? t("serie.ringe_kurz", { wert: formatWert(serie.rings) }) : null;
     return {
       wert: formatZeit(serie.total_cs),
-      einheit: "sekunden",
+      einheit: sekunden,
       zusatz: [ringe, zusatz].filter(Boolean).join(" · ") || null,
     };
   }
   if (serie.rings !== null) {
     const zusatz =
       serie.time_cs !== null ? t("serie.zeit", { zeit: formatZeit(serie.time_cs) }) : null;
-    return { wert: formatWert(serie.rings), einheit: treffer ? "treffer" : "ringe", zusatz };
+    return { wert: formatWert(serie.rings), einheit: ringEinheit(einheit, t), zusatz };
   }
   if (serie.time_cs !== null) {
-    return { wert: formatZeit(serie.time_cs), einheit: "sekunden", zusatz: null };
+    return { wert: formatZeit(serie.time_cs), einheit: sekunden, zusatz: null };
   }
   return { wert: "–", einheit: null, zusatz: null };
 }
@@ -136,79 +166,78 @@ export function feldBereich(feld: FeldBeschreibung, t: TFunction<"erfassung">): 
 
 // --- Vorgaben im Kopf -----------------------------------------------------------------------------
 
-export type VorgabeArt =
-  | "probe"
-  | "probe_unbegrenzt"
-  | "vorbereitung"
-  | "wettkampfzeit"
-  | "wettkampfzeit_gesamt"
-  | "aufgelegt";
+/**
+ * Arten der Abschnitts-Hinweise, die bei genau einem Abschnitt ruhig im Kopf stehen (in dieser
+ * Reihenfolge) statt in der Abschnittszeile. Der Server nennt die Art (`HintItem.kind`); der Text
+ * kommt fertig von ihm.
+ */
+const KOPF_ARTEN: readonly HinweisArt[] = ["sighters", "preparation_time", "competition_time"];
 
-export interface Vorgabe {
-  art: VorgabeArt;
-  /** Fertig geschriebener Wert („15 Min.“, „10“); leer bei „aufgelegt“ und „unbegrenzt“ */
-  wert: string;
-}
-
-function dauerText(sekunden: string | null | undefined): string | null {
-  if (sekunden === null || sekunden === undefined) return null;
-  const zahl = Number(sekunden);
-  return Number.isFinite(zahl) ? formatDauer(zahl) : null;
-}
+/** Eine Vorgabe im Kopf: ein Hinweis des Servers oder „aufgelegt“ (Angabe des Abschnitts). */
+export type Vorgabe = { art: "hinweis"; kind: HinweisArt; text: string } | { art: "aufgelegt" };
 
 /** Hat genau einen Abschnitt: Seine Vorgaben stehen im Kopf statt in der Abschnittszeile. */
 function einzigerAbschnitt(form: Formular) {
   return form.sections.length === 1 ? form.sections[0] : undefined;
 }
 
+/** Jeder Abschnitt ist aufgelegt (`SectionForm.aufgelegt`): „aufgelegt“ gilt für den Wettbewerb. */
+function alleAufgelegt(form: Formular): boolean {
+  return form.sections.length > 0 && form.sections.every((abschnitt) => abschnitt.aufgelegt);
+}
+
 /**
- * Vorgaben des Wettbewerbs zur Information im Kopf der Erfassung: Probeschüsse, Vorbereitungs- und
- * Wettkampfzeit, „aufgelegt“. Nur was der Server angibt; geprüft oder erzwungen wird davon nichts.
- * Bei mehreren Abschnitten bleiben deren Angaben an den Abschnitten; hier steht dann nur die
- * gemeinsame Wettkampfzeit. „aufgelegt“ nur, wenn jede Position ausschließlich aufgelegt ist.
+ * Vorgaben des Wettbewerbs zur Information im Kopf der Erfassung: Probeschüsse, Vorbereitung und
+ * Wettkampfzeit (Hinweise des Servers nach Art), „aufgelegt“. Nur was der Server angibt; geprüft
+ * oder erzwungen wird davon nichts. Bei mehreren Abschnitten bleiben deren Angaben an den
+ * Abschnitten; die gemeinsame Wettkampfzeit steht in den Notizen des Servers.
  */
 export function vorgaben(form: Formular): Vorgabe[] {
   const liste: Vorgabe[] = [];
   const abschnitt = einzigerAbschnitt(form);
   if (abschnitt) {
-    if (abschnitt.sighters === "unbegrenzt") liste.push({ art: "probe_unbegrenzt", wert: "" });
-    else if (abschnitt.sighters != null) {
-      liste.push({ art: "probe", wert: String(abschnitt.sighters) });
+    for (const kind of KOPF_ARTEN) {
+      for (const hinweis of abschnitt.hint_items) {
+        if (hinweis.kind === kind) liste.push({ art: "hinweis", kind, text: hinweis.text });
+      }
     }
-    const vorbereitung = dauerText(abschnitt.preparation_time_s);
-    if (vorbereitung) liste.push({ art: "vorbereitung", wert: vorbereitung });
-    const wettkampf = dauerText(abschnitt.competition_time_s);
-    if (wettkampf) liste.push({ art: "wettkampfzeit", wert: wettkampf });
   }
-  const gesamt = dauerText(form.competition_time_total_s);
-  if (gesamt) liste.push({ art: "wettkampfzeit_gesamt", wert: gesamt });
-  const anschlaege = form.sections.flatMap((a) =>
-    a.series.flatMap((serie) => serie.position?.stances ?? []),
-  );
-  if (anschlaege.length > 0 && anschlaege.every((anschlag) => anschlag.aufgelegt === true)) {
-    liste.push({ art: "aufgelegt", wert: "" });
-  }
+  if (alleAufgelegt(form)) liste.push({ art: "aufgelegt" });
   return liste;
 }
 
 /**
  * Hinweise eines Abschnitts ohne die, die schon als Vorgabe im Kopf stehen (gleiche Angabe nicht
- * zweimal). Erkannt am Wortlaut des Servers, nur wenn die Angabe auch als eigenes Feld kommt;
- * bei mehreren Abschnitten bleibt alles stehen.
+ * zweimal), erkannt an der Art (`hint_items[].kind`). Bei mehreren Abschnitten bleibt alles stehen.
  */
 export function abschnittsHinweise(form: Formular, abschnittId: string): string[] {
   const abschnitt = form.sections.find((a) => a.id === abschnittId);
   if (!abschnitt) return [];
-  if (einzigerAbschnitt(form) !== abschnitt) return abschnitt.hints;
-  return abschnitt.hints.filter((hinweis) => {
-    if (abschnitt.competition_time_s != null && hinweis.startsWith("Wettkampfzeit ")) return false;
-    if (abschnitt.preparation_time_s != null && hinweis.startsWith("Vorbereitung und Probe "))
-      return false;
-    if (
-      abschnitt.sighters != null &&
-      /^(\d+ Probeschuss|\d+ Probeschüsse|Probeschüsse unbegrenzt)$/.test(hinweis)
-    )
-      return false;
-    return true;
-  });
+  const imKopf = einzigerAbschnitt(form) === abschnitt;
+  return abschnitt.hint_items
+    .filter((hinweis) => !(imKopf && KOPF_ARTEN.includes(hinweis.kind)))
+    .map((hinweis) => hinweis.text);
+}
+
+/**
+ * „aufgelegt“ an diesem Abschnitt zeigen: Er ist aufgelegt, aber nicht jeder Abschnitt (sonst steht
+ * es einmal im Kopf).
+ */
+export function abschnittAufgelegt(form: Formular, abschnittId: string): boolean {
+  const abschnitt = form.sections.find((a) => a.id === abschnittId);
+  return abschnitt?.aufgelegt === true && !alleAufgelegt(form);
+}
+
+/**
+ * Arten der Serien-Hinweise, die die Maske schon anders zeigt: „gestrichen“ als Marke,
+ * „danach Trefferaufnahme“ als Zeile unter der Serie, die Position im Positionsablauf über den
+ * Serien (der erscheint, sobald eine Serie eine Position hat; „aufgelegt“ steht im Kopf).
+ */
+const SERIE_EIGEN: readonly HinweisArt[] = ["struck", "scoring_break", "position"];
+
+/** Hinweise einer Serie ohne die, die die Karte schon selbst zeigt (erkannt an der Art). */
+export function serienHinweise(serie: SerieForm): string[] {
+  return serie.hint_items
+    .filter((hinweis) => !SERIE_EIGEN.includes(hinweis.kind))
+    .map((hinweis) => hinweis.text);
 }

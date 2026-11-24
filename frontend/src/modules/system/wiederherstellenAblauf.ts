@@ -16,6 +16,11 @@ export type WiederherstellungsStatus = Schemas["RestoreStatusOut"];
 export type WiederherstellungsSchritt = Schemas["RestoreStepOut"];
 export type AusfuehrenAnfrage = Schemas["RestoreExecuteIn"];
 export type SchrittId = WiederherstellungsSchritt["key"];
+export type Ort = Quelle["location"];
+/** Hinweis mit fester Kennung (`code`); `message_de` ist der Text des Servers. */
+export type Meldung = Schemas["RestoreMessageOut"];
+export type Zugang = Schemas["AccessCheckOut"];
+export type UebersprungenerStart = Schemas["app__modules__backup__schemas__SkippedStartOut"];
 
 /** Unter `sicherung.alle`: Ereignisse der Sicherung laden das mit neu. */
 export const WIEDERHERSTELLEN_SCHLUESSEL = {
@@ -173,4 +178,161 @@ export function nachtragenMoeglich(vorschau: Vorschau): boolean {
 export function verloreneEingaben(vorschau: Vorschau, nachtragen: boolean): number {
   const { comparison } = vorschau;
   return nachtragen ? comparison.events_lost : comparison.events_since_backup;
+}
+
+// --- Sicherungen in der Liste ---------------------------------------------------------
+
+/** Reihenfolge der Orte: Stick zuerst, weil nur die Kopie dort die Schlüssel enthält. */
+const ORT_REIHENFOLGE: readonly Ort[] = ["usb", "local", "pre_restore"];
+
+/** Alle Orte, an denen eine Sicherung liegt, ohne Doppelte (Stick, Server, vor Wiederherstellung). */
+export function orteDerQuelle(quelle: Quelle): Ort[] {
+  const orte = new Set<Ort>([quelle.location, ...(quelle.locations ?? [])]);
+  return ORT_REIHENFOLGE.filter((ort) => orte.has(ort));
+}
+
+/**
+ * Jede Sicherung einmal. Der Server fasst Kopien derselben Sicherung schon zusammen und nennt die
+ * übrigen in `other_ids`; steht eine dieser Kopien trotzdem als eigener Eintrag da, fällt sie weg.
+ */
+export function quellenZusammenfassen(quellen: readonly Quelle[]): Quelle[] {
+  const abgedeckt = new Set<string>();
+  const liste: Quelle[] = [];
+  for (const quelle of quellen) {
+    if (abgedeckt.has(quelle.id)) continue;
+    liste.push(quelle);
+    abgedeckt.add(quelle.id);
+    for (const id of quelle.other_ids ?? []) abgedeckt.add(id);
+  }
+  return liste;
+}
+
+/**
+ * Kopie derselben Sicherung, die ohne Sicherungspasswort lesbar ist (die vom Server), falls es
+ * eine gibt: der Ausweg, wenn das Passwort vergessen ist. Sie enthält keine Schlüssel.
+ */
+export function kopieOhnePasswort(quelle: Quelle): Quelle | null {
+  if (!quelle.needs_passphrase) return null;
+  for (const id of quelle.other_ids ?? []) {
+    const trenner = id.indexOf(":");
+    const ort = id.slice(0, trenner);
+    const datei = id.slice(trenner + 1);
+    if ((ort === "local" || ort === "pre_restore") && !datei.endsWith(".shb")) {
+      return {
+        ...quelle,
+        id,
+        location: ort,
+        locations: orteDerQuelle(quelle),
+        other_ids: [],
+        file_name: datei,
+        encrypted: false,
+        needs_passphrase: false,
+        contains_keys: false,
+      };
+    }
+  }
+  return null;
+}
+
+// --- Meldungen des Servers ------------------------------------------------------------
+
+/**
+ * Kennungen mit eigenem Text (`wiederherstellen.meldung.<code>` in `system.json`); siehe
+ * `docs/WIEDERHERSTELLUNG.md`. Andere Kennungen zeigen den Text des Servers.
+ */
+export const MELDUNG_CODES = [
+  // Probleme der Vorschau
+  "schema_newer",
+  "schema_missing",
+  "keys_conflict",
+  "db_unreachable",
+  "db_not_found",
+  "db_no_createdb",
+  "db_not_owner",
+  "restore_running",
+  // Hinweise der Vorschau und des Ergebnisses
+  "no_file_checksum",
+  "server_copy_without_keys",
+  "other_app_version",
+  "module_restart_failed",
+  "after_backup_failed",
+  // Zugang danach
+  "enforcement_off",
+  "enforcement_on_after_restore",
+  "lockout",
+  "stays_signed_in",
+  "sign_in_again",
+  "pin_changed",
+] as const;
+
+const EIGENER_TEXT: ReadonlySet<string> = new Set(MELDUNG_CODES);
+
+export type Uebersetzer = (schluessel: string, werte?: Record<string, unknown>) => string;
+
+/** Eigener Text für bekannte Kennungen, sonst der des Servers; gleiche Texte nur einmal. */
+export function meldungTexte(
+  meldungen: readonly Meldung[] | undefined,
+  t: Uebersetzer,
+  werte: Record<string, unknown> = {},
+): string[] {
+  const texte = (meldungen ?? []).map((meldung) =>
+    EIGENER_TEXT.has(meldung.code)
+      ? t(`wiederherstellen.meldung.${meldung.code}`, werte)
+      : meldung.message_de,
+  );
+  return [...new Set(texte.filter(Boolean))];
+}
+
+/** Die Texte des Servers, für „Einzelheiten für den Betreuer des Servers“. */
+export function serverTexte(meldungen: readonly Meldung[] | undefined): string[] {
+  return (meldungen ?? []).map((meldung) => meldung.message_de);
+}
+
+/** Was in der Sicherung fehlt, sodass du danach an diesem Gerät nicht mehr in die Verwaltung kommst. */
+export function fehltInSicherung(zugang: Zugang): ("konto" | "rolle" | "geraet")[] {
+  const fehlt: ("konto" | "rolle" | "geraet")[] = [];
+  if (zugang.account_in_backup === false) fehlt.push("konto");
+  else if (zugang.account_is_admin_in_backup === false) fehlt.push("rolle");
+  if (zugang.device_in_backup === false) fehlt.push("geraet");
+  return fehlt;
+}
+
+/** Hinweise im Ergebnis; „Sicherung danach fehlgeschlagen“ steht schon in der Zusammenfassung. */
+export function ergebnisHinweise(status: WiederherstellungsStatus): Meldung[] {
+  const ergebnis = status.result;
+  if (!ergebnis) return [];
+  return (ergebnis.note_items ?? []).filter(
+    (meldung) => !(meldung.code === "after_backup_failed" && ergebnis.after_backup_ok === false),
+  );
+}
+
+// --- Von Hand nachzutragen -------------------------------------------------------------
+
+/** Gründe mit eigenem Text (`wiederherstellen.nachtragen_grund.<code>`). */
+export const GRUND_CODES = ["start_not_in_backup", "does_not_match"] as const;
+
+/**
+ * Starts, deren Ergebnisse sich nicht nachtragen ließen, sortiert nach Wettbewerb, Startnummer und
+ * Start. Sie müssen vom Startzettel von Hand nachgetragen werden.
+ */
+export function uebersprungeneStarts(status: WiederherstellungsStatus): UebersprungenerStart[] {
+  const ergebnis = status.result;
+  if (!ergebnis) return [];
+  const liste = ergebnis.skipped_starts?.length
+    ? ergebnis.skipped_starts
+    : (ergebnis.journal?.skipped_starts ?? []);
+  const ohne = Number.POSITIVE_INFINITY;
+  return [...liste].sort(
+    (a, b) =>
+      (a.competition_name ?? "").localeCompare(b.competition_name ?? "", "de") ||
+      (a.start_number ?? ohne) - (b.start_number ?? ohne) ||
+      (a.attempt ?? ohne) - (b.attempt ?? ohne),
+  );
+}
+
+/** Grund in Klartext: eigener Text für bekannte Gründe, sonst der des Servers. */
+export function grundText(start: UebersprungenerStart, t: Uebersetzer): string {
+  return (GRUND_CODES as readonly string[]).includes(start.reason_code)
+    ? t(`wiederherstellen.nachtragen_grund.${start.reason_code}`)
+    : start.message_de;
 }

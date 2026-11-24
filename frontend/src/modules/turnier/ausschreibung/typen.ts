@@ -48,6 +48,11 @@ export interface Ausschreibung {
   title?: string | null;
   facts: Eckdaten;
   blocks: Baustein[];
+  /**
+   * Nur in Antworten (GET/PUT): Abschnitte der Standardgliederung, die diesem Dokument fehlen
+   * (z. B. „Schießstände“ bei älteren Turnieren), fertig zum Einfügen. Beim Speichern ignoriert.
+   */
+  missing_default_blocks?: Baustein[];
 }
 
 // --- Zusammengesetztes Dokument (GET …/announcement/document) ---------------------------------
@@ -78,6 +83,8 @@ export interface DokumentWettbewerb {
 }
 
 export interface DokumentStand {
+  /** ID des Schießstands im Turnier (neuere Server); ordnet `lanes_text` direkt zu */
+  range_id?: string | null;
   name: string;
   lane_count: number;
   /** Fertiger Text zur Zahl der Schützenstände („6 Schützenstände“) */

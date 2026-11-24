@@ -96,12 +96,20 @@ export function dokumentAusEntwurf(
   );
   const begriffe: Partial<Begriffe> | null =
     server?.terms ?? (saetze ? dokumentBegriffe(saetze, turnier.competitions) : null);
+  // Fertiger Text des Servers je Schießstand („6 Schützenstände“), über `range_id` zugeordnet.
+  const serverStaende = new Map(
+    (server?.blocks.find((b) => b.kind === "ranges")?.ranges ?? []).flatMap((r) =>
+      r.range_id ? [[r.range_id, r] as const] : [],
+    ),
+  );
 
   const wettbewerbe = (): DokumentWettbewerb[] =>
     turnier.competitions.map((w) => {
       const vomServer = serverWettbewerbe.get(w.id);
       const terms =
         vomServer?.terms ?? (saetze ? begriffeFuer(saetze, w.catalog_federation) : null);
+      // „Serie“ im Ablauf: Wort des Verbands dieses Wettbewerbs (wie `_sections` des Servers).
+      const woerter = begriffeAus(terms, begriffe);
       return {
         id: w.id,
         name: w.name,
@@ -117,8 +125,8 @@ export function dokumentAusEntwurf(
           serien_gewertet: a.serien_gewertet ?? null,
           summary:
             w.definition.variant.abschnitte.length > 1
-              ? `${a.name}: ${abschnittKurz(a, sprache)}`
-              : abschnittKurz(a, sprache),
+              ? `${a.name}: ${abschnittKurz(a, sprache, woerter)}`
+              : abschnittKurz(a, sprache, woerter),
         })),
         multi_start: w.multi_start,
         max_starts: w.max_starts,
@@ -160,13 +168,20 @@ export function dokumentAusEntwurf(
         };
       }
       if (b.kind === "ranges") {
-        eintrag.ranges = turnier.ranges.map(
-          (r): DokumentStand => ({
+        eintrag.ranges = turnier.ranges.map((r): DokumentStand => {
+          const vomServer = serverStaende.get(r.id);
+          // Nur übernehmen, solange die Zahl stimmt (der Entwurf kann neuer sein als das Dokument).
+          const text =
+            vomServer && vomServer.lane_count === r.lane_count ? vomServer.lanes_text : null;
+          return {
+            range_id: r.id,
             name: r.name,
             lane_count: r.lane_count,
-            lanes_text: begriffe ? schuetzenstaendeText(r.lane_count, begriffeAus(begriffe)) : null,
-          }),
-        );
+            lanes_text:
+              text?.trim() ||
+              (begriffe ? schuetzenstaendeText(r.lane_count, begriffeAus(begriffe)) : null),
+          };
+        });
       }
       return eintrag;
     });

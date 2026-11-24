@@ -1,11 +1,29 @@
 import type { Abschnitt, Variante } from "../../api/typen";
 import i18n, { aktiveSprache } from "../../i18n";
+import { BEGRIFFE_RUECKFALL, type Begriffe } from "../../lib/begriffe";
 import { formatDatum, formatDauer, formatZahl } from "../../lib/format";
 import type { Turnier, Wettbewerb } from "./typen";
 
-/** Kurze Beschreibung eines Abschnitts: „4 Serien · max. 6 Schuss · 5 Ziele · max. 1 Min.“ */
-export function abschnittKurz(abschnitt: Abschnitt, sprache: string = aktiveSprache()): string {
-  const t = i18n.getFixedT(sprache, "turnier", "klartext");
+/** Wörter aus dem Begriffssatz, die der Ablauf in Kurzform braucht. */
+export type AblaufBegriffe = Pick<Begriffe, "serie" | "serien" | "trefferaufnahme">;
+
+/**
+ * Kurze Beschreibung eines Abschnitts: „4 Serien · max. 6 Schuss · 5 Ziele · max. 1 Min.“.
+ * „Serie“ und „Trefferaufnahme“ kommen aus dem Begriffssatz des Verbands (Ausschreibung); ohne
+ * Angabe gelten die festen Wörter.
+ */
+export function abschnittKurz(
+  abschnitt: Abschnitt,
+  sprache: string = aktiveSprache(),
+  begriffe: AblaufBegriffe = BEGRIFFE_RUECKFALL,
+): string {
+  const woerter = {
+    serie: begriffe.serie,
+    serien: begriffe.serien,
+    trefferaufnahme: begriffe.trefferaufnahme,
+  };
+  const t = (schluessel: string, werte: Record<string, unknown> = {}) =>
+    i18n.getFixedT(sprache, "turnier", "klartext")(schluessel, { ...woerter, ...werte });
   const dauer = (sekunden: number) => formatDauer(sekunden, sprache);
   const teile = [t("serien", { count: abschnitt.serien })];
   if (abschnitt.schuss_je_serie) teile.push(t("schuss", { count: abschnitt.schuss_je_serie }));

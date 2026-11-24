@@ -1,43 +1,33 @@
 import { Button } from "@mantine/core";
-import { useQueries } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, BookOpenCheck } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { katalogDiffAbfrage } from "./abfragen";
-import { leseKopieHinweis, vergissKopieHinweis } from "./anfang";
+import { hinweisAusblenden, hinweisAusgeblendet, hinweisKennung, katalogGeaendert } from "./anfang";
 import { EINRICHTEN_PFAD } from "./pfade";
 import type { TurnierUebersicht } from "./typen";
 import v from "./vorlagen.module.css";
+import { katalogStandText } from "./wettbewerbe/KatalogStand";
 
 /**
- * Nach „Wie ein früheres Turnier“: Welche Wettbewerbe sich seit dem Vorbild im Katalog geändert
- * haben, mit dem Weg zum Prüfen. Steht nur in der Turnierverwaltung (Entscheidung 22.11.2026).
- * Ein Wettbewerb fällt heraus, sobald er dem Katalog entspricht (Stand übernommen); der ganze
- * Hinweis auf „Geprüft, ausblenden“.
+ * Oben in der Einrichtung: Bei welchen Wettbewerben sich der Katalog seit der Übernahme geändert
+ * hat (typisch nach „Wie ein früheres Turnier“), mit Katalogstand damals → heute und dem Weg zum
+ * Prüfen. Die Angabe kommt vom Server (`catalog_changed`) und gilt damit auf jedem Gerät; ein
+ * Wettbewerb fällt heraus, sobald sein neuer Stand übernommen ist. „Ausblenden“ gilt nur auf
+ * diesem Gerät und nur hier – das Kennzeichen am Wettbewerb bleibt.
  */
 export function KopieHinweis({ turnier }: { turnier: TurnierUebersicht }) {
-  const { t } = useTranslation("turnier");
-  const [daten, setDaten] = useState(() => leseKopieHinweis(turnier.id));
-  const vorhanden = new Set(turnier.competitions.map((w) => w.id));
-  const wettbewerbe = daten?.wettbewerbe.filter((w) => vorhanden.has(w.id)) ?? [];
-  // Der aktuelle Vergleich mit dem Katalog; ohne Antwort gilt, was beim Kopieren gemeldet wurde.
-  const vergleiche = useQueries({
-    queries: wettbewerbe.map((w) => katalogDiffAbfrage(turnier.id, w.id)),
-  });
-  const offen = wettbewerbe.flatMap((wettbewerb, nr) => {
-    const vergleich = vergleiche[nr]?.data;
-    if (vergleich?.deviates === false) return [];
-    const punkte = vergleich
-      ? vergleich.differences.map((d) => d.text).filter(Boolean)
-      : wettbewerb.punkte;
-    return [{ ...wettbewerb, punkte }];
-  });
-  if (!daten || offen.length === 0) return null;
+  const { t, i18n } = useTranslation("turnier");
+  const offen = katalogGeaendert(turnier.competitions);
+  const kennung = hinweisKennung(offen);
+  const [ausgeblendet, setAusgeblendet] = useState<string | null>(() =>
+    hinweisAusgeblendet(turnier.id, kennung) ? kennung : null,
+  );
+  if (offen.length === 0 || ausgeblendet === kennung) return null;
 
   const ausblenden = () => {
-    vergissKopieHinweis(turnier.id);
-    setDaten(null);
+    hinweisAusblenden(turnier.id, kennung);
+    setAusgeblendet(kennung);
   };
 
   return (
@@ -45,19 +35,18 @@ export function KopieHinweis({ turnier }: { turnier: TurnierUebersicht }) {
       <BookOpenCheck aria-hidden className={v.bannerSymbol} />
       <div className={v.bannerText}>
         <strong id="kopie-hinweis-titel">
-          {t("kopie_hinweis.titel", { quelle: daten.quelle })}
+          {t("kopie_hinweis.titel", { count: offen.length })}
         </strong>
         <span>{t("kopie_hinweis.text", { count: offen.length })}</span>
         <ul className={v.kopieListe}>
           {offen.map((wettbewerb) => (
             <li key={wettbewerb.id} className={v.kopieEintrag}>
               <span className={v.kopieEintragText}>
-                <strong>{wettbewerb.name}</strong>
-                <span>
-                  {wettbewerb.punkte.length > 0
-                    ? t("kopie_hinweis.unterschied", { punkte: wettbewerb.punkte.join(" · ") })
-                    : t("kopie_hinweis.ohne_punkte")}
-                </span>
+                <strong>
+                  {wettbewerb.catalog_code ? `${wettbewerb.catalog_code} · ` : ""}
+                  {wettbewerb.name}
+                </strong>
+                <span>{katalogStandText(wettbewerb, i18n.language)}</span>
               </span>
               <Button
                 variant="default"

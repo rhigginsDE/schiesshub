@@ -18,6 +18,7 @@ export type Begriffssaetze = components["schemas"]["TermsOut"];
  */
 export const BEGRIFFE_RUECKFALL: Readonly<Begriffe> = Object.freeze({
   ergebnisliste: "Ergebnisliste",
+  ergebnislisten: "Ergebnislisten",
   startliste: "Startliste",
   startnummer: "Startnummer",
   startzeit: "Starttermin",
@@ -26,8 +27,12 @@ export const BEGRIFFE_RUECKFALL: Readonly<Begriffe> = Object.freeze({
   schuetzenstand: "Schützenstand",
   schuetzenstaende: "Schützenstände",
   durchgang: "Durchgang",
+  durchgaenge: "Durchgänge",
   durchgangszeit: "Durchgangszeit",
+  serie: "Serie",
+  serien: "Serien",
   wertungsserie: "Wertungsserie",
+  wertungsserien: "Wertungsserien",
   wertungsschuesse: "Wertungsschüsse",
   trefferaufnahme: "Trefferaufnahme",
   ergebnisgleichheit: "Ringgleichheit",
@@ -47,6 +52,7 @@ export const BEGRIFFE_RUECKFALL: Readonly<Begriffe> = Object.freeze({
   wettkampfleitung: "Wettkampfleitung",
   startgeld: "Startgeld",
   klasse: "Wettbewerbsklasse",
+  klassen: "Wettbewerbsklassen",
   kennziffer: "Kennziffer",
 });
 

@@ -23,6 +23,23 @@ export function merkeTurnier(id: string): void {
   );
 }
 
+/**
+ * Vergisst die Wahl dieses Geräts, wenn sie auf das (gelöschte) Turnier `id` zeigt. Offene
+ * Stationen im selben Fenster zeigen danach wieder die Auswahl.
+ */
+export function vergissTurnier(id: string): void {
+  try {
+    const roh = window.localStorage.getItem(TURNIER_SPEICHER);
+    if (!roh || JSON.parse(roh) !== id) return;
+    window.localStorage.removeItem(TURNIER_SPEICHER);
+  } catch {
+    return;
+  }
+  window.dispatchEvent(
+    new CustomEvent("mantine-local-storage", { detail: { key: TURNIER_SPEICHER, value: null } }),
+  );
+}
+
 const STATUS_RANG: Record<Turnier["status"], number> = { active: 0, draft: 1, closed: 2 };
 
 /**
