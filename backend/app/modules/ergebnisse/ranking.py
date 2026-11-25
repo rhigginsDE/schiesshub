@@ -388,7 +388,10 @@ async def _ranking(
     rules = tie_rules(defn) if defn is not None else None
     terms = begriffe.terms_for(competition.catalog_federation)
     word = _tie_word(competition, defn, terms)
-    hits_only = defn is not None and defn.hits_only
+    # Kurztexte der Kriterien: Fall „treffer“ („letzte Serie“), wenn die Serien wie im Ablauf
+    # verglichen werden (Wurfscheibe), sonst „letzte Zehnerserie“ – auch bei Treffer/Fehler mit
+    # `gleichstand_serie: zehn_schuss`.
+    hits_only = defn is not None and defn.tie_series_as_defined
 
     # Gruppen gibt es für jede Klasse mit Starts, auch wenn noch kein Ergebnis zählt.
     def group_of(candidate: Candidate) -> uuid.UUID | None:

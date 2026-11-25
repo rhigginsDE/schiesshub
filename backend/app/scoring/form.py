@@ -280,6 +280,17 @@ class FormDescription(_Frozen):
     """Gleichstandskriterien, die der Server rechnet (in Reihenfolge)."""
     tie_breakers_manual_from: str | None = None
     """Erstes Kriterium, das der Server nicht rechnet; ab dort entscheidet ein Mensch."""
+    tie_breakers_until_place: int | None = None
+    """`gleichstand_bis_platz`: `tie_breakers` gilt nur bis zu diesem Platz, danach
+    `tie_breakers_after` (leer: gleicher Platz)."""
+    tie_breakers_after: list[str] = []
+    """`gleichstand_danach` (nur mit `tie_breakers_until_place`)."""
+    tie_breakers_after_evaluated: list[str] = []
+    """Wie `tie_breakers_evaluated` für `tie_breakers_after`."""
+    tie_breakers_after_manual_from: str | None = None
+    """Wie `tie_breakers_manual_from` für `tie_breakers_after`."""
+    shootoff_at_max_score: bool = False
+    """`stechen_bei_hoechstergebnis`: Gleichstand beim Höchstergebnis entscheidet ein Stechen."""
 
 
 def describe_form(definition: Mapping[str, Any] | Definition, capture_mode: str) -> FormDescription:
@@ -301,13 +312,13 @@ def describe_form(definition: Mapping[str, Any] | Definition, capture_mode: str)
                 "tie_break_series_sum",
                 "Bei Seriensumme lässt sich ein Gleichstand nicht nach Neunern abwärts auflösen.",
             )
-        if "letzte_serie_rueckwaerts" in evaluated and not series_sums_fit_blocks(defn):
+        if "letzte_serie_rueckwaerts" in defn.tie_criteria and not series_sums_fit_blocks(defn):
             notes.add(
                 "tie_break_series_sum",
                 "Bei Seriensumme lässt sich ein Gleichstand nicht nach Zehnerserien auflösen "
                 "(die Serien ergeben keine 10-Schuss-Blöcke).",
             )
-        shot_only = [c for c in evaluated if c in SHOT_ONLY_CRITERIA]
+        shot_only = [c for c in defn.tie_criteria if c in SHOT_ONLY_CRITERIA]
         if shot_only:
             notes.add(
                 "tie_break_series_sum",
@@ -333,16 +344,31 @@ def describe_form(definition: Mapping[str, Any] | Definition, capture_mode: str)
             f"Höchstergebnis ({format_number(defn.max_score)} {defn.unit}): bei "
             "Ergebnisgleichheit gleicher Platz, ohne Gleichstandsregel und ohne Stechen.",
         )
+    if defn.scoring.stechen_bei_hoechstergebnis and defn.max_score is not None:
+        notes.add(
+            "shootoff",
+            f"Höchstergebnis ({format_number(defn.max_score)} {defn.unit}): bei "
+            "Ergebnisgleichheit entscheidet ein Stechen, nicht die Gleichstandsregel.",
+        )
     if defn.scoring.stechen_bis_platz is not None:
         notes.add(
             "shootoff",
             f"Gleichstand bis Platz {defn.scoring.stechen_bis_platz} entscheidet ein Stechen.",
         )
+    until = defn.scoring.gleichstand_bis_platz
+    after = defn.tie_chain_after
     if manual_from is not None:
+        scope = f" (Plätze bis {until})" if until is not None else ""
         notes.add(
             "tie_break_manual",
-            f"Gleichstand ab „{criterion_text(manual_from)}“ nach Sportordnung manuell entscheiden "
-            "(rechnet der Server nicht).",
+            f"Gleichstand{scope} ab „{criterion_text(manual_from)}“ nach Sportordnung manuell "
+            "entscheiden (rechnet der Server nicht).",
+        )
+    if until is not None and after is not None and after[1] is not None:
+        notes.add(
+            "tie_break_manual",
+            f"Gleichstand ab Platz {until + 1} ab „{criterion_text(after[1])}“ nach Sportordnung "
+            "manuell entscheiden (rechnet der Server nicht).",
         )
     return FormDescription(
         variant_id=defn.variant_id,
@@ -365,6 +391,11 @@ def describe_form(definition: Mapping[str, Any] | Definition, capture_mode: str)
         shootoff_until_place=defn.scoring.stechen_bis_platz,
         tie_breakers_evaluated=evaluated,
         tie_breakers_manual_from=manual_from,
+        tie_breakers_until_place=until,
+        tie_breakers_after=list(defn.scoring.gleichstand_danach or []) if until else [],
+        tie_breakers_after_evaluated=after[0] if after is not None else [],
+        tie_breakers_after_manual_from=after[1] if after is not None else None,
+        shootoff_at_max_score=bool(defn.scoring.stechen_bei_hoechstergebnis),
     )
 
 

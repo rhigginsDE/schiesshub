@@ -325,10 +325,14 @@ class RankingRow(BaseModel):
     # missing_data: Rohdaten für `tie_criterion` fehlen; manual: `tie_criterion` rechnet der
     # Server nicht (nach Sportordnung entscheiden); shootoff: Stechen (`stechen_bis_platz`);
     # max_score: Höchstergebnis erreicht, gleicher Platz nach Regel (DSB-SpO 0.12.1) – entschieden,
-    # `tie_unresolved` bleibt false; resolved: im Ergebnis gleich, durch die Gleichstandskette
-    # getrennt (`tied` und `tie_unresolved` false, `tie_criterion` das entscheidende Kriterium,
+    # `tie_unresolved` bleibt false; max_score_shootoff: Höchstergebnis erreicht, Stechen
+    # (`stechen_bei_hoechstergebnis`, DSB-SpO 9.4.3), `needs_shootoff` true; resolved: im
+    # Ergebnis gleich, durch die Gleichstandskette getrennt (`tied` und `tie_unresolved` false, `tie_criterion` das entscheidende Kriterium,
     # `tie_note` z. B. „Ringgleichheit, entschieden nach: Anzahl der Zehner“).
-    tie_reason: Literal["missing_data", "manual", "shootoff", "max_score", "resolved"] | None = None
+    tie_reason: (
+        Literal["missing_data", "manual", "shootoff", "max_score", "max_score_shootoff", "resolved"]
+        | None
+    ) = None
     # Interne ID des Kriteriums (zum Auswerten, nicht zum Anzeigen; Klartext steht in `tie_note`).
     tie_criterion: str | None = None
     needs_shootoff: bool = False

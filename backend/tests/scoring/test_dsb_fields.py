@@ -372,10 +372,14 @@ def test_tenths_total_and_tenths_tie_chain() -> None:
     # 20,0 = 20,0 → Zehner 1 = 1 → gleicher Rang; 19,9 dahinter.
     assert [places[i].place for i in "abc"] == [1, 1, 3]
     assert places["a"].tie_reason is None
-    # Ohne Zehntelwertung fehlen die Zehntel: manuell.
+    # Ohne Zehntelwertung erfasst die Wertung keine Zehntel (DSB-SpO 9.4.1 Nr. 4: Zehntel nur
+    # für den Gleichstand): manuell entscheiden – nicht „Angaben fehlen“, nicht übersprungen.
     whole = ring_definition(serien=1, schuss=2, gleichstand=["zehntel_gesamt"])
     places = ranked(whole, {"a": raw_shots([10, 9]), "b": raw_shots([9, 10])})
-    assert places["a"].tie_reason == "missing_data"
+    assert places["a"].tie_reason == "manual"
+    assert places["a"].tie_criterion == "zehntel_gesamt"
+    assert places["a"].tie_unresolved
+    assert places["a"].place == places["b"].place == 1
 
 
 def test_tenths_inner_tens_are_not_missing_but_manual() -> None:

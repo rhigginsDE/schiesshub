@@ -98,16 +98,17 @@ class ScoringModel(ABC):
                 )
             if value is None and parameter in self.required_parameters:
                 problems.append(f"scoring.{parameter}: Pflichtangabe für Modell „{self.name}“")
-        criteria = scoring.gleichstand or []
-        for index, criterion in enumerate(criteria):
-            # Unbekannte IDs sind erlaubt (manuell zu entscheiden); bekannte müssen passen.
-            path = f"scoring.gleichstand[{index}]"
-            if criterion in TIE_BREAKERS and criterion not in self.tie_breakers:
-                problems.append(
-                    f"{path}: „{criterion}“ ist beim Modell „{self.name}“ nicht anwendbar"
-                )
-            elif criterion in criteria[:index]:
-                problems.append(f"{path}: „{criterion}“ steht mehrfach in der Liste")
+        for field in ("gleichstand", "gleichstand_danach"):
+            criteria = getattr(scoring, field) or []
+            for index, criterion in enumerate(criteria):
+                # Unbekannte IDs sind erlaubt (manuell zu entscheiden); bekannte müssen passen.
+                path = f"scoring.{field}[{index}]"
+                if criterion in TIE_BREAKERS and criterion not in self.tie_breakers:
+                    problems.append(
+                        f"{path}: „{criterion}“ ist beim Modell „{self.name}“ nicht anwendbar"
+                    )
+                elif criterion in criteria[:index]:
+                    problems.append(f"{path}: „{criterion}“ steht mehrfach in der Liste")
         for index, section in enumerate(sections):
             problems.extend(
                 f"variant.abschnitte[{index}] ({section.id}): {problem}"

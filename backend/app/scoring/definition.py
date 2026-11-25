@@ -64,15 +64,49 @@ class Definition:
         return Decimal(sum((plan.max_rings or 0 for plan in ring_sections), 0))
 
     @property
+    def tie_series_as_defined(self) -> bool:
+        """`letzte_serie_rueckwaerts` vergleicht die Serien, wie der Ablauf sie definiert (sonst
+        10-Schuss-Blöcke), siehe `ScoringSpec.gleichstand_serie`."""
+        match self.scoring.gleichstand_serie:
+            case "serie":
+                return True
+            case "zehn_schuss":
+                return False
+        return self.hits_only
+
+    @property
     def tie_chain(self) -> tuple[list[str], str | None]:
         """Gerechnete Gleichstandskriterien in Reihenfolge und das erste nicht gerechnete.
 
         Gerechnet wird bis zur ersten ID, die das Modell nicht rechnet (unbekannt oder
         `stechen`); ab dort ist ein Gleichstand manuell zu entscheiden. Mit `stechen_bis_platz`
         wird `stechen` übersprungen: Es gilt dann nur für die Plätze bis N (`ranking.py`).
+        Mit `gleichstand_bis_platz` gilt diese Kette nur bis Platz N (`tie_chain_after`).
         """
+        return self._chain(self.tie_breakers)
+
+    @property
+    def tie_chain_after(self) -> tuple[list[str], str | None] | None:
+        """Wie `tie_chain` für `gleichstand_danach` (ab Platz `gleichstand_bis_platz` + 1);
+        None ohne platzabhängige Kette."""
+        if self.scoring.gleichstand_bis_platz is None:
+            return None
+        return self._chain(list(self.scoring.gleichstand_danach or []))
+
+    @property
+    def tie_criteria(self) -> list[str]:
+        """Alle gerechneten Kriterien beider Ketten, ohne Doppelte – in dieser Reihenfolge
+        stehen ihre Werte im Vergleichsschlüssel (`ranking.rank_key`)."""
+        criteria = list(self.tie_chain[0])
+        after = self.tie_chain_after
+        for criterion in after[0] if after is not None else []:
+            if criterion not in criteria:
+                criteria.append(criterion)
+        return criteria
+
+    def _chain(self, criteria: list[str]) -> tuple[list[str], str | None]:
         evaluated: list[str] = []
-        for criterion in self.tie_breakers:
+        for criterion in criteria:
             if criterion == SHOOTOFF and self.scoring.stechen_bis_platz is not None:
                 continue
             if criterion not in self.model.tie_breakers:

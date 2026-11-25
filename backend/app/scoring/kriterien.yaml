@@ -34,7 +34,7 @@ kriterien:
     kurz: "kürzere Durchgangszeit"
   # DSB 0.12.1 Nr. 1, 9.4.1: letzte Zehnerserie, dann in 10-Schuss-Serien zurück; Flinte 3.9.1.2:
   # letzte Serie (25 Wurfscheiben) rückwärts. Welche Regel gilt, entscheidet die Wertung
-  # (`tiebreak.py`): reine Trefferzählung → je Serie.
+  # (`tiebreak.py`, `gleichstand_serie`; ohne das Feld: reine Trefferzählung → je Serie).
   letzte_serie_rueckwaerts:
     lang: "letzte Zehnerserie, dann rückwärts in 10-Schuss-Serien (Wurfscheibe: je Serie)"
     kurz:

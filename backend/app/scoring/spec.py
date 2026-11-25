@@ -72,7 +72,10 @@ MODEL_PARAMETERS = (
     "unbeendete_serie",
     "zehntelwertung",
     "hoechstergebnis_gleicher_rang",
+    "stechen_bei_hoechstergebnis",
 )
+# `gleichstand_serie`: woraus `letzte_serie_rueckwaerts` die verglichenen Serien bildet.
+TieSeries = Literal["zehn_schuss", "serie"]
 
 
 class _Strict(BaseModel):
@@ -204,6 +207,33 @@ class ScoringSpec(_Strict):
     """Wer das erzielbare Höchstergebnis erreicht, wird bei Ergebnisgleichheit nicht
     unterschieden (DSB-SpO 0.12.1 Satz 1): gleicher Platz ohne Gleichstandskette und ohne
     Stechen. Nur Modell `ringe`."""
+    stechen_bei_hoechstergebnis: bool | None = None
+    """Wer das erzielbare Höchstergebnis erreicht, wird bei Ergebnisgleichheit durch ein Stechen
+    getrennt (DSB-SpO 9.4.3), nicht durch die Gleichstandskette: geteilter Platz mit Hinweis
+    „Stechen“, auf jedem Platz. Das Stechen selbst erfasst die Wertung nicht. Nur Modell `ringe`;
+    schließt `hoechstergebnis_gleicher_rang` aus."""
+    gleichstand_serie: TieSeries | None = None
+    """Serien für `letzte_serie_rueckwaerts`: `zehn_schuss` – Blöcke zu 10 Schuss über alle
+    gewerteten Schüsse (DSB-SpO 0.12.1 Nr. 1), gleich wie lang die Serien des Ablaufs sind;
+    `serie` – die Serien, wie der Ablauf sie definiert (DSB-SpO 3.9.1.2: Serie zu 25
+    Wurfscheiben). Nicht gesetzt: `serie`, wenn alle Abschnitte nur Treffer zählen, sonst
+    `zehn_schuss` (Verhalten vor Einführung des Felds)."""
+    gleichstand_bis_platz: PositiveInt | None = None
+    """`gleichstand` gilt nur für Gleichstände, die auf den Plätzen 1 bis N beginnen (DSB-SpO
+    9.4.1: Plätze 1–6); ab Platz N+1 gilt `gleichstand_danach`. Nur zusammen mit diesem."""
+    gleichstand_danach: list[CriterionId] | None = None
+    """Gleichstandskette ab Platz `gleichstand_bis_platz` + 1 (leer: gleicher Platz). Bedeutung
+    der IDs wie in `gleichstand`."""
+
+    @model_validator(mode="after")
+    def _check_tie_fields(self) -> Self:
+        if (self.gleichstand_bis_platz is None) != (self.gleichstand_danach is None):
+            raise ValueError("gleichstand_bis_platz und gleichstand_danach nur zusammen angeben")
+        if self.stechen_bei_hoechstergebnis and self.hoechstergebnis_gleicher_rang:
+            raise ValueError(
+                "stechen_bei_hoechstergebnis und hoechstergebnis_gleicher_rang schließen sich aus"
+            )
+        return self
 
 
 class DefinitionSpec(_Strict):

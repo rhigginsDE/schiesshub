@@ -161,10 +161,9 @@ def compute(
     # Gerechnete Gleichstandskriterien, für die Angaben fehlen (z. B. Seriensumme ohne Zehner).
     # Was sich hier grundsätzlich nicht erfassen lässt (Innenzehner bei Zehntelwertung, Neuner
     # abwärts bei Seriensumme), „fehlt“ nicht: Dort entscheidet ein Mensch (`tie_rules`).
-    evaluated, _ = defn.tie_chain
     missing = [
         c
-        for c in evaluated
+        for c in defn.tie_criteria
         if criterion_capturable(defn, c, capture_mode) and None in criterion_values(defn, result, c)
     ]
     return result.model_copy(update={"tie_breakers_missing": missing})

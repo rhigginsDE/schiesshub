@@ -54,7 +54,9 @@ class Rings(ScoringModel):
     name = "ringe"
     direction = "absteigend"
     unit = RINGS_UNIT
-    parameters = frozenset({"zehntelwertung", "hoechstergebnis_gleicher_rang"})
+    parameters = frozenset(
+        {"zehntelwertung", "hoechstergebnis_gleicher_rang", "stechen_bei_hoechstergebnis"}
+    )
     tie_breakers = RING_TIE_BREAKERS | RING_DETAIL_TIE_BREAKERS
 
     def check_section(self, section: SectionPlan) -> list[str]:

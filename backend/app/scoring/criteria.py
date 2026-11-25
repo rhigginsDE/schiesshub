@@ -7,7 +7,9 @@ Fassungen:
   Eingabemaske, fehlende Angaben;
 - `kurz` – für den Bildschirm (`criterion_short(id, hits_only=…)`, `tie_note`). Ein Text oder,
   wenn die Wertung das Kriterium je nach Disziplin verschieden anwendet, je Fall:
-  `standard` und `treffer` (alle Abschnitte zählen nur Treffer, z. B. Wurfscheibe).
+  `standard` und `treffer` (Serien wie im Ablauf statt 10-Schuss-Blöcke,
+  `Definition.tie_series_as_defined`; ohne `gleichstand_serie`: alle Abschnitte zählen nur
+  Treffer, z. B. Wurfscheibe).
 
 Hinweise wie „nächstes Kriterium: …“ zeigen nie die interne ID; eine ID ohne Text wird lesbar
 gemacht (`abstand_zum_rand` → „abstand zum rand“).

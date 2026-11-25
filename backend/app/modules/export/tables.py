@@ -469,7 +469,7 @@ def _row_notes(
         # Stechen oder manuell zu entscheiden: der Hinweis der Rangliste; sonst kurz.
         notes.append(
             row.tie_note
-            if row.tie_reason in ("shootoff", "manual") and row.tie_note
+            if row.tie_reason in ("shootoff", "max_score_shootoff", "manual") and row.tie_note
             else begriffe.tie_unresolved_text(tie_word)
         )
     if mark_provisional and row.status == "provisional":

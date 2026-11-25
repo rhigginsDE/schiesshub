@@ -292,13 +292,18 @@ class FeedRankRow(BaseModel):
     # zu einem offenen geteilten Platz („Ringgleichheit auf Platz 2: Stechen“), sonst null.
     needs_shootoff: bool = False
     # Warum ein Platz geteilt ist (wie `RankingRow.tie_reason`): missing_data, manual, shootoff,
-    # max_score (Höchstergebnis, gleicher Platz nach Regel), resolved (im Ergebnis gleich, durch
+    # max_score (Höchstergebnis, gleicher Platz nach Regel), max_score_shootoff (Höchstergebnis,
+    # Stechen nach `stechen_bei_hoechstergebnis`), resolved (im Ergebnis gleich, durch
     # die Gleichstandskette entschieden, nicht geteilt); null ohne gleiches Ergebnis bzw. wenn
     # alle Kriterien gerechnet und gleich sind.
-    tie_reason: Literal["missing_data", "manual", "shootoff", "max_score", "resolved"] | None = None
+    tie_reason: (
+        Literal["missing_data", "manual", "shootoff", "max_score", "max_score_shootoff", "resolved"]
+        | None
+    ) = None
     # ID des Kriteriums zu `tie_reason` (wie `RankingRow.tie_criterion`; Klartext in `tie_note`).
     tie_criterion: str | None = None
-    # Geteilt und nicht entschieden (manual, missing_data, shootoff); false bei max_score
+    # Geteilt und nicht entschieden (manual, missing_data, shootoff, max_score_shootoff); false
+    # bei max_score
     # (gleicher Platz nach Regel) und ohne geteilten Platz.
     tie_unresolved: bool = False
     # Kurzfassung für den Bildschirm („Ringgleichheit, entschieden nach: letzte Zehnerserie“);

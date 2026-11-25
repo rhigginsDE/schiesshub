@@ -168,7 +168,8 @@ class WinnerRow:
     provisional_until: datetime | None
     # Rechenweg bei Wertung mit Zeit; None bei anderen Modellen oder ohne Ergebnis.
     time_score: TimeScore | None = None
-    # Warum ein geteilter Platz offen ist (wie die Rangliste: missing_data, manual, shootoff)
+    # Warum ein geteilter Platz offen ist (wie die Rangliste: missing_data, manual, shootoff,
+    # max_score_shootoff)
     # und der Hinweis dazu („Ringgleichheit auf Platz 2: Stechen“).
     tie_reason: str | None = None
     tie_note: str | None = None

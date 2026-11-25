@@ -22,7 +22,7 @@ from collections.abc import Iterable, Sequence
 
 from app.core.begriffe import Begriffe, begriffe_fuer
 from app.scoring.criteria import criterion_short, criterion_text
-from app.scoring.ranking import MAX_SCORE_NOTE
+from app.scoring.ranking import MAX_SCORE_NOTE, max_score_shootoff_note
 
 ABORT_FALLBACK = "abgebrochen"
 """Unbekannter Abbruchgrund (sollte nicht vorkommen)."""
@@ -122,6 +122,8 @@ def tie_note(
             return MAX_SCORE_NOTE
         case "shootoff":
             return f"{word} auf Platz {place}: Stechen"
+        case "max_score_shootoff":
+            return max_score_shootoff_note(place)
         case "manual":
             return f"{word}: nach Sportordnung manuell entscheiden (nächstes Kriterium: {text})"
         case "missing_data":

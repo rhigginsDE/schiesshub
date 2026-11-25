@@ -19,14 +19,17 @@ Kriterien (in Klammern, was dafür erfasst sein muss):
   Einzelschüsse werden direkt in Blöcke geteilt; Seriensummen nur, wenn sie genau in einen Block
   fallen (10er-Serien direkt, 5er-Serien paarweise vom Ende her), sonst fehlen die Angaben.
   *Annahme* (die SpO regelt es nicht): Ist die Schusszahl kein Vielfaches von 10, wird vom Ende
-  her geblockt, der vorderste Block ist kürzer. Ausnahme: Zählen alle Abschnitte nur Treffer
-  (Wurfscheibe, `ringwerte` höchstens 1), gilt die Serie, wie sie definiert ist (DSB-SpO 3.9.1.2:
-  letzte Serie zu 25 Wurfscheiben, dann rückwärts).
+  her geblockt, der vorderste Block ist kürzer. Ausnahme `gleichstand_serie: serie`: Es gilt
+  die Serie, wie der Ablauf sie definiert (DSB-SpO 3.9.1.2: letzte Serie zu 25 Wurfscheiben,
+  dann rückwärts). Ohne das Feld gilt das, wenn alle Abschnitte nur Treffer zählen (`ringwerte`
+  höchstens 1); `gleichstand_serie: zehn_schuss` erzwingt die Blöcke auch dort (DSB-SpO 2.16
+  mit Treffer/Fehler und 5er-Serien: 0.12.1 Nr. 1).
 - `schuesse_rueckwaerts`: letzter Schuss, dann vorletzter … (Einzelschüsse aller Serien)
 - `ergebnis_zweite_haelfte`: Ringe der zweiten Hälfte der gewerteten Serien; bei ungerader
   Serienzahl die zweite Hälfte der Schüsse (Serienwerte bzw. Einzelschüsse)
 - `mehr_treffer`: Anzahl Schüsse mit Wert über 0 (Einzelschüsse)
-- `zehntel_gesamt`: Ringsumme in Zehnteln (nur mit Zehntelwertung, sonst fehlen die Zehntel)
+- `zehntel_gesamt`: Ringsumme in Zehnteln (nur mit Zehntelwertung; bei ganzen Ringen erfasst
+  die Wertung keine Zehntel, ein Gleichstand dort ist manuell zu entscheiden, DSB-SpO 9.4.1 Nr. 4)
 """
 
 from decimal import Decimal
@@ -64,13 +67,16 @@ def criterion_capturable(defn: Definition, criterion: str, capture_mode: str | N
     entscheiden (wie ein Kriterium, das die Wertung nicht rechnet):
 
     - `innenzehner` bei Zehntelwertung (kein „X“), `zehner`/`innenzehner` bei reiner
-      Trefferzählung (Wurfscheibe: Werte 0/1);
+      Trefferzählung (Wurfscheibe: Werte 0/1), `zehntel_gesamt` ohne Zehntelwertung (Zehntel nur
+      für den Gleichstand erfasst die Wertung nicht);
     - nur mit `capture_mode="series"`: Kriterien, die Einzelschüsse brauchen, und
       `letzte_serie_rueckwaerts`, wenn die Serien keine 10-Schuss-Blöcke ergeben.
     """
     if criterion == "innenzehner" and defn.tenths:
         return False
     if criterion in ("zehner", "innenzehner") and defn.hits_only:
+        return False
+    if criterion == "zehntel_gesamt" and not defn.tenths:
         return False
     if capture_mode == "series":
         if criterion in SHOT_CRITERIA:
@@ -86,7 +92,7 @@ def criterion_slots(defn: Definition, criterion: str) -> int:
         case "neuner_abwaerts":
             return len(NINES_DOWN)
         case "letzte_serie_rueckwaerts":
-            if defn.hits_only:
+            if defn.tie_series_as_defined:
                 return sum(len(plan.counted_series) for plan in defn.sections if plan.rings)
             return -(-_total_shots(defn) // BLOCK_SHOTS)
         case "schuesse_rueckwaerts":
@@ -112,7 +118,7 @@ def criterion_values(defn: Definition, result: ComputedResult, criterion: str) -
             time = result.parcours_time_cs
             return [None if time is None else -time]
         case "letzte_serie_rueckwaerts":
-            if defn.hits_only:
+            if defn.tie_series_as_defined:
                 series = _counted_series(result)
                 return [_points(s.rings if s.captured else None) for s in reversed(series)]
             return _blocks_backwards(result, slots)
@@ -139,8 +145,8 @@ def _total_shots(defn: Definition) -> int:
 
 def series_sums_fit_blocks(defn: Definition) -> bool:
     """Lässt sich `letzte_serie_rueckwaerts` aus Seriensummen rechnen (jede gewertete Serie
-    liegt ganz in einem 10-Schuss-Block)? Bei reiner Trefferzählung immer (Serie = Block)."""
-    if defn.hits_only:
+    liegt ganz in einem 10-Schuss-Block)? Mit Serien wie definiert immer (Serie = Block)."""
+    if defn.tie_series_as_defined:
         return True
     counts = [
         plan.shots_per_series or 0
