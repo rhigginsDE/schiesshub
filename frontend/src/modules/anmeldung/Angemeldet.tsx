@@ -1,6 +1,6 @@
 import { CloseButton, Skeleton, TextInput } from "@mantine/core";
 import type { UseQueryResult } from "@tanstack/react-query";
-import { Search, SearchX, Users } from "lucide-react";
+import { Search, SearchX, TriangleAlert, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Chip } from "../../components/Chip";
@@ -11,7 +11,7 @@ import type { TurnierUebersicht } from "../turnier/typen";
 import { kennziffer } from "./AnmeldungFormular";
 import s from "./AnmeldungSeite.module.css";
 import type { Anmeldung } from "./api";
-import { kennzahlen, statusAnzeige, sucheAnmeldungen } from "./logik";
+import { istWarnung, kennzahlen, statusAnzeige, sucheAnmeldungen } from "./logik";
 
 interface AngemeldetProps {
   uebersicht: TurnierUebersicht | undefined;
@@ -116,8 +116,23 @@ export function Angemeldet({ uebersicht, abfrage, aktivPersonId, onAuswahl }: An
                           {startGruppen(anmeldung.starts).map(({ start, anzahl }) => {
                             const wettbewerb = wettbewerbe.get(start.competition_id);
                             const anzeige = statusAnzeige(start);
+                            // Warnung zum Startrecht im Wettbewerb: Symbol mit Text für Screenreader
+                            const warnung = anmeldung.starts.some(
+                              (st) =>
+                                st.competition_id === start.competition_id &&
+                                st.start_rights?.some(istWarnung),
+                            );
                             return (
                               <Chip key={start.id} ton={anzeige.ton}>
+                                {warnung && (
+                                  <TriangleAlert
+                                    role="img"
+                                    aria-label={t("startrecht.markiert")}
+                                    className={s.chipWarnung}
+                                  >
+                                    <title>{t("startrecht.markiert")}</title>
+                                  </TriangleAlert>
+                                )}
                                 <span className="num">
                                   {wettbewerb ? kennziffer(wettbewerb) : "—"}
                                   {anzahl > 1 && ` ${t("liste.mal", { count: anzahl })}`}

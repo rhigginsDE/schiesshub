@@ -5,7 +5,7 @@
  */
 import type { ChipTon } from "../../components/Chip";
 import type { TurnierKlasse, Wettbewerb } from "../turnier/typen";
-import type { Anmeldung, Start } from "./api";
+import type { Anmeldung, Start, StartrechtAuskunft, StartrechtMeldung } from "./api";
 
 /** Wie viele Starts eine Person im Wettbewerb höchstens haben kann (`check_start_limit`). */
 export function startGrenze(wettbewerb: Pick<Wettbewerb, "multi_start" | "max_starts">): number {
@@ -226,4 +226,54 @@ export function kennzahlen(anmeldungen: readonly Anmeldung[]): Kennzahlen {
     starts: anmeldungen.reduce((n, a) => n + a.starts.length, 0),
     cents: anmeldungen.reduce((n, a) => n + a.fee_total_cents, 0),
   };
+}
+
+// --- Startrecht ----------------------------------------------------------------------------------
+
+/**
+ * Meldungen der Vorab-Auskunft für einen Wettbewerb. Leer, wenn der Server nichts zu sagen hat
+ * (`startberechtigt`, `keine_angabe`, BDS und eigene Wettbewerbe) oder keine Auskunft vorliegt.
+ */
+export function startrechtFuer(
+  auskunft: readonly StartrechtAuskunft[] | undefined,
+  wettbewerbId: string,
+): StartrechtMeldung[] {
+  return auskunft?.find((eintrag) => eintrag.competition_id === wettbewerbId)?.start_rights ?? [];
+}
+
+/** Warnungen zuerst, dann Hinweise; jede Meldung nur einmal (gleicher Code und Text). */
+export function startrechtListe(meldungen: readonly StartrechtMeldung[]): StartrechtMeldung[] {
+  const gesehen = new Set<string>();
+  const liste: StartrechtMeldung[] = [];
+  for (const meldung of meldungen) {
+    const schluessel = `${meldung.code}|${meldung.message_de}`;
+    if (gesehen.has(schluessel)) continue;
+    gesehen.add(schluessel);
+    liste.push(meldung);
+  }
+  return liste.sort((a, b) => Number(istWarnung(b)) - Number(istWarnung(a)));
+}
+
+/** `warning` ist eine Warnung; alles andere (auch eine unbekannte Stufe) ein ruhiger Hinweis. */
+export function istWarnung(meldung: Pick<StartrechtMeldung, "severity">): boolean {
+  return meldung.severity === "warning";
+}
+
+/**
+ * Meldungen gebuchter Starts je Wettbewerb, an den ersten Start des Wettbewerbs gehängt: Mehrere
+ * Starts im selben Wettbewerb wiederholen dieselbe Meldung nicht. Ergebnis: Start-ID → Meldungen.
+ */
+export function startrechtJeStart(
+  starts: readonly { id: string; competition_id: string; start_rights?: StartrechtMeldung[] }[],
+): Map<string, StartrechtMeldung[]> {
+  const erster = new Map<string, string>();
+  const meldungen = new Map<string, StartrechtMeldung[]>();
+  for (const start of starts) {
+    const ziel = erster.get(start.competition_id) ?? start.id;
+    erster.set(start.competition_id, ziel);
+    const neu = start.start_rights ?? [];
+    if (neu.length === 0) continue;
+    meldungen.set(ziel, startrechtListe([...(meldungen.get(ziel) ?? []), ...neu]));
+  }
+  return meldungen;
 }

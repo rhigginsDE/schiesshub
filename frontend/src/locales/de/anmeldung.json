@@ -180,5 +180,14 @@
     "keine_text": "Andere Schreibweise oder die Startnummer versuchen.",
     "mal": "×{{count}}"
   },
-  "anleitung": "Schützen suchen oder neu anlegen, Klasse wählen, Starts buchen – dann den angezeigten Betrag kassieren."
+  "anleitung": "Schützen suchen oder neu anlegen, Klasse wählen, Starts buchen – dann den angezeigten Betrag kassieren.",
+  "startrecht": {
+    "titel": "Startrecht",
+    "warnung": "Startrecht: Warnung",
+    "hinweis": "Startrecht: Hinweis",
+    "fundstelle": "Fundstelle: {{quelle}}",
+    "bleibt_buchbar": "Der Start bleibt trotzdem buchbar.",
+    "nicht_geprueft": "Startrecht gerade nicht prüfbar. Buchen geht trotzdem.",
+    "markiert": "Warnung zum Startrecht"
+  }
 }

@@ -2,10 +2,10 @@ import type { Wettbewerb } from "../turnier/typen";
 import {
   type Anmeldung,
   type AnmeldungAenderung,
+  type AnmeldungStart,
   anmelden,
   anmeldungAendern,
   naechsterPlatzLaden,
-  type Start,
   startsBuchen,
 } from "./api";
 
@@ -38,7 +38,7 @@ export interface BuchungsAuftrag {
 export interface BuchungsErgebnis {
   anmeldung: Anmeldung;
   neu: boolean;
-  starts: Start[];
+  starts: AnmeldungStart[];
 }
 
 /** Fehler eines Schritts. Was davor gelang, bleibt gebucht und steht in `anmeldung`/`gebucht`. */
@@ -47,13 +47,13 @@ export class BuchungsFehler extends Error {
   readonly schritt: "anmeldung" | "start";
   readonly wettbewerbId?: string;
   readonly anmeldung: Anmeldung | null;
-  readonly gebucht: Start[];
+  readonly gebucht: AnmeldungStart[];
 
   constructor(
     ursache: unknown,
     schritt: "anmeldung" | "start",
     anmeldung: Anmeldung | null,
-    gebucht: Start[],
+    gebucht: AnmeldungStart[],
     wettbewerbId?: string,
   ) {
     super(ursache instanceof Error ? ursache.message : String(ursache));
@@ -76,7 +76,7 @@ export async function buchen(auftrag: BuchungsAuftrag): Promise<BuchungsErgebnis
   const { turnierId } = auftrag;
   let anmeldung = auftrag.anmeldung;
   const neu = anmeldung === null;
-  const gebucht: Start[] = [];
+  const gebucht: AnmeldungStart[] = [];
 
   try {
     if (anmeldung === null) {

@@ -20,9 +20,15 @@ import type { Turnier } from "../turnier/typen";
 import { Angemeldet } from "./Angemeldet";
 import { AnmeldungFormular, type Schuetze } from "./AnmeldungFormular";
 import s from "./AnmeldungSeite.module.css";
-import { type Anmeldung, type AnmeldungAenderung, anmeldungenAbfrage } from "./api";
+import {
+  type Anmeldung,
+  type AnmeldungAenderung,
+  anmeldungenAbfrage,
+  type StartrechtMeldung,
+} from "./api";
 import type { BuchungsErgebnis } from "./buchen";
 import { type BestaetigungsArt, bestaetigungsArt } from "./logik";
+import { StartrechtHinweise } from "./Startrecht";
 
 interface AnmeldungSeiteProps {
   station: string;
@@ -114,6 +120,8 @@ interface Bestaetigt {
   waehrung: string;
   /** Nur bei „geaendert“: was geändert wurde, als Klartext (z. B. „Klasse D1“) */
   aenderungen: string[];
+  /** Warnungen und Hinweise zum Startrecht an den eben gebuchten Starts */
+  startrecht: StartrechtMeldung[];
 }
 
 interface StationProps {
@@ -203,6 +211,7 @@ function Station({ station, icon, turnier, onWechseln }: StationProps) {
       cents: ergebnis.starts.reduce((n, start) => n + start.fee_cents, 0),
       waehrung: uebersicht.data?.settings.currency ?? "EUR",
       aenderungen,
+      startrecht: ergebnis.starts.flatMap((start) => start.start_rights ?? []),
     });
     setAuswahl(null);
     setDurchlauf((n) => n + 1);
@@ -272,6 +281,7 @@ function Station({ station, icon, turnier, onWechseln }: StationProps) {
                       ` · ${t("fertig.auch_geaendert", { was: bestaetigt.aenderungen.join(", ") })}`}
                   </span>
                 )}
+                <StartrechtHinweise meldungen={bestaetigt.startrecht} />
               </div>
               <Button
                 variant="subtle"

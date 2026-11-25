@@ -44,8 +44,37 @@ export function gleichstandHinweis(zeile: {
   tie_reason?: string | null;
 }): GleichstandHinweis | null {
   if (!zeile.tie_unresolved) return null;
-  if (zeile.tie_reason === "shootoff" || zeile.needs_shootoff) return "stechen";
+  if (
+    zeile.tie_reason === "shootoff" ||
+    zeile.tie_reason === "max_score_shootoff" ||
+    zeile.needs_shootoff
+  ) {
+    return "stechen";
+  }
   return "manuell";
+}
+
+/** Gründe, zu denen die Anzeige einen eigenen kurzen Text hat (mit dem Wort des Verbands). */
+const GRUENDE_MIT_EIGENEM_TEXT: ReadonlySet<string> = new Set([
+  "shootoff",
+  "manual",
+  "missing_data",
+  "max_score",
+  "resolved",
+]);
+
+/**
+ * Hinweis des Servers (`tie_note`), wenn die Anzeige für den Grund keinen eigenen Text hat: z. B.
+ * „max_score_shootoff“ („Höchstergebnis auf Platz 1: Stechen“) oder ein Grund, den diese Version
+ * noch nicht kennt. So bleibt kein geteilter Platz ohne Erklärung. `null` bei bekanntem Grund,
+ * ohne Grund oder ohne Text.
+ */
+export function gleichstandServertext(zeile: {
+  tie_reason?: string | null;
+  tie_note?: string | null;
+}): string | null {
+  if (!zeile.tie_reason || GRUENDE_MIT_EIGENEM_TEXT.has(zeile.tie_reason)) return null;
+  return zeile.tie_note?.trim() || null;
 }
 
 /**

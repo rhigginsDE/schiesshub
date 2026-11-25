@@ -185,4 +185,25 @@ describe("Notizen der Maske nach Art (note_items)", () => {
       "max_score",
     ]);
   });
+
+  it("neue Arten zum Gleichstand beim Gesamtstand, unbekannte Arten mit ihrem Text bei der Erfassung", () => {
+    const neu = form([abschnitt("a")], {
+      tie_breakers_until_place: 3,
+      tie_breakers_after: ["zehner"],
+      tie_breakers_after_evaluated: ["zehner"],
+      tie_breakers_after_manual_from: null,
+      shootoff_at_max_score: true,
+      note_items: [
+        { kind: "shootoff", text: "Höchstergebnis auf Platz 1: Stechen" },
+        { kind: "tie_break_manual", text: "Ab dem Kriterium Innenzehner entscheidest du." },
+        // Art, die diese Version nicht kennt: bleibt mit ihrem Text stehen
+        { kind: "neue_art" as never, text: "Neuer Hinweis des Servers" },
+      ],
+    });
+    expect(notizen(neu, "gleichstand").map((n) => n.text)).toEqual([
+      "Höchstergebnis auf Platz 1: Stechen",
+      "Ab dem Kriterium Innenzehner entscheidest du.",
+    ]);
+    expect(notizen(neu, "erfassung").map((n) => n.text)).toEqual(["Neuer Hinweis des Servers"]);
+  });
 });

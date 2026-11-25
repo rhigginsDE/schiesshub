@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiFehler, apiSenden, beiApiFehler } from "./client";
+import { ApiFehler, apiSenden, apiUrl, beiApiFehler } from "./client";
 
 function antwort(status: number, inhalt?: unknown): Response {
   return new Response(inhalt === undefined ? null : JSON.stringify(inhalt), {
@@ -89,5 +89,13 @@ describe("apiSenden", () => {
     await apiSenden("POST", "/x", {}).catch(() => undefined);
     expect(gemeldet).toHaveBeenCalledTimes(1);
     abmelden();
+  });
+});
+
+describe("apiUrl", () => {
+  it("sendet Listen als wiederholten Parameter und lässt leere Werte weg", () => {
+    expect(apiUrl("/x", { class_id: "k", competition_id: ["a", "b", null, ""], leer: "" })).toBe(
+      "/api/v1/x?class_id=k&competition_id=a&competition_id=b",
+    );
   });
 });

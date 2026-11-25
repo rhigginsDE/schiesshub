@@ -11,7 +11,7 @@ import {
   VEREIN_TELL,
 } from "../teilnehmer/testhilfe";
 import { AnmeldungSeite } from "./AnmeldungSeite";
-import type { Anmeldung, Start } from "./api";
+import type { Anmeldung, AnmeldungStart } from "./api";
 
 const SUCHE = "Person suchen";
 const T = "78a0a62a-fd80-4ef3-876a-3e7ad7a332b6";
@@ -85,7 +85,12 @@ const uebersicht = {
   ],
 };
 
-function start(id: string, attempt: number, fee: number): Start {
+function start(
+  id: string,
+  attempt: number,
+  fee: number,
+  start_rights: AnmeldungStart["start_rights"] = [],
+): AnmeldungStart {
   return {
     id,
     entry_id: "a1",
@@ -101,6 +106,7 @@ function start(id: string, attempt: number, fee: number): Start {
     lane: null,
     created_at: "2026-11-22T10:00:00Z",
     updated_at: "2026-11-22T10:00:00Z",
+    start_rights,
   };
 }
 
@@ -358,5 +364,143 @@ describe("Station Anmeldung", () => {
       await screen.findByText("Die Startnummer 3 ist in diesem Turnier schon vergeben."),
     ).toBeVisible();
     expect(feld).toHaveAttribute("aria-invalid", "true");
+  });
+});
+
+describe("Startrecht an der Kasse (Warnung mit Fundstelle, keine Sperre)", () => {
+  const WARNUNG = {
+    code: "kein_startrecht",
+    severity: "warning",
+    message_de:
+      "Laut DM-Tabelle des DSB hat Klasse Schüler männlich (20) in KK - 100m (1.35) kein Startrecht.",
+    source: "Startrecht-Tabelle DSB zur Deutschen Meisterschaft; Eintrag 1.35 „KK - 100m“",
+  } as const;
+  const HINWEIS = {
+    code: "startet_bei",
+    severity: "hint",
+    message_de:
+      "Laut DM-Tabelle des DSB startet Klasse Schüler weiblich (21) in Flinte Trap (3.10) bei Klasse Schüler männlich (20).",
+    source: "Startrecht-Tabelle DSB zur Deutschen Meisterschaft; Eintrag 3.10 „Flinte Trap“",
+  } as const;
+  const auskunft = (status: string, start_rights: readonly object[]) => ({
+    inhalt: [
+      {
+        competition_id: W,
+        competition_name: "Selbstladeflinte",
+        competition_code: "4401",
+        status,
+        start_rights,
+      },
+    ],
+  });
+
+  it("zeigt die Warnung vor dem Buchen am gewählten Wettbewerb, bucht ohne Rückfrage und zeigt sie danach", async () => {
+    const user = userEvent.setup();
+    const aufrufe = serverAttrappe({
+      ...grundRouten(),
+      [`GET /tournaments/${T}/start-rights?class_id=${K}`]: auskunft("kein_startrecht", [WARNUNG]),
+      [`POST /tournaments/${T}/entries`]: { status: 201, inhalt: anmeldung() },
+      [`POST /tournaments/${T}/entries/a1/starts`]: {
+        status: 201,
+        inhalt: [start("s1", 1, 800, [WARNUNG])],
+      },
+    });
+    zeigen();
+    const suche = await screen.findByRole("searchbox", { name: SUCHE });
+    await user.type(suche, "Brandt{Enter}");
+    await screen.findByRole("form", { name: "Markus Brandt" });
+    await user.type(screen.getByRole("combobox", { name: "Klasse" }), "Sch{Enter}");
+    // Noch kein Start gewählt: keine Meldung
+    await waitFor(() =>
+      expect(aufrufe.some((a) => a.pfad.includes("/start-rights?class_id="))).toBe(true),
+    );
+    expect(screen.queryByText(WARNUNG.message_de)).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "4401 Selbstladeflinte: ein Start mehr" }));
+    const liste = await screen.findByRole("list", { name: "Startrecht" });
+    expect(within(liste).getByText("Startrecht: Warnung")).toBeInTheDocument();
+    expect(within(liste).getByText(WARNUNG.message_de)).toBeInTheDocument();
+    expect(within(liste).getByText(`Fundstelle: ${WARNUNG.source}`)).toBeInTheDocument();
+    expect(within(liste).getByText("Der Start bleibt trotzdem buchbar.")).toBeInTheDocument();
+    expect(within(liste).getByRole("listitem")).toHaveAttribute("data-ton", "warn");
+
+    // Keine Sperre, kein Zwangsdialog
+    const knopf = screen.getByRole("button", { name: "Anmelden" });
+    expect(knopf).toBeEnabled();
+    await user.click(knopf);
+    const titel = await screen.findByText("Markus Brandt ist angemeldet.");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    const bestaetigung = titel.closest("[role=status]") as HTMLElement;
+    expect(within(bestaetigung).getByText(WARNUNG.message_de)).toBeInTheDocument();
+    expect(within(bestaetigung).getByText(`Fundstelle: ${WARNUNG.source}`)).toBeInTheDocument();
+    // Nach dem Buchen ohne den Satz zur Buchbarkeit
+    expect(within(bestaetigung).queryByText("Der Start bleibt trotzdem buchbar.")).toBeNull();
+  });
+
+  it("Nachkauf: fragt über die Anmeldung, zeigt den Hinweis ruhig und die Warnung am gebuchten Start", async () => {
+    const user = userEvent.setup();
+    const vorhanden = anmeldung({
+      starts: [start("s1", 1, 800, [WARNUNG]), start("s2", 2, 500, [WARNUNG])],
+      fee_total_cents: 1300,
+    });
+    serverAttrappe({
+      ...grundRouten([vorhanden]),
+      [`GET /tournaments/${T}/start-rights?entry_id=a1`]: auskunft("startet_bei", [HINWEIS]),
+    });
+    zeigen();
+    // In der Liste der Anmeldungen: Symbol mit Text am Start
+    expect(await screen.findByRole("img", { name: "Warnung zum Startrecht" })).toBeInTheDocument();
+
+    const suche = await screen.findByRole("searchbox", { name: SUCHE });
+    await user.type(suche, "Brandt{Enter}");
+    await screen.findByText("Schon angemeldet");
+    // Gebuchte Starts: die Warnung einmal je Wettbewerb, nicht je Start
+    const gebucht = screen.getByRole("region", { name: "Gebuchte Starts" });
+    expect(within(gebucht).getAllByText(WARNUNG.message_de)).toHaveLength(1);
+    expect(within(gebucht).getByText("Startrecht: Warnung")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "4401 Selbstladeflinte: ein Start mehr" }));
+    const hinweis = (await screen.findByText(HINWEIS.message_de)).closest("li") as HTMLElement;
+    expect(hinweis).toHaveAttribute("data-ton", "info");
+    expect(within(hinweis).getByText("Startrecht: Hinweis")).toBeInTheDocument();
+    expect(within(hinweis).queryByText("Der Start bleibt trotzdem buchbar.")).toBeNull();
+    expect(screen.getByRole("button", { name: "Starts buchen" })).toBeEnabled();
+  });
+
+  it("ohne Meldung (keine Angabe, BDS) erscheint nichts; ein Fehler der Auskunft hält das Buchen nicht auf", async () => {
+    const user = userEvent.setup();
+    serverAttrappe({
+      ...grundRouten(),
+      [`GET /tournaments/${T}/start-rights?class_id=${K}`]: auskunft("keine_angabe", []),
+    });
+    zeigen();
+    const suche = await screen.findByRole("searchbox", { name: SUCHE });
+    await user.type(suche, "Brandt{Enter}");
+    await screen.findByRole("form", { name: "Markus Brandt" });
+    await user.type(screen.getByRole("combobox", { name: "Klasse" }), "Sch{Enter}");
+    await user.click(screen.getByRole("button", { name: "4401 Selbstladeflinte: ein Start mehr" }));
+    expect(screen.queryByRole("list", { name: "Startrecht" })).toBeNull();
+    expect(screen.queryByText(/Startrecht/)).toBeNull();
+  });
+
+  it("Fehler der Auskunft: ruhiger Hinweis, Buchen bleibt möglich", async () => {
+    const user = userEvent.setup();
+    serverAttrappe({
+      ...grundRouten(),
+      [`GET /tournaments/${T}/start-rights?class_id=${K}`]: {
+        status: 500,
+        inhalt: { detail: "kaputt" },
+      },
+    });
+    zeigen();
+    const suche = await screen.findByRole("searchbox", { name: SUCHE });
+    await user.type(suche, "Brandt{Enter}");
+    await screen.findByRole("form", { name: "Markus Brandt" });
+    await user.type(screen.getByRole("combobox", { name: "Klasse" }), "Sch{Enter}");
+    await user.click(screen.getByRole("button", { name: "4401 Selbstladeflinte: ein Start mehr" }));
+    expect(
+      await screen.findByText("Startrecht gerade nicht prüfbar. Buchen geht trotzdem."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Anmelden" })).toBeEnabled();
   });
 });

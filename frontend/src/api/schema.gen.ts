@@ -881,9 +881,29 @@ export interface paths {
         put?: never;
         /**
          * Starts buchen
-         * @description Bucht `count` Starts im Wettbewerb. Der Betrag (`fee_first_cents` für den ersten Start der Person im Wettbewerb, sonst `fee_repeat_cents`) wird am Start festgeschrieben. Bei Zeitplan optional gleich mit `heat_id` (und `lane`).
+         * @description Bucht `count` Starts im Wettbewerb. Der Betrag (`fee_first_cents` für den ersten Start der Person im Wettbewerb, sonst `fee_repeat_cents`) wird am Start festgeschrieben. Bei Zeitplan optional gleich mit `heat_id` (und `lane`). Jeder Start trägt `start_rights`: Warnungen und Hinweise zum Startrecht laut Verbandstabelle (wie `GET …/start-rights`); gebucht wird trotzdem.
          */
         post: operations["starts_book_starts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{tournament_id}/start-rights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Startrecht vor dem Buchen prüfen
+         * @description Vorab-Auskunft für Anmeldung und Kasse: Startrecht der Klasse (`class_id`, neue Anmeldung) oder der Klasse einer Anmeldung (`entry_id`, Nachkauf) in den Wettbewerben `competition_id` (mehrfach; ohne Angabe alle des Turniers). Grundlage ist die Startrecht-Tabelle des Verbands zur Deutschen Meisterschaft (bisher nur DSB). Ändert nichts; ein Start bleibt in jedem Fall möglich. `start_rights` ist leer bei `startberechtigt` und `keine_angabe`.
+         */
+        get: operations["starts_check_start_rights"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3916,7 +3936,7 @@ export interface components {
             class_id: string;
             person: components["schemas"]["EntryPersonOut"];
             /** Starts */
-            starts: components["schemas"]["StartOut"][];
+            starts: components["schemas"]["EntryStartOut"][];
             /** Fee Total Cents */
             fee_total_cents: number;
             /**
@@ -3943,6 +3963,63 @@ export interface components {
             display_name: string | null;
             /** Club */
             club: string | null;
+        };
+        /**
+         * EntryStartOut
+         * @description Ein Start in der Ausgabe für die Anmeldung, mit Startrecht laut Verbandstabelle.
+         */
+        EntryStartOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Entry Id
+             * Format: uuid
+             */
+            entry_id: string;
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Attempt */
+            attempt: number;
+            /** Fee Cents */
+            fee_cents: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "registered" | "called" | "captured" | "final" | "aborted";
+            /** Abort Reason */
+            abort_reason: ("dns" | "dnf" | "dsq") | null;
+            /** Queue Position */
+            queue_position: number | null;
+            /** Heat Id */
+            heat_id: string | null;
+            /** Lane */
+            lane: number | null;
+            /** On Lane */
+            on_lane: boolean;
+            /** Called At */
+            called_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Start Rights
+             * @default []
+             */
+            start_rights: components["schemas"]["StartRightNoticeOut"][];
         };
         /** EntryUpdate */
         EntryUpdate: {
@@ -4369,7 +4446,7 @@ export interface components {
              */
             needs_shootoff: boolean;
             /** Tie Reason */
-            tie_reason?: ("missing_data" | "manual" | "shootoff" | "max_score" | "resolved") | null;
+            tie_reason?: ("missing_data" | "manual" | "shootoff" | "max_score" | "max_score_shootoff" | "resolved") | null;
             /** Tie Criterion */
             tie_criterion?: string | null;
             /**
@@ -4807,6 +4884,25 @@ export interface components {
             tie_breakers_evaluated: string[];
             /** Tie Breakers Manual From */
             tie_breakers_manual_from?: string | null;
+            /** Tie Breakers Until Place */
+            tie_breakers_until_place?: number | null;
+            /**
+             * Tie Breakers After
+             * @default []
+             */
+            tie_breakers_after: string[];
+            /**
+             * Tie Breakers After Evaluated
+             * @default []
+             */
+            tie_breakers_after_evaluated: string[];
+            /** Tie Breakers After Manual From */
+            tie_breakers_after_manual_from?: string | null;
+            /**
+             * Shootoff At Max Score
+             * @default false
+             */
+            shootoff_at_max_score: boolean;
         };
         /** FormHeader */
         FormHeader: {
@@ -5874,7 +5970,7 @@ export interface components {
             /** Tie Unresolved */
             tie_unresolved: boolean;
             /** Tie Reason */
-            tie_reason?: ("missing_data" | "manual" | "shootoff" | "max_score" | "resolved") | null;
+            tie_reason?: ("missing_data" | "manual" | "shootoff" | "max_score" | "max_score_shootoff" | "resolved") | null;
             /** Tie Criterion */
             tie_criterion?: string | null;
             /**
@@ -6698,6 +6794,50 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /**
+         * StartRightCheckOut
+         * @description Vorab-Auskunft zum Startrecht einer Klasse in einem Wettbewerb, vor dem Buchen.
+         */
+        StartRightCheckOut: {
+            /**
+             * Competition Id
+             * Format: uuid
+             */
+            competition_id: string;
+            /** Competition Name */
+            competition_name: string;
+            /** Competition Code */
+            competition_code: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "startberechtigt" | "startet_bei" | "startmoeglichkeit_0711" | "kein_startrecht" | "nicht_ausgeschrieben" | "keine_angabe";
+            /** Start Rights */
+            start_rights: components["schemas"]["StartRightNoticeOut"][];
+        };
+        /**
+         * StartRightNoticeOut
+         * @description Warnung oder Hinweis zum Startrecht laut Meisterschaftstabelle des Verbands.
+         *
+         *     Nie ein Grund zur Ablehnung: Der Start bleibt möglich. Der Text ist fertig formuliert.
+         */
+        StartRightNoticeOut: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "startet_bei" | "startmoeglichkeit_0711" | "kein_startrecht" | "nicht_ausgeschrieben";
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "warning" | "hint";
+            /** Message De */
+            message_de: string;
+            /** Source */
+            source: string;
         };
         /**
          * Startfelder
@@ -10414,7 +10554,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["StartOut"][];
+                    "application/json": components["schemas"]["EntryStartOut"][];
                 };
             };
             /** @description Nicht gefunden */
@@ -10441,6 +10581,46 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    starts_check_start_rights: {
+        parameters: {
+            query?: {
+                class_id?: string | null;
+                entry_id?: string | null;
+                competition_id?: string[] | null;
+            };
+            header?: never;
+            path: {
+                tournament_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartRightCheckOut"][];
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ungültige Eingabe */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

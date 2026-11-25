@@ -159,7 +159,9 @@ async function fehlerAus(antwort: Response, pfad: string, optionen: AnfrageOptio
   );
 }
 
-export type AbfrageParameter = Record<string, string | number | boolean | null | undefined>;
+type AbfrageWert = string | number | boolean | null | undefined;
+/** Query-Parameter; eine Liste wird als wiederholter Parameter gesendet (`a=1&a=2`). */
+export type AbfrageParameter = Record<string, AbfrageWert | readonly AbfrageWert[]>;
 
 export interface AnfrageOptionen {
   /** Query-Parameter; leere Werte werden weggelassen. */
@@ -173,9 +175,12 @@ export interface AnfrageOptionen {
 
 export function apiUrl(pfad: string, parameter?: AbfrageParameter): string {
   const suche = new URLSearchParams();
-  for (const [name, wert] of Object.entries(parameter ?? {})) {
-    if (wert === null || wert === undefined || wert === "") continue;
-    suche.set(name, String(wert));
+  for (const [name, eintrag] of Object.entries(parameter ?? {})) {
+    const werte: readonly AbfrageWert[] = Array.isArray(eintrag) ? eintrag : [eintrag];
+    for (const wert of werte) {
+      if (wert === null || wert === undefined || wert === "") continue;
+      suche.append(name, String(wert));
+    }
   }
   const anhang = suche.toString();
   return `${API_BASIS}${pfad}${anhang ? `?${anhang}` : ""}`;

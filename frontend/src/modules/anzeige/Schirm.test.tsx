@@ -627,6 +627,59 @@ describe("Bildschirm: Gleichstand nach Server, Wörter je Verband, Übung", () =
     }
   });
 
+  it("Höchstergebnis mit Stechen: offen, mit dem Text des Servers; unbekannter Grund mit Text", () => {
+    const basis = rangliste();
+    const ranking = {
+      ...basis,
+      tie_word: "Ringgleichheit",
+      federation: "dsb",
+      groups: [
+        {
+          class_id: "k1",
+          class_name: "Schützenklasse",
+          class_short: "S",
+          more: 0,
+          unplaced: [],
+          rows: [
+            zeile({
+              start_id: "m1",
+              place: 1,
+              tied: true,
+              tie_unresolved: true,
+              needs_shootoff: true,
+              tie_reason: "max_score_shootoff",
+              tie_note: "Höchstergebnis auf Platz 1: Stechen",
+              display_name: "Hanna Höchst",
+              score_text: "400 Ringe",
+            }),
+            zeile({
+              start_id: "m2",
+              place: 3,
+              tied: true,
+              tie_unresolved: false,
+              // Grund, den diese Version nicht kennt: der Hinweis des Servers erscheint trotzdem.
+              tie_reason: "neu_vom_server" as never,
+              tie_note: "Neuer Hinweis vom Server",
+              display_name: "Ida Neu",
+              score_text: "399 Ringe",
+            }),
+          ],
+        },
+      ],
+    };
+    const live = szenen.live_ranking as SzeneVon<"live_ranking">;
+    zeige(beispielFeed({ scenes: [{ ...live, ranking }] }));
+    const region = screen.getByRole("region", { name: live.title });
+    expect(within(region).getByText("Höchstergebnis auf Platz 1: Stechen")).toHaveAttribute(
+      "data-geteilt",
+      "offen",
+    );
+    expect(within(region).getByText("Neuer Hinweis vom Server")).toHaveAttribute(
+      "data-geteilt",
+      "entschieden",
+    );
+  });
+
   it("durch die Kette entschieden: kein geteilter Platz, Hinweis nur in der Live-Wertung", () => {
     const ranking = getrenntRangliste();
     // Das Wort vorn fällt auf dem Schirm weg; der volle Wortlaut (`tie_note_long`) steht im `title`.

@@ -10,6 +10,7 @@ import {
   gesamtTeile,
   getrenntHinweis,
   gleichstandHinweis,
+  gleichstandServertext,
   gleichstandWort,
   hauptSerie,
   istGetrennterGleichstand,
@@ -282,6 +283,33 @@ describe("Gleichstand (Stechen, von Hand, Höchstergebnis)", () => {
     expect(gleichstandHinweis({ tie_unresolved: false, needs_shootoff: true })).toBeNull();
     expect(gleichstandHinweis({ tie_unresolved: false, tie_reason: "max_score" })).toBeNull();
     expect(gleichstandHinweis({ tie_unresolved: false, tie_reason: null })).toBeNull();
+  });
+
+  it("Höchstergebnis mit Stechen (max_score_shootoff) ist ein offenes Stechen mit dem Servertext", () => {
+    const zeile = {
+      tied: true,
+      tie_unresolved: true,
+      needs_shootoff: true,
+      tie_reason: "max_score_shootoff",
+      tie_note: "Höchstergebnis auf Platz 1: Stechen",
+    };
+    expect(gleichstandHinweis(zeile)).toBe("stechen");
+    expect(gleichstandHinweis({ ...zeile, needs_shootoff: false })).toBe("stechen");
+    expect(istHoechstergebnis(zeile)).toBe(false);
+    expect(gleichstandServertext(zeile)).toBe("Höchstergebnis auf Platz 1: Stechen");
+  });
+
+  it("Servertext nur bei Gründen ohne eigenen Text; ein unbekannter Grund stürzt nicht ab", () => {
+    expect(gleichstandServertext({ tie_reason: "shootoff", tie_note: "x" })).toBeNull();
+    expect(gleichstandServertext({ tie_reason: "max_score", tie_note: "x" })).toBeNull();
+    expect(gleichstandServertext({ tie_reason: null, tie_note: "x" })).toBeNull();
+    expect(gleichstandServertext({ tie_reason: "neu_vom_server", tie_note: " Text " })).toBe(
+      "Text",
+    );
+    expect(gleichstandServertext({ tie_reason: "neu_vom_server", tie_note: null })).toBeNull();
+    expect(gleichstandHinweis({ tie_unresolved: true, tie_reason: "neu_vom_server" })).toBe(
+      "manuell",
+    );
   });
 
   it("erkennt den nach Regel entschiedenen geteilten Platz (Höchstergebnis)", () => {

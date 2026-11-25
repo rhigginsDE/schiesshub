@@ -33,6 +33,9 @@ import {
   durchgaengeAbfrage,
   naechsterPlatzAbfrage,
   type Start,
+  type StartrechtFrage,
+  type StartrechtMeldung,
+  startrechtAbfrage,
   startsSchluessel,
   useAnmeldungLoeschen,
   useStartStornieren,
@@ -49,11 +52,14 @@ import {
   ohneStartNachfragen,
   type Sperre,
   sperreFuer,
+  startrechtFuer,
+  startrechtJeStart,
   statusAnzeige,
   stornoSperre,
   summe,
 } from "./logik";
 import { PlatzWahl } from "./PlatzWahl";
+import { StartrechtHinweise } from "./Startrecht";
 
 /** Die gewählte Person, egal ob aus der Personensuche oder aus einer Anmeldung. */
 export interface Schuetze {
@@ -142,6 +148,18 @@ export function AnmeldungFormular({
   const klassenHilfe = klasse
     ? (katalogKlassen.data?.find((k) => k.id === klasse.code)?.alter_hilfe ?? null)
     : null;
+
+  // Startrecht laut Verbandstabelle, einmal je Klasse für alle Wettbewerbe (Nachkauf: über die
+  // Anmeldung). Nur Auskunft: Laden und Fehler halten das Buchen nicht auf.
+  const startrechtFrage: StartrechtFrage | null = !klasseId
+    ? null
+    : vorhanden && vorhanden.class_id === klasseId
+      ? { anmeldungId: vorhanden.id }
+      : { klasseId };
+  const startrecht = useQuery({
+    ...startrechtAbfrage(turnierId, startrechtFrage ?? { klasseId: "" }),
+    enabled: startrechtFrage !== null,
+  });
 
   // Durchgänge der Zeitplan-Stände, um gebuchte Plätze mit Uhrzeit zu zeigen.
   const zeitplanStaende = [
@@ -429,6 +447,11 @@ export function AnmeldungFormular({
                   zeile.wettbewerb.range_id ? staende.get(zeile.wettbewerb.range_id) : undefined
                 }
                 {...zeile}
+                startrecht={
+                  zeile.neu > 0 && !zeile.sperre
+                    ? startrechtFuer(startrecht.data, zeile.wettbewerb.id)
+                    : []
+                }
                 platz={plaetze[zeile.wettbewerb.id] ?? null}
                 geld={geld}
                 fehler={
@@ -445,6 +468,9 @@ export function AnmeldungFormular({
               />
             ))}
           </ul>
+        )}
+        {startrecht.isError && neueStarts > 0 && (
+          <p className={s.startrechtOffen}>{t("startrecht.nicht_geprueft")}</p>
         )}
       </section>
 
@@ -617,6 +643,8 @@ interface WettbewerbZeileProps {
   frei: number;
   neu: number;
   betrag: Betrag;
+  /** Warnungen und Hinweise zum Startrecht für die gewählten neuen Starts */
+  startrecht: readonly StartrechtMeldung[];
   platz: Platz | null;
   durchgaenge: Map<string, Durchgang>;
   geld: (cents: number) => string;
@@ -636,6 +664,7 @@ function WettbewerbZeile({
   frei,
   neu,
   betrag,
+  startrecht,
   platz,
   durchgaenge,
   geld,
@@ -755,6 +784,7 @@ function WettbewerbZeile({
           {neu > 1 && <small className="gedaempft">{t("platz.weitere", { count: neu - 1 })}</small>}
         </div>
       )}
+      <StartrechtHinweise meldungen={startrecht} vorBuchung />
       {fehler ? (
         <div className={s.zeileFehler}>
           <FehlerHinweis fehler={fehler} />
@@ -784,6 +814,7 @@ function GebuchteStarts({
   const { t, i18n } = useTranslation("anmeldung");
   const sprache = i18n.language;
   const kannLoeschen = loeschbar(anmeldung);
+  const startrecht = startrechtJeStart(anmeldung.starts);
   return (
     <section className={s.gebucht} aria-labelledby="anmeldung-gebucht">
       <div className="panel-kopf">
@@ -846,6 +877,7 @@ function GebuchteStarts({
                 >
                   {t("storno.knopf")}
                 </Button>
+                <StartrechtHinweise meldungen={startrecht.get(start.id) ?? []} />
               </li>
             );
           })}

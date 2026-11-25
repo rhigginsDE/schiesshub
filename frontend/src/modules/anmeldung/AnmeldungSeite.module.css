@@ -353,6 +353,83 @@
   grid-column: 2 / -1;
 }
 
+/* ---------- Startrecht (Warnung/Hinweis des Servers, sperrt nichts) ---------- */
+.startrecht {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.zeile > .startrecht,
+.startZeile > .startrecht {
+  grid-column: 2 / -1;
+}
+
+.startrechtEintrag {
+  --startrecht-ton: var(--sh-info);
+  --startrecht-titel: var(--sh-text);
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--sh-linie);
+  background: var(--sh-flaeche-2);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.startrechtEintrag[data-ton="warn"] {
+  --startrecht-ton: var(--sh-warn);
+  --startrecht-titel: var(--sh-warn);
+  border-color: var(--sh-warn-linie);
+  background: var(--sh-warn-flaeche);
+}
+
+.startrechtSymbol {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--startrecht-ton);
+}
+
+.startrechtText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.startrechtText strong {
+  display: block;
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--startrecht-titel);
+}
+
+.bestaetigtText > .startrecht {
+  margin-top: 6px;
+}
+
+.startrechtText small {
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
+/* Warnung zum Startrecht an einem Start in der Liste der Anmeldungen (Symbol, nie Farbe allein) */
+.chipWarnung {
+  color: var(--sh-warn);
+}
+
+.startrechtOffen {
+  font-size: 13px;
+  color: var(--sh-text-gedaempft);
+}
+
 .leerHinweis {
   display: grid;
   gap: 10px;
@@ -726,7 +803,9 @@
   }
 
   .platz,
-  .zeileFehler {
+  .zeileFehler,
+  .zeile > .startrecht,
+  .startZeile > .startrecht {
     grid-column: 1 / -1;
   }
 

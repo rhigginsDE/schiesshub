@@ -892,7 +892,10 @@ describe("Seriensumme aus Einzelwerten, Verlauf, Notizen", () => {
       note_items: [
         { kind: "tens_optional" as const, text: "Zehner sind freiwillig." },
         { kind: "shootoff" as const, text: "Gleichstand bis Platz 3 entscheidet ein Stechen." },
+        { kind: "tie_break_manual" as const, text: "Ab Innenzehner entscheidest du von Hand." },
       ],
+      shootoff_at_max_score: true,
+      tie_breakers_until_place: 3,
     };
     const ohneZehner = stand({
       seq: 1,
@@ -918,6 +921,9 @@ describe("Seriensumme aus Einzelwerten, Verlauf, Notizen", () => {
     ).toBeInTheDocument();
     const gleichstand = screen.getByRole("list", { name: "Hinweise zum Gleichstand" });
     expect(within(gleichstand).getByText(/entscheidet ein Stechen/)).toBeInTheDocument();
+    expect(
+      within(gleichstand).getByText("Ab Innenzehner entscheidest du von Hand."),
+    ).toBeInTheDocument();
     expect(within(gleichstand).queryByText("Zehner sind freiwillig.")).toBeNull();
     expect(screen.getByText("Zehner sind freiwillig.")).toBeInTheDocument();
   });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { bestimmeTurnier, sortiereTurniere } from "../../components/useAktivesTurnier";
 import type { Turnier } from "../turnier/typen";
-import type { Anmeldung, Start } from "./api";
+import type { Anmeldung, AnmeldungStart, StartrechtAuskunft } from "./api";
 import {
   bestaetigungsArt,
   betragVorschau,
@@ -13,6 +13,9 @@ import {
   nochBuchbar,
   ohneStartNachfragen,
   sperreFuer,
+  startrechtFuer,
+  startrechtJeStart,
+  startrechtListe,
   statusAnzeige,
   stornoSperre,
   sucheAnmeldungen,
@@ -22,7 +25,7 @@ import { belegteBahnen, kommendeDurchgaenge } from "./PlatzWahl";
 
 const W = { fee_first_cents: 800, fee_repeat_cents: 500, multi_start: true, max_starts: 3 };
 
-function start(teil: Partial<Start> = {}): Start {
+function start(teil: Partial<AnmeldungStart> = {}): AnmeldungStart {
   return {
     id: "s",
     entry_id: "e",
@@ -38,6 +41,7 @@ function start(teil: Partial<Start> = {}): Start {
     lane: null,
     created_at: "2026-11-22T10:00:00Z",
     updated_at: "2026-11-22T10:00:00Z",
+    start_rights: [],
     ...teil,
   };
 }
@@ -276,5 +280,46 @@ describe("ohneStartNachfragen", () => {
     expect(ohneStartNachfragen(1, 0, 2)).toBe(false);
     // Nichts buchbar (keine Wettbewerbe, alles gesperrt): Die Frage hilft nicht
     expect(ohneStartNachfragen(0, 0, 0)).toBe(false);
+  });
+});
+
+describe("Startrecht", () => {
+  const warnung = {
+    code: "kein_startrecht",
+    severity: "warning",
+    message_de: "W",
+    source: "Q",
+  } as const;
+  const hinweis = { code: "startet_bei", severity: "hint", message_de: "H", source: "Q" } as const;
+
+  it("Vorab-Auskunft je Wettbewerb; ohne Auskunft oder Eintrag leer", () => {
+    const auskunft: StartrechtAuskunft[] = [
+      {
+        competition_id: "w1",
+        competition_name: "LG",
+        competition_code: "1.10",
+        status: "kein_startrecht",
+        start_rights: [warnung],
+      },
+    ];
+    expect(startrechtFuer(auskunft, "w1")).toEqual([warnung]);
+    expect(startrechtFuer(auskunft, "w2")).toEqual([]);
+    expect(startrechtFuer(undefined, "w1")).toEqual([]);
+  });
+
+  it("Warnungen zuerst, gleiche Meldung nur einmal", () => {
+    expect(startrechtListe([hinweis, warnung, hinweis])).toEqual([warnung, hinweis]);
+  });
+
+  it("gebuchte Starts: Meldung am ersten Start je Wettbewerb", () => {
+    const starts = [
+      start({ id: "s1", start_rights: [warnung] }),
+      start({ id: "s2", start_rights: [warnung] }),
+      start({ id: "s3", competition_id: "w2" }),
+    ];
+    const je = startrechtJeStart(starts);
+    expect(je.get("s1")).toEqual([warnung]);
+    expect(je.has("s2")).toBe(false);
+    expect(je.has("s3")).toBe(false);
   });
 });

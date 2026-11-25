@@ -16,6 +16,12 @@ export type Anmeldung = Schemas["EntryOut"];
 export type AnmeldungNeu = Schemas["EntryCreate"];
 export type AnmeldungAenderung = Schemas["EntryUpdate"];
 export type Start = Schemas["StartOut"];
+/** Start in einer Anmeldung, mit Warnungen und Hinweisen zum Startrecht (`start_rights`). */
+export type AnmeldungStart = Schemas["EntryStartOut"];
+/** Warnung (`warning`) oder Hinweis (`hint`) zum Startrecht, fertig formuliert, mit Fundstelle. */
+export type StartrechtMeldung = Schemas["StartRightNoticeOut"];
+/** Vorab-Auskunft zum Startrecht einer Klasse in einem Wettbewerb (`GET …/start-rights`). */
+export type StartrechtAuskunft = Schemas["StartRightCheckOut"];
 export type StartStatus = Start["status"];
 export type Abbruchgrund = NonNullable<Start["abort_reason"]>;
 export type Buchung = Schemas["StartBooking"];
@@ -47,7 +53,17 @@ export const startsSchluessel = {
     ["starts", turnierId, "stand", standId, "durchgaenge"] as const,
   startliste: (turnierId: string, filter: StartlistenFilter) =>
     ["starts", turnierId, "startliste", filter.wettbewerb ?? "", filter.stand ?? ""] as const,
+  startrecht: (turnierId: string, frage: StartrechtFrage) =>
+    [
+      "starts",
+      turnierId,
+      "startrecht",
+      "anmeldungId" in frage ? `anmeldung:${frage.anmeldungId}` : `klasse:${frage.klasseId}`,
+    ] as const,
 };
+
+/** Für wen das Startrecht geprüft wird: Klasse einer neuen Anmeldung oder eine Anmeldung (Nachkauf). */
+export type StartrechtFrage = { klasseId: string } | { anmeldungId: string };
 
 /**
  * Ereignisse des Backend-Moduls `starts` (service.py, queue.py, schedule.py, lifecycle.py).
@@ -142,6 +158,25 @@ export const startlisteAbfrage = (turnierId: string, filter: StartlistenFilter =
       }),
   });
 
+/**
+ * Vorab-Auskunft zum Startrecht in allen Wettbewerben des Turniers, vor dem Buchen. Ändert nichts
+ * und sperrt nichts. `still`: Fehlt die Berechtigung, ist das hier kein Grund für einen Hinweis
+ * der App-Shell; die Kasse arbeitet ohne Auskunft weiter.
+ */
+export const startrechtAbfrage = (turnierId: string, frage: StartrechtFrage) =>
+  queryOptions({
+    queryKey: startsSchluessel.startrecht(turnierId, frage),
+    queryFn: ({ signal }) =>
+      apiGet<StartrechtAuskunft[]>(`${pfad.turnier(turnierId)}/start-rights`, {
+        parameter:
+          "anmeldungId" in frage ? { entry_id: frage.anmeldungId } : { class_id: frage.klasseId },
+        signal,
+        still: true,
+      }),
+    retry: false,
+    staleTime: 60_000,
+  });
+
 // --- Schreiben -----------------------------------------------------------------------------------
 
 /** Mutation, die danach alle Daten des Turniers unter `starts` neu lädt (das Ereignis kommt zusätzlich). */
@@ -172,8 +207,12 @@ export function startsBuchen(
   turnierId: string,
   anmeldungId: string,
   daten: Buchung,
-): Promise<Start[]> {
-  return apiSenden<Start[]>("POST", `${pfad.anmeldung(turnierId, anmeldungId)}/starts`, daten);
+): Promise<AnmeldungStart[]> {
+  return apiSenden<AnmeldungStart[]>(
+    "POST",
+    `${pfad.anmeldung(turnierId, anmeldungId)}/starts`,
+    daten,
+  );
 }
 
 export function naechsterPlatzLaden(

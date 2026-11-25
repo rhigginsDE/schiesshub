@@ -5,6 +5,7 @@ import {
   gesamtTeile,
   getrenntHinweis,
   gleichstandHinweis,
+  gleichstandServertext,
   gleichstandWort,
   istGetrennterGleichstand,
   istHoechstergebnis,
@@ -85,12 +86,15 @@ function useGeteilterPlatz(mitGetrennt = false): (zeile: FeedZeile) => Geteilter
   return (zeile) => {
     if (zeile.place === null) return null;
     const hinweis = gleichstandHinweis(zeile);
+    const servertext = gleichstandServertext(zeile);
     if (hinweis) {
       return {
         art: "offen",
-        text: wort
-          ? t(`schirm.gleichstand.${hinweis}_wort`, { wort })
-          : t(`schirm.gleichstand.${hinweis}`),
+        text:
+          servertext ??
+          (wort
+            ? t(`schirm.gleichstand.${hinweis}_wort`, { wort })
+            : t(`schirm.gleichstand.${hinweis}`)),
       };
     }
     if (istHoechstergebnis(zeile)) {
@@ -99,6 +103,8 @@ function useGeteilterPlatz(mitGetrennt = false): (zeile: FeedZeile) => Geteilter
         text: zeile.tie_note?.trim() || t("schirm.gleichstand.hoechstergebnis"),
       };
     }
+    // Geteilt aus einem Grund ohne eigenen Text: der Hinweis des Servers, ohne Aufforderung.
+    if (zeile.tied && servertext) return { art: "entschieden", text: servertext };
     if (mitGetrennt && istGetrennterGleichstand(zeile)) {
       return {
         art: "getrennt",
