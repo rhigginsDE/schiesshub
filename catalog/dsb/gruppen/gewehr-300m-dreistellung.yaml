@@ -5,9 +5,12 @@
 #   (Teil 1 S. 21); Teil 0: 0.21 (Teil 0 S. 77–79), Scheibe Nr. 5 (Gewehr 300 m, Teil 0 S. 65), 0.12.1.
 # 1.50, 1.59, 1.70: Gesamtzeit für alle Stellungen (Teil 1 S. 21) ohne 15 Min. Vorbereitung vor kniend (Anmerkung *).
 #   Teil 1 S. 19/20: "unterhalb LM Halbprogramm" bei 1.50 und 1.70; Zeiten für das Halbprogramm nennt die SpO nicht.
-# 1.53 nur in 0.21. Keine dieser Disziplinen steht in der DM-Tabelle 2025–2028 (dort nur 1.90).
-# Gesamtzeit im vorgeschlagenen Feld Variante.wettkampfzeit_gesamt_s (siehe Formatbedarf). Wechselzeit nicht geregelt.
-# Änderungen 2026→2027: keine an diesen Abläufen.
+#   Halbprogramm 3×10 (1.50) bzw. 3×20 (1.70) = halbe Schusszahl je Stellung der Wettbewerbstabelle (Lesart, nicht
+#   ausdrücklich geregelt). Vorbereitung/Probe für das Halbprogramm nennt die SpO nicht: daher kein Wert eingetragen.
+# 1.53 nur in 0.21 (Teil 0 S. 78). Keine dieser Disziplinen steht in der DM-Tabelle 2025–2028 (dort nur 1.90).
+# Gesamtzeit in Variante.wettkampfzeit_gesamt_s. Wechselzeit nicht geregelt. Serien zu 10 Schuss: 0.11.5.2, 0.12.1.
+# Änderungen 2026→2027: keine an diesen Abläufen (Synopse Teil 1 nur 1.4.6, 1.4.8, 1.5.1, 1.7.6).
+# Zweite Prüfung 2026-11-25: Zeiten mit Teil 1 S. 21 (Bild), Halbprogramm nur 1.50/1.70 (Bild Teil 1 S. 19/20).
 schema: 1
 verband: "dsb"
 gruppe:
@@ -20,12 +23,14 @@ wertung:
   modell: "ringe"
   rangfolge: "absteigend"
   zehntelwertung: false
-  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"] # 0.12.1 Nr. 1–3 (Teil 0 S. 43)
   hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
+  # false: Halbprogramm 1.50/1.70 ohne Zeit und ohne geregelte Schussverteilung; 1.53 Verteilung 20/20/20 nur analog
+  #   1.50 (0.21 verweist auf die Ausschreibung).
   geprueft: false
 ablaeufe:
   gk-standard-3x20:
-    beschreibung: "3×20 kniend – liegend – stehend, zusammen 135 Min. (Zuganlage) bzw. 120 Min. (andere Systeme); vorher 15 Min. Vorbereitung vor kniend; unterhalb LM Halbprogramm 3×10"
+    beschreibung: "3×20 kniend – liegend – stehend, zusammen 135 Min. (Zuganlage) bzw. 120 Min. (andere Systeme); vorher 15 Min. Vorbereitung vor kniend; unterhalb LM Halbprogramm 3×10 (Zeit und Vorbereitung nicht geregelt)"
     varianten:
       - id: "andere-systeme"
         name: "60 Schuss, andere Systeme"
@@ -43,8 +48,9 @@ ablaeufe:
           - { id: "stehend", name: "Stehend", serien: 2, schuss_je_serie: 10, positionen: [{ nr: 5, anschlaege: [{ haltung: "stehend" }] }, { nr: 6, anschlaege: [{ haltung: "stehend" }] }] }
       - id: "halbprogramm"
         name: "Halbprogramm 30 Schuss (unterhalb LM, Zeit nicht geregelt)"
+        # Keine Vorbereitungszeit: Anmerkung * (Teil 1 S. 21) gilt für die Zeile mit 60 Schuss, das Halbprogramm steht dort nicht.
         abschnitte:
-          - { id: "kniend", name: "Kniend", serien: 1, schuss_je_serie: 10, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt", positionen: [{ nr: 1, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }] }
+          - { id: "kniend", name: "Kniend", serien: 1, schuss_je_serie: 10, positionen: [{ nr: 1, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }] }
           - { id: "liegend", name: "Liegend", serien: 1, schuss_je_serie: 10, positionen: [{ nr: 2, anschlaege: [{ haltung: "liegend" }] }] }
           - { id: "stehend", name: "Stehend", serien: 1, schuss_je_serie: 10, positionen: [{ nr: 3, anschlaege: [{ haltung: "stehend" }] }] }
   gk-sport-3x20:
@@ -65,6 +71,8 @@ ablaeufe:
           - { id: "liegend", name: "Liegend", serien: 2, schuss_je_serie: 10, positionen: [{ nr: 3, anschlaege: [{ haltung: "liegend" }] }, { nr: 4, anschlaege: [{ haltung: "liegend" }] }] }
           - { id: "stehend", name: "Stehend", serien: 2, schuss_je_serie: 10, positionen: [{ nr: 5, anschlaege: [{ haltung: "stehend" }] }, { nr: 6, anschlaege: [{ haltung: "stehend" }] }] }
   gk-3x20-150:
+    # 0.21 (Teil 0 S. 78): 60 Schuss kniend/liegend/stehend, 150 / 135* Min. ("*" = elektronische Anlagen, keine
+    #   Vorbereitungsregel). Verteilung 20/20/20 nennt 0.21 nicht; übernommen analog 1.50 (Teil 1 S. 19: 20/20/20).
     beschreibung: "3×20 kniend – liegend – stehend, zusammen 150 Min. (Zuganlage) bzw. 135 Min. (elektronisch) laut 0.21"
     varianten:
       - id: "elektronisch"
@@ -82,7 +90,7 @@ ablaeufe:
           - { id: "liegend", name: "Liegend", serien: 2, schuss_je_serie: 10, positionen: [{ nr: 3, anschlaege: [{ haltung: "liegend" }] }, { nr: 4, anschlaege: [{ haltung: "liegend" }] }] }
           - { id: "stehend", name: "Stehend", serien: 2, schuss_je_serie: 10, positionen: [{ nr: 5, anschlaege: [{ haltung: "stehend" }] }, { nr: 6, anschlaege: [{ haltung: "stehend" }] }] }
   gk-frei-3x40:
-    beschreibung: "3×40 kniend – liegend – stehend, zusammen 210 Min. (Zuganlage) bzw. 180 Min. (andere Systeme); vorher 15 Min. Vorbereitung vor kniend; unterhalb LM Halbprogramm 3×20"
+    beschreibung: "3×40 kniend – liegend – stehend, zusammen 210 Min. (Zuganlage) bzw. 180 Min. (andere Systeme); vorher 15 Min. Vorbereitung vor kniend; unterhalb LM Halbprogramm 3×20 (Zeit und Vorbereitung nicht geregelt)"
     varianten:
       - id: "andere-systeme"
         name: "120 Schuss, andere Systeme"
@@ -100,16 +108,17 @@ ablaeufe:
           - { id: "stehend", name: "Stehend", serien: 4, schuss_je_serie: 10, positionen: [{ nr: 9, anschlaege: [{ haltung: "stehend" }] }, { nr: 10, anschlaege: [{ haltung: "stehend" }] }, { nr: 11, anschlaege: [{ haltung: "stehend" }] }, { nr: 12, anschlaege: [{ haltung: "stehend" }] }] }
       - id: "halbprogramm"
         name: "Halbprogramm 60 Schuss (unterhalb LM, Zeit nicht geregelt)"
+        # Keine Vorbereitungszeit: Anmerkung * (Teil 1 S. 21) gilt für die Zeile mit 120 Schuss, das Halbprogramm steht dort nicht.
         abschnitte:
-          - { id: "kniend", name: "Kniend", serien: 2, schuss_je_serie: 10, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt", positionen: [{ nr: 1, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }, { nr: 2, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }] }
+          - { id: "kniend", name: "Kniend", serien: 2, schuss_je_serie: 10, positionen: [{ nr: 1, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }, { nr: 2, anschlaege: [{ haltung: "kniend" }, { haltung: "sitzend" }] }] }
           - { id: "liegend", name: "Liegend", serien: 2, schuss_je_serie: 10, positionen: [{ nr: 3, anschlaege: [{ haltung: "liegend" }] }, { nr: 4, anschlaege: [{ haltung: "liegend" }] }] }
           - { id: "stehend", name: "Stehend", serien: 2, schuss_je_serie: 10, positionen: [{ nr: 5, anschlaege: [{ haltung: "stehend" }] }, { nr: 6, anschlaege: [{ haltung: "stehend" }] }] }
 disziplinen:
   - kennziffer: "1.50"
     name: "GK-Standardgewehr 300 m 3×20"
-    waffe: "GK-Standardgewehr, Einzellader (Mehrlader als Einzellader); max. 5500 g, Lauflänge max. 762 mm; Maße nach 1.5.4; dasselbe Gewehr für alle Stellungen (1.5.2)"
+    waffe: "GK-Standardgewehr, Einzellader (Mehrlader als Einzellader); max. 5500 g, Lauflänge 40–76,2 cm (0.21, 1.5.4); Maße nach 1.5.4; kein Lochschaft, keine Handstütze (Teil 1 S. 13); dasselbe Gewehr für alle Stellungen (1.5.2)"
     munition: "bis 8 mm, Zentralfeuer"
-    visierung: "Diopter/Korn; kein Zielfernrohr"
+    visierung: "Diopter/Korn; kein Zielfernrohr, keine Wasserwaage (Teil 1 S. 13)"
     anschlag: "kniend (ab Herren II/Damen II auch sitzend, 1.6) – liegend – stehend"
     scheibe: "DSB-Scheibe Nr. 5 (Gewehr 300 m)"
     ablauf: "gk-standard-3x20"
@@ -122,7 +131,7 @@ disziplinen:
     anschlag: "kniend (ab Herren II/Damen II auch sitzend, 1.6) – liegend – stehend"
     scheibe: "DSB-Scheibe Nr. 5 (Gewehr 300 m)"
     ablauf: "gk-3x20-150"
-    hinweis: "Nur in 0.21 geregelt (60 Schuss), Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."
+    hinweis: "Nur in 0.21 geregelt (Teil 0 S. 78: 60 Schuss, 150 bzw. 135 Min. elektronisch), Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."
   - kennziffer: "1.59"
     name: "GK-Sportgewehr 300 m 3×20"
     waffe: "GK-Gewehr, Einzellader (Mehrlader als Einzellader); max. 8000 g, Lauflänge min. 40 cm; Hakenkappe, Handstütze nur stehend"

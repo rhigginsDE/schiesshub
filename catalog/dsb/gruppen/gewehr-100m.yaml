@@ -2,8 +2,13 @@
 # Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
 # Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22): Teil 1: 1.1.1, 1.1.2, 1.4.6,
 #   Wettbewerbstabelle (Teil 1 S. 19), Schusszahlen/Schießzeiten (Teil 1 S. 21); Teil 0: 0.21 (Teil 0 S. 76, 79, 80),
-#   Scheibe Nr. 4 (100 m Gewehr, Teil 0 S. 65), 0.12.1. DM: 1.35 mit 30 Schuss, ganze Ringe (DSB-Schusszahlentabelle).
+#   Scheibe Nr. 4 (100 m Gewehr, Teil 0 S. 65), 0.12.1 (Teil 0 S. 43). DM: 1.35 mit 30 Schuss, ganze Ringe (DSB-Schusszahlentabelle).
+# 2. Prüfung 2026-11-25: alle Werte gegen SpO 2027 nachgerechnet; WT Teil 1 S. 19 und Zeiten S. 21 als Bild geprüft.
+# Zehntel: SpO schreibt keine vor (0.11.3, Teil 0 S. 39), daher ganze Ringe.
+# Serien: 30/60 Schuss als 10er-Serien nach 0.11.5.2 (Ablage nach jeder Serie von zehn Schuss, Teil 0 S. 43) und 0.12.1.
+#   Schuss je Scheibe regelt sonst der Veranstalter (0.4.1.2, Teil 0 S. 10).
 # 1.92, 1.97 nur in 0.21 ("entsprechend Ausschreibung"), nicht in der DM-Tabelle; Vorbereitungszeit dort nicht geregelt.
+#   Ob die Zeitvorgabe in 0.21 Probeschüsse einschließt, sagt die SpO nicht; eingetragen ist sie als Wettkampfzeit.
 # 1.38 GK 100 m Feuerstutzen (0.21: "15–30" Schuss, BY: Feuerstutzen traditionell) fehlt absichtlich (siehe Notiz).
 # Änderungen 2026→2027: 1.4.6 Hinweis (Ausrüstung); sonst keine.
 schema: 1
@@ -20,10 +25,11 @@ wertung:
   zehntelwertung: false
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
   hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
+  # false: Serieneinteilung der 15-Schuss-Form von 1.35 nicht in der SpO (pruefen an 1.35); sonst alles belegt.
   geprueft: false
 ablaeufe:
   kk-100:
-    beschreibung: "30 Schuss stehend in 45 Min. (Zuganlage) bzw. 40 Min. (andere Systeme); 15 Schuss in 30 bzw. 25 Min. (Empfehlung); vorher 15 Min. Vorbereitung mit beliebig vielen Probeschüssen"
+    beschreibung: "30 Schuss stehend in 45 Min. (Zuganlage) bzw. 40 Min. (andere Systeme); 15 Schuss in 30 Min. (Zuganlage) bzw. 25 Min. (andere Systeme, nur als Empfehlung); vorher 15 Min. Vorbereitung mit beliebig vielen Probeschüssen"
     varianten:
       - id: "30-andere-systeme"
         name: "30 Schuss, andere Systeme (z. B. elektronisch)"
@@ -33,7 +39,9 @@ ablaeufe:
         name: "30 Schuss, Zuganlage"
         abschnitte:
           - { id: "wertung", name: "Wertung", serien: 3, schuss_je_serie: 10, wettkampfzeit_s: 2700, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
-      # 15 Schuss: Serieneinteilung nennt die SpO nicht; als eine Serie zu 15 eingetragen (prüfen).
+      # 15 Schuss (Teil 1 S. 21): Serieneinteilung nennt die SpO nicht; 0.11.5.2 kennt nur Zehnerserien (10+5, 5+10 oder
+      #   eine Serie?). Behelfsweise eine Serie zu 15 (pruefen an 1.35, Inhaberentscheidung).
+      # "(Empfehlung)" steht laut Tabelle nur bei 25 Min. andere Systeme, nicht bei 30 Min. Zuganlage.
       - id: "15-andere-systeme"
         name: "15 Schuss, andere Systeme (Zeit als Empfehlung)"
         abschnitte:
@@ -74,6 +82,7 @@ disziplinen:
     scheibe: "DSB-Scheibe Nr. 4 (100 m Gewehr)"
     ablauf: "kk-100"
     hinweis: "DM: 30 Schuss. Abzug frei; Laufbeschwerung bis 60 mm unter der Laufachse, nicht über die sichtbare Mündung."
+    pruefen: ["ablauf"] # nur 15-Schuss-Varianten: Serieneinteilung offen
   - kennziffer: "1.92"
     name: "GK-Liegendkampf 100 m"
     waffe: "GK-Gewehr, Einzellader (Mehrlader als Einzellader); Lauflänge min. 40 cm"

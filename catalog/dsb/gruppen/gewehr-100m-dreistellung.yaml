@@ -5,6 +5,11 @@
 # Alle drei Disziplinen stehen nur in 0.21 ("Beschreibung entsprechend Ausschreibung"), nicht in Teil 1 S. 19–21 und nicht
 #   in der DM-Tabelle 2025–2028. Vorbereitungszeit nicht geregelt. Gesamtzeit im vorgeschlagenen Feld wettkampfzeit_gesamt_s.
 # Änderungen 2026→2027: keine.
+# 2. Prüfung 2026-11-25: Kennziffern, Namen, Lauflänge, Kaliber, Scheibe und Zeiten 150/135 Min. (9000/8100 s) stimmen mit 0.21.
+#   Offen: (1) 0.21 nennt nur 60 bzw. 120 Schuss; die Aufteilung 20/20/20 bzw. 40/40/40 ist aus 1.50/1.70 (WT Teil 1 S. 19–20)
+#   übernommen, für 1.52/1.55/1.72 nicht ausdrücklich geregelt. (2) 1.72: Zuordnung der Einzelzeiten.
+#   Hinweis: Ob die Zeit in 0.21 Probe/Vorbereitung einschließt, sagt die SpO nicht (Anmerkung * in Teil 1 S. 21 gilt nur für
+#   die dort genannten Wettbewerbe); der Katalog trägt daher keine Vorbereitung und keine Probeschüsse ein.
 schema: 1
 verband: "dsb"
 gruppe:
@@ -19,7 +24,7 @@ wertung:
   zehntelwertung: false
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
   hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
-  geprueft: false
+  geprueft: false # Aufteilung der Schüsse je Stellung und Zeiten 1.72 nicht von der SpO geregelt (s. o.)
 ablaeufe:
   gk-3x20-150:
     beschreibung: "3×20 kniend – liegend – stehend, zusammen 150 Min. (Zuganlage) bzw. 135 Min. (elektronisch) laut 0.21"
@@ -39,7 +44,8 @@ ablaeufe:
           - { id: "liegend", name: "Liegend", serien: 2, schuss_je_serie: 10, positionen: [{ nr: 3, anschlaege: [{ haltung: "liegend" }] }, { nr: 4, anschlaege: [{ haltung: "liegend" }] }] }
           - { id: "stehend", name: "Stehend", serien: 2, schuss_je_serie: 10, positionen: [{ nr: 5, anschlaege: [{ haltung: "stehend" }] }, { nr: 6, anschlaege: [{ haltung: "stehend" }] }] }
   gk-3x40:
-    # 0.21: Einzelzeiten "75-105-90" bzw. "45-75-60*" Min. ohne Zuordnung zur Stellung (siehe gewehr-50m-dreistellung, 1.71).
+    # 0.21 (Teil 0 S. 79): Einzelzeiten "75-105-90" bzw. "45-75-60*" Min. ohne Zuordnung zur Stellung (siehe gewehr-50m-dreistellung, 1.71).
+    # In der Spaltenfolge kniend-liegend-stehend gelesen wäre liegend die längste Zeit; die SpO klärt das nirgends. Daher keine Zeiten.
     beschreibung: "3×40 kniend – liegend – stehend; Einzelzeiten laut 0.21: 75/105/90 Min. (Zuganlage) bzw. 45/75/60 Min. (elektronisch), Zuordnung zur Stellung offen"
     varianten:
       - id: "standard"
@@ -58,6 +64,7 @@ disziplinen:
     scheibe: "DSB-Scheibe Nr. 4 (100 m Gewehr)"
     ablauf: "gk-3x20-150"
     hinweis: "Nur in 0.21 geregelt (60 Schuss), Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."
+    pruefen: ["ablauf"] # Aufteilung 3×20 nur aus 1.50 (WT) abgeleitet, 0.21 nennt nur 60 Schuss
   - kennziffer: "1.55"
     name: "GK-Standardgewehr Mehrlader 100 m"
     waffe: "GK-Standardgewehr, Mehrlader (Einzellader zulässig); Lauflänge 40–76,2 cm"
@@ -67,6 +74,7 @@ disziplinen:
     scheibe: "DSB-Scheibe Nr. 4 (100 m Gewehr)"
     ablauf: "gk-3x20-150"
     hinweis: "Nur in 0.21 geregelt (60 Schuss), Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."
+    pruefen: ["ablauf"] # Aufteilung 3×20 nur aus 1.50 (WT) abgeleitet, 0.21 nennt nur 60 Schuss
   - kennziffer: "1.72"
     name: "GK-Freigewehr 100 m 120 Schuss"
     waffe: "GK-Gewehr, Einzellader (Mehrlader als Einzellader); Lauflänge min. 40 cm"
@@ -76,4 +84,4 @@ disziplinen:
     scheibe: "DSB-Scheibe Nr. 4 (100 m Gewehr)"
     ablauf: "gk-3x40"
     hinweis: "Nur in 0.21 geregelt, Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."
-    pruefen: ["ablauf"]
+    pruefen: ["ablauf"] # Einzelzeiten 75/105/90 bzw. 45/75/60 Min. ohne Zuordnung zur Stellung; 3×40 aus 1.70 abgeleitet

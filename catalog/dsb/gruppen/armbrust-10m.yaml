@@ -6,23 +6,26 @@
 #   DM-Klassen: Tabelle Wettbewerbe/Klassen DM 2025–2028 (dsb.de, PDF_2025).
 # Änderungen 2026→2027 in Teil 5: keine (Synopse 01.01.2027 ohne Teil-5-Eintrag; Vorwort 2027 nennt Teil 5 nicht).
 # 5.11 Armbrust 10 m Auflage gehört zu Teil 9 und steht in auflage-10m-armbrust.yaml.
-# Klassen-IDs (herren-i … damen-iv) sind vorläufig und müssen zu dsb/klassen.yaml passen.
+# Teil 5 gilt abweichend oder ergänzend zu Teil 0 und zu den allgemeinen Gewehrregeln (Teil 5 S. 1).
+# Zweite Prüfung 2026-11-25: alle Werte gegen Teil 5 S. 1–17 (Tabelle S. 17 als Bild), 0.21 (Teil 0 S. 85),
+#   Scheibe Nr. 1 (Teil 0 S. 63), 0.11.5.2 und 0.12.1 (Teil 0 S. 43) abgeglichen.
 schema: 1
 verband: "dsb"
 gruppe:
   id: "armbrust-10m"
   name: "Armbrust 10 m"
-  waffenart: "armbrust"         # Formatbedarf: neuer Wert (siehe Notiz)
+  waffenart: "armbrust"
   distanz_m: 10
   art: "praezision"
 wertung:
   modell: "ringe"
   rangfolge: "absteigend"
   # Teil 5 hat für 5.10 keine eigene Regel, daher SpO 0.12.1: letzte Zehnerserie rückwärts, 10er/9er/8er …,
-  #   Innenzehner, dann gleicher Rang. Volle Ringe; Zehntel sind in Teil 5 nicht vorgeschrieben.
+  #   Innenzehner, dann gleicher Rang. Volle Ringe; Zehntel schreiben weder Teil 5 noch 0.21 vor.
+  #   Scheibe Nr. 1 hat einen Innenzehner (Teil 0 S. 63).
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
   hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
-  geprueft: false
+  geprueft: true # zweite Prüfung 2026-11-25: alle Werte mit SpO 2027 belegt, nur pruefen "waffe" (Stammdaten) offen
 ablaeufe:
   armbrust-40:
     beschreibung: "40 Schuss stehend in 90 Min."
@@ -32,23 +35,25 @@ ablaeufe:
         abschnitte:
           - id: "wertung"
             name: "Wertung"
-            # 40 Schuss, 1 Schuss je Scheibe, 90 Min. (Teil 5 Tabelle S. 17; 0.21). Einteilung in 4 Zehnerserien
-            # entspricht der Auswertung nach 0.12.1; Teil 5 nennt keine Serien.
+            # 40 Schuss, 1 Schuss je Scheibe, 90 Min. = 5400 s (Teil 5 Tabelle S. 17; 0.21, Teil 0 S. 85).
+            # 4 Zehnerserien: Ablage je 10 Schuss (0.11.5.2) und Zehnerserien in 0.12.1 (Teil 0 S. 43).
             serien: 4
             schuss_je_serie: 10
             wettkampfzeit_s: 5400
-            # Probeschüsse/Vorbereitungszeit regelt Teil 5 für 5.10 nicht ausdrücklich (siehe Notiz, offen).
+            # Probe/Vorbereitung: Die SpO regelt sie für 5.10 nicht (Teil 5 ganz, Teil 0, Teil 1 Abschnitte 1.1–1.6
+            #   durchgesehen; die 15-Min.-Anmerkung in Teil 1 S. 21 gilt nur für die dort genannten Gewehrwettbewerbe).
+            #   Felder bleiben deshalb leer; die Ausschreibung regelt das.
 disziplinen:
   - kennziffer: "5.10"
     name: "Armbrust 10 m"
-    waffe: "10-m-Armbrust mit Bolzenführungsbahn und Schlitten, max. 6750 g inkl. Visierung"
+    waffe: "10-m-Armbrust mit Bolzenführungsbahn und Schlitten, max. 6750 g inkl. Visierung (5.7); Sehnenlänge ≤608 (+ 3 %) laut Tabelle S. 17, ohne Einheit"
     munition: "Bolzen 4,5 mm (Toleranz +0/−0,05 mm)"
     visierung: "beliebig aus zwei Zielmitteln (Diopter/Korn), Korntunnel max. 50 mm, Visierlinie max. 760 mm, Wasserwaage erlaubt"
     anschlag: "stehend frei (Regel 1.1.2)"
     scheibe: "DSB-Scheibe Nr. 1 (10 m Gewehr / 10 m Armbrust)"
     ablauf: "armbrust-40"
-    # geprüft 2026-11-22: Tabellenwert Gewicht/Sehnenlänge "≤608 (+ 3 %)" ergänzt (ohne Einheit, Bedeutung offen);
-    #   pruefen von "visierung" auf "waffe" und "ablauf" umgestellt: Visierung entspricht 5.2.1 und Tabelle S. 17;
-    #   offen sind der Wert ≤608 und Probe/Vorbereitung (Teil 5 und Tabelle regeln sie nicht).
-    hinweis: "Lochschaft, Handballen-/Daumenauflage, Schafterhöhung erlaubt (5.7). Tabelle Teil 5 S. 17: Visierhilfe/optische Zielhilfsmittel ab Damen II/Herren II frei; Spalte Gewicht/Sehnenlänge zusätzlich „≤608 (+ 3 %)“."
-    pruefen: ["waffe", "ablauf"]
+    # Zweite Prüfung 2026-11-25: "≤608 (+ 3 %)" steht in der Spalte Gewicht/Sehnenlänge unter dem Gewicht, also
+    #   Sehnenlänge (wie ≤660 mm bei 5.32, vgl. 5.9.2); die Einheit fehlt in der Tabelle, daher pruefen "waffe".
+    #   pruefen "ablauf" entfernt: Probe/Vorbereitung regelt die SpO für 5.10 nicht (siehe Abschnitt).
+    hinweis: "Lochschaft, Handballen-/Daumenauflage, Schafterhöhung erlaubt (5.7). Visierhilfe/optische Zielhilfsmittel ab Damen II/Herren II frei (Tabelle Teil 5 S. 17). Probe und Vorbereitung regelt die SpO nicht."
+    pruefen: ["waffe"]

@@ -6,7 +6,10 @@
 # Abbildung: Die Kombination wird aus den Ergebnissen von 5.31 und 5.32 gebildet (kein eigenes Schießen).
 #   Ein Plattl zählt 6 Punkte, dazu die Ringe der Scheibe. Mit ringwerte [6, 0] im Stern-Abschnitt ergibt die
 #   Ringsumme genau 6 × Plattl + Scheibenringe (max. 120 + 90 = 210). Übernahme aus 5.31/5.32: siehe Formatbedarf.
-# Klassen-IDs sind vorläufig.
+# 0.21 (Teil 0 S. 86) nennt für 5.33 nur 15 Schuss ohne Zeitbegrenzung, Scheibe Nr. 17/Stern und "entsprechend
+#   Ausschreibung"; maßgeblich für die Teile sind 5.12 mit 5.31 (20 Schuss, 50 Min., max. 10 Probe) und 5.32.
+# Zweite Prüfung 2026-11-25: alle Werte gegen 5.10, 5.11.3, 5.12–5.12.1.1 (Teil 5 S. 8, 11, 12), Tabelle S. 17 und
+#   0.21 (Teil 0 S. 85–86) abgeglichen.
 schema: 1
 verband: "dsb"
 gruppe:
@@ -17,9 +20,12 @@ gruppe:
 wertung:
   modell: "ringe"
   rangfolge: "absteigend"
-  # SpO 5.12.1.1: zuerst das bessere Scheibenergebnis, danach Regel 5.31 Einzelwertung (= 5.10.1).
+  # SpO 5.12.1.1 (Teil 5 S. 12): zuerst das bessere Scheibenergebnis, danach Regel 5.31 Einzelwertung (= 5.10.1).
+  #   Die Kriterien aus 5.10.1 beziehen sich auf das Scheibenprogramm; das Format kann ein Kriterium nicht auf einen
+  #   Abschnitt beschränken (Formatbedarf). Innensechser/Mouche: siehe armbrust-national-scheibe.yaml.
+  # hoechstergebnis_gleicher_rang nicht gesetzt: eigene Gleichstandsregel 5.12.1.1 statt 0.12.1.
   gleichstand: ["besseres_teilergebnis_scheibe", "weniger_schlechte_schuesse", "schuesse_rueckwaerts", "innensechser", "mouchen", "abstand_letzter_schuss"]
-  geprueft: false
+  geprueft: true # zweite Prüfung 2026-11-25: alle Werte mit SpO 2027 belegt; Formatbedarf siehe Kommentare
 ablaeufe:
   kombi-scheibe-stern:
     beschreibung: "Ergebnis 5.31 (20 Schuss, Ringe 6–1) + 6 × Plattl aus 5.32 (15 Schuss)"
@@ -31,15 +37,15 @@ ablaeufe:
             name: "Scheibe (aus 5.31)"
             serien: 2
             schuss_je_serie: 10
-            ringwerte: [6, 5, 4, 3, 2, 1, 0]
-            wettkampfzeit_s: 3000
-            probeschuesse: 10
+            ringwerte: [6, 5, 4, 3, 2, 1, 0]   # Scheibe Nr. 17 (Teil 0 S. 71)
+            wettkampfzeit_s: 3000               # 50 Min. = 3000 s wie 5.31 (Tabelle S. 17)
+            probeschuesse: 10                   # höchstens 10 (5.10)
           - id: "stern"
             name: "Stern (aus 5.32)"
             serien: 15
             schuss_je_serie: 1
             ringwerte: [6, 0]       # Plattl = 6 Punkte (5.12.1)
-            probeschuesse: 2
+            probeschuesse: 2        # zwei Proberunden zu je einem Schuss wie 5.32 (5.11.3)
 disziplinen:
   - kennziffer: "5.33"
     name: "Armbrust national kombiniert"

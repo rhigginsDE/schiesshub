@@ -19,10 +19,15 @@ gruppe:
 wertung:
   modell: "ringe"
   rangfolge: "absteigend"
-  # SpO 9.4.1 (volle Ringwertung, Plätze 1–6): Zehnerserien von hinten, Anzahl 10er/9er/8er …, Innenzehner,
-  #   Gesamtergebnis in Zehnteln; dann gleicher Rang. Bei 300 Ringen Stechen nach 9.4.3 (siehe Notiz).
+  # Volle Ringe: 5.11 steht nicht in der Zehntelliste von 9.4 (Teil 9 S. 2), daher kein zehntelwertung.
+  # SpO 9.4.1 (volle Ringwertung, Plätze 1–6; Teil 9 S. 2): Zehnerserien von hinten, Anzahl 10er/9er/8er …,
+  #   Innenzehner, Gesamtergebnis in Zehnteln; dann gleicher Rang. Ab Platz 7 gilt über 9.4 die Regel 0.12.1
+  #   (Teil 0 S. 43, gleiche Kette ohne Zehntel). Beides kann das Format nicht trennen (Formatbedarf).
+  # hoechstergebnis_gleicher_rang bewusst nicht gesetzt: Bei 300 Ringen entscheidet ein Stechen (9.4.3, Teil 9
+  #   S. 3), nicht 0.12.1 Satz 1. Das Format kann dieses Stechen nicht abbilden (Formatbedarf).
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner", "zehntel_gesamt"]
-  geprueft: false
+  # geprüft 2026-11-25 (zweite Prüfung): alle Werte gegen 0.21 (Teil 0 S. 85), Tabelle Teil 9 S. 8, 9.1–9.4, 9.7.
+  geprueft: true
 ablaeufe:
   auflage-30-70min:
     beschreibung: "30 Schuss aufgelegt; 70 Min. inkl. Probe"
@@ -32,10 +37,14 @@ ablaeufe:
         abschnitte:
           - id: "wertung"
             name: "Wertung"
+            # 30 Wertungsschüsse (9.2); 3 Zehnerserien wie in 9.4.1 und 0.11.5.2 (Teil 0 S. 43).
             serien: 3
             schuss_je_serie: 10
             probeschuesse: "unbegrenzt"   # SpO 9.2, nur vor dem ersten Wertungsschuss
-            wettkampfzeit_s: 4200   # Tabelle Teil 9 und Teil 0: 70 Min.; 9.3 nennt für 10 m 55/45 Min.
+            # 70 Min. inkl. Probe = 4200 s: Tabelle Teil 9 S. 8 (nur eine Zeit, keine für andere Systeme) und
+            #   0.21 (Teil 0 S. 85, ohne Sternzeit). Die allgemeine 10-m-Zeit aus 9.3 (55/45 Min.) gilt für 5.11
+            #   nicht, beide disziplinbezogenen Stellen nennen übereinstimmend 70 Min.
+            wettkampfzeit_s: 4200
             positionen:
               - { nr: 1, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
               - { nr: 2, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
@@ -49,6 +58,7 @@ disziplinen:
     anschlag: "stehend aufgelegt (Kl. 70–73); stehend oder sitzend aufgelegt (Kl. 74–81)"
     scheibe: "DSB-Scheibe Nr. 1 (10 m Gewehr/Armbrust)"
     ablauf: "auflage-30-70min"
-    hinweis: "Max. 6750 g; Sehnenlänge max. 608 mm; Visierlänge max. 860 mm; Wasserwaage erlaubt; Schaftbeschwerung unterhalb des Schaftes erlaubt; Auflage bis Schaftende, Breite max. 60 mm. Teil 0 nennt als Anschlag nur „stehend“. Nicht in der DM-Tabelle 2025–2028."
+    # Anschlag: Tabelle Teil 9 S. 8 nennt für 5.11 Kl. 70–73 stehend, Kl. 74–81 auch sitzend aufgelegt (dazu
+    #   9.7.6.1). 0.21 nennt nur "stehend" und verweist für die Beschreibung auf die Tabelle Teil 9; diese gilt.
+    hinweis: "Max. 6750 g; Sehnenlänge max. 608 mm; Visierlänge max. 860 mm; Wasserwaage erlaubt; Schaftbeschwerung unterhalb des Schaftes erlaubt; Auflage bis Schaftende, Breite max. 60 mm; max. 1 Schuss je Scheibe (Tabelle Teil 9 S. 8). Teil 0 nennt als Anschlag nur „stehend“. Nicht in der DM-Tabelle 2025–2028."
     optional: true
-    pruefen: ["ablauf", "anschlag"]

@@ -17,8 +17,15 @@ gruppe:
 wertung:
   modell: "ringe"
   rangfolge: "absteigend"
-  geprueft: false
-  # Keine Gleichstandsregel in Teil 11 für FL.
+  # Teil 11 regelt keine Ergebnisgleichheit; Teil 0 gilt für alle Fachbereiche (0.1.1), also 0.12.1 (Teil 0 S. 43) für
+  #   den Schießteil. FL ist kein Auflagewettbewerb nach Teil 9 (Ausnahme in 0.12.1 Nr. 4 greift nicht).
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  hoechstergebnis_gleicher_rang: true # 0.12.1 Satz 1; kein Finale in Teil 11
+  # 2. Prüfung 2026-11-25 (SpO 2027 Teil 11 S. 1–3): 20 Schuss stehend aufgelegt, 30 Min. = 1800 s, 15 Min. = 900 s
+  #   Vorbereitung mit unbegrenzter Probe (Fußnote *), Entfernung 5–10 m (11.1). Wie die frei wählbaren Teile
+  #   (11.4.2) in ein Gesamtergebnis eingehen, legt der Veranstalter fest – nicht abbildbar (Formatbedarf), der Katalog
+  #   enthält nur den Schießteil. Keine Zehntel (Teil 11 schreibt keine vor). Offen nur Stammdaten (Scheibe, Visierung LP).
+  geprueft: true
 ablaeufe:
   licht-auflage-20:
     beschreibung: "Schießteil: 20 Schuss stehend aufgelegt in 30 Min.; vorher 15 Min. Vorbereitung mit unbegrenzter Probe"
@@ -46,14 +53,14 @@ disziplinen:
     scheibe: "in Teil 11 nicht genannt"
     ablauf: "licht-auflage-20"
     hinweis: "Nur der Schießteil; weitere Teile (Kondition, Koordination, Schnelligkeit, Konzentration) nach Veranstalter. Entfernung 5–10 m. Keine Schießkleidung."
-    pruefen: ["scheibe", "ablauf"]
+    pruefen: ["scheibe"]
   - kennziffer: "11.51"
     name: "Faszination Lichtpistole"
     waffe: "Lichtpistole, max. 1000 g, passt in Prüfkasten 420 × 200 × 50 mm, Abzug frei"
     munition: "Lichtpunkt"
-    visierung: "keine Angabe in Teil 11"
+    visierung: "Visierlinie und Lauflänge innerhalb des Prüfkastens; Art der Visierung in Teil 11 nicht genannt"
     anschlag: "stehend aufgelegt"
     scheibe: "in Teil 11 nicht genannt"
     ablauf: "licht-auflage-20"
     hinweis: "Nur der Schießteil; weitere Teile nach Veranstalter. Entfernung 5–10 m. Keine Schießkleidung."
-    pruefen: ["scheibe", "visierung", "ablauf"]
+    pruefen: ["scheibe", "visierung"]

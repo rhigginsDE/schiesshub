@@ -4,7 +4,11 @@
 #   Teil 0 Wettbewerbstabelle (Teil 0 S. 84), Scheibe Nr. 13 (Teil 0 S. 70). DM-Klassen: Tabelle DM 2025–2028.
 # Änderungen 2026→2027: Synopse nennt für Teil 4 keine Änderungen.
 # FORMAT: gruppe.art "laufende-scheibe" neu (siehe Notiz). Laufrichtung nicht abbildbar.
-#   Serieneinteilung 10er ist ABGELEITET; Teil 4 nennt keine Seriengröße. Medaillenmatch gibt es nur für 10 m (4.10.1).
+#   Serieneinteilung 10er (geprüft 2026-11-25, zweite Prüfung): Teil 4 nennt keine Seriengröße, Teil 0 schon:
+#   Ablage nach jeder Serie von zehn Schüssen (0.11.5.2, Teil 0 S. 43), Druckausgabe in 10er-Serien, nur Vorderlader
+#   5er (0.4.3.2, Teil 0 S. 12); der Gleichstand 50 m (4.6.1.1) hängt nicht von der Seriengröße ab.
+#   Medaillenmatch gibt es nur für 10 m (4.10.1).
+#   vorbereitung_probe_s: 2 Min. bis zur ersten Fertigmeldung (4.4.3), je Wettkampfteil (4.3.1, 4.4.3.1); Probe ohne Zeitlimit.
 schema: 1
 verband: "dsb"
 gruppe:
@@ -21,7 +25,7 @@ wertung:
   #   dann mehr Innenzehner, sonst gleicher Rang. Ganze Ringe.
   gleichstand: ["stechen", "ergebnis_zweite_haelfte", "niedrigste_schusswerte", "innenzehner"]
   stechen_bis_platz: 3   # geprüft 2026-11-22: ergänzt, SpO 4.6.1
-  geprueft: false
+  geprueft: true   # geprüft 2026-11-25 gegen SpO 2027 Teil 0 (0.4.3.2, 0.11.5.2, 0.20, 0.21), Teil 4 (4.1–4.9); zweite Prüfung
 ablaeufe:
   langsam-schnell:
     beschreibung: "60 Schuss: 30 im Langsamlauf (5 s je Lauf), dann 30 im Schnelllauf (2,5 s)"
@@ -31,7 +35,7 @@ ablaeufe:
         abschnitte:
           - id: "langsamlauf"
             name: "Langsamlauf"
-            serien: 3                 # 30 Schuss (Tabelle Teil 4 S. 8); 10er-Einteilung abgeleitet
+            serien: 3                 # 30 Schuss (Tabelle Teil 4 S. 8); 10er-Serien nach 0.11.5.2, 0.4.3.2
             schuss_je_serie: 10
             zeit_je_schuss_s: 5       # Plustoleranz 0,2 s (4.3.1)
             probeschuesse: 4          # 2 links, 2 rechts (4.3.1.1)
@@ -41,7 +45,8 @@ ablaeufe:
             serien: 3
             schuss_je_serie: 10
             zeit_je_schuss_s: 2.5     # Plustoleranz 0,1 s (4.3.1)
-            probeschuesse: 4
+            probeschuesse: 4          # 4.3.1.1
+            vorbereitung_probe_s: 120 # geprüft 2026-11-25: ergänzt, 4.4.3 je Wettkampfteil
   mix:
     # geprüft 2026-11-22: Aufteilung korrigiert (4.3.2.2: 10 Langsam- und 10 Schnellläufe von jeder Seite je Wettbewerb, nicht je Durchgang).
     beschreibung: "Mix: 40 Schuss in 2 Durchgängen zu je 20 gemischten Läufen; insgesamt von jeder Seite 10 Langsam- und 10 Schnellläufe"
@@ -51,7 +56,7 @@ ablaeufe:
         abschnitte:
           - id: "durchgang-1"
             name: "1. Durchgang"
-            serien: 2
+            serien: 2                 # 20 Läufe (4.3.2); 10er-Serien nach 0.11.5.2, 0.4.3.2
             schuss_je_serie: 10
             probeschuesse: 4          # 2 Probeserien zu 2 Schuss (4.3.2.1)
             vorbereitung_probe_s: 120
@@ -59,18 +64,20 @@ ablaeufe:
             name: "2. Durchgang"
             serien: 2
             schuss_je_serie: 10
-            probeschuesse: 4
+            probeschuesse: 4          # 4.4.3.1
+            vorbereitung_probe_s: 120 # geprüft 2026-11-25: ergänzt, 4.4.3; 2. Durchgang wird eigens gestartet (4.2.4.1, 4.2.4.2)
 disziplinen:
   - kennziffer: "4.20"
     name: "Laufende Scheibe 50 m"
-    waffe: "Kleinkalibergewehr, Einzellader (Mehrlader als Einzellader); max. 5500 g inkl. Zielfernrohr; Lauflänge 40–100 cm"
+    # geprüft 2026-11-25: Systemlänge, Schaftkappe, Laufbeschwerung ergänzt. Die Zellen Schäftung/Systemlänge und Sonstiges
+    #   der Tabelle Teil 4 S. 8 reichen über alle vier Zeilen (4.10–4.25), Linien im PDF geprüft.
+    waffe: "Kleinkalibergewehr, Einzellader (Mehrlader als Einzellader); max. 5500 g inkl. Zielfernrohr; Lauflänge 40–100 cm; Systemlänge max. 1000 mm; Schaftkappe Tiefe max. 20 mm, Länge max. 150 mm; Laufbeschwerung radial max. 60 mm"
     munition: "5,6 mm (.22 lfB)"
     visierung: "offene Visierung oder Zielfernrohr"
     anschlag: "stehend frei; Fertighaltung mit Kappe auf/unter der Markierung bis die Scheibe erscheint (4.1.2)"
     scheibe: "Scheibe Nr. 13"
     ablauf: "langsam-schnell"
-    hinweis: "Abzug mind. 500 g, kein Stecher. Schneise 10 m (4.2.1). Max. 18 s zwischen zwei Läufen (4.5.1.2)."
-    pruefen: ["serieneinteilung"]
+    hinweis: "Abzug mind. 500 g, kein Stecher. Kein Gewehrwechsel und keine Veränderung an Waffe/Zielfernrohr zwischen Langsam- und Schnelllauf (Tabelle Teil 4 S. 8). Schneise 10 m (4.2.1). Max. 18 s zwischen zwei Läufen (4.5.1.2)."
   - kennziffer: "4.25"
     name: "Laufende Scheibe 50 m Mix"
     waffe: "wie 4.20"
@@ -80,4 +87,3 @@ disziplinen:
     scheibe: "Scheibe Nr. 13"
     ablauf: "mix"
     hinweis: "Langsam- und Schnellläufe gemischt, höchstens 5 gleiche Geschwindigkeiten hintereinander (4.3.2.3)."
-    pruefen: ["serieneinteilung"]

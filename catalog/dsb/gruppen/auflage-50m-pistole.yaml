@@ -19,13 +19,22 @@ gruppe:
 wertung:
   modell: "ringe"
   rangfolge: "absteigend"
-  # SpO 9.4.1 (volle Ringwertung, Plätze 1–6): Zehnerserien von hinten, Anzahl 10er/9er/8er …, Innenzehner,
-  #   Gesamtergebnis in Zehnteln; dann gleicher Rang. Bei 300 Ringen Stechen nach 9.4.3 (siehe Notiz).
+  # Ganze Ringe: 9.4 nennt 2.21 nicht bei der Zehntelwertung, es gilt 0.11 ff. (Teil 9 S. 2; Teil 0 S. 39).
+  # SpO 9.4.1 (volle Ringwertung, Plätze 1–6; Teil 9 S. 2): Zehnerserien von hinten, Anzahl 10er/9er/8er …,
+  #   Innenzehner, Gesamtergebnis in Zehnteln; dann gleicher Rang. Ab Platz 7: 0.12.1 (Teil 0 S. 43) mit denselben
+  #   drei ersten Kriterien; Nr. 4 dort nimmt Auflagewettbewerbe vom gleichen Rang aus, deshalb gilt die Kette
+  #   für alle Plätze. Mannschaft (9.4.2, Plätze 1–3): 9.4.1 sinngemäß auf die Summen.
+  # Nicht abbildbar: Bei 300 Ringen entscheidet ein Stechen (9.4.3, Teil 9 S. 3). hoechstergebnis_gleicher_rang
+  #   (0.12.1 Satz 1) gilt deshalb nicht und bleibt leer. Kein Endkampf: Teil 15 S. 2–4 nennt nur Gewehr und 10 m LP.
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner", "zehntel_gesamt"]
-  geprueft: false
+  # geprüft 2026-11-25 (2. Prüfung) gegen SpO 2027 Teil 9 S. 1–9, Teil 0 S. 43, 62, 81, Teil 15 S. 2–4.
+  geprueft: true
 ablaeufe:
   auflage-30-50m:
     beschreibung: "30 Schuss aufgelegt; 55 Min. (Zuganlage) bzw. 50 Min. (andere Systeme) inkl. Probe"
+    # 30 Wertungsschüsse, Probe unbegrenzt vor dem ersten Wertungsschuss (9.2, Teil 9 S. 1); 55/50 Min. inkl. Probe
+    #   = 3300/3000 s (9.3, Teil 9 S. 2; Tabelle Teil 9 S. 8). Serien zu 10 Schuss: Ablage je Zehnerserie
+    #   (0.11.5.2, Teil 0 S. 43), Vergleich nach Zehnerserien (9.4.1).
     varianten:
       - id: "zuganlage"
         name: "Zuganlage"
@@ -62,4 +71,7 @@ disziplinen:
     anschlag: "stehend aufgelegt (Kl. 70–73); stehend oder sitzend aufgelegt (Kl. 74–81)"
     scheibe: "DSB-Scheibe Nr. 4 (50 m Pistole)"
     ablauf: "auflage-30-50m"
-    hinweis: "Gewicht und Abzug frei; Auflagefläche unterhalb des Griffes, Breite max. 50 mm; Zusatzgewichte/Anbauteile nach 9.8.5; max. 1 Schuss je Scheibe. 9.4 nennt keine Zehntelwertung."
+    # Name, Waffenart, Lauflänge min. 10 cm, Kaliber, Anschlag, Scheibe 4: 0.21 (Teil 0 S. 81); Scheibe 4 = 50 m
+    #   Pistole (0.20, Teil 0 S. 62). Gewicht/Abzug frei, keine Visierhilfe, Randzünder, 1 Schuss je Scheibe,
+    #   Auflage 50 mm am Griff: Tabelle Teil 9 S. 8; Auflagemaße Teil 9 S. 9 (2. Prüfung 2026-11-25).
+    hinweis: "Gewicht und Abzug frei; Lauflänge mind. 10 cm; Auflagefläche unterhalb des Griffes: max. 40 mm lang (Vorderkante bis Fingerrille), max. 50 mm breit, glatt, bis 10° zur Laufachse geneigt (Teil 9 S. 8–9); Zusatzgewichte/Anbauteile nach 9.8.5; max. 1 Schuss je Scheibe. 9.4 nennt keine Zehntelwertung."

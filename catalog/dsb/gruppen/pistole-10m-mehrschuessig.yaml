@@ -5,6 +5,8 @@
 #   Pistolentabelle (S. 23), Schießzeitentabelle (S. 24); Teil 0: 0.12.1, 0.20 (Scheiben Nr. 7, 8, 9), 0.21 (S. 80).
 #   Schusszahlen DM: Schusszahlentabelle der DM-Ausschreibung (Stand 21.01.2026); Klassen: DM-Tabelle 2025–2028.
 # Änderungen 2026→2027 in diesen Abschnitten: keine (Synopse 2027 betrifft nur 2.3.1, 2.7.3, 2.10.5 – Regeln, keine Fakten hier).
+# Zweite Prüfung 2026-11-25 (gegen SpO 2027): Schusszahlen, Zeiten (Tabelle Teil 2 S. 24 als Bild geprüft), Scheiben
+#   (0.20, Teil 0 S. 66–67) bestätigt; Höchstergebnis-Regel und Geltung von 2.9 für 2.17/2.18 geklärt.
 schema: 1
 verband: "dsb"
 gruppe:
@@ -16,12 +18,19 @@ gruppe:
 wertung:
   modell: "ringe"
   rangfolge: "absteigend"
-  zehntelwertung: false   # Schusszahlentabelle DM: keine Zehntel für 2.17/2.18
-  # SpO 2.9 (mit Tabelle S. 11, die 10 m Mehrschüssige LP, LP Mehrkampf und LP Standard nennt): Plätze 1–3 ohne Finale
-  # per Stechen (je eine Stechserie, wiederholt bis entschieden); übrige Plätze nach 0.12.1.
+  # Volle Ringe bzw. Treffer: Teil 2 (2.12–2.14) und 0.11 sehen keine Zehntel vor; Teil 15 kennt für diese
+  # Wettbewerbe kein Finale.
+  zehntelwertung: false
+  # SpO 2.9 (Teil 2 S. 11): Plätze 1–3 ohne Finale per Stechen (je eine Stechserie, wiederholt bis entschieden);
+  # übrige Plätze nach 0.12.1. Gilt für alle drei Wettbewerbe: Die Tabelle in 2.9 nennt Stech- und Probeserie für
+  # 10 m Mehrschüssige LP, LP Mehrkampf und LP Standard; 2.13 und 2.14 schreiben mehrschüssige Luftpistolen vor.
   gleichstand: ["stechen", "letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
   stechen_bis_platz: 3
-  geprueft: false
+  # Höchstergebnis wird unterschieden: 0.12.1 Satz 1 nimmt die mehrschüssige Luftpistole aus (Teil 0 S. 43), und die
+  # Ausnahme in 2.9 gilt nur für 25-m-Wettbewerbe.
+  hoechstergebnis_gleicher_rang: false
+  # Zweite Prüfung 2026-11-25: alle Werte mit der SpO 2027 belegt, keine offenen Punkte.
+  geprueft: true
 ablaeufe:
   mehrschuessig-10s:
     beschreibung: "60 oder 30 Schuss: Serien à 5 Schuss auf 5 Klappscheiben in je 10 s; Wertung Treffer/Fehler"
@@ -141,9 +150,10 @@ disziplinen:
     anschlag: "stehend frei, einhändig; Fertighaltung vor jeder Serie (SpO 2.6)"
     scheibe: "DSB-Scheibe Nr. 9 (Klappscheibe; Nachwuchs Ø 59,5 mm, Erwachsene Ø 40,0 mm)"
     ablauf: "mehrschuessig-10s"
-    hinweis: "Gewicht ≤ 1500 g, Abzug ≥ 500 g, Prüfkasten 420×200×50 mm (ohne Magazin). Stechserie: 10-s-Serie (SpO 2.9). Höchstergebnis wird hier ebenfalls unterschieden (Ausnahme in 0.12.1). Nicht in der DM-Tabelle 2025–2028."
+    # geprüft 2026-11-25: pruefen ["wertung.gleichstand"] entfernt. Kette nach SpO 2.9 (Stechen Platz 1–3, 10-s-Serie)
+    #   und 0.12.1 (letzte 10-Schuss-Serie rückwärts; 10er/9er/Innenzehner entfallen bei Treffer/Fehler-Wertung).
+    hinweis: "Gewicht ≤ 1500 g, Abzug ≥ 500 g, Prüfkasten 420×200×50 mm (ohne Magazin). Vor dem Wettkampf Einschießen auf eine stehende Scheibe in 150 s (SpO 2.12.3). Stechserie: 10-s-Serie (SpO 2.9). Höchstergebnis wird hier ebenfalls unterschieden (Ausnahme in 0.12.1). Nicht in der DM-Tabelle 2025–2028."
     optional: true
-    pruefen: ["wertung.gleichstand"]
   - kennziffer: "2.17"
     name: "10 m Luftpistole Mehrkampf"
     waffe: "mehrschüssige Luftpistole"

@@ -3,13 +3,16 @@
 # Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22): Teil 1: 1.1.1–1.1.4 (Anschläge),
 #   1.6 (Reihenfolge kniend – liegend – stehend, kniend ab Herren II/Damen II auch sitzend; bei KK 3×20 und 3×40 Wechsel
 #   von Gewehr und Zubehör zwischen den Stellungen erlaubt), Wettbewerbstabelle (Teil 1 S. 19/20), Schusszahlen/
-#   Schießzeiten (Teil 1 S. 21); Teil 0: 0.21 (Teil 0 S. 77–79), Scheibe Nr. 3, 0.12.1;
+#   Schießzeiten (Teil 1 S. 21); Teil 0: 0.21 (Teil 0 S. 77–79), Scheibe Nr. 3 (Teil 0 S. 64), 0.12.1 (Teil 0 S. 43);
 #   Teil 15: 15.1.1 und "Finale – Dreistellungskampf 50 m Gewehr" (Teil 15 S. 18–22).
-#   DM-Schusszahl und Finalklassen: DSB-Schusszahlentabelle (Ausschreibung DM, Stand 20.11.2025).
+#   Nur informativ in Hinweisen, als "DM" gekennzeichnet: DSB-Schusszahlentabelle (Ausschreibung DM, Stand 20.11.2025).
 # ZEITEN: Teil 1 S. 21 nennt für 1.40 und 1.60 nur eine GESAMTZEIT für alle drei Stellungen (ohne die 15 Min.
-#   Vorbereitung vor dem Kniendanschlag). Probe vor liegend und stehend liegt im Ermessen des Schützen und zählt zur
-#   Schießzeit. Gesamtzeit hier im vorgeschlagenen Feld Variante.wettkampfzeit_gesamt_s (siehe Formatbedarf in der Notiz).
+#   Vorbereitung vor dem Kniendanschlag, Anmerkung *). Probe vor liegend und stehend liegt im Ermessen des Schützen und
+#   zählt zur Schießzeit. Gesamtzeit in Variante.wettkampfzeit_gesamt_s. 1.51/1.54: eine Zeit für alle Stellungen in
+#   0.21 (Teil 0 S. 78), "*" dort = Zeit bei elektronischen Anlagen, keine Vorbereitungsregel.
 #   Eine eigene Wechselzeit zwischen den Stellungen nennt Teil 1 für den Vorkampf nicht.
+# Serien zu 10 Schuss: 0.11.5.2 und 0.12.1 (Teil 0 S. 43).
+# Zweite Prüfung 2026-11-25: Zahlen 1.40/1.60 aus Teil 1 S. 21 (Bild geprüft), 1.51/1.54/1.71 aus 0.21 (Bild Teil 0 S. 79).
 # Sitzend statt kniend nur ab Herren II/Damen II (1.6) – als erlaubte Alternative in positionen, Klassengrenze im Hinweis.
 # Änderungen 2026→2027: keine an diesen Abläufen (Synopse: nur Ausrüstung 1.4.6, 1.4.8, 1.5.1; Para-Tabelle Teil 10).
 schema: 1
@@ -24,12 +27,15 @@ wertung:
   modell: "ringe"
   rangfolge: "absteigend"
   zehntelwertung: false
-  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"] # 0.12.1 Nr. 1–3 (Teil 0 S. 43)
   hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
+  # false: 1.71 ohne Zuordnung der Einzelzeiten zur Stellung (0.21); Schussverteilung je Stellung bei 1.51/1.54/1.71
+  #   und bei 1.40 mit 30 Schuss nennt die SpO nicht (nur Analogie, siehe Abläufe).
   geprueft: false
 ablaeufe:
   kk-3x20:
-    beschreibung: "3×20 kniend – liegend – stehend, zusammen 120 Min. (Zuganlage) bzw. 105 Min. (andere Systeme); 3×10 in 70 bzw. 65 Min. (Empfehlung); vorher 15 Min. Vorbereitung vor kniend"
+    # 30 Schuss: Teil 1 S. 21 nennt nur die Schusszahl. 3×10 analog 1.20 (0.21 nennt dort 3 × 10, Teil 0 S. 76).
+    beschreibung: "3×20 kniend – liegend – stehend, zusammen 120 Min. (Zuganlage) bzw. 105 Min. (andere Systeme); 30 Schuss in 70 Min. (Zuganlage) bzw. 65 Min. (andere Systeme, Empfehlung); vorher 15 Min. Vorbereitung vor kniend"
     varianten:
       - id: "60-andere-systeme"
         name: "60 Schuss (3×20), andere Systeme"
@@ -101,7 +107,7 @@ ablaeufe:
           - { id: "stehend", name: "Stehend", serien: 1, schuss_je_serie: 10, positionen: [{ nr: 3, anschlaege: [{ haltung: "stehend" }] }] }
     finale:
       teilnehmer: 8
-      hinweis: "Wertung beginnt bei null. Ranking-Match: je 2×5 Schuss kniend (200 s), liegend (150 s), stehend (250 s); 6 Min. Vorbereitung/Probe vor kniend, Wechsel- und Probezeit 6 Min. (kniend→liegend) und 8 Min. (liegend→stehend); nach 30, 35, 40 Schuss scheiden je 2 aus. Medaillen-Match der besten 2: Einzelschüsse in je 50 s in Zehnteln, 2/1/0 Punkte je Schuss, Sieg ab 16 Punkten. DM: nur Herren I, Damen I, Junioren I m/w."
+      hinweis: "Wertung beginnt bei null. Ranking-Match: je 2×5 Schuss kniend (200 s), liegend (150 s), stehend (250 s); 6 Min. Vorbereitung/Probe vor kniend, Wechsel- und Probezeit 6 Min. (kniend→liegend) und 8 Min. (liegend→stehend); danach je 1×5 stehend (250 s), nach 30, 35, 40 Schuss scheiden je 2 aus; Gleichstand beim Ausscheiden: Stechschuss in 50 s. Medaillen-Match der besten 2: Einzelschüsse in je 50 s in Zehnteln, 2/1/0 Punkte je Schuss, Sieg ab 16 Punkten. Ob ein Finale stattfindet, regelt die Ausschreibung (DM: nur Herren I, Damen I, Junioren I m/w)."
       abschnitt: "15.1.1; Teil 15 S. 18–22"
   kk-3x40:
     beschreibung: "3×40 kniend – liegend – stehend, zusammen 195 Min. (Zuganlage) bzw. 165 Min. (andere Systeme); vorher 15 Min. Vorbereitung vor kniend"
@@ -173,6 +179,8 @@ ablaeufe:
               - { nr: 11, anschlaege: [{ haltung: "stehend" }] }
               - { nr: 12, anschlaege: [{ haltung: "stehend" }] }
   gk-3x20-150:
+    # 0.21 (Teil 0 S. 78): 60 Schuss kniend/liegend/stehend, 150 / 135* Min. Die Verteilung 20/20/20 nennt 0.21 nicht
+    #   (verweist auf die Ausschreibung); übernommen analog 1.50 (Wettbewerbstabelle Teil 1 S. 19: 20/20/20).
     beschreibung: "3×20 kniend – liegend – stehend, zusammen 150 Min. (Zuganlage) bzw. 135 Min. (elektronisch) laut 0.21"
     varianten:
       - id: "elektronisch"
@@ -192,6 +200,8 @@ ablaeufe:
   gk-3x40:
     # 0.21 nennt für 1.71/1.72 drei Einzelzeiten "75-105-90" bzw. "45-75-60*" Min., ohne Zuordnung zur Stellung. Die Reihenfolge
     #   der Zahlen passt nicht zur Anschlagspalte (kniend, liegend, stehend); deshalb hier keine Zeiten eingetragen (prüfen).
+    #   Zweite Prüfung (Bild Teil 0 S. 79): Zellen lauten "75-105-90" und "45-75-60*", keine Zuordnung in der SpO.
+    #   Verteilung 40/40/40 nennt 0.21 nicht; übernommen analog 1.70 (Teil 1 S. 20: 40/40/40).
     beschreibung: "3×40 kniend – liegend – stehend; Einzelzeiten laut 0.21: 75/105/90 Min. (Zuganlage) bzw. 45/75/60 Min. (elektronisch), Zuordnung zur Stellung offen"
     varianten:
       - id: "standard"
@@ -209,7 +219,7 @@ disziplinen:
     anschlag: "kniend (ab Herren II/Damen II auch sitzend) – liegend – stehend"
     scheibe: "DSB-Scheibe Nr. 3 (50 m Gewehr)"
     ablauf: "kk-3x20"
-    hinweis: "DM: 60 Schuss (3×20), ganze Ringe; Finale Herren I, Damen I, Junioren I m/w. Abzug frei, Laufbeschwerung beliebig. Gewehr und Zubehör dürfen zwischen den Stellungen gewechselt werden (1.6)."
+    hinweis: "Abzug frei, Laufbeschwerung beliebig (Teil 1 S. 19). DM (Ausschreibung): 60 Schuss (3×20), ganze Ringe; Finale Herren I, Damen I, Junioren I m/w. Gewehr und Zubehör dürfen zwischen den Stellungen gewechselt werden (1.6)."
   - kennziffer: "1.60"
     name: "KK-Freigewehr 50 m 3×40"
     waffe: "KK-Gewehr, Einzellader (Mehrlader als Einzellader); max. 8000 g, Lauflänge min. 40 cm; Hakenkappe, Handstütze nur stehend"
@@ -218,7 +228,7 @@ disziplinen:
     anschlag: "kniend (ab Herren II/Damen II auch sitzend) – liegend – stehend"
     scheibe: "DSB-Scheibe Nr. 3 (50 m Gewehr)"
     ablauf: "kk-3x40"
-    hinweis: "DM: 120 Schuss (3×40), ganze Ringe, kein Finale. Teil 1 S. 21 nennt '3×40 Männer'; laut DM-Tabelle dürfen Damen ein Sportgewehr verwenden. Gewehr und Zubehör dürfen zwischen den Stellungen gewechselt werden (1.6)."
+    hinweis: "Teil 1 S. 21 nennt '3×40 Männer'. DM (Ausschreibung): 120 Schuss (3×40), ganze Ringe, kein Finale; Damen dürfen ein Sportgewehr verwenden. Gewehr und Zubehör dürfen zwischen den Stellungen gewechselt werden (1.6)."
   - kennziffer: "1.51"
     name: "GK-Standardgewehr 50 m"
     waffe: "GK-Standardgewehr, Einzellader (Mehrlader als Einzellader); Lauflänge 40–76,2 cm"
@@ -227,7 +237,7 @@ disziplinen:
     anschlag: "kniend (ab Herren II/Damen II auch sitzend, 1.6) – liegend – stehend"
     scheibe: "DSB-Scheibe Nr. 3 (50 m Gewehr)"
     ablauf: "gk-3x20-150"
-    hinweis: "Nur in 0.21 geregelt (60 Schuss), Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."
+    hinweis: "Nur in 0.21 geregelt (Teil 0 S. 78: 60 Schuss, 150 bzw. 135 Min. elektronisch), Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."
   - kennziffer: "1.54"
     name: "GK-Standardgewehr Mehrlader 50 m"
     waffe: "GK-Standardgewehr, Mehrlader (Einzellader zulässig); Lauflänge 40–76,2 cm"
@@ -236,7 +246,7 @@ disziplinen:
     anschlag: "kniend (ab Herren II/Damen II auch sitzend, 1.6) – liegend – stehend"
     scheibe: "DSB-Scheibe Nr. 3 (50 m Gewehr)"
     ablauf: "gk-3x20-150"
-    hinweis: "Nur in 0.21 geregelt (60 Schuss), Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."
+    hinweis: "Nur in 0.21 geregelt (Teil 0 S. 78: 60 Schuss, 150 bzw. 135 Min. elektronisch), Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."
   - kennziffer: "1.71"
     name: "GK-Freigewehr 50 m 120 Schuss"
     waffe: "GK-Gewehr, Einzellader (Mehrlader als Einzellader); Lauflänge min. 40 cm"
@@ -245,5 +255,5 @@ disziplinen:
     anschlag: "kniend (ab Herren II/Damen II auch sitzend, 1.6) – liegend – stehend"
     scheibe: "DSB-Scheibe Nr. 3 (50 m Gewehr)"
     ablauf: "gk-3x40"
-    hinweis: "Nur in 0.21 geregelt, Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."
+    hinweis: "Nur in 0.21 geregelt (Teil 0 S. 79: 120 Schuss; Einzelzeiten 75/105/90 bzw. 45/75/60 Min. elektronisch, ohne Zuordnung zur Stellung), Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."
     pruefen: ["ablauf"]

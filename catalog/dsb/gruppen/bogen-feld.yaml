@@ -8,7 +8,9 @@
 # Änderungen 2026→2027 (Synopse 01.01.2027): 6.6.1.2 neu: jede Entfernung der Tabelle "bekannte Entfernungen" muss im
 #   Parcours einmal vorkommen; 6.6.3 Anlagen am Sammelpunkt. Pfeilzahl, Zeit, Wertung unverändert.
 # Varianten = Pflockfarbe (6.6.1.1): gelb = Schüler A Recurve, Jugend Blank; blau = Jugend Recurve/Compound, alle anderen
-#   Blank; rot = alle anderen Recurve/Compound. Pflock für Schüler A Blankbogen nennt 6.6.1.1 nicht (offen).
+#   Blank; rot = alle anderen Recurve/Compound. Pflock für Schüler A Blankbogen nennt 6.6.1.1 nicht (Bild Teil 6 S. 39
+#   geprüft 2026-11-25: Zeile Schüler A nur Recurve). Pfeilzahl, Zeit und Ringwerte sind für alle Pflöcke gleich; die
+#   Lücke betrifft nur den Variantennamen bzw. die Entfernungen, daher nur als pruefen "hinweis" bei 6.40.
 # Entfernungen je Scheibe sind NICHT als distanzen_m eingetragen: die Reihenfolge im Parcours ist frei (6.6.1.2/6.6.2).
 #   Bekannte Entfernungen (je Auflagengröße 3 Scheiben, Ø 20/40/60/80): gelb 5-10-15 / 10-15-20 / 20-25-30 / 30-35-40 m,
 #   blau 5-10-15 / 15-20-25 / 30-35-40 / 40-45-50 m, rot 10-15-20 / 20-25-30 / 35-40-45 / 50-55-60 m.
@@ -27,7 +29,10 @@ wertung:
   rangfolge: "absteigend"
   # 6.6.7.6: größere Anzahl 6er, dann 5er; sonst gleichrangig.
   gleichstand: ["sechser", "fuenfer"]
-  geprueft: false # geprüft 2026-11-22: Pflöcke/Entfernungen 6.6.1.1–6.6.1.2, 72 Pfeile 6.6.2, 3 Min. 6.6.7.3, Gleichstand 6.6.7.6, Klassen ohne Befund; offen bleibt Pflock Schüler A Blankbogen (6.6.1.1 nennt ihn nicht)
+  # 2. Prüfung 2026-11-25 (SpO 2027 Teil 6 S. 39–46, Teil 0 S. 88): Kennzahlen 6.1.1.3, Pflöcke/Entfernungen 6.6.1.1–6.6.1.2,
+  #   Auflagen 6er-Ring 6.6.1.3, 24 Scheiben x 3 Pfeile (12 bekannt/12 unbekannt) 6.6.2, 180 s je Scheibe 6.6.7.3,
+  #   Einschießen unbegrenzt 6.6.6.1, Gleichstand 6.6.7.6 – ohne Befund. Bogen: kein 0.12.1 (Sonderregel Bogen).
+  geprueft: true
 ablaeufe:
   feld-72:
     beschreibung: "72 Pfeile: 24 Scheiben zu je 3 Pfeilen, 12 auf unbekannte und 12 auf bekannte Entfernungen (beliebig angeordnet); 3 Min. je Scheibe; Auflagen Ø 20/40/60/80 cm, je Größe 2–4 Scheiben (unbekannt) bzw. 3 Scheiben (bekannt)"
@@ -65,8 +70,8 @@ disziplinen:
     anschlag: "stehend oder kniend"
     scheibe: "WA-Feldauflage (6er-Ring), Ø 20/40/60/80 cm"
     ablauf: "feld-72"
-    hinweis: "Junioren m/w, Master w, Senioren m/w: mögliche Teilnahme in leistungsstärkerer Klasse."
-    pruefen: ["pflock-schueler-a"]
+    hinweis: "Pflock für Schüler A nennt 6.6.1.1 nicht (Tabelle nennt bei Schüler A nur Recurve); Schüler A ist bei der DM ausgeschrieben. Junioren m/w, Master w, Senioren m/w: mögliche Teilnahme in leistungsstärkerer Klasse."
+    pruefen: ["hinweis"]
   - kennziffer: "6.50"
     name: "Feldbogen Compound"
     waffe: "Compoundbogen"

@@ -1,7 +1,7 @@
 # Flinte Skeet (ISSF-Disziplin) – DSB-Disziplinen
 # Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
 # Quelle: DSB-Sportordnung, Stand 01.01.2027, Teil 3: 3.1–3.9 (allgemein ISSF), 3.20 Skeet (Teil 3 S. 27–32);
-#   Teil 0 Wettbewerbstabelle (Teil 0 S. 83) und Tabelle olympische Wettbewerbe (3.12/3.22 Mix Team);
+#   Teil 0 Wettbewerbstabelle (Teil 0 S. 83) und Tabelle olympische Wettbewerbe (3.12/3.22 Mix Team, Teil 0 S. 31);
 #   Teil 15: 15.3.6/15.3.7 Finale Skeet / Skeet Mixed, 15.4.3 Stechen Skeet. DM-Klassen: Tabelle DM 2025–2028.
 # Änderungen 2026→2027: Synopse nennt für Teil 3 und 15.3/15.4 keine Änderungen.
 # FORMAT: gruppe.art "wurfscheibe" neu (siehe Notiz). Treffer als Ringwerte [1, 0].
@@ -24,7 +24,9 @@ wertung:
   # SpO 3.9.1.2: ab Platz 7 letzte Serie rückwärts, dann Trefferfolge ab letzter Scheibe rückwärts.
   gleichstand: ["stechen", "letzte_serie_rueckwaerts", "trefferfolge_rueckwaerts"]
   stechen_bis_platz: 6
-  geprueft: false
+  # geprüft 2026-11-25 (zweite Prüfung): 3.20 vollständig belegt. false nur wegen 3.22: Programm des Skeet Mix Team
+  #   steht nirgends in der SpO 2027 (nur Kennzahl in der Tabelle olympische Wettbewerbe, Teil 0 S. 31).
+  geprueft: false   # Grund: 3.22 Skeet Mix Team ohne Programm in der SpO 2027 (pruefen: ablauf)
 ablaeufe:
   skeet:
     beschreibung: "Skeet: 125 Wurfscheiben in 5 Serien zu je 25, 1 Schuss je Scheibe; Schüler 75 in 3 Serien (Schülerprogramm, nur Einzelscheiben)"
@@ -52,31 +54,36 @@ ablaeufe:
             schuss_je_serie: 25
             ringwerte: [1, 0]
   skeet-team-mixed:
-    beschreibung: "Skeet Mix Team: Programm in Teil 3 nicht beschrieben; angenommen wie Trap Team Mixed 75 Wurfscheiben je Teammitglied (prüfen)"
+    beschreibung: "Skeet Mix Team: Programm in der SpO nicht beschrieben; angenommen wie Trap Team Mixed 75 Wurfscheiben je Teammitglied (prüfen)"
     finale:
       teilnehmer: 6
-      hinweis: "Ablauf wie Skeet-Finale, Schützenwechsel bei jedem Stationswechsel."
-      abschnitt: "SpO 15.3.6, 15.3.7"
+      # geprüft 2026-11-25: 15.3.6 (letzter Absatz) und 15.3.7 widersprechen sich nicht. "Nach 10, 15, 20, 25 Doubletten"
+      #   (15.3.7) sind 20, 30, 40, 50 Scheiben wie im Einzelfinale (15.3.6). 6 Teams = 12 Finalisten (15.3.2 Nr. 4).
+      #   15.3.1 nennt bei den Finalklassen nur Trap Mixed, nicht Skeet Mixed.
+      hinweis: "6 Teams. Ablauf wie Skeet-Finale (Ausscheiden nach 10, 15, 20, 25 Doubletten, Sieg nach 30); Schützenwechsel bei jedem Stationswechsel, ein Timeout von 1 Minute je Team."
+      abschnitt: "SpO 15.3.2, 15.3.6, 15.3.7 (Teil 15 S. 30–33)"
     varianten:
       - id: "standard"
         name: "Je Teammitglied"
         abschnitte:
           - id: "wettkampf"
             name: "Wettkampf (je Teammitglied)"
-            serien: 3                 # NICHT belegt, siehe Disziplin.pruefen
+            serien: 3                 # NICHT belegt (in der SpO 2027 kein Programm), siehe Disziplin.pruefen
             ziele_je_serie: 25
             schuss_je_serie: 25
             ringwerte: [1, 0]
 disziplinen:
   - kennziffer: "3.20"
     name: "Skeet"
-    waffe: "Flinte bis Kaliber 12, auch halbautomatisch (Magazin max. 1 Patrone); keine Vorderschaft-/Unterhebelrepetierer, kein Release-Abzug, kein Leuchtpunkt, kein Kompensator"
+    # geprüft 2026-11-25: Lauflänge (0.21, Teil 0 S. 83) und Gewehrriemen (3.1.1) ergänzt
+    waffe: "Flinte bis Kaliber 12, auch halbautomatisch (Magazin max. 1 Patrone); Lauflänge min. 40 cm; keine Vorderschaft-/Unterhebelrepetierer, kein Release-Abzug, kein Leuchtpunkt, kein Kompensator, kein Gewehrriemen"
     munition: "Kal. 12/70; Schrotladung max. 24,5 g, kugelförmige Schrote max. 2,6 mm; transparenter Schrotbecher"
     visierung: "Laufschiene/Korn"
     anschlag: "stehend; Fertighaltung mit Kolben an/unter der Markierung bis zum Erscheinen der Scheibe (3.20.7.1)"
     scheibe: "Wurfscheibe, Scheibe Nr. 11 (Skeetstand: Hoch- und Niederhaus, Stationen 1–8)"   # geprüft 2026-11-22: Scheibe Nr. 11 ergänzt (Teil 0 S. 83)
     ablauf: "skeet"
-    hinweis: "Schüler laden bei Einzelscheiben nur einzeln (3.20.1). Finale nur Herren I, Damen I, Junioren I m/w (15.3.1); sonst Platz 1–6 per Stechen. Mannschaft Juniorinnen I in Damen I (M 11)."
+    # geprüft 2026-11-25: "Mannschaft Juniorinnen I in Damen I (M 11)" entfernt, stammt nur aus der DM-Tabelle (steht in startrecht.yaml)
+    hinweis: "Schüler laden bei Einzelscheiben nur einzeln (3.20.1). Finale nur Herren I, Damen I, Junioren I m/w (15.3.1); sonst Platz 1–6 per Stechen (3.9.1.1, 15.4.3)."
   - kennziffer: "3.22"
     name: "Skeet Mix Team"
     waffe: "wie 3.20"
@@ -85,5 +92,6 @@ disziplinen:
     anschlag: "wie 3.20"
     scheibe: "Wurfscheibe, Scheibe Nr. 11 (Skeetstand)"
     ablauf: "skeet-team-mixed"
-    hinweis: "Team aus einem männlichen und einem weiblichen Mitglied. DM: nur Team Dame/Herr (10/11). Achtung: Abschnitt 3.22 der SpO ist 'Wurfscheiben' (FITASC), nicht dieser Wettbewerb."
-    pruefen: ["ablauf"]   # Kennzahl 3.22 nur in Teil 0 (olympische Wettbewerbe) und DM-Tabelle; Schusszahl in der SpO nicht geregelt
+    # geprüft 2026-11-25: "DM: nur Team Dame/Herr" entfernt (nur DM-Tabelle, steht in startrecht.yaml)
+    hinweis: "Team aus einem männlichen und einem weiblichen Mitglied (Finale 15.3.6/15.3.7). Achtung: Abschnitt 3.22 der SpO ist 'Wurfscheiben' (FITASC), nicht dieser Wettbewerb."
+    pruefen: ["ablauf"]   # Kennzahl 3.22 nur in Teil 0 S. 31 (olympische Wettbewerbe) und DM-Tabelle; Schusszahl in der SpO 2027 nicht geregelt (zweite Prüfung 2026-11-25 bestätigt)

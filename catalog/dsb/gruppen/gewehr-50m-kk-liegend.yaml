@@ -4,8 +4,11 @@
 #   Wettbewerbstabelle (Teil 1 S. 20), Schusszahlen/Schießzeiten (Teil 1 S. 21); Teil 0: 0.21 (Teil 0 S. 79), Scheibe Nr. 3,
 #   0.12.1; Teil 15: Finale 50 m Gewehr liegend (Teil 15 S. 15–17).
 #   Zehntelwertung auf LM und DM: DSB-Schusszahlentabelle (Ausschreibung DM, Stand 20.11.2025); die SpO selbst schreibt
-#   für 1.80 keine Zehntel vor. Die Tabelle nennt für 1.80 keine Finalklassen; das Finale nach Teil 15 ist deshalb
-#   nicht als Regelfall eingetragen (siehe Notiz).
+#   für 1.80 keine Zehntel vor (0.11.3, Teil 0 S. 39: ganze Ringe).
+# Finale: Teil 15 regelt es für 50 m Gewehr liegend (Teil 15 S. 15–17), deshalb eingetragen (nur Information). Die
+#   DM-Tabelle sieht für 1.80 kein Finale vor; ob eines geschossen wird, regelt die Ausschreibung.
+# Serien zu 10 Schuss: 0.4.3.2 (Teil 0 S. 12), 0.11.5.2 (Teil 0 S. 43).
+# Zweite Prüfung 2026-11-25: alle Werte gegen SpO 2027 nachgerechnet, Bericht pruefung2-gewehr-a.md (intern).
 # Teil 10 (Para, 10.10): "Im Nicht-Para-Bereich vom Boden oder Pritsche" (Anmerkung zu 1.80).
 # Änderungen 2026→2027: keine an Schusszahl/Zeit (Synopse betrifft nur die Para-Tabelle Teil 10).
 schema: 1
@@ -22,6 +25,7 @@ wertung:
   zehntelwertung: true
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
   hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
+  # false: zehntelwertung stammt aus der DM-Ausschreibung, nicht aus der SpO (Inhaberentscheidung offen).
   geprueft: false
 ablaeufe:
   liegend-60:
@@ -35,6 +39,10 @@ ablaeufe:
         name: "Zuganlage"
         abschnitte:
           - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 3600, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
+    finale:
+      teilnehmer: 8
+      hinweis: "Wertung beginnt bei null, Zehntel; 2 Serien à 5 Schuss in je 150 s, dann 14 Einzelschüsse in je 30 s; ab Schuss 12 scheidet nach je 2 Schüssen der Letzte aus (24 Schuss); Gleichstand: Stechen. Nur wenn ausgeschrieben, auf der DM nicht vorgesehen."
+      abschnitt: "15.1.1.1 (Teil 15 S. 5), Finale 50 m Gewehr liegend (Teil 15 S. 15–17)"
 disziplinen:
   - kennziffer: "1.80"
     name: "KK-Liegendkampf"
@@ -44,4 +52,4 @@ disziplinen:
     anschlag: "liegend"
     scheibe: "DSB-Scheibe Nr. 3 (50 m Gewehr)"
     ablauf: "liegend-60"
-    hinweis: "DM: 60 Schuss, Zehntel auf LM/DM laut DSB-Schusszahlentabelle. Abzug frei, Laufbeschwerung beliebig. Finale nach Teil 15 (8 Teilnehmer, 2×5 Schuss in je 150 s, 14 Einzelschüsse in je 30 s) nur, wenn ausgeschrieben."
+    hinweis: "Abzug frei, Laufbeschwerung beliebig. Liegend vom Boden oder von der Pritsche (Teil 10, Anmerkung zu 1.80). DM-Ausschreibung (nicht SpO): 60 Schuss, Zehntel auf LM/DM laut DSB-Schusszahlentabelle."

@@ -4,7 +4,8 @@
 #   5.10 (Disziplin 5.31), 5.10.1, 5.10.2 und Wettbewerbstabelle Armbrust (Teil 5 S. 17); Teil 0: 0.21 (S. 85),
 #   Scheibe Nr. 17 (0.20, S. 71). DM (Deutsche Traditionsmeisterschaft): Tabelle Wettbewerbe/Klassen DM 2025–2028.
 # Änderungen 2026→2027 in Teil 5: keine.
-# Klassen-IDs sind vorläufig.
+# Zweite Prüfung 2026-11-25: alle Werte gegen Teil 5 S. 1–8, 17 (Tabelle als Bild), 0.21 (Teil 0 S. 85) und
+#   Scheibe Nr. 17 (Teil 0 S. 71) abgeglichen.
 schema: 1
 verband: "dsb"
 gruppe:
@@ -18,9 +19,13 @@ wertung:
   rangfolge: "absteigend"
   # SpO 5.10.1 (eigene Regel, nicht 0.12.1): wer mehr schlechte Schusswerte hat, wird nachgestellt; dann Schusswerte
   #   vom Ende zum Anfang; dann Innensechser; dann Mouchen; dann Abstand des letzten Schusses vom Zentrum.
-  #   Neue Kriterien-IDs, Erklärung in der Notiz.
+  #   Kriterien-IDs stehen in kriterien.yaml.
+  # Innensechser und Mouche definiert die SpO nicht; Scheibe Nr. 17 hat keinen Innenring (Teil 0 S. 71). Die Kette
+  #   gibt 5.10.1 (Teil 5 S. 8) trotzdem so vor; die Wertung rechnet diese Kriterien nicht, sie sind manuell.
+  # hoechstergebnis_gleicher_rang nicht gesetzt: 5.10.1 ist eine eigene Gleichstandsregel und ersetzt 0.12.1
+  #   (Teil 5 gilt abweichend zu Teil 0, Teil 5 S. 1).
   gleichstand: ["weniger_schlechte_schuesse", "schuesse_rueckwaerts", "innensechser", "mouchen", "abstand_letzter_schuss"]
-  geprueft: false
+  geprueft: true # zweite Prüfung 2026-11-25: alle Werte mit SpO 2027 belegt; Begriff Innensechser siehe Kommentar
 ablaeufe:
   national-scheibe-20:
     beschreibung: "20 Schuss stehend in 50 Min. (Veranstalter kann auf 40 Min. kürzen); max. 10 Probeschüsse"
@@ -30,19 +35,22 @@ ablaeufe:
         abschnitte:
           - id: "wertung"
             name: "Wertung"
-            # 20 Schuss, 1 Schuss je Scheibe (Tabelle S. 17). Zwei Zehnerserien nur als Auswerteeinheit.
+            # 20 Schuss, 1 Schuss je Scheibe (Tabelle S. 17; 0.21). Zwei Zehnerserien: Ablage je 10 Schuss (0.11.5.2).
             serien: 2
             schuss_je_serie: 10
             ringwerte: [6, 5, 4, 3, 2, 1, 0]   # Scheibe Nr. 17: Ringe 6–1 (0.20)
-            wettkampfzeit_s: 3000               # 50 Min.; Kürzung um bis zu 10 Min. durch Veranstalter (5.10)
+            wettkampfzeit_s: 3000               # 50 Min. = 3000 s (Tabelle S. 17; 0.21); Kürzung um bis zu 10 Min. (5.10)
             probeschuesse: 10                   # höchstens 10, jederzeit innerhalb der Wettkampfzeit (5.10)
 disziplinen:
   - kennziffer: "5.31"
     name: "Armbrust national Scheibe"
-    waffe: "30-m-Armbrust wie 5.20"
+    waffe: "30-m-Armbrust wie 5.20 (5.10); Gewicht frei, Sehnenlänge ≤608 (+ 3 %) laut Tabelle S. 17, ohne Einheit"
     munition: "Bolzen 6,0 mm (Toleranz +0/−0,05 mm)"
-    visierung: "beliebig aus zwei Zielmitteln (Diopter/Korn), Korntunnel max. 50 mm, Wasserwaage erlaubt"   # geprüft 2026-11-22: Wasserwaage ergänzt (5.2.1 gilt für alle Scheibenwettbewerbe)
+    # Zweite Prüfung 2026-11-25: Visierlinie, Visierhilfe, Handstütze und Sehnenlänge ergänzt. Tabelle S. 17 führt
+    #   5.20 und 5.31 in diesen Spalten in gemeinsamen Zellen.
+    visierung: "beliebig aus zwei Zielmitteln (Diopter/Korn), Korntunnel max. 50 mm, Visierlinie max. 760 mm, Wasserwaage erlaubt (5.2.1, Tabelle S. 17)"
     anschlag: "stehend frei (Regel 1.1.2)"
     scheibe: "DSB-Scheibe Nr. 17 (Armbrust national 30 m, Ringe 6–1)"
     ablauf: "national-scheibe-20"
-    hinweis: "Höchstergebnis 120. Schießzeit kann auf 40 Min. reduziert werden. Probeschüsse zählen zur Wettkampfzeit."
+    hinweis: "Höchstergebnis 120. Schießzeit kann auf 40 Min. reduziert werden. Probeschüsse zählen zur Wettkampfzeit. Handstütze im Stehendanschlag und Visierhilfe ab Damen II/Herren II frei (Tabelle Teil 5 S. 17). Bis zu zwei Windbeobachtungsgeräte (5.6)."
+    pruefen: ["waffe"]

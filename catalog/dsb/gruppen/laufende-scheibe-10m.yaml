@@ -7,7 +7,12 @@
 # FORMAT: gruppe.art "laufende-scheibe" neu (siehe Notiz, Formatbedarf). Laufzeit je Schuss in zeit_je_schuss_s
 #   (5 s Langsamlauf, 2,5 s Schnelllauf; Plustoleranz 0,2 s bzw. 0,1 s, SpO 4.3.1).
 #   Laufrichtung (Lauf von rechts/links) ist nicht abbildbar: erster Durchlauf beginnt rechts→links (4.5), Probe 2 links/2 rechts.
-#   Serieneinteilung 10er-Serien ist ABGELEITET (0.12.1 vergleicht Zehnerserien); Teil 4 nennt keine Seriengröße.
+#   Serieneinteilung 10er (geprüft 2026-11-25, zweite Prüfung): Teil 4 nennt keine Seriengröße, Teil 0 schon:
+#   Ablage nach jeder Serie von zehn Schüssen (0.11.5.2, Teil 0 S. 43), Druckausgabe in 10er-Serien, nur Vorderlader
+#   5er (0.4.3.2, Teil 0 S. 12); Gleichstand 10 m vergleicht Zehnerserien (4.6.1.1 → 0.12.1, Teil 0 S. 43).
+#   vorbereitung_probe_s: 2 Min. bis zur ersten Fertigmeldung (4.4.3). Langsamlauf aller Schützen endet vor dem
+#   Schnelllauf (4.3.1), der Schütze wird also je Wettkampfteil neu aufgerufen; jeder Teil beginnt mit Probe (4.4.3.1).
+#   Die Probe selbst hat kein Zeitlimit (siehe Bericht, Formatbedarf).
 schema: 1
 verband: "dsb"
 gruppe:
@@ -25,7 +30,8 @@ wertung:
   # Vorkampf in ganzen Ringen (keine Zehntelregel in Teil 4); nur das Medaillenmatch wertet Zehntel (4.10.1.9).
   gleichstand: ["stechen", "letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
   stechen_bis_platz: 3   # geprüft 2026-11-22: ergänzt, SpO 4.6.1 (Stechen nur Platz 1–3)
-  geprueft: false
+  # 0.12.1 Satz 1 (Höchstergebnis ohne Unterscheidung) greift nicht: Gleichstand auf Platz 1–3 entscheidet das Stechen (4.6.1).
+  geprueft: true   # geprüft 2026-11-25 gegen SpO 2027 Teil 0 (0.4.3.2, 0.11.5.2, 0.12, 0.20, 0.21), Teil 4 (4.1–4.10); zweite Prüfung
 ablaeufe:
   langsam-schnell:
     beschreibung: "Erste Hälfte Langsamlauf (5 s je Lauf), zweite Hälfte Schnelllauf (2,5 s); LM/DM 30 + 30 Schuss, sonst 20 + 20"
@@ -39,7 +45,7 @@ ablaeufe:
         abschnitte:
           - id: "langsamlauf"
             name: "Langsamlauf"
-            serien: 3                 # 30 Schuss (Tabelle Teil 4 S. 8); Einteilung in 10er abgeleitet
+            serien: 3                 # 30 Schuss (Tabelle Teil 4 S. 8); 10er-Serien nach 0.11.5.2, 0.4.3.2
             schuss_je_serie: 10
             zeit_je_schuss_s: 5       # SpO 4.3.1
             probeschuesse: 4          # 2 links, 2 rechts (4.3.1.1)
@@ -48,8 +54,9 @@ ablaeufe:
             name: "Schnelllauf"
             serien: 3
             schuss_je_serie: 10
-            zeit_je_schuss_s: 2.5
-            probeschuesse: 4
+            zeit_je_schuss_s: 2.5     # SpO 4.3.1, Plustoleranz 0,1 s
+            probeschuesse: 4          # 4.3.1.1
+            vorbereitung_probe_s: 120 # geprüft 2026-11-25: ergänzt, 4.4.3 gilt je Aufruf zum Stand (4.3.1, 4.4.3.1)
       - id: "sonst"
         name: "Sonstige Wettkämpfe (40 Schuss)"
         abschnitte:
@@ -66,6 +73,7 @@ ablaeufe:
             schuss_je_serie: 10
             zeit_je_schuss_s: 2.5
             probeschuesse: 4
+            vorbereitung_probe_s: 120 # geprüft 2026-11-25: ergänzt, 4.4.3 je Wettkampfteil
   mix:
     # geprüft 2026-11-22: Aufteilung korrigiert. 4.3.2.2 verlangt 10 Langsam- und 10 Schnellläufe von jeder Seite für den ganzen Wettbewerb,
     #   nicht je Durchgang (alt: "je Durchgang 10 Langsam- und 10 Schnellläufe").
@@ -76,7 +84,7 @@ ablaeufe:
         abschnitte:
           - id: "durchgang-1"
             name: "1. Durchgang"
-            serien: 2                 # 20 Läufe (4.3.2); Einteilung in 10er abgeleitet
+            serien: 2                 # 20 Läufe (4.3.2); 10er-Serien nach 0.11.5.2, 0.4.3.2
             schuss_je_serie: 10
             probeschuesse: 4          # 2 Probeserien zu 2 Schuss, je Seite 1 langsam + 1 schnell (4.3.2.1)
             vorbereitung_probe_s: 120
@@ -84,18 +92,19 @@ ablaeufe:
             name: "2. Durchgang"
             serien: 2
             schuss_je_serie: 10
-            probeschuesse: 4
+            probeschuesse: 4          # jeder Wettkampfteil beginnt mit 4 Probeschüssen (4.4.3.1)
+            vorbereitung_probe_s: 120 # geprüft 2026-11-25: ergänzt, 4.4.3; 2. Durchgang wird eigens gestartet (4.2.4.1, 4.2.4.2)
 disziplinen:
   - kennziffer: "4.10"
     name: "Laufende Scheibe 10 m"
-    waffe: "Luftgewehr, Einzellader (Mehrlader als Einzellader); Lauflänge min. 40 cm; max. 5500 g inkl. Zielfernrohr; Systemlänge max. 1000 mm"   # geprüft 2026-11-22: Lauflänge ergänzt (Teil 0 S. 84)
+    # geprüft 2026-11-25: Schaftkappe und Laufbeschwerung ergänzt (Tabelle Teil 4 S. 8)
+    waffe: "Luftgewehr, Einzellader (Mehrlader als Einzellader); Lauflänge min. 40 cm; max. 5500 g inkl. Zielfernrohr; Systemlänge max. 1000 mm; Schaftkappe Tiefe max. 20 mm, Länge max. 150 mm; Laufbeschwerung radial max. 60 mm"   # geprüft 2026-11-22: Lauflänge ergänzt (Teil 0 S. 84)
     munition: "4,5 mm (.177)"
     visierung: "offene Visierung oder Zielfernrohr"
     anschlag: "stehend frei; Fertighaltung mit Kappe auf/unter der Markierung bis die Scheibe erscheint (4.1.2)"
     scheibe: "Scheibe Nr. 12a oder 12b (je Klasse nur eine Art)"
     ablauf: "langsam-schnell"
-    hinweis: "Abzug frei, kein Stecher. Kein Gewehrwechsel und keine Veränderung an Waffe/Zielfernrohr zwischen Langsam- und Schnelllauf. Max. 18 s zwischen zwei Läufen (4.5.1.2)."
-    pruefen: ["serieneinteilung"]
+    hinweis: "Abzug frei, kein Stecher. Kein Gewehrwechsel und keine Veränderung an Waffe/Zielfernrohr zwischen Langsam- und Schnelllauf. Max. 18 s zwischen zwei Läufen (4.5.1.2). Bei Scheibe 12b zwei Schuss je Spiegel (0.20)."
   - kennziffer: "4.15"
     name: "Laufende Scheibe 10 m Mix"
     waffe: "wie 4.10"
@@ -105,4 +114,3 @@ disziplinen:
     scheibe: "Scheibe Nr. 12a oder 12b"
     ablauf: "mix"
     hinweis: "Langsam- (5 s) und Schnellläufe (2,5 s) unvorhersehbar gemischt, höchstens 5 gleiche Geschwindigkeiten hintereinander (4.3.2.3)."
-    pruefen: ["serieneinteilung"]

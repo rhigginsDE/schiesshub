@@ -5,21 +5,28 @@
 #   Armbrust (Teil 5 S. 17); Teil 0: 0.21 (S. 85). DM: Tabelle Wettbewerbe/Klassen DM 2025–2028.
 # Änderungen 2026→2027 in Teil 5: keine.
 # Abbildung: Jeder Wertungsschuss trifft ein Plattl (1) oder nicht (0); Ergebnis = Zahl der abgeschossenen Plattl.
-# Klassen-IDs sind vorläufig.
+# Zweite Prüfung 2026-11-25: alle Werte gegen Teil 5 S. 2–3, 5–12, 17 (Tabelle als Bild) und 0.21 (Teil 0 S. 85)
+#   abgeglichen.
 schema: 1
 verband: "dsb"
 gruppe:
   id: "armbrust-national-stern"
   name: "Armbrust national Stern"
   waffenart: "armbrust"
-  art: "vogelbaum"              # Formatbedarf: neuer Wert (Ziel am Vogelbaum, keine Ringscheibe)
+  art: "vogelbaum"
 wertung:
   modell: "ringe"
   rangfolge: "absteigend"
-  # SpO 5.11.4: Gleichstand um Platz 1–3 durch Ritterrunden (Stechen, max. 10, Anzahl legt der Schießleiter fest);
-  #   danach Abstand des letzten Treffers vom Plattlmittelpunkt. Ab Platz 4: Fehlschuss in späterer Runde ist besser.
-  gleichstand: ["stechen", "abstand_letzter_treffer", "fehlschuss_spaeter"]
-  geprueft: false
+  # SpO 5.11.4/5.11.4.1 (Teil 5 S. 11): Gleichstand um Platz 1–3 durch Ritterrunden (Stechen, max. 10, Anzahl legt
+  #   der Schießleiter fest); bleibt es danach gleich, entscheidet der Abstand des letzten Treffers vom Plattlmittelpunkt.
+  #   Ab Platz 4: Fehlschuss in späterer Wertungsrunde ist besser.
+  # Zweite Prüfung 2026-11-25: stechen_bis_platz 3 ergänzt und "abstand_letzter_treffer" aus der Kette genommen
+  #   (alt: ["stechen", "abstand_letzter_treffer", "fehlschuss_spaeter"]). Der Abstand gehört zum Stechen um Platz 1–3,
+  #   nicht zur Kette ab Platz 4; das Format kann ihn nach dem Stechen nicht abbilden (Formatbedarf).
+  # hoechstergebnis_gleicher_rang nicht gesetzt: 5.11.4.1 verlangt das Rittern auch bei gleicher Höchstzahl.
+  gleichstand: ["stechen", "fehlschuss_spaeter"]
+  stechen_bis_platz: 3
+  geprueft: true # zweite Prüfung 2026-11-25: alle Werte mit SpO 2027 belegt
 ablaeufe:
   stern-15:
     beschreibung: "15 Schuss auf den Stern (18 Plattl), ohne Zeitbegrenzung, Reihenfolge ausgelost; zwei Proberunden"
@@ -30,18 +37,20 @@ ablaeufe:
           - id: "wertung"
             name: "Wertung"
             # Ein Schuss je Runde in ausgeloster Reihenfolge der Schützen (5.11.3). Als 15 Serien zu 1 Schuss
-            # abgebildet, damit die Runde erkennbar bleibt (wichtig für die Rangfolge ab Platz 4).
+            # abgebildet, damit die Runde erkennbar bleibt (wichtig für die Rangfolge ab Platz 4). Ein Schuss je
+            # Runde folgt aus 15 Schuss (Tabelle S. 17; 0.21) und der Rangfolge nach der Wertungsrunde des
+            # Fehlschusses (5.11.4.1); ebenso der Nachholschuss nach dem zehnten folgenden Schützen (5.4.5).
             serien: 15
             schuss_je_serie: 1
             ringwerte: [1, 0]       # Plattl abgeschossen / nicht (5.11.2)
-            probeschuesse: 2        # zwei Proberunden (5.11.3); offen: genau ein Schuss je Proberunde?
+            probeschuesse: 2        # zwei Proberunden zu je einem Schuss (5.11.3, Teil 5 S. 11; Runde wie oben)
 disziplinen:
   - kennziffer: "5.32"
     name: "Armbrust national Stern"
-    waffe: "Vogel-/Hocharmbrust (5.9.2), Sehne max. 660 mm, Bogen aus genehmigtem Material, mit Bogensicherung"
+    waffe: "Vogel-/Hocharmbrust (5.9.2), ohne Gewichtsbeschränkung, Sehne max. 660 mm (Stahlbogen, ab Herstellungsdatum 01.01.2005), Bogen aus genehmigtem Material, mit Bogensicherung (5.9.2.1)"
     munition: "Bolzen mit Metallkopf, rund max. 26,8 mm oder eckig max. 24,3 mm Kantenlänge, mind. 115 g"
     visierung: "nur ein Diopter; Korn auf dem Bolzen (5.2.2); Visierhilfe ab Damen II/Herren II frei (Tabelle Teil 5 S. 17)"   # geprüft 2026-11-22: Visierhilfe aus Tabelle S. 17 ergänzt
     anschlag: "stehend, Tuchfühlung mit der Vorderkante des Schusstisches"
     scheibe: "Stern mit 18 Plattl (äußerer und innerer Kranz je 9) am Vogelbaum"
     ablauf: "stern-15"
-    hinweis: "Vogelbaum 29 m hoch, Schusstisch 4 m entfernt (5.9.1.1). Erst äußerer, dann innerer Kranz im Uhrzeigersinn; außer der Reihe getroffene Plattl zählen nicht. Kein Zeitlimit; wer nicht rechtzeitig am Stand ist, verliert den Schuss."
+    hinweis: "Vogelbaum 29 m hoch, Schusstisch 4 m entfernt (5.9.1.1). Erst äußerer, dann innerer Kranz im Uhrzeigersinn; außer der Reihe getroffene Plattl zählen nicht. Kein Zeitlimit; wer nicht rechtzeitig am Stand ist, verliert den Schuss. Vor den Ritterrunden zwei Proberunden für Schützen aus früheren Abteilungen (5.11.4)."

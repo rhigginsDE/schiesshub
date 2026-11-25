@@ -3,8 +3,11 @@
 # Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22): Teil 1: 1.1.2, 1.4.6 (Hinweis zur
 #   Schaftkappe), Wettbewerbstabelle (Teil 1 S. 19), Schusszahlen/Schießzeiten (Teil 1 S. 21); Teil 0: 0.21 (Teil 0 S. 76),
 #   Scheibe Nr. 2 (15 m Gewehr, Teil 0 S. 64), 0.12.1. DM-Schusszahl 30, ganze Ringe (DSB-Schusszahlentabelle).
-# 0.21 nennt "Zimmerstutzen 15/10 m" mit "30/15" Schuss und Distanz "15/10". Ob 15 Schuss bzw. 10 m eine eigene Form ist,
-#   steht nicht da (offen). Teil 1 S. 21 nennt für 15 Schuss 30 Min. (Zuganlage) und 25 Min. (andere Systeme, als Empfehlung).
+# 0.21 nennt "Zimmerstutzen 15/10 m" mit "30/15" Schuss und Distanz "15/10"; eine Zuordnung von Schusszahl zu Distanz
+#   gibt es nicht. Teil 1 S. 21 nennt für 15 Schuss 30 Min. (Zuganlage) und 25 Min. (andere Systeme, als Empfehlung).
+# Serien zu 10 Schuss: 0.4.3.2 (Teil 0 S. 12), 0.11.5.2 (Teil 0 S. 43). Wie 15 Schuss in Serien zu teilen sind, sagt die
+#   SpO nicht (10+5, 5+10 oder eine Serie): offen, siehe 15-Schuss-Varianten.
+#   Zweite Prüfung 2026-11-25: alle Werte gegen SpO 2027 nachgerechnet, Bericht pruefung2-gewehr-a.md (intern).
 # Änderungen 2026→2027: 1.4.6 Hinweis jetzt "nicht für Zimmerstutzen, KK-100 m und Auflage" (Ausrüstung, kein Ablauf).
 schema: 1
 verband: "dsb"
@@ -17,9 +20,12 @@ gruppe:
 wertung:
   modell: "ringe"
   rangfolge: "absteigend"
-  zehntelwertung: false
-  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  zehntelwertung: false # SpO 0.11.3 (Teil 0 S. 39): ganze Ringe; DM ebenso
+  # SpO 0.12.1 (Teil 0 S. 43): letzte Zehnerserie rückwärts, dann 10er, 9er …; Nr. 3 (Innenzehner) entfällt, weil
+  #   Scheibe Nr. 2 keinen Innenzehner hat (Teil 0 S. 64, anders als Scheibe 1 und 3). Danach gleicher Rang.
+  gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts"]
   hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
+  # false: Serieneinteilung der 15-Schuss-Form nicht in der SpO (pruefen an 1.30).
   geprueft: false
 ablaeufe:
   zimmerstutzen:
@@ -33,7 +39,8 @@ ablaeufe:
         name: "30 Schuss, Zuganlage"
         abschnitte:
           - { id: "wertung", name: "Wertung", serien: 3, schuss_je_serie: 10, wettkampfzeit_s: 2700, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
-      # 15 Schuss: Serieneinteilung nennt die SpO nicht; als eine Serie zu 15 eingetragen (prüfen).
+      # 15 Schuss: Serieneinteilung nennt die SpO nicht; behelfsweise eine Serie zu 15 (pruefen). 0.11.5.2 kennt nur
+      #   Zehnerserien, die Aufteilung muss der Inhaber festlegen.
       - id: "15-andere-systeme"
         name: "15 Schuss, andere Systeme (Zeit als Empfehlung)"
         abschnitte:

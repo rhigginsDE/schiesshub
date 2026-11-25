@@ -1,14 +1,16 @@
 # Gewehr 50 m Unterhebelrepetierer – DSB-Disziplinen (ENTWURF)
 # Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
 # Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog, abgerufen 2026-11-22): Teil 1: 1.7 (Unterhebelgewehr,
-#   Wettbewerbsnummer 1.56) mit 1.7.1–1.7.8, 1.1.2–1.1.4, Wettbewerbstabelle (Teil 1 S. 19), Schusszahlen/Schießzeiten
-#   (Teil 1 S. 21: 40 Schuss, 45 Min., "siehe auch 1.7.5"); Teil 0: 0.21 (Teil 0 S. 78), Scheibe Nr. 4, 0.12.1 (über 1.7.7).
-#   DM: 40 Schuss, ganze Ringe (DSB-Schusszahlentabelle).
+#   Wettbewerbsnummer 1.56; Teil 1 S. 14–16) mit 1.7.1–1.7.8, 1.1.2–1.1.4, Wettbewerbstabelle (Teil 1 S. 19), Schusszahlen/Schießzeiten
+#   (Teil 1 S. 21: 40 Schuss, 45 Min., "siehe auch 1.7.5"); Teil 0: 0.21 (Teil 0 S. 78), Scheibe Nr. 4 (Teil 0 S. 65), 0.12.1
+#   (Teil 0 S. 43, über 1.7.7). Nur informativ: DM 40 Schuss, ganze Ringe (DSB-Schusszahlentabelle).
 # Ablauf (1.7.5/1.7.6): 5 Min. Probe stehend; 4×5 stehend und 4×5 kniend (ab Herren II/Damen II auch sitzend), je Serie
 #   50 s; Laden von 5 Patronen auf Kommando. Riemen verboten. Reihenfolge laut 1.7.5 und Tabelle: stehend, dann kniend.
 # Änderungen 2026→2027 (Synopse, 1.7.6): Laden der 5 Patronen innerhalb 1 Min.; NEU: nach jeder Probe- oder Wettkampfserie
 #   1 Min. Pause vor dem nächsten Kommando LADEN.
-# 1.57 (.45) steht nur in 0.21 ("entsprechend Ausschreibung"); Ablauf wie 1.56 angenommen – prüfen.
+# 1.57 (.45) steht nur in 0.21 (Teil 0 S. 78: 40 Schuss stehend/kniend, 45 Min., "entsprechend Ausschreibung"); 1.7 gilt
+#   laut Überschrift nur für 1.56. Serieneinteilung, Serienzeit und Probe für 1.57 nennt die SpO nicht – prüfen.
+# Zweite Prüfung 2026-11-25: 1.7.1–1.7.8 und Teil 1 S. 19/21 (Bild) gegengelesen.
 schema: 1
 verband: "dsb"
 gruppe:
@@ -21,9 +23,11 @@ wertung:
   modell: "ringe"
   rangfolge: "absteigend"
   zehntelwertung: false
-  # 1.7.7 verweist auf 0.12.1 ("letzte Zehnerserie" – hier zwei 5er-Serien je Zehnerblock, siehe Notiz).
+  # 1.7.7 (Teil 1 S. 16) verweist auf 0.12.1. 0.12.1 Nr. 1 vergleicht ausdrücklich in 10-Schuss-Serien (Teil 0 S. 43),
+  #   unabhängig von der Serienlänge: bei 5er-Serien je zwei Serien als Zehnerblock (so rechnet auch tiebreak.py).
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
   hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
+  # false: Ablauf von 1.57 nur angenommen (1.7 gilt nur für 1.56; 0.21 verweist auf die Ausschreibung).
   geprueft: false
 ablaeufe:
   unterhebel-40:
@@ -31,14 +35,14 @@ ablaeufe:
     varianten:
       - id: "standard"
         name: "Standard"
-        wettkampfzeit_gesamt_s: 2700   # Teil 1 S. 21 (Zuganlage und andere Systeme gleich)
+        wettkampfzeit_gesamt_s: 2700   # Teil 1 S. 21 (Zuganlage und andere Systeme gleich); ob die 5 Min. Probe darin liegt, sagt die SpO nicht
         abschnitte:
           - id: "stehend"
             name: "Stehend"
             serien: 4
             schuss_je_serie: 5
             zeit_je_serie_s: 50
-            vorbereitung_probe_s: 300   # 1.7.5: 5 Min. Probeschießen stehend
+            vorbereitung_probe_s: 300   # 1.7.5 (Teil 1 S. 15): 5 Min. Probeschießen stehend
             positionen:
               - { nr: 1, anschlaege: [{ haltung: "stehend" }] }
               - { nr: 2, anschlaege: [{ haltung: "stehend" }] }
@@ -57,13 +61,13 @@ ablaeufe:
 disziplinen:
   - kennziffer: "1.56"
     name: "KK-Unterhebelrepetierer"
-    waffe: "Unterhebelrepetierer mit Röhrenmagazin (mind. 5 Patronen), Gewicht und Schaft wie Original; keine Zusatzgewichte, kein Lochschaft, keine Handstütze, kein Riemen"
+    waffe: "Unterhebelrepetierer mit Röhrenmagazin (mind. 5 Patronen), Lauflänge min. 40 cm (0.21); Gewicht und Schaft wie Original; keine Laufbeschwerung/Zusatzgewichte, kein Lochschaft, keine Handballenauflage, kein Flimmerband, keine Handstütze, kein Riemen (1.7.1)"
     munition: ".22 l.r., Randfeuer"
-    visierung: "offen, typgemäß (V-/U-/Rechteckkimme, Perl-/Balkenkorn); typgemäße Lochkimme oder Vernierdiopter zulässig; keine Optik, keine Ringkorne"
+    visierung: "offen, typgemäß (V-/U-/Rechteckkimme, Perl-/Balkenkorn); typgemäße Lochkimme oder Vernierdiopter zulässig; max. zwei Zielhilfen; keine Optik, keine Matchvisierung, keine Ringkorne (1.7.1.4)"
     anschlag: "stehend, kniend (ab Herren II/Damen II auch sitzend)"
     scheibe: "DSB-Scheibe Nr. 4 (100 m Gewehr), auf 50 m"
     ablauf: "unterhebel-40"
-    hinweis: "Abzugswiderstand mind. 1000 g. Alltagskleidung, keine Schießjacke/-hose/-schuhe/-handschuhe; Schießbrille erlaubt. Voranschlag erlaubt. Nicht abgegebene Schüsse sind verloren. Seit 2027: 1 Min. Pause nach jeder Serie vor dem nächsten LADEN."
+    hinweis: "Abzugswiderstand mind. 1000 g. Alltagskleidung, keine Schießjacke/-hose/-schuhe/-handschuhe; Schießbrille erlaubt. Voranschlag erlaubt. Nicht abgegebene Schüsse sind verloren. Laden von 5 Patronen innerhalb 1 Min.; seit 2027: 1 Min. Pause nach jeder Serie vor dem nächsten LADEN (1.7.6)."
   - kennziffer: "1.57"
     name: "Unterhebelrepetierer .45"
     waffe: "Unterhebelrepetierer (Mehrlader), Lauflänge min. 40 cm"

@@ -24,7 +24,14 @@ wertung:
   # 6.5.3.1.1 (Fassung 2027): größere Anzahl Innen-10er (X), dann größere Anzahl 10er inkl. X; sonst gleichwertig.
   #   Letzter Finalplatz: Stechen (1 Pfeil, 40 s, näher am Zentrum); Setzliste: Los.
   gleichstand: ["innenzehner", "zehner"]
-  geprueft: false # geprüft 2026-11-22: Tabelle 6.5.1.1, 6.5.3.1, Gleichstand 6.5.3.1.1 (Fassung 2027, Synopse S. 33), Finale 6.5.3.2–6.5.3.3, Klassen ohne Befund; offen: Wertungszonen 80 cm-Spots Schüler A Compound, Entfernung Schüler B bei der Deutschen Schülermeisterschaft, Finale Blankbogen
+  # 2. Prüfung 2026-11-25 (SpO 2027 Teil 6 S. 16–38, Teil 0 S. 87, Synopse S. 19): Kennzahlen 6.1.1.1, Tabelle 6.5.1.1
+  #   (Bild S. 30), 72 Pfeile in 6er-Passen je 240 s 6.5.3.1, Einschießen 6.3.3.1, X 6.3.6.1.2, Gleichstand 6.5.3.1.1
+  #   (Fassung 2027), Finale 6.5.3.2–6.5.3.3 – ohne Befund. Geklärt: Schüler B gibt es laut SpO nur bis LV-Ebene
+  #   (6.1.2.1, 6.5.1.1) – SpO-Wert eingetragen, die DM-Tabelle (Schüler B auf der Schülermeisterschaft) weicht ab;
+  #   Blankbogen-Finale: 6.5.3.2/6.5.3.3 regeln Matches nur für Recurve und Compound, daher bewusst kein finale.
+  #   Offen nur Stammdaten: Auflage "80 cm-Spots" Schüler A Compound (pruefen "scheibe" bei 6.15, ringwerte nicht gesetzt).
+  #   Kein 0.12.1 (Sonderregel Bogen).
+  geprueft: false # offen: Wertungszonen der 80-cm-Spots bei Schüler A Compound (6.5.1.1), Ringwerte dort nicht gesetzt; sonst alle Werte belegt (2. Prüfung 2026-11-25)
 ablaeufe:
   freien-recurve:
     beschreibung: "72 Pfeile in 12 Passen zu 6 Pfeilen in je 4 Min. (10 s Vorlaufzeit), Entfernung je Klasse 70/60/50/40 m auf 122 cm-Auflage; vorher 20–45 Min. Einschießen"
@@ -52,7 +59,8 @@ ablaeufe:
       - id: "15m-schueler-c"
         name: "Empfehlung: 36 Pfeile, 15 m, 80 cm (Schüler C, nur Landesebene)"
         abschnitte:
-          # 6.5.1.1 nennt nur 36 Pfeile gesamt; Passengröße 6 Pfeile/4 Min. aus 6.5.3.1 übernommen (pruefen).
+          # 6.5.1.1 nennt nur 36 Pfeile gesamt (Empfehlung); Passe 6 Pfeile in 4 Min. nach 6.5.3.1 und Teil 0 S. 87 (6.10;
+          #   kurze Entfernungen dürfen auch in 3er-Passen zu 2 Min. geschossen werden).
           - { id: "qualifikation", name: "Qualifikation", serien: 6, schuss_je_serie: 6, zeit_je_serie_s: 240, distanzen_m: [15, 15, 15, 15, 15, 15], probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0] }
     finale:
       teilnehmer: 16
@@ -68,7 +76,8 @@ ablaeufe:
       - id: "40m-schueler-a"
         name: "40 m, 80 cm-Spots (Schüler A)"
         abschnitte:
-          # Wertungszonen der "80 cm-Spots" nennt 6.5.1.1 nicht (vermutlich 6-Ring 10–5) – ringwerte offen.
+          # Die "80 cm-Spots" beschreibt 6.5.1.2 nicht (dort nur 80 cm 6-Ring, 80 cm und 122 cm). Naheliegend ist die
+          #   6-Ring-Auflage (10–5), belegt ist das nicht – daher keine ringwerte; pruefen "scheibe" bei 6.15.
           - { id: "qualifikation", name: "Qualifikation", serien: 12, schuss_je_serie: 6, zeit_je_serie_s: 240, distanzen_m: [40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40], probeschuesse: "unbegrenzt" }
     finale:
       teilnehmer: 16
@@ -86,7 +95,7 @@ ablaeufe:
         name: "30 m, 122 cm (Schüler A)"
         abschnitte:
           - { id: "qualifikation", name: "Qualifikation", serien: 12, schuss_je_serie: 6, zeit_je_serie_s: 240, distanzen_m: [30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30], probeschuesse: "unbegrenzt", ringwerte: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0] }
-    # Kein finale: 6.5.3.1–6.5.3.3 nennen nur Recurve und Compound (offen, siehe Notiz).
+    # Kein finale: 6.5.3.2.5/6.5.3.2.6 und 6.5.3.3.4/6.5.3.3.5 regeln Matches nur für Recurve und Compound (Teil 6 S. 34–36).
 disziplinen:
   - kennziffer: "6.10"
     name: "Bogen WA im Freien Recurve"
@@ -96,8 +105,7 @@ disziplinen:
     anschlag: "stehend"
     scheibe: "122 cm-Auflage (Schüler B/C: 80 cm)"
     ablauf: "freien-recurve"
-    hinweis: "Senioren w neu bei der DM. Schüler A/B starten auf der Deutschen Schülermeisterschaft (Schüler B dort neu; Tabelle 2026–2028), nicht auf der DM. Schüler C nur Landesebene."
-    pruefen: ["schueler-b-dsm-entfernung"]
+    hinweis: "Senioren w neu bei der DM. Schüler A/B starten auf der Deutschen Schülermeisterschaft (Schüler B dort neu; Tabelle 2026–2028), nicht auf der DM. Laut SpO gibt es Schüler B (Empfehlung 25 m) und Schüler C nur auf Landesverbandsebene (6.1.2.1, 6.5.1.1)."
   - kennziffer: "6.15"
     name: "Bogen WA im Freien Compound"
     waffe: "Compoundbogen"
@@ -106,8 +114,8 @@ disziplinen:
     anschlag: "stehend"
     scheibe: "80 cm 6-Ring-Auflage (Schüler A: 80 cm-Spots)"
     ablauf: "freien-compound"
-    hinweis: "Master w neu bei der DM; Junioren m/w und Senioren w neu (Start bei Herren/Damen bzw. Master w). Schüler A/B auf der Deutschen Schülermeisterschaft."
-    pruefen: ["schueler-a-ringwerte", "schueler-b-dsm-entfernung"]
+    hinweis: "Master w neu bei der DM; Junioren m/w und Senioren w neu (Start bei Herren/Damen bzw. Master w). Schüler A/B auf der Deutschen Schülermeisterschaft; für Schüler B Compound nennt 6.5.1.1 keine Entfernung/Auflage."
+    pruefen: ["scheibe"]
   - kennziffer: "6.16"
     name: "Bogen WA im Freien Blankbogen"
     waffe: "Blankbogen"
@@ -116,5 +124,4 @@ disziplinen:
     anschlag: "stehend"
     scheibe: "122 cm-Auflage"
     ablauf: "freien-blankbogen"
-    hinweis: "Master w und Senioren m neu bei der DM. Junioren m/w und Senioren w: mögliche Teilnahme in leistungsstärkerer Klasse. Schüler A/B auf der Deutschen Schülermeisterschaft."
-    pruefen: ["finale", "schueler-b-dsm-entfernung"]
+    hinweis: "Master w und Senioren m neu bei der DM. Junioren m/w und Senioren w: mögliche Teilnahme in leistungsstärkerer Klasse. Schüler A/B auf der Deutschen Schülermeisterschaft; für Schüler B Blankbogen nennt 6.5.1.1 keine Entfernung/Auflage. Keine Matchregeln für Blankbogen in 6.5.3.2."

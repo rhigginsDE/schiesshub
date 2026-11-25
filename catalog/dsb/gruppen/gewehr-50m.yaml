@@ -5,8 +5,11 @@
 #   Scheibe Nr. 3 (50 m Gewehr, Teil 0 S. 64), 0.12.1. DM: 1.42 mit 30 Schuss, ganze Ringe (DSB-Schusszahlentabelle).
 # KK-Liegendkampf 1.80 steht wegen der Zehntelwertung auf LM/DM in eigener Gruppe (gewehr-50m-kk-liegend).
 # 1.45, 1.85, 1.91, 1.96 stehen nur in 0.21 ("Beschreibung entsprechend Ausschreibung"); nicht in der DM-Tabelle.
-#   0.21 nennt dort teils nur EINE Zeit ohne "*" (1.45: 30 Min., 1.85: 45 Min.) – ob für Zuganlage oder alle Systeme, offen.
-#   Vorbereitungszeit regelt 0.21 für diese nicht.
+#   0.21-Kopf (Teil 0 S. 76): Zeit ohne "*" gilt allgemein, Zeit mit "*" bei elektronischen Anlagen. Fehlt die "*"-Zeit
+#   (1.45: 30 Min., 1.85: 45 Min.), gilt die eine Zeit für alle Anlagen; so auch 1.56: 0.21 nennt nur 45 Min., Teil 1 S. 21
+#   nennt 45 Min. für Zuganlagen und andere Systeme. Vorbereitungszeit regelt 0.21 für diese nicht (bewusst leer).
+# Serien zu 10 Schuss: 0.4.3.2 (Teil 0 S. 12), 0.11.5.2 (Teil 0 S. 43). Ganze Ringe: 0.11.3 (Teil 0 S. 39).
+# Zweite Prüfung 2026-11-25: alle Werte gegen SpO 2027 nachgerechnet, Bericht pruefung2-gewehr-a.md (intern).
 # 1.37 GK 50 m Feuerstutzen fehlt absichtlich: 0.21 nennt keine Schusszahl (siehe Notiz).
 # Änderungen 2026→2027: keine an diesen Disziplinen.
 schema: 1
@@ -23,7 +26,7 @@ wertung:
   zehntelwertung: false
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
   hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
-  geprueft: false
+  geprueft: true # zweite Prüfung 2026-11-25, alle Werte aus SpO 2027 (0.21, Teil 1 S. 19/21, 0.12.1)
 ablaeufe:
   kk-30:
     beschreibung: "30 Schuss stehend in 45 Min. (Zuganlage) bzw. 40 Min. (andere Systeme); vorher 15 Min. Vorbereitung mit beliebig vielen Probeschüssen"
@@ -37,39 +40,39 @@ ablaeufe:
         abschnitte:
           - { id: "wertung", name: "Wertung", serien: 3, schuss_je_serie: 10, wettkampfzeit_s: 2700, vorbereitung_probe_s: 900, probeschuesse: "unbegrenzt" }
   mehrlader-30:
-    beschreibung: "30 Schuss stehend in 30 Min. (0.21, ohne Unterscheidung nach Anlage)"
+    beschreibung: "30 Schuss stehend in 30 Min. (0.21, eine Zeit für alle Anlagen)"
     varianten:
       - id: "standard"
         name: "Standard"
         abschnitte:
           - { id: "wertung", name: "Wertung", serien: 3, schuss_je_serie: 10, wettkampfzeit_s: 1800 }
   liegend-60-45:
-    beschreibung: "60 Schuss liegend in 45 Min. (0.21, ohne Unterscheidung nach Anlage)"
+    beschreibung: "60 Schuss liegend in 45 Min. (0.21, eine Zeit für alle Anlagen)"
     varianten:
       - id: "standard"
         name: "Standard"
         abschnitte:
           - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 2700 }
   gk-liegend-60-90:
-    beschreibung: "60 Schuss liegend in 90 Min. (Zuganlage) bzw. 75 Min. (elektronisch)"
+    beschreibung: "60 Schuss liegend in 90 Min. bzw. 75 Min. bei elektronischer Anlage (0.21)"
     varianten:
       - id: "elektronisch"
         name: "Elektronische Anlage"
         abschnitte:
           - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 4500 }
       - id: "zuganlage"
-        name: "Zuganlage"
+        name: "Ohne elektronische Anlage (z. B. Zuganlage)"
         abschnitte:
           - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 5400 }
   gk-liegend-60-60:
-    beschreibung: "60 Schuss liegend in 60 Min. (Zuganlage) bzw. 45 Min. (elektronisch)"
+    beschreibung: "60 Schuss liegend in 60 Min. bzw. 45 Min. bei elektronischer Anlage (0.21)"
     varianten:
       - id: "elektronisch"
         name: "Elektronische Anlage"
         abschnitte:
           - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 2700 }
       - id: "zuganlage"
-        name: "Zuganlage"
+        name: "Ohne elektronische Anlage (z. B. Zuganlage)"
         abschnitte:
           - { id: "wertung", name: "Wertung", serien: 6, schuss_je_serie: 10, wettkampfzeit_s: 3600 }
 disziplinen:
@@ -81,7 +84,7 @@ disziplinen:
     anschlag: "stehend"
     scheibe: "DSB-Scheibe Nr. 3 (50 m Gewehr)"
     ablauf: "kk-30"
-    hinweis: "In der DM-Tabelle 'KK-Gewehr 30 Schuss'. Der ganze Wettkampf ist mit derselben Visierung zu schießen (DM-Tabelle). Abzug frei; Laufbeschwerung bis 60 mm unter der Laufachse, nicht über die Mündung."
+    hinweis: "Abzug frei; Laufbeschwerung bis 60 mm unter der Laufachse, nicht über die Mündung. DM-Ausschreibung (nicht SpO): heißt dort 'KK-Gewehr 30 Schuss', der ganze Wettkampf mit derselben Visierung."
   - kennziffer: "1.45"
     name: "KK-Sportgewehr 50 m Mehrlader"
     waffe: "KK-Gewehr, Mehrlader (Einzellader zulässig); Lauflänge min. 40 cm"
@@ -91,7 +94,6 @@ disziplinen:
     scheibe: "DSB-Scheibe Nr. 3 (50 m Gewehr)"
     ablauf: "mehrlader-30"
     hinweis: "Nur in 0.21 geregelt, Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028."
-    pruefen: ["ablauf"]
   - kennziffer: "1.85"
     name: "KK-Liegendkampf Mehrlader 50 m"
     waffe: "KK-Gewehr, Mehrlader (Einzellader zulässig); Lauflänge min. 40 cm"
@@ -101,7 +103,6 @@ disziplinen:
     scheibe: "DSB-Scheibe Nr. 3 (50 m Gewehr)"
     ablauf: "liegend-60-45"
     hinweis: "Nur in 0.21 geregelt, Einzelheiten laut Ausschreibung. Nicht in der DM-Tabelle 2025–2028. Zehntelwertung nicht geregelt."
-    pruefen: ["ablauf"]
   - kennziffer: "1.91"
     name: "GK-Liegendkampf 50 m"
     waffe: "GK-Gewehr, Einzellader (Mehrlader als Einzellader); Lauflänge min. 40 cm"

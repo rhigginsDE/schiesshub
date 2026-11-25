@@ -6,7 +6,8 @@
 # Änderungen 2026→2027 in Teil 11 (Synopse): nur 11.3.1 Kleidung (Nierengurt statt Schießjacke erlaubt, nicht beides);
 #   Schusszahlen, Zeiten und Wertung unverändert.
 # Teil 11 nennt weder Scheibe noch Wertung (ganze Ringe/Zehntel) noch eine Gleichstandsregel. Laut Teil 11 (Allgemein)
-#   entspricht das Programm den Kugelwettbewerben für Schüler; deshalb hier vorläufig 0.12.1. Offen, siehe Notiz.
+#   entspricht das Programm den Kugelwettbewerben für Schüler; Ergebnisgleichheit daher nach 0.12.1 (Teil 0 gilt nach
+#   0.1.1 für alle Fachbereiche). Scheibe bleibt offen (pruefen "scheibe").
 # Klassen-IDs (schueler-ii-m … schueler-iii-w = Kl. 22–25) sind vorläufig.
 schema: 1
 verband: "dsb"
@@ -22,8 +23,13 @@ wertung:
   # geprüft 2026-11-22: Teil 11 hat keine eigene Regel; 0.12.1 gilt als allgemeine Regel für alle Disziplinen (Teil 0).
   #   Offen bleibt, ob die Lichtscheibe einen Innenzehner hat (Scheibe in Teil 11 nicht genannt).
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
-  hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
-  geprueft: false
+  hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43); Teil 11 kennt kein Finale
+  # 2. Prüfung 2026-11-25 (SpO 2027 Teil 11 S. 1–3, Teil 0 S. 1 und 43): Teil 0 gilt für alle Fachbereiche, soweit dort
+  #   nichts Eigenes steht (0.1.1); Teil 11 regelt keine Ergebnisgleichheit, also 0.12.1. Schusszahlen/Zeiten nach der
+  #   Tabelle S. 3 nachgerechnet (30 Min. = 1800 s; 25/20/30 Min. = 1500/1200/1800 s, Summe 75 Min. = 4500 s; 15 Min. = 900 s).
+  #   20 Schuss als 2 Serien zu 10: 0.12.1 Nr. 1 vergleicht 10-Schuss-Serien. Keine Zehntel (Teil 11 schreibt keine vor).
+  #   Offen nur Stammdaten (Scheibe, Visierung Lichtpistole).
+  geprueft: true
 ablaeufe:
   licht-20:
     beschreibung: "20 Schuss stehend in 30 Min.; vorher 15 Min. Vorbereitung mit unbegrenzter Probe"
@@ -44,12 +50,10 @@ ablaeufe:
       - id: "standard"
         name: "Standard"
         abschnitte:
-          # Tabelle: 75 Min. gesamt, Einzelzeiten kniend 25, liegend 20, stehend 30 Min., jeweils inkl. Probe/Vorbereitung.
-          # Fußnote nennt zusätzlich 15 Min. Vorbereitung/Probe vor kniend; Verhältnis zu den 25 Min. offen.
-          # geprüft 2026-11-22: vorbereitung_probe_s 900 vor kniend ergänzt (Fußnote * zur Tabelle Teil 11 S. 3: 15 Min.
-          #   Vorbereitung/Probe vor dem Kniend-Anschlag, nicht in der Schießzeit); Probe vor liegend und stehend nach Ermessen
-          #   des Schützen innerhalb der Einzelzeit, daher dort "unbegrenzt". Widerspruch zu "Einzelzeiten inkl. Probe/
-          #   Vorbereitung" bleibt offen (pruefen ablauf).
+          # Tabelle Teil 11 S. 3: 75 Min. gesamt, Einzelzeiten kniend 25, liegend 20, stehend 30 Min., jeweils inkl. Probe.
+          # Fußnote * nennt den Dreistellungswettbewerb ausdrücklich: 15 Min. gemeinsame Vorbereitung/Probe vor kniend,
+          #   außerhalb der Schießzeit; Probe vor liegend und stehend nach Ermessen innerhalb der Einzelzeit.
+          # 2. Prüfung 2026-11-25: kein Widerspruch – die 15 Min. liegen vor dem Start, Probe danach zählt in die Einzelzeit.
           - id: "kniend"
             name: "Kniend"
             serien: 1
@@ -95,12 +99,12 @@ disziplinen:
     scheibe: "in Teil 11 nicht genannt"
     ablauf: "licht-3x10"
     hinweis: "Wettkampforientiert (WO). Bei der DM schießt Schüler III in Schüler II mit. Schäftung nach 1.4.7; Laufbeschwerung radial max. 30 mm, nicht über die Mündung (Tabelle Teil 11 S. 3)."
-    pruefen: ["scheibe", "ablauf"]
+    pruefen: ["scheibe"]
   - kennziffer: "11.50"
     name: "Lichtpistole"
     waffe: "Lichtpistole, max. 1000 g, passt in Prüfkasten 420 × 200 × 50 mm, Abzug frei"
     munition: "Lichtpunkt"
-    visierung: "keine Angabe in Teil 11"
+    visierung: "Visierlinie und Lauflänge innerhalb des Prüfkastens; Art der Visierung in Teil 11 nicht genannt"
     anschlag: "stehend frei"
     scheibe: "in Teil 11 nicht genannt"
     ablauf: "licht-20"

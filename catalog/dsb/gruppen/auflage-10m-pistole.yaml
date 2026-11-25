@@ -19,13 +19,17 @@ gruppe:
 wertung:
   modell: "ringe"
   rangfolge: "absteigend"
-  # SpO 9.4: Zehntelwertung auf DM und Landesmeisterschaften für 1.11, 2.11, 1.41, 1.36. Darunter nennt 9.4 nur
-  #   die Wertung gemäß 0.11 ff. (ganze Ringe), sofern die Ausschreibung nichts anderes bestimmt.
+  # SpO 9.4 (Teil 9 S. 2): Zehntelwertung auf DM und Landesmeisterschaften für 1.11, 2.11, 1.41, 1.36. Für andere
+  #   Ebenen verweist 9.4 auf 0.11 ff. (ganze Ringe); der Katalog bildet die DM/LM-Wertung ab.
   zehntelwertung: true
-  # SpO 9.4.1 (Zehntelwertung, Plätze 1–6): Gesamtsumme in Zehnteln, dann letzte Zehnerserie in Zehnteln
-  #   rückwärts vergleichend; danach gleicher Platz. Bei ganzen Ringen gilt 9.4.1 "volle Ringwertung" (siehe Notiz).
+  # SpO 9.4.1 (Zehntelwertung, Plätze 1–6; Teil 9 S. 2): Gesamtsumme in Zehnteln (= Ergebnis), dann die Zehnerserien
+  #   in Zehnteln von hinten; danach gleicher Platz. Ab Platz 7 gilt über 9.4 die Regel 0.12.1 (Teil 0 S. 43); das
+  #   Format kennt keine Kette je Platzbereich (Formatbedarf).
+  # hoechstergebnis_gleicher_rang nicht gesetzt: Bei 327,0 sind alle Zehnerserien gleich, die Kette ergibt ohnehin
+  #   gleichen Platz; 9.4.3 (Stechen) gilt nur bei voller Ringwertung.
   gleichstand: ["letzte_serie_rueckwaerts"]
-  geprueft: false
+  # geprüft 2026-11-25 (zweite Prüfung): alle Werte gegen 0.21, Tabelle Teil 9 S. 8–9, 9.1–9.4, Teil 15 S. 2–4.
+  geprueft: false # offen: Zehntel als Katalogvorgabe (SpO 9.4 nur DM/LM), Inhaberentscheidung; sonst alle Werte belegt (2. Prüfung 2026-11-25)
 ablaeufe:
   auflage-30-10m:
     beschreibung: "30 Schuss aufgelegt; 55 Min. (Zuganlage) bzw. 45 Min. (andere Systeme) inkl. Probe"
@@ -35,10 +39,11 @@ ablaeufe:
         abschnitte:
           - id: "wertung"
             name: "Wertung"
+            # 30 Wertungsschüsse (9.2); 3 Zehnerserien wie in 9.4.1 und 0.11.5.2 (Teil 0 S. 43).
             serien: 3
             schuss_je_serie: 10
             probeschuesse: "unbegrenzt"   # SpO 9.2, nur vor dem ersten Wertungsschuss
-            wettkampfzeit_s: 3300   # inkl. Probe (SpO 9.3)
+            wettkampfzeit_s: 3300   # 55 Min. inkl. Probe (9.3; Tabelle Teil 9 S. 8)
             positionen:
               - { nr: 1, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
               - { nr: 2, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
@@ -48,21 +53,23 @@ ablaeufe:
         abschnitte:
           - id: "wertung"
             name: "Wertung"
+            # 30 Wertungsschüsse (9.2); 3 Zehnerserien wie in 9.4.1 und 0.11.5.2 (Teil 0 S. 43).
             serien: 3
             schuss_je_serie: 10
             probeschuesse: "unbegrenzt"   # SpO 9.2, nur vor dem ersten Wertungsschuss
-            wettkampfzeit_s: 2700   # inkl. Probe (SpO 9.3)
+            wettkampfzeit_s: 2700   # 45 Min. inkl. Probe (9.3; Tabelle Teil 9 S. 8)
             positionen:
               - { nr: 1, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
               - { nr: 2, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
               - { nr: 3, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
-    # geprüft 2026-11-22: Endkampf ergänzt. Teil 15 S. 2–4 enthält "Endkampfregeln für die Auflagewettbewerbe des DSB"
-    #   (10 m / 50 m / 100 m Gewehr und 10 m Luftpistole, Seniorinnen und Senioren). Ob das Vorkampfergebnis übertragen
-    #   wird, sagt der Abschnitt nicht ausdrücklich (er beruht auf den ISSF-Finalregeln, dort Start bei null).
+    # Endkampf nach Teil 15 S. 2–4 ("Endkampfregeln für die Auflagewettbewerbe", 10/50/100 m Gewehr und 10 m LP).
+    #   8 Teilnehmer: das erste Ausscheiden nach 12 Schuss betrifft Platz 8 (Abschnitt i). Ob das Vorkampfergebnis
+    #   übertragen wird, sagt der Abschnitt nicht; er beruht auf den ISSF-Finalregeln (Teil 15 S. 4). Nur Information.
+    #   Welche Klassen einen Endkampf schießen, nennt Teil 15 nicht (DM: siehe startrecht.yaml).
     finale:
       teilnehmer: 8
       abschnitt: "SpO Teil 15 S. 2–4 (Endkampfregeln Auflage)"
-      hinweis: "Auf der DM laut Schusszahlentabelle (Stand DM 2026) kein Endkampf; nur nach Ausschreibung. Zehntelwertung; 5 Min. Vorbereitung mit unbegrenzter Probe; 2×5 Schuss in je 250 s, dann 14 Einzelschüsse in je 50 s; nach dem 12. Schuss scheidet der Letzte aus, danach nach jedem zweiten Schuss; 24 Schuss; Gleichstand beim Ausscheiden durch Stechschüsse."
+      hinweis: "Zehntelwertung; 5 Min. Vorbereitung mit unbegrenzter Probe; 2×5 Schuss in je 250 s, dann 14 Einzelschüsse in je 50 s; nach dem 12. Schuss scheidet der Letzte aus, danach nach jedem zweiten Schuss; 24 Schuss; Gleichstand beim Ausscheiden durch Stechschüsse. Teil 15 nennt weder Klassen noch, wann ein Endkampf stattfindet."
 disziplinen:
   - kennziffer: "2.11"
     name: "10 m Luftpistole Auflage"
@@ -72,7 +79,9 @@ disziplinen:
     anschlag: "stehend aufgelegt (Kl. 70–73); stehend oder sitzend aufgelegt (Kl. 74–81)"
     scheibe: "DSB-Scheibe Nr. 7 (10 m Pistole)"
     ablauf: "auflage-30-10m"
-    # geprüft 2026-11-22: Auflage am Griff korrigiert. Tabelle Teil 9 (S. 8) nennt "50 mm am Griff", der Text Teil 9 S. 9
-    #   sagt: Länge Vorderkante bis Fingerrille 40 mm, Breite bei Luftpistolen lt. Prüfkasten (50 mm nur Freie Pistole).
-    hinweis: "Zehntelwertung auf DM und LM (9.4). Max. 1500 g; Abzug mind. 500 g; Prüfkasten 420 × 200 × 50 mm; Auflagefläche unterhalb des Griffes, Länge (Vorderkante bis Fingerrille) 40 mm, Breite lt. Prüfkasten (Teil 9 S. 9; die Tabelle Teil 9 nennt 50 mm am Griff); max. 1 Schuss je Scheibe. Teil 0 nennt als Anschlag nur „stehend“, Teil 9 lässt ab Kl. 74 auch sitzend zu."
-    pruefen: ["anschlag", "hinweis"]
+    # Anschlag: Tabelle Teil 9 S. 8 nennt für 2.11 Kl. 70–73 stehend, Kl. 74–81 auch sitzend aufgelegt; 9.8.3.1
+    #   verweist für Pistole auf 9.7.6.1. 0.21 (Teil 0 S. 80) nennt nur "stehend" und verweist auf die Tabelle Teil 9.
+    # Auflage am Griff (geklärt 2026-11-25): Tabelle Teil 9 S. 8 "50 mm am Griff"; Teil 9 S. 9: Länge Vorderkante bis
+    #   Fingerrille 40 mm, Breite bei Luftpistolen lt. Prüfkasten. Der Prüfkasten 420 × 200 × 50 mm lässt 50 mm Breite
+    #   zu, beide Angaben stimmen also überein.
+    hinweis: "Zehntelwertung auf DM und LM (9.4). Max. 1500 g; Abzug mind. 500 g; Prüfkasten 420 × 200 × 50 mm (+1 mm); Auflagefläche unterhalb des Griffes, Länge (Vorderkante bis Fingerrille) 40 mm, Breite max. 50 mm (Prüfkasten); max. 1 Schuss je Scheibe. Teil 0 nennt als Anschlag nur „stehend“, Teil 9 lässt ab Kl. 74 auch sitzend zu."

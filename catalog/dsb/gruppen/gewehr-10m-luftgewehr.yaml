@@ -3,7 +3,10 @@
 # Quelle: DSB-Sportordnung, Stand 01.01.2027 (Blätterkatalog dsb.de/fileadmin/dsb/sportordnung/, abgerufen 2026-11-22):
 #   Teil 1: 1.1.2 (stehend), Wettbewerbstabelle Gewehr (Teil 1 S. 19), Schusszahlen/Schießzeiten (Teil 1 S. 21);
 #   Teil 0: 0.21 (Teil 0 S. 76), Scheibe Nr. 1 (0.20, Teil 0 S. 63), Ergebnisgleichheit 0.12.1;
-#   Teil 15: 15.1.1 (Finale allgemein), Finale 10 m Luftgewehr (Teil 15 S. 15–17), 15.2 (Mix Team).
+#   Teil 15: 15.1.1 (Finale allgemein), Finale 10 m Luftgewehr (Teil 15 S. 15–17), 15.2 (Mix Team, Teil 15 S. 10–14).
+#   Kennzahl 1.12 steht nicht in 0.21, aber in 0.9.1 (Teil 0 S. 31) und in 15.2.
+# Serien zu 10 Schuss: 0.4.3.2 (Teil 0 S. 12) und 0.11.5.2 (Teil 0 S. 43).
+#   Zweite Prüfung 2026-11-25: alle Werte gegen SpO 2027 nachgerechnet, Bericht pruefung2-gewehr-a.md (intern).
 #   Schusszahl je Klasse, Zehntelwertung und Finalklassen: DSB-Ausschreibung Deutsche Meisterschaften,
 #   "Schusszahlentabelle" (dsb.de/schiesssport/ausschreibungen-2027/deutsche-meisterschaften/wettbewerbe, Stand 20.11.2025).
 # Zehntelwertung: Die SpO schreibt sie für 1.10 nicht vor (0.11.3: ganze Ringe); die DSB-Schusszahlentabelle sieht für
@@ -26,12 +29,14 @@ wertung:
   #   Wie 0.12.1 bei Zehntelwertung anzuwenden ist (Serien in Zehnteln?), sagt die SpO nicht (offen, siehe Notiz).
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
   hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
+  # false: Zehntel für 1.10 schreibt die SpO nicht vor (Inhaberentscheidung offen); zehntelwertung gilt für die ganze
+  #   Gruppe, 1.12 hat Zehntel nach SpO 15.2.2.6 (Teil 15 S. 11).
   geprueft: false
 ablaeufe:
   luftgewehr:
     beschreibung: "60, 40 oder 20 Schuss stehend je nach Klasse und Ebene; 90/60/35 Min. (Zuganlage) bzw. 75/50/30 Min. (andere Systeme); vorher 15 Min. Vorbereitung mit beliebig vielen Probeschüssen"
     varianten:
-      # Teil 1 S. 21: Zeiten ohne die 15 Min. Vorbereitungs-/Probezeit (Anmerkung *).
+      # Teil 1 S. 21: Zeiten ohne die 15 Min. Vorbereitungs-/Probezeit (Anmerkung *); 0.21 (Teil 0 S. 76): 60/40/20 Schuss.
       - id: "60-andere-systeme"
         name: "60 Schuss, andere Systeme (z. B. elektronisch)"
         abschnitte:
@@ -59,21 +64,21 @@ ablaeufe:
     finale:
       teilnehmer: 8
       hinweis: "Wertung beginnt bei null, Zehntel; 2 Serien à 5 Schuss in je 250 s, dann 14 Einzelschüsse in je 50 s; ab Schuss 12 scheidet nach je 2 Schüssen der Letzte aus (24 Schuss). DM: nur Finalklassen Herren I, Damen I, Junioren I m/w."
-      abschnitt: "15.1.1; Teil 15 S. 15–17"
+      abschnitt: "15.1.1.1 (Teil 15 S. 5), Finale 10 m Luftgewehr (Teil 15 S. 15–17)"
   mix-team:
     beschreibung: "Mix Team: je Sportler 30 Schuss stehend (Team 60) in 40 Min.; 10 Min. Vorbereitungs- und Probezeit; Wertung Summe beider Sportler in Zehnteln"
     varianten:
       - id: "standard"
         name: "Vorkampf (je Sportler)"
         abschnitte:
-          # geprüft 2026-11-22: probeschuesse "unbegrenzt" nennt 15.2.2.4 nicht ausdrücklich; abgeleitet aus 15.2.2.5 (Durchführung
-          #   nach den LG-Regeln, Teil 1 S. 21 Anmerkung *). Serieneinteilung 3×10 nennt 15.2.2.5 ebenfalls nicht.
-          # SpO 15.2.2.4: 10 Min. Vorbereitung. Die DSB-Ausschreibung DM (4.6) nennt 15 Min. – Abweichung, siehe Notiz.
+          # SpO 15.2.2.5 (Teil 15 S. 11): 30 Schuss je Sportler in 40 Min., Durchführung nach den LG-Regeln. Daraus:
+          #   probeschuesse "unbegrenzt" (Teil 1 S. 21 Anmerkung *), Serien 3×10 (0.11.5.2, Teil 0 S. 43).
+          # SpO 15.2.2.4: 10 Min. Vorbereitung. Die DSB-Ausschreibung DM (4.6) nennt 15 Min.; der SpO-Wert gilt.
           - { id: "wertung", name: "Wertung", serien: 3, schuss_je_serie: 10, wettkampfzeit_s: 2400, vorbereitung_probe_s: 600, probeschuesse: "unbegrenzt" }
     finale:
       teilnehmer: 5
       hinweis: "Die besten 5 Teams; Wertung beginnt bei null, Zehntel; 3 Serien à 5 Schuss je Sportler in je 300 s, dann Einzelschüsse (je Team 2 Schuss in 60 s), Ausscheiden nach 17/19/21/24 Schuss je Sportler; Gleichstand: Stechen."
-      abschnitt: "15.2.2.7, 15.2.3"
+      abschnitt: "15.2.2.7, 15.2.3 (Teil 15 S. 11–14)"
 disziplinen:
   - kennziffer: "1.10"
     name: "Luftgewehr"

@@ -19,16 +19,23 @@ gruppe:
 wertung:
   modell: "ringe"
   rangfolge: "absteigend"
-  # SpO 9.4: Zehntelwertung auf DM und Landesmeisterschaften für 1.11, 2.11, 1.41, 1.36. Darunter nennt 9.4 nur
-  #   die Wertung gemäß 0.11 ff. (ganze Ringe), sofern die Ausschreibung nichts anderes bestimmt.
+  # SpO 9.4 (Teil 9 S. 2): Zehntelwertung auf DM und Landesmeisterschaften u. a. in "50 m KK-Gewehr Auflage" (= 1.41,
+  #   einzige 50-m-KK-Zeile der Tabelle Teil 9 S. 8). Darunter gilt 0.11 ff. (ganze Ringe).
   zehntelwertung: true
-  # SpO 9.4.1 (Zehntelwertung, Plätze 1–6): Gesamtsumme in Zehnteln, dann letzte Zehnerserie in Zehnteln
-  #   rückwärts vergleichend; danach gleicher Platz. Bei ganzen Ringen gilt 9.4.1 "volle Ringwertung" (siehe Notiz).
+  # SpO 9.4.1 (Zehntelwertung, Plätze 1–6; Teil 9 S. 2): Gesamtsumme in Zehnteln (= Ergebnis), dann letzte
+  #   Zehnerserie in Zehnteln rückwärts vergleichend; danach gleicher Platz. 9.4.3 (Stechen bei 300) gilt nur
+  #   bei voller Ringwertung. Bei ganzen Ringen (unterhalb LM) gilt die Kette der vollen Ringwertung aus 9.4.1;
+  #   das Format kann die Kette nicht an die Zehntel-Einstellung koppeln (siehe Prüfbericht, Formatbedarf).
   gleichstand: ["letzte_serie_rueckwaerts"]
+  # Nicht geprüft: 1.43 gehört zur Gruppe und erbt zehntelwertung. 9.4 und die Tabelle Teil 9 nennen 1.43 nicht,
+  #   Zehntel für 1.43 ist also keine SpO-Vorgabe (Inhaberentscheidung). Alle anderen Werte belegt (2. Prüfung 2026-11-25).
   geprueft: false
 ablaeufe:
   auflage-30-50m:
     beschreibung: "30 Schuss aufgelegt; 55 Min. (Zuganlage) bzw. 50 Min. (andere Systeme) inkl. Probe"
+    # 30 Wertungsschüsse, Probe unbegrenzt vor dem ersten Wertungsschuss (9.2, Teil 9 S. 1); 55/50 Min. inkl. Probe
+    #   = 3300/3000 s (9.3, Teil 9 S. 2; Tabelle Teil 9 S. 8). Serien zu 10 Schuss: Ablage je Zehnerserie
+    #   (0.11.5.2, Teil 0 S. 43), Vergleich nach Zehnerserien (9.4.1).
     varianten:
       - id: "zuganlage"
         name: "Zuganlage"
@@ -56,13 +63,15 @@ ablaeufe:
               - { nr: 1, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
               - { nr: 2, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
               - { nr: 3, anschlaege: [{ haltung: "stehend", aufgelegt: true }, { haltung: "sitzend", aufgelegt: true }] }
-    # geprüft 2026-11-22: Endkampf ergänzt. Teil 15 S. 2–4 enthält "Endkampfregeln für die Auflagewettbewerbe des DSB"
-    #   (10 m / 50 m / 100 m Gewehr und 10 m Luftpistole, Seniorinnen und Senioren). Ob das Vorkampfergebnis übertragen
-    #   wird, sagt der Abschnitt nicht ausdrücklich (er beruht auf den ISSF-Finalregeln, dort Start bei null).
+    # Endkampf: Teil 15 S. 2–4 "Endkampfregeln für die Auflagewettbewerbe des DSB" (10 m / 50 m / 100 m Gewehr und
+    #   10 m Luftpistole, Seniorinnen und Senioren). 8 Teilnehmer: Ausscheiden beginnt mit Platz 8 (Abschnitt i).
+    #   Ob das Vorkampfergebnis übertragen wird, sagt der Abschnitt nicht; der Hinweis behauptet dazu nichts.
+    #   Teil 9 schreibt keinen Endkampf vor. Die DM-Schusszahlentabelle (nicht SpO) sieht für 1.41 keinen vor.
+    #   2. Prüfung 2026-11-25: DM-Angabe aus dem Hinweis entfernt (keine SpO-Quelle).
     finale:
       teilnehmer: 8
       abschnitt: "SpO Teil 15 S. 2–4 (Endkampfregeln Auflage)"
-      hinweis: "Gilt für 50 m Gewehr Auflage; auf der DM laut Schusszahlentabelle (Stand DM 2026) kein Endkampf, nur nach Ausschreibung. Zehntelwertung; 5 Min. Vorbereitung mit unbegrenzter Probe; 2×5 Schuss in je 250 s, dann 14 Einzelschüsse in je 50 s; nach dem 12. Schuss scheidet der Letzte aus, danach nach jedem zweiten Schuss; 24 Schuss; Gleichstand beim Ausscheiden durch Stechschüsse."
+      hinweis: "Nur wenn die Ausschreibung einen Endkampf vorsieht; Teil 9 schreibt keinen vor. Zehntelwertung; 5 Min. Vorbereitung mit unbegrenzter Probe; 2×5 Schuss in je 250 s, dann 14 Einzelschüsse in je 50 s; nach dem 12. Schuss scheidet der Letzte aus, danach nach jedem zweiten Schuss; 24 Schuss; Gleichstand beim Ausscheiden durch Stechschüsse."
 disziplinen:
   - kennziffer: "1.41"
     name: "KK-Sportgewehr Auflage 50 m"
@@ -72,17 +81,25 @@ disziplinen:
     anschlag: "stehend aufgelegt (Kl. 70–73); stehend oder sitzend aufgelegt (Kl. 74–81)"
     scheibe: "DSB-Scheibe Nr. 3 (50 m Gewehr)"
     ablauf: "auflage-30-50m"
-    hinweis: "Zehntelwertung auf DM und LM (9.4). Max. 7500 g ohne, 8000 g mit Zielfernrohr; Abzug frei; Auflagepunkt max. 550 mm ab Systemeinbettung, Auflagenbreite max. 60 mm; Kompensatoren/Rückstoßbremsen nicht erlaubt; max. 1 Schuss je Scheibe."
+    # Name, Waffenart, Lauflänge min. 40 cm, Visierung, Kaliber, Anschlag, Scheibe 3: 0.21 (Teil 0 S. 77); Scheibe 3 =
+    #   Gewehr 50 m (0.20, Teil 0 S. 62). Ausrüstung: Tabelle Teil 9 S. 8 mit Anm. * und ** (die Zeile nennt
+    #   "ZFR oder Auflage", gemeint ist wie bei 1.36 "ZFR oder Diopter"); Korntunnel über Mündung max. 50 mm (9.7.3).
+    hinweis: "Zehntelwertung auf DM und LM (9.4). Max. 7500 g ohne, 8000 g mit Zielfernrohr; Abzug frei; Lauflänge mind. 40 cm; Auflagepunkt max. 550 mm ab Systemeinbettung, Auflagenbreite max. 60 mm; Laufbeschwerung max. 60 mm unter der Laufachse, nicht über die Mündung; Korntunnel max. 80 mm lang, Ø max. 25 mm, max. 50 mm über die Mündung; Kompensatoren/Rückstoßbremsen nicht erlaubt; max. 1 Schuss je Scheibe."
   - kennziffer: "1.43"
     name: "KK Gewehr 50 m Zielfernrohr aufgelegt"
     waffe: "KK-Gewehr (Einzellader oder Mehrlader als Einzellader)"
     munition: "5,6 mm (.22 l.r./.22 lfb)"
     visierung: "Zielfernrohr bis 12-fach"
-    anschlag: "aufgelegt"
+    anschlag: "aufgelegt; stehend, ab Kl. 74 auch sitzend (9.7.6.1)"
     scheibe: "DSB-Scheibe Nr. 3 (50 m Gewehr)"
     ablauf: "auflage-30-50m"
-    # geprüft 2026-11-22: hinweis präzisiert. 0.21 verweist bei der Zeit auf "Tabelle Teil 9", als Beschreibung auf die
-    #   "Gewehrtabelle"; beide führen 1.43 nicht (Teil 1 S. 11 erwähnt 1.43 nur bei der Zielfernrohr-Ausnahme).
-    hinweis: "Nur in Teil 0 (0.21) gelistet (Zeit: siehe Tabelle Teil 9, Beschreibung: Gewehrtabelle); weder die Tabelle Teil 9 noch die Gewehrtabelle führen 1.43. Nicht in der DM-Tabelle 2025–2028."
-    optional: true
-    pruefen: ["ablauf", "anschlag", "zehntelwertung"]
+    # 0.21 (Teil 0 S. 77): Name, Lauflänge min. 40 cm, ZF bis 12-fach, Kaliber, "aufgelegt", 30 Schuss, Scheibe 3;
+    #   Zeit "siehe Tabelle Teil 9", Beschreibung "Gewehrtabelle". Beide Tabellen führen 1.43 nicht; Teil 1 S. 11
+    #   nennt 1.43 nur bei der Zielfernrohr-Ausnahme. 2. Prüfung 2026-11-25:
+    #   - ablauf geklärt: 1.43 ist ein Auflagewettbewerb, also 30 Schuss, Probe unbegrenzt (9.2) und für
+    #     50-m-Wettbewerbe 55/50 Min. inkl. Probe (9.3, Teil 9 S. 2).
+    #   - anschlag geklärt: 0.21 "aufgelegt"; sitzend ab Seniorenklasse III nach 9.7.6.1 (gilt für alle Auflage-Teilnehmer).
+    #   - zehntelwertung offen: 9.4 nennt 1.43 nicht ausdrücklich, die Gruppe gibt Zehntel vor (Inhaberentscheidung).
+    hinweis: "Nur in Teil 0 (0.21) gelistet (Zeit: siehe Tabelle Teil 9, Beschreibung: Gewehrtabelle); weder die Tabelle Teil 9 noch die Gewehrtabelle führen 1.43. Zeit nach 9.3 (55/50 Min. inkl. Probe). Lauflänge mind. 40 cm."
+    optional: true   # laut Feldbedeutung: nicht in der DM-Tabelle 2025–2028
+    pruefen: ["zehntelwertung"]

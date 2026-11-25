@@ -8,7 +8,12 @@
 #   stehend eine Probeserie von 5 Schuss, in der Wettkampfzeit enthalten. Standbelegung 15 Min. vorher (keine Probe).
 #   Gesamtzeit im vorgeschlagenen Feld Variante.wettkampfzeit_gesamt_s.
 # Wertung (1.8.5): Ring zählt nur, wenn die Einschussmitte auf der Ringlinie liegt (Zentrumswertung) – Abweichung von 0.11.3,
-#   im Format nicht abbildbar (siehe Formatbedarf). Gleichstand Vorkampf nach 0.12.1; Endkampf: Stechschuss.
+#   im Format nicht abbildbar (siehe Formatbedarf); 0.11.3 (Teil 0 S. 39) nennt das Ordonnanzgewehr selbst als Ausnahme.
+#   Gleichstand Vorkampf nach 0.12.1 (Teil 0 S. 43); Endkampf: Stechschuss. Ganze Ringe, keine Zehntel.
+# Visierung: TK-Hinweis 8/2015 "Visierungen beim Ordonnanzgewehr", abgedruckt in Teil 14 S. 17–18 (WT-Fußnote * verweist
+#   auf die TK-Anweisungen zu den Visieren, Teil 1 S. 20).
+# Kaliber: WT (Teil 1 S. 19) nennt 6–8 mm Zentralfeuer, 0.21 (Teil 0 S. 78) nur ≤ 8 mm; beides steht in munition.
+# 2. Prüfung 2026-11-25: alle Werte gegen 1.8 (Teil 1 S. 17–18), WT S. 19 (Bild) und Zeiten S. 21 (Bild) nachgerechnet.
 # Änderungen 2026→2027: keine.
 schema: 1
 verband: "dsb"
@@ -24,7 +29,7 @@ wertung:
   zehntelwertung: false
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
   hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
-  geprueft: false
+  geprueft: true # 2. Prüfung 2026-11-25: alle Werte mit SpO 2027 belegt
 ablaeufe:
   ordonnanz-40:
     beschreibung: "Vorkampf 40 Schuss: 2×10 liegend, 2×10 stehend; zusammen 55 Min. (Zuganlage) bzw. 45 Min. (andere Systeme) inkl. Probe; Endkampf der besten 6: 2×5 stehend in je 90 s, wird addiert"
@@ -71,25 +76,25 @@ ablaeufe:
               - { nr: 4, anschlaege: [{ haltung: "stehend" }] }
     finale:
       teilnehmer: 6
-      hinweis: "Endkampf (kein Finale bei null): 2 Serien à 5 Schuss stehend in je 90 s ohne Probe, Ergebnis wird zum Vorkampf addiert. Gleichstand danach: sofort ein Stechschuss in 75 s; dann entscheidet der geringste Abstand zur Scheibenmitte."
+      hinweis: "Endkampf (Teil 1 S. 18): 2 Serien à 5 Schuss stehend in je 90 s ohne Probe, Ergebnis wird zum Vorkampf addiert (kein Neubeginn bei null). Gleichstand danach: sofort ein Stechschuss in 75 s; dann entscheidet der geringste Abstand zur Scheibenmitte."
       abschnitt: "1.8.4, 1.8.5"
 disziplinen:
   - kennziffer: "1.58.O"
     name: "Ordonnanzgewehr offene Visierung"
-    waffe: "Repetiergewehr, bis 31.12.1963 als Ordonnanzwaffe geführt, originalgetreu; keine Einzellader, Unterhebelrepetierer, Halbautomaten; ein Magazin; Schaft wie Original, keine Handstütze"
+    waffe: "Repetiergewehr (Mehrlader), bis 31.12.1963 als Ordonnanzwaffe geführt, originalgetreu; Lauflänge min. 40 cm; keine Einzellader, Unterhebelrepetierer, Halbautomaten; ein Magazin; Schaft wie Original, keine Handstütze"
     munition: "Zentralfeuer 6–8 mm (Teil 1 S. 19; 0.21: bis 8 mm), dem Original entsprechend"
-    visierung: "offen, originalgetreu; keine Diopter- oder Scharfschützenvisierung"
+    visierung: "offene Kimme/Korn wie beim jeweiligen Modell; keine speziellen Diopter- oder Scharfschützenvisiere. Ausnahmen laut TK: Schwedische Feinvisiere (Schweden-Mauser m/96, m/38, m/41, m/41B), U-Kimme/Balkenkorn beim K98k"
     anschlag: "liegend, stehend"
     scheibe: "DSB-Scheibe Nr. 4 (100 m Gewehr)"
     ablauf: "ordonnanz-40"
     hinweis: "Abzugswiderstand mind. 1500 g; keine Flimmerbänder, keine Mündungsbremsen; TK-Anweisungen zu den Visieren beachten. Riemen (wie Original, beidseitig befestigt) nur liegend. Zentrumswertung (1.8.5). Schießjacke/-hose erlaubt. Ganzes Programm mit derselben Waffe."
   - kennziffer: "1.58.G"
     name: "Ordonnanzgewehr geschlossene Visierung"
-    waffe: "Repetiergewehr, bis 31.12.1963 als Ordonnanzwaffe geführt, originalgetreu; keine Einzellader, Unterhebelrepetierer, Halbautomaten; ein Magazin; Schaft wie Original, keine Handstütze"
+    waffe: "Repetiergewehr (Mehrlader), bis 31.12.1963 als Ordonnanzwaffe geführt, originalgetreu; Lauflänge min. 40 cm; keine Einzellader, Unterhebelrepetierer, Halbautomaten; ein Magazin; Schaft wie Original, keine Handstütze"
     munition: "Zentralfeuer 6–8 mm (Teil 1 S. 19; 0.21: bis 8 mm), dem Original entsprechend"
-    visierung: "geschlossen (originalgetreu); keine speziellen Diopter- oder Scharfschützenvisierungen"
+    visierung: "Lochkimme (fest oder verstellbar)/Korn wie beim jeweiligen Modell, ohne Einsätze oder Änderungen; Korntunnel um das Originalkorn erlaubt; kein Zielfernrohr, Matchdiopter, keine verstellbare Lochgröße (Iris), keine Filter. Ausnahmen laut TK: Diopter Pramm/Söderin (Schweden-Mauser), Lochscheibendiopter FR 7/FR 8"
     anschlag: "liegend, stehend"
     scheibe: "DSB-Scheibe Nr. 4 (100 m Gewehr)"
     ablauf: "ordonnanz-40"
+    # Visierung geklärt mit TK-Hinweis 8/2015 (Teil 14 S. 17–18); FR 7/FR 8 nur ohne Mündungsvorrichtung.
     hinweis: "Abzugswiderstand mind. 1500 g; keine Flimmerbänder, keine Mündungsbremsen; TK-Anweisungen zu den Visieren beachten. Riemen (wie Original, beidseitig befestigt) nur liegend. Zentrumswertung (1.8.5). Schießjacke/-hose erlaubt. Ganzes Programm mit derselben Waffe."
-    pruefen: ["visierung"]

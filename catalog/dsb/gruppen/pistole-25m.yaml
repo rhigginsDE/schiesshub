@@ -8,6 +8,9 @@
 # Änderungen 2026→2027 (Synopse): 2.3.1 Nachladen während der Wettkampfzeit ohne Genehmigung führt zur Disqualifikation;
 #   2.7.3 Munitionsversager berechtigt nicht zur "Auszeit"; 2.10.5 Kimme und Korn schwarz, keine Leuchtstäbchen.
 #   Keine Änderung an Schusszahlen oder Zeiten.
+# Zweite Prüfung 2026-11-25 (gegen SpO 2027): Schusszahlen und Zeiten (Tabelle Teil 2 S. 24–25), Pistolentabelle
+#   (S. 23) und Scheiben (0.20, Teil 0 S. 68) als Bild bzw. Text geprüft; Finalformate Teil 15 S. 15, 23–29 bestätigt.
+#   Offene Punkte 2.31 (Reihenfolge) und 2.41 (Schusszahl) aus der SpO geklärt, siehe dort.
 schema: 1
 verband: "dsb"
 gruppe:
@@ -19,13 +22,15 @@ gruppe:
 wertung:
   modell: "ringe"
   rangfolge: "absteigend"
-  zehntelwertung: false   # Schusszahlentabelle DM: keine Zehntel
+  # Volle Ringe: Teil 2 (2.16–2.22) und 0.11 sehen im Vorkampf keine Zehntel vor; die Finals werten Treffer/Fehler.
+  zehntelwertung: false
   # SpO 2.9: Plätze 1–3 ohne Finale per Stechen (Stechserie je Wettbewerb, siehe hinweis), außer bei Höchstringzahl;
   # übrige Plätze nach 0.12.1.
   gleichstand: ["stechen", "letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
   hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43) i. V. m. 2.9 (Teil 2 S. 11)
   stechen_bis_platz: 3
-  geprueft: false
+  # Zweite Prüfung 2026-11-25: alle Werte mit der SpO 2027 belegt, keine offenen Punkte.
+  geprueft: true
 ablaeufe:
   schnellfeuer-2x30:
     beschreibung: "60 Schuss: 2 Durchgänge à 30 Schuss, je 2 Serien in 8 s, 2 in 6 s, 2 in 4 s; 5 Schuss auf 5 Scheiben"
@@ -68,8 +73,8 @@ ablaeufe:
               - { nr: 6, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
     finale:
       teilnehmer: 6
-      abschnitt: "SpO 15.1.1.1; Teil 15 S. 23–26"
-      hinweis: "DM-Finalklassen Herren I und Junioren I m. Start bei null; 5-Schuss-Serien in 4 s, Wertung Treffer/Fehler (Treffer ab 9,7); Ausscheiden ab der 4. Serie, nach der 8. Serie Gold/Silber."
+      abschnitt: "SpO 15.1.1.1, 15.1.1.5; Teil 15 S. 23–26"
+      hinweis: "Finalklassen regelt die Ausschreibung (DM: Herren I, Junioren I m). Start bei null; 5-Schuss-Serien in 4 s, Wertung Treffer/Fehler (Treffer ab 9,7); Ausscheiden ab der 4. Serie, nach der 8. Serie Gold/Silber."
   schnellfeuer-nachwuchs-2x30:
     beschreibung: "60 Schuss: 2 Durchgänge à 30 Schuss, je 3 Serien in 8 s und 3 in 6 s"
     varianten:
@@ -81,7 +86,9 @@ ablaeufe:
             serien: 6
             schuss_je_serie: 5
             ziele_je_serie: 5
-            zeiten_s: [8, 8, 8, 6, 6, 6]   # Reihenfolge in SpO 2.17.2 nicht ausdrücklich geregelt
+            # Reihenfolge: 2.17.3 verweist auf 2.16.3, dort Ansage der Serien in der Folge 8 s – 6 s – 4 s.
+            # Probeserie nennt 2.17 nicht (2.16.2 mit Probe in 8 s gilt nur für 2.30), daher keine probeschuesse.
+            zeiten_s: [8, 8, 8, 6, 6, 6]
             ringwerte: [10, 9, 8, 7, 6, 5, 0]
             vorbereitung_probe_s: 180
             positionen:
@@ -144,8 +151,8 @@ ablaeufe:
               - { nr: 6, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
     finale:
       teilnehmer: 8
-      abschnitt: "SpO 15.1.1.1; Teil 15 S. 26–29"
-      hinweis: "DM-Finalklassen Damen I und Junioren I w. Start bei null; 5-Schuss-Serien im Schnellfeuermodus (3 s), Wertung Treffer/Fehler (Treffer ab 10,2); Ausscheiden ab der 4. Serie, nach der 10. Serie Gold/Silber."
+      abschnitt: "SpO 15.1.1.1, 15.1.1.5; Teil 15 S. 26–29"
+      hinweis: "Finalklassen regelt die Ausschreibung (DM: Damen I, Junioren I w). Start bei null; 5-Schuss-Serien im Schnellfeuermodus (3 s), Wertung Treffer/Fehler (Treffer ab 10,2); Ausscheiden ab der 4. Serie, nach der 10. Serie Gold/Silber."
   zentralfeuer-30-30:
     beschreibung: "60 Schuss (wie 2.40, ohne Finale): Präzision 6×5 in je 5 Min., Duell 6×5 (je Schuss 3 s Sicht, 7 s weggedreht)"
     varianten:
@@ -326,9 +333,9 @@ disziplinen:
     anschlag: "stehend frei, einhändig; jede Serie aus der Fertighaltung (SpO 2.6)"
     scheibe: "DSB-Scheibe Nr. 10 (25 m Schnellfeuer/Duell)"
     ablauf: "schnellfeuer-nachwuchs-2x30"
-    hinweis: "Waffe wie 2.30 (Pistolentabelle). Stechserie: 6-s-Serie (SpO 2.17.3). Nicht in der DM-Tabelle 2025–2028."
+    # geprüft 2026-11-25: pruefen ["ablauf"] entfernt; Reihenfolge 8 s vor 6 s aus 2.17.3 i. V. m. 2.16.3.
+    hinweis: "Waffe wie 2.30 (Pistolentabelle). Vorlaufzeit 7 s (SpO 2.16.3 über 2.17.3). Stechserie: 6-s-Serie (SpO 2.17.3). Nicht in der DM-Tabelle 2025–2028."
     optional: true
-    pruefen: ["ablauf"]
   - kennziffer: "2.40"
     name: "25 m Pistole"
     waffe: "Revolver oder selbstladende Pistole"
@@ -347,9 +354,11 @@ disziplinen:
     anschlag: "stehend frei, einhändig; Duell aus der Fertighaltung vor jedem Schuss"
     scheibe: "Präzision: DSB-Scheibe Nr. 4; Duell: DSB-Scheibe Nr. 10"
     ablauf: "praezision-duell-20-20"
-    hinweis: "Waffe wie 2.40. Teil 2 (2.19.2 und Schießzeitentabelle) nennt 40 Schuss; die Wettbewerbstabelle 0.21 nennt 60. Eingetragen: 40 nach Teil 2. Nicht in der DM-Tabelle 2025–2028."
+    # geprüft 2026-11-25: pruefen ["ablauf"] entfernt. 40 Schuss nach 2.19.2 (je 20 Schuss Präzision und Duell) und
+    #   Schießzeitentabelle Teil 2 S. 24 (4+4 Serien); die Zeile in 0.21 (Teil 0 S. 81, 60 Schuss) verweist für die
+    #   Beschreibung selbst auf die Pistolentabelle und gleicht wortgleich der Zeile 2.40.
+    hinweis: "Waffe wie 2.40. Teil 2 (2.19.2 und Schießzeitentabelle) nennt 40 Schuss; die Wettbewerbstabelle 0.21 nennt 60. Eingetragen: 40 nach Teil 2. Auf Papier max. 5 Schuss je Scheibe. Stechserie: Schnellfeuer-(Duell-)Serie. Nicht in der DM-Tabelle 2025–2028."
     optional: true
-    pruefen: ["ablauf"]
   - kennziffer: "2.45"
     name: "25 m Zentralfeuerpistole"
     waffe: "Revolver oder selbstladende Pistole"

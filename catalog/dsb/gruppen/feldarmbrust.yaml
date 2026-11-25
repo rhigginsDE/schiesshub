@@ -5,9 +5,14 @@
 #   Teil 0: 0.21 (S. 86), Scheiben Nr. 18 und Nr. 21 (0.20, S. 72 und S. 74).
 # Feldarmbrust steht nicht in der DM-Tabelle 2025–2028 (keine DM-Klassen). IAU-1800 (2 Tage, 5.14.2.6) hat keine
 #   eigene Kennziffer und ist daher nicht aufgenommen.
-# geprüft 2026-11-22: Tabelle Teil 5 S. 17 für 5.41–5.43 (nicht sicher zuordenbar, daher pruefen waffe/visierung):
-#   Spalte Gewicht/Sehnenlänge "≤10000 g" und "≤900 mm"; Schäftung frei, Visierlinie ≤760 mm; Visierhilfe Wasserwaage,
-#   Visiereinrichtung mit Zubehör 150 mm.
+# Zweite Prüfung 2026-11-25: Tabelle Teil 5 S. 17 als Bild gelesen. Die Zellen Gewicht/Sehnenlänge (≤10000 g, ≤900 mm),
+#   Schäftung/Visierlinie (frei, ≤760 mm), Visierhilfe (Wasserwaage; Visiereinrichtung mit Zubehör 150 mm) und
+#   Pfeile gehen über 5.41, 5.42 und 5.43 und gelten für alle drei. Was "Visiereinrichtung mit Zubehör 150 mm" begrenzt,
+#   sagt die Tabelle nicht (pruefen "visierung").
+# Scheiben: 0.21 (Teil 0 S. 86) nennt für 5.41–5.43 Scheibe Nr. 18. Die Scheibenseiten 0.20 nennen Nr. 18 für 18 m und
+#   IAU 900 35 m (Teil 0 S. 72), Nr. 21 mit Auflage 40 cm für 25 m und 60 cm für 65/50 m (Teil 0 S. 74). 5.14.1.1 spricht
+#   von 60-cm- und 40-cm-Scheiben. Widerspruch innerhalb der SpO, daher pruefen "scheibe" bei 5.42/5.43 und keine
+#   ringwerte dort, wo die Scheibe strittig ist (Nr. 18 wertet 10–6, Nr. 21 wertet 10–1).
 # Änderungen 2026→2027 in Teil 5: keine. Teil 0, Scheibe Nr. 18: nur Satz zur Ziffernbeschriftung ergänzt (Synopse).
 schema: 1
 verband: "dsb"
@@ -19,9 +24,10 @@ gruppe:
 wertung:
   modell: "ringe"
   rangfolge: "absteigend"
-  # SpO 5.14.2.2: mehr Treffer, dann mehr Innenzehner, dann mehr Zehner; sonst gleicher Rang.
+  # SpO 5.14.2.2 (Teil 5 S. 16): mehr Treffer, dann mehr Innenzehner, dann mehr Zehner; sonst gleicher Rang.
+  # hoechstergebnis_gleicher_rang nicht gesetzt: eigene Gleichstandsregel 5.14.2.2 statt 0.12.1.
   gleichstand: ["mehr_treffer", "innenzehner", "zehner"]
-  geprueft: false
+  geprueft: false # offen: Scheibe Nr. 18 oder 21 bei 25 m (0.21 gegen 0.20), davon hängen die Ringwerte ab; sonst alle Werte belegt (2. Prüfung 2026-11-25)
 ablaeufe:
   # geprüft 2026-11-22: IAU 600 in 18 m und 25 m getrennt, damit die zwei Probeserien für 18 m (5.14.2.1) eingetragen
   #   werden können; für 25 m regelt 5.14.2.1 keine Probe (alt: ein gemeinsamer Ablauf iau-600 ohne Probeschüsse).
@@ -33,10 +39,12 @@ ablaeufe:
         abschnitte:
           - id: "wertung"
             name: "Wertung"
-            serien: 20
+            serien: 20                # 60 Pfeile (Tabelle S. 17; 0.21) / 3
             schuss_je_serie: 3
-            zeit_je_serie_s: 180      # 5.14.2; 0.21
-            probeschuesse: 6          # zwei Probeserien à 3 Pfeile, je 5 Min. (5.14.2.1, 18 m)
+            zeit_je_serie_s: 180      # 3 Min. = 180 s (5.14.2; 0.21)
+            ringwerte: [10, 9, 8, 7, 6, 0]   # zweite Prüfung 2026-11-25: ergänzt, Scheibe Nr. 18 wertet 10–6 (Teil 0 S. 72)
+            vorbereitung_probe_s: 600 # zweite Prüfung 2026-11-25: ergänzt, 2 Probeserien × 5 Min. = 600 s (5.14.2.1)
+            probeschuesse: 6          # zwei Probeserien à 3 Pfeile (5.14.2.1, 18 m)
   iau-600-25:
     beschreibung: "60 Pfeile: 20 Serien zu 3 Pfeilen in je 3 Min.; Probe für 25 m in der SpO nicht geregelt"
     varianten:
@@ -47,7 +55,8 @@ ablaeufe:
             name: "Wertung"
             serien: 20
             schuss_je_serie: 3
-            zeit_je_serie_s: 180      # 5.14.2; 0.21
+            zeit_je_serie_s: 180      # 5.14.2; 0.21 (Teil 0 S. 86); Tabelle S. 17 (gemeinsame Zelle mit 5.41)
+            # Probe für 25 m nennt 5.14.2.1 nicht; ringwerte offen wegen Scheibe Nr. 18/21 (siehe Kopf).
   iau-900:
     beschreibung: "90 Pfeile: je 30 auf 65 m, 50 m, 35 m; Serien zu 3 Pfeilen in je 3 Min."
     varianten:
@@ -60,13 +69,15 @@ ablaeufe:
             schuss_je_serie: 3
             zeit_je_serie_s: 180
             distanzen_m: [65, 65, 65, 65, 65, 65, 65, 65, 65, 65]
-            probeschuesse: 6          # zwei Probeserien à 3 Pfeile, je 5 Min. (5.14.2.1)
+            vorbereitung_probe_s: 600 # zweite Prüfung 2026-11-25: ergänzt, 2 × 5 Min. = 600 s (5.14.2.1)
+            probeschuesse: 6          # zwei Probeserien à 3 Pfeile (5.14.2.1)
           - id: "distanz-50"
             name: "50 m"
             serien: 10
             schuss_je_serie: 3
             zeit_je_serie_s: 180
             distanzen_m: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50]
+            vorbereitung_probe_s: 300 # zweite Prüfung 2026-11-25: ergänzt, 1 × 5 Min. = 300 s (5.14.2.1)
             probeschuesse: 3          # eine Probeserie (5.14.2.1)
           - id: "distanz-35"
             name: "35 m"
@@ -74,35 +85,37 @@ ablaeufe:
             schuss_je_serie: 3
             zeit_je_serie_s: 180
             distanzen_m: [35, 35, 35, 35, 35, 35, 35, 35, 35, 35]
+            ringwerte: [10, 9, 8, 7, 6, 0]   # zweite Prüfung 2026-11-25: ergänzt, 35 m auf Scheibe Nr. 18 laut 0.20 und 0.21
+            vorbereitung_probe_s: 300 # zweite Prüfung 2026-11-25: ergänzt, 1 × 5 Min. = 300 s (5.14.2.1)
             probeschuesse: 3          # eine Probeserie (5.14.2.1)
 disziplinen:
   - kennziffer: "5.41"
     name: "Feldarmbrust IAU 600 – 18 m"
-    waffe: "Armbrust jeder Art mit mechanischem Abzug und Pfeilsperre (5.14.1.4), max. 10 000 g"
+    waffe: "Armbrust jeder Art mit mechanischem Abzug und Pfeilsperre (5.14.1.4); max. 10 000 g, Sehnenlänge ≤900 mm, Schäftung frei (Tabelle S. 17)"
     munition: "Pfeile 304–457 mm, Spitzenwinkel max. 65°, mit Initialen gekennzeichnet"
-    visierung: "Diopter/Korn, Wasserwaage erlaubt"
+    visierung: "Diopter/Korn (0.21), Visierlinie max. 760 mm, Wasserwaage erlaubt; Tabelle S. 17: Visiereinrichtung mit Zubehör 150 mm"
     anschlag: "stehend"
     scheibe: "DSB-Scheibe Nr. 18 (Dreifachauflage, Wertung 10–6)"
     ablauf: "iau-600-18"
     hinweis: "Hallenwettbewerb 18 m. Zwei Probeserien. Nicht in der DM-Tabelle 2025–2028."
-    pruefen: ["waffe", "visierung"]
+    pruefen: ["visierung"]
   - kennziffer: "5.42"
     name: "Feldarmbrust IAU 600 – 25 m"
-    waffe: "Armbrust jeder Art mit mechanischem Abzug und Pfeilsperre (5.14.1.4), max. 10 000 g"
+    waffe: "Armbrust jeder Art mit mechanischem Abzug und Pfeilsperre (5.14.1.4); max. 10 000 g, Sehnenlänge ≤900 mm, Schäftung frei (Tabelle S. 17)"
     munition: "Pfeile 304–457 mm, Spitzenwinkel max. 65°, mit Initialen gekennzeichnet"
-    visierung: "Diopter/Korn, Wasserwaage erlaubt"
+    visierung: "Diopter/Korn (0.21), Visierlinie max. 760 mm, Wasserwaage erlaubt; Tabelle S. 17: Visiereinrichtung mit Zubehör 150 mm"
     anschlag: "stehend"
-    scheibe: "laut 0.21 Scheibe Nr. 18; laut Scheibentabelle 0.20 Scheibe Nr. 21, Auflage 40 cm (Widerspruch, offen)"
+    scheibe: "laut 0.21 Scheibe Nr. 18; laut Scheibenseite 0.20 (Teil 0 S. 74) Scheibe Nr. 21, Auflage 40 cm (Widerspruch in der SpO)"
     ablauf: "iau-600-25"
     hinweis: "25 m. Anzahl Probeserien für 25 m in 5.14.2.1 nicht geregelt. Nicht in der DM-Tabelle 2025–2028."
-    pruefen: ["scheibe", "waffe", "visierung"]
+    pruefen: ["scheibe", "visierung"]
   - kennziffer: "5.43"
     name: "Feldarmbrust IAU 900"
-    waffe: "Armbrust jeder Art mit mechanischem Abzug und Pfeilsperre (5.14.1.4), max. 10 000 g"
+    waffe: "Armbrust jeder Art mit mechanischem Abzug und Pfeilsperre (5.14.1.4); max. 10 000 g, Sehnenlänge ≤900 mm, Schäftung frei (Tabelle S. 17)"
     munition: "Pfeile 304–457 mm, Spitzenwinkel max. 65°, mit Initialen gekennzeichnet"
-    visierung: "Diopter/Korn, Wasserwaage erlaubt"
+    visierung: "Diopter/Korn (0.21), Visierlinie max. 760 mm, Wasserwaage erlaubt; Tabelle S. 17: Visiereinrichtung mit Zubehör 150 mm"
     anschlag: "stehend"
-    scheibe: "65 m und 50 m: Scheibe Nr. 21, Auflage 60 cm; 35 m: Scheibe Nr. 18 (laut 0.20; 0.21 nennt nur Nr. 18)"
+    scheibe: "65 m und 50 m: Scheibe Nr. 21, Auflage 60 cm; 35 m: Scheibe Nr. 18 (laut 0.20, Teil 0 S. 72/74; 0.21 nennt nur Nr. 18)"
     ablauf: "iau-900"
     hinweis: "Reihenfolge 65 m – 50 m – 35 m an einem Tag (5.14.2.5). Nicht in der DM-Tabelle 2025–2028."
-    pruefen: ["scheibe", "waffe", "visierung"]
+    pruefen: ["scheibe", "visierung"]

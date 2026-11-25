@@ -1,10 +1,13 @@
 # Vorderlader Kurzwaffe 25 m – DSB-Disziplinen
 # Pflege: siehe catalog/README.md. Nur Fakten eintragen, keine Regeltexte kopieren.
-# Quelle: DSB-Sportordnung, Stand 01.01.2027, Teil 7: 7.1–7.7, Vorderladertabelle (Teil 7 S. 12–13);
-#   Teil 0: 0.21 (S. 89), 0.20 (S. 62, 65), 0.4.3.2, 0.12.1; Teil 9 Auflagetabelle (S. 8) für 7.51.
-#   DM-Klassen: Tabelle Wettbewerbe/Klassen DM 2025–2028.
-# Änderungen 2026→2027 in Teil 7: keine. Klassen-IDs vorläufig (müssen zu dsb/klassen.yaml passen).
+# Quelle: DSB-Sportordnung, Stand 01.01.2027 (Gesamt-PDF), Teil 7: 7.1–7.7, Vorderladertabelle (Teil 7 S. 12–13);
+#   Teil 0: 0.1.1 (S. 1), 0.2 (S. 4), 0.4.3.2 (S. 12), 0.12.1 (S. 43), Scheiben 0.20 (S. 62, 65), Wettbewerbe 0.21 (S. 89);
+#   Teil 2: 2.1; Teil 9: 9.2–9.4.1, 9.8 (S. 1–2, 6–7) und Auflagetabelle (S. 8) für 7.51.
+# Änderungen 2026→2027 in Teil 7: keine (Synopse 01.01.2027 ohne Teil-7-Eintrag). Seit 01.01.2026 heißt 7.51 in 0.21
+#   „… – Auflage“ (Synopse 2026).
 # geprüft 2026-11-22: Lauflänge min. 10 cm bei allen Disziplinen ergänzt (0.21, Teil 0 S. 89).
+# geprüft 2026-11-25 (2. Prüfung): alle Werte gegen SpO 2027 abgeglichen; DM-Angaben aus den Hinweisen entfernt
+#   (keine SpO-Quelle, gehören in startrecht.yaml); 7.51 Zeit geklärt; Stecher/Seitenblenden bei 7.61 ergänzt.
 schema: 1
 verband: "dsb"
 gruppe:
@@ -16,7 +19,15 @@ gruppe:
 wertung:
   modell: "ringe"
   rangfolge: "absteigend"
-  gleichstand: ["zehner", "neuner_abwaerts", "geringste_abweichung_aeusserster_schuss"]   # SpO 7.7.5.1
+  # SpO 7.7.5.1 (Teil 7 S. 8): Anzahl 10er, dann 9er, 8er usw.; dann geringste Abweichung des äußersten Schusses.
+  # Mannschaft: dieselben Kriterien über alle Schüsse der Mannschaft (Format: Formatbedarf).
+  gleichstand: ["zehner", "neuner_abwaerts", "geringste_abweichung_aeusserster_schuss"]
+  # Ganze Ringe, maßgeblich ist die Einschussmitte (SpO 7.7.5); 9.4 nennt 7.51 nicht unter den Zehntel-Wettbewerben.
+  zehntelwertung: false
+  # SpO 0.12.1 Satz 1 (Teil 0 S. 43): Vorderlader ausgenommen, Höchstergebnisse werden unterschieden.
+  hoechstergebnis_gleicher_rang: false
+  # 2. Prüfung 2026-11-25: false, weil bei 7.51 offen ist, ob 7.7.5.1 oder 9.4.1 den Gleichstand regelt
+  # (eine Gruppe hat nur eine Gleichstandskette).
   geprueft: false
 ablaeufe:
   kugel-15:
@@ -28,12 +39,16 @@ ablaeufe:
           - id: "wertung"
             name: "Wertung"
             # 15 Wertungsschüsse, alle zählen (SpO 7.7.5; 0.21); 3×5 nach SpO 0.4.3.2 (5er-Serien bei Vorderlader).
+            # Pause vor der Wertung bis 5 Min. bzw. 1 Min. (7.7.2) – im Format nicht abbildbar.
             serien: 3
             schuss_je_serie: 5
-            vorbereitung_probe_s: 600     # SpO 7.7.1
-            probeschuesse: "unbegrenzt"   # SpO 7.7.1
-            wettkampfzeit_s: 2400         # SpO 7.7.3
+            vorbereitung_probe_s: 600     # 10 Min. = 600 s, SpO 7.7.1 (Teil 7 S. 6)
+            probeschuesse: "unbegrenzt"   # nur in der Vorbereitungszeit, SpO 7.7.1
+            wettkampfzeit_s: 2400         # 40 Min. = 2400 s, SpO 7.7.3 (Teil 7 S. 6); 0.21
   auflage-15:
+    # 7.51 richtet sich nach Teil 9: 0.21 verweist bei 7.51 auf „Tabelle Teil 9“, die Vorderladertabelle führt 7.51 nicht,
+    # Teil 0 gilt nur nachrangig (0.1.1). Die Zeile 7.51 der Auflagetabelle (Teil 9 S. 8) nennt 15 Schuss, 55 bzw. 45 Min.
+    # inkl. Probe. 9.3 nennt für 25 m nur die Pistole Präzision (6 × 5 in je 150 s), das betrifft 7.51 nicht.
     beschreibung: "15 Schuss aufgelegt; 55 Min. inkl. Probe (Zuganlage) bzw. 45 Min. inkl. Probe (andere Systeme)"
     varianten:
       - id: "zuganlage"
@@ -43,7 +58,9 @@ ablaeufe:
             name: "Wertung"
             serien: 3
             schuss_je_serie: 5
-            wettkampfzeit_s: 3300         # Teil 9 Auflagetabelle, inkl. Probe
+            probeschuesse: "unbegrenzt"   # vor dem ersten Wertungsschuss, innerhalb der Schießzeit (SpO 9.2)
+            wettkampfzeit_s: 3300         # 55 Min. = 3300 s inkl. Probe, Auflagetabelle (Teil 9 S. 8)
+            # einhändig: Teil 2 gilt (9.8, 2.1); die nicht abziehende Hand darf Auflage/Waffe nicht umfassen (9.8.3)
             positionen:
               - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig", aufgelegt: true }, { haltung: "sitzend", hand: "einhaendig", aufgelegt: true }] }
               - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig", aufgelegt: true }, { haltung: "sitzend", hand: "einhaendig", aufgelegt: true }] }
@@ -55,7 +72,8 @@ ablaeufe:
             name: "Wertung"
             serien: 3
             schuss_je_serie: 5
-            wettkampfzeit_s: 2700         # Teil 9 Auflagetabelle, inkl. Probe
+            probeschuesse: "unbegrenzt"   # SpO 9.2
+            wettkampfzeit_s: 2700         # 45 Min. = 2700 s inkl. Probe, Auflagetabelle (Teil 9 S. 8)
             positionen:
               - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig", aufgelegt: true }, { haltung: "sitzend", hand: "einhaendig", aufgelegt: true }] }
               - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig", aufgelegt: true }, { haltung: "sitzend", hand: "einhaendig", aufgelegt: true }] }
@@ -69,7 +87,7 @@ disziplinen:
     anschlag: "stehend frei, einhändig (SpO 7.1.4 i. V. m. 2.1)"
     scheibe: "DSB-Scheibe Nr. 4 (25 m Präzision / Vorderlader)"
     ablauf: "kugel-15"
-    hinweis: "Schäftung nur glatt; kein Stecher; max. 7 Züge, kein Polygonlauf; Laden in drei Ladevorgängen (SpO 7.7.4.3). Ab 18 Jahren."
+    hinweis: "Schäftung nur glatt; kein Stecher; max. 7 Züge, kein Polygonlauf; Laden in drei Ladevorgängen (SpO 7.7.4.3); alle geladenen Kammern mit Zündhütchen (7.7.4.6). Ab 18 Jahren (SpO 0.2 Nr. 3)."
   - kennziffer: "7.50"
     name: "Perkussionspistole"
     waffe: "Perkussionspistole (Original oder Replika); Lauflänge min. 10 cm"
@@ -78,20 +96,22 @@ disziplinen:
     anschlag: "stehend frei, einhändig (SpO 7.1.4 i. V. m. 2.1)"
     scheibe: "DSB-Scheibe Nr. 4 (25 m Präzision / Vorderlader)"
     ablauf: "kugel-15"
-    hinweis: "Stecher erlaubt. Ab 18 Jahren."
+    hinweis: "Stecher erlaubt. Ab 18 Jahren (SpO 0.2 Nr. 3)."
   - kennziffer: "7.51"
     name: "Perkussionspistole – Auflage"
     waffe: "Perkussionspistole (Original oder Replika); Lauflänge min. 10 cm"
     munition: "Kaliber beliebig; Schwarzpulver; Rundkugel"
     # geprüft 2026-11-22: visierung korrigiert ("dem Original entsprechend" ist die Spalte Schäftung der Auflagetabelle,
-    #   Teil 9 S. 8; Visierhilfe/opt. Zielhilfsmittel: "keine"). Zeit offen: 0.21 40 Min., Auflagetabelle 55/45 Min. inkl. Probe.
-    #   Gleichstand offen: 7.7.5.1 oder 9.4.1. Spalte "Max. Schusszahl pro Scheibe" = "7/8", Bedeutung unklar.
+    #   Teil 9 S. 8; Visierhilfe/opt. Zielhilfsmittel: "keine").
+    # 2. Prüfung 2026-11-25: Zeit geklärt (siehe Ablauf auflage-15), Anschlag laut Auflagetabelle eindeutig; "7/8" in
+    #   "Max. Schusszahl pro Scheibe" lässt sich als 15 = 7 + 8 Schuss auf zwei Papierscheiben lesen, kein Katalogwert
+    #   hängt davon ab. Offen bleibt der Gleichstand: 7.7.5.1 oder 9.4.1 (Plätze 1–6); die SpO regelt den Vorrang nicht.
     visierung: "wie Original (7.4.2.2); keine Visierhilfe, kein optisches Zielhilfsmittel"
-    anschlag: "stehend aufgelegt (Kl. 70–73) bzw. auch sitzend aufgelegt (Kl. 74–81)"
+    anschlag: "stehend aufgelegt (Kl. 70–73) bzw. auch sitzend aufgelegt (Kl. 74–81), einhändig"
     scheibe: "DSB-Scheibe Nr. 4 (25 m Präzision / Vorderlader)"
     ablauf: "auflage-15"
-    hinweis: "Regeln nach Teil 9 (Auflage). Schäftung dem Original entsprechend, Laufbeschwerung nicht erlaubt (Teil 9 S. 8). Kennzahl seit 01.01.2026 mit Zusatz „Auflage“. Nicht in der DM-Tabelle 2025–2028."
-    pruefen: ["ablauf", "anschlag", "gleichstand"]
+    hinweis: "Regeln nach Teil 9 (Auflage). Schäftung dem Original entsprechend, Laufbeschwerung nicht erlaubt (Teil 9 S. 8). Kennzahl seit 01.01.2026 mit Zusatz „Auflage“. Ab 18 Jahren (SpO 0.2 Nr. 3)."
+    pruefen: ["gleichstand"]
   - kennziffer: "7.60"
     name: "Steinschlosspistole"
     waffe: "Steinschlosspistole (Original oder Replika); Lauflänge min. 10 cm"
@@ -100,13 +120,13 @@ disziplinen:
     anschlag: "stehend frei, einhändig (SpO 7.1.4 i. V. m. 2.1)"
     scheibe: "DSB-Scheibe Nr. 4 (25 m Präzision / Vorderlader)"
     ablauf: "kugel-15"
-    hinweis: "Stecher erlaubt; undurchlässige Seitenblenden Pflicht (SpO 7.3). Ab 18 Jahren."
+    hinweis: "Stecher erlaubt; undurchlässige Seitenblenden Pflicht (SpO 7.3). Ab 18 Jahren (SpO 0.2 Nr. 3)."
   - kennziffer: "7.61"
     name: "Luntenschlosspistole"
     waffe: "Luntenschlosspistole mit glattem Lauf (Original oder Replika); Lauflänge min. 10 cm"
-    munition: "mind. 8,6 mm; Schwarzpulver; Rundkugel"
-    visierung: "Kimme und Korn wie Original, fest (japanische Visierungen)"
+    munition: "mind. 8,6 mm; Schwarzpulver nach Richtsatz; Rundkugel"
+    visierung: "Kimme und Korn wie Original, fest (japanische Visierungen; Rechteckkimme zulässig, 7.4.2.2.2)"
     anschlag: "stehend frei, einhändig (SpO 7.1.4 i. V. m. 2.1)"
     scheibe: "DSB-Scheibe Nr. 4 (25 m Präzision / Vorderlader)"
     ablauf: "kugel-15"
-    hinweis: "Nicht in der DM-Tabelle 2025–2028."
+    hinweis: "Stecher originalgetreu; undurchlässige Seitenblenden Pflicht (SpO 7.3); glimmende Lunte gegen Wegfliegen sichern (7.7.4.2). Ab 18 Jahren (SpO 0.2 Nr. 3)."

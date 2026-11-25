@@ -8,7 +8,10 @@
 #   Klassen: Tabelle Wettbewerbe/Klassen DM 2025–2028 (Stand 21.02.2025).
 # Achtung Nummern: Die Wettbewerbskennzahl steht in Klammern hinter dem Regelabschnitt. Regelabschnitt 2.11 regelt den
 #   Wettbewerb 2.10, Regelabschnitt 2.12 den Wettbewerb 2.16 (Mehrschüssige LP). Die Kennzahl 2.12 (Mix Team) kommt
-#   in Teil 2 nicht vor; sie stammt aus der DM-Tabelle, die Regeln stehen in Teil 15.2.
+#   in Teil 2 und in 0.21 nicht vor; sie steht in der Tabelle olympischer Wettbewerbe SpO 0.9.1 (Teil 0 S. 31), die
+#   Regeln stehen in Teil 15.2.
+# Zweite Prüfung 2026-11-25 (gegen SpO 2027): Zeiten, Schusszahlen, Scheibe, Finale und Gleichstand bestätigt; Belege
+#   für Zehntel und Mix-Team-Probe aus der SpO ergänzt.
 # Änderung 2026→2027: Mix Team Vorkampf 30 statt 40 Schuss je Sportler, 40 statt 50 Min. (SpO 15.2.2.5, Synopse 2027).
 # Klassen-IDs sind vorläufig und müssen zu dsb/klassen.yaml passen (Klassennummern: schueler-m 20, schueler-w 21,
 #   jugend-m 30, jugend-w 31, junioren-ii-m 42, junioren-ii-w 43, junioren-i-m 40, junioren-i-w 41, herren-i 10,
@@ -24,21 +27,24 @@ gruppe:
 wertung:
   modell: "ringe"
   rangfolge: "absteigend"
-  # Volle Ringe: Die Schusszahlentabelle der DM-Ausschreibung sieht für 2.10 und 2.12 keine Zehntel vor;
-  # Mix Team Vorkampf ausdrücklich volle Ringe (SpO 15.2.2.6). Zehntel nur im Finale (Teil 15).
+  # Volle Ringe: SpO 2.11 und 0.11 sehen für den Vorkampf 2.10 keine Zehntel vor; Mix Team Vorkampf ausdrücklich
+  # volle Ringe (SpO 15.2.2.6, Teil 15 S. 11). Zehntel nur im Finale (Teil 15 S. 15, 15.2.3.3).
   zehntelwertung: false
   # SpO 0.12.1: letzte 10er-Serie und rückwärts, dann Zahl der 10er, 9er, 8er …, dann Innenzehner; sonst gleicher Rang.
   # Wer das Höchstergebnis erreicht, wird ohne Finale nicht unterschieden.
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
   hoechstergebnis_gleicher_rang: true # SpO 0.12.1 Satz 1 (Teil 0 S. 43)
-  geprueft: false
+  # Zweite Prüfung 2026-11-25: alle Werte mit der SpO 2027 belegt, keine offenen Punkte. Mix Team Vorbereitung:
+  # SpO 10 Min. gilt gegen DM-Ausschreibung 15 Min.
+  geprueft: true
 ablaeufe:
   luftpistole:
     beschreibung: "60, 40 oder 20 Schuss je nach Klasse/Ebene; 15 Min. Vorbereitung mit unbegrenzter Probe"
     # Schusszahl laut DM-Schusszahlentabelle: 60 Schuss auf der DM für Herren I–II, Damen I–II, Junioren I–II m/w
     # (Meldeschusszahl LM für diese Klassen: 40); alle übrigen Klassen 40; Schüler 20.
     # Schießzeiten (SpO Teil 2 S. 24): Zuganlagen 90/60/35 Min., andere Systeme (z. B. elektronisch) 75/50/30 Min.
-    # Aufteilung in 10er-Serien, weil SpO 0.12.1 nach 10-Schuss-Serien vergleicht.
+    # Aufteilung in 10er-Serien: SpO 0.11.5.2 (Ablage nach jeder 10-Schuss-Serie) und 0.12.1 (Vergleich in
+    # 10-Schuss-Serien), Teil 0 S. 43. Schusszahlen 20/40/60 und Zeiten: Schießzeitentabelle Teil 2 S. 24 (als Bild geprüft).
     varianten:
       - id: "60-andere-systeme"
         name: "60 Schuss, elektronische/andere Systeme"
@@ -132,8 +138,8 @@ ablaeufe:
               - { nr: 2, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
     finale:
       teilnehmer: 8
-      abschnitt: "SpO 15.1.1.1; Teil 15 S. 15–17"
-      hinweis: "Nur in den Finalklassen der DM (Herren I, Damen I, Junioren I m/w). Start bei null, Zehntelwertung; 2×5 Schuss in je 250 s, dann 14 Einzelschüsse in je 50 s; ab dem 12. Schuss scheidet nach jedem zweiten Schuss der Letzte aus."
+      abschnitt: "SpO 15.1.1.1, 15.1.1.5; Teil 15 S. 15–17"
+      hinweis: "Finalklassen regelt die Ausschreibung (DM: Herren I, Damen I, Junioren I m/w). Start bei null, Zehntelwertung; 2×5 Schuss in je 250 s, dann 14 Einzelschüsse in je 50 s; ab dem 12. Schuss scheidet nach jedem zweiten Schuss der Letzte aus."
   mix-team-30:
     beschreibung: "Mix Team: je Sportler 30 Schuss in 40 Min., Team = Summe beider (60 Schuss)"
     varianten:
@@ -146,6 +152,8 @@ ablaeufe:
             schuss_je_serie: 10
             # SpO 15.2.2.4: 10 Min. Vorbereitungs- und Probezeit. Die DM-Ausschreibung (4.6, Stand 21.01.2026) nennt 15 Min.
             vorbereitung_probe_s: 600
+            # Durchführung nach den LP-Regeln (SpO 15.2.2.5), dort beliebig viele Probeschüsse (SpO 2.11.2).
+            probeschuesse: "unbegrenzt"
             wettkampfzeit_s: 2400        # SpO 15.2.2.5 (Fassung 2027)
             positionen:
               - { nr: 1, anschlaege: [{ haltung: "stehend", hand: "einhaendig" }] }
