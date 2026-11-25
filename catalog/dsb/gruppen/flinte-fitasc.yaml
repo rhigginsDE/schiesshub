@@ -26,6 +26,7 @@ wertung:
   # SpO 3.29.1.1 (Teil 3 S. 42): Platz 1–3 Stechen (3.29.1.2: erst eine 25er-Runde, dann KO, Doublette als Kombination);
   #   ab Platz 4 besserer letzter Durchgang, dann rückwärts. Kein Finale.
   gleichstand: ["stechen", "letzte_serie_rueckwaerts"]
+  gleichstand_serie: "serie" # SpO 3.9.1.2: Vergleich der Serien wie geschossen, nicht in 10er-Blöcken
   stechen_bis_platz: 3
   geprueft: true   # geprüft 2026-11-25 gegen SpO 2027 Teil 0 (0.20, 0.21), Teil 3 (3.21–3.45); zweite Prüfung
 ablaeufe:

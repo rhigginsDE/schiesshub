@@ -306,6 +306,40 @@ def test_max_score_rule_only_for_rings(minimal_catalog: Path) -> None:
     assert any("hoechstergebnis_gleicher_rang" in error.meldung for error in errors)
 
 
+def test_tie_fields_are_checked(minimal_catalog: Path) -> None:
+    def valid(data: dict) -> None:
+        data["wertung"].update(
+            stechen_bei_hoechstergebnis=True,
+            gleichstand_serie="zehn_schuss",
+            gleichstand_bis_platz=6,
+            gleichstand_danach=[],
+        )
+
+    edit_yaml(minimal_catalog / GROUP_FILE, valid)
+    assert errors_of(minimal_catalog) == []
+
+    def both_max_rules(data: dict) -> None:
+        data["wertung"]["hoechstergebnis_gleicher_rang"] = True
+
+    edit_yaml(minimal_catalog / GROUP_FILE, both_max_rules)
+    assert any("schließen sich aus" in e.meldung for e in errors_of(minimal_catalog))
+
+    def until_alone(data: dict) -> None:
+        del data["wertung"]["hoechstergebnis_gleicher_rang"]
+        del data["wertung"]["gleichstand_danach"]
+
+    edit_yaml(minimal_catalog / GROUP_FILE, until_alone)
+    assert any("nur zusammen" in e.meldung for e in errors_of(minimal_catalog))
+
+    def bad_series(data: dict) -> None:
+        data["wertung"]["gleichstand_danach"] = []
+        data["wertung"]["gleichstand_serie"] = "fuenf_schuss"
+
+    edit_yaml(minimal_catalog / GROUP_FILE, bad_series)
+    errors = errors_of(minimal_catalog)
+    assert any("gleichstand_serie" in str(e) for e in errors)
+
+
 def test_sighting_shots_must_be_a_count_or_unlimited(minimal_catalog: Path) -> None:
     _edit_section(minimal_catalog, probeschuesse="beliebig")
 

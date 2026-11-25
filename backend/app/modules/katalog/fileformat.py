@@ -166,11 +166,30 @@ class Wertung(StrictModel):
     # DSB SpO 0.12.1: Wer ohne Finale das erzielbare Höchstergebnis erreicht, wird nicht
     # unterschieden (gleicher Rang ohne Gleichstandskette). Nur bei Modell "ringe".
     hoechstergebnis_gleicher_rang: bool | None = None
+    # DSB SpO 9.4.3: Gleichstand beim Höchstergebnis entscheidet ein Stechen (Vorrang vor der
+    # Kette). Nur bei Modell "ringe", nicht zusammen mit hoechstergebnis_gleicher_rang.
+    stechen_bei_hoechstergebnis: bool | None = None
+    # Woraus "letzte_serie_rueckwaerts" die verglichenen Serien bildet: "zehn_schuss" = Blöcke zu
+    # 10 Schuss (SpO 0.12.1 Nr. 1), "serie" = Serien wie im Ablauf (z. B. 25er bei Flinte, 3.9.1.2).
+    # Ohne Angabe: "serie", wenn alle Abschnitte nur Treffer zählen, sonst "zehn_schuss".
+    gleichstand_serie: Literal["zehn_schuss", "serie"] | None = None
+    # Die Kette `gleichstand` gilt nur für Gleichstände, die auf Platz 1 bis N beginnen
+    # (z. B. SpO 9.4.1: Plätze 1–6); ab Platz N+1 gilt `gleichstand_danach` (leer: gleicher Platz).
+    gleichstand_bis_platz: PositiveInt | None = None
+    gleichstand_danach: list[Text] | None = None
 
     @model_validator(mode="after")
     def _check_max_score_rule(self) -> Self:
         if self.hoechstergebnis_gleicher_rang and self.modell != "ringe":
             raise ValueError("hoechstergebnis_gleicher_rang gibt es nur bei modell 'ringe'")
+        if self.stechen_bei_hoechstergebnis and self.modell != "ringe":
+            raise ValueError("stechen_bei_hoechstergebnis gibt es nur bei modell 'ringe'")
+        if self.stechen_bei_hoechstergebnis and self.hoechstergebnis_gleicher_rang:
+            raise ValueError(
+                "stechen_bei_hoechstergebnis und hoechstergebnis_gleicher_rang schließen sich aus"
+            )
+        if (self.gleichstand_bis_platz is None) != (self.gleichstand_danach is None):
+            raise ValueError("gleichstand_bis_platz und gleichstand_danach nur zusammen angeben")
         return self
 
 

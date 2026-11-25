@@ -159,6 +159,10 @@
     "stechen_bis_platz_ringe": "Bei Ringgleichheit auf den Plätzen 1 bis {{wert}} wird gestochen.",
     "stechen_bis_platz_treffer": "Bei Treffergleichheit auf den Plätzen 1 bis {{wert}} wird gestochen.",
     "hoechstergebnis_gleicher_rang": "Wer das erzielbare Höchstergebnis erreicht, wird ohne Finale nicht unterschieden und erhält den gleichen Rang.",
+    "stechen_bei_hoechstergebnis": "Erreichen mehrere das erzielbare Höchstergebnis, entscheidet zwischen ihnen ein Stechen.",
+    "gleichstand_bis_platz": "Die Reihenfolge unten gilt für Gleichstände auf den Plätzen 1 bis {{wert}}.",
+    "gleichstand_danach": "Ab Platz {{ab}} entscheidet {{kriterien}}.",
+    "gleichstand_danach_gleicher_platz": "Ab Platz {{ab}} erhalten Gleiche denselben Platz.",
     "stechen_bis_platz_ergebnis": "Bei Ergebnisgleichheit auf den Plätzen 1 bis {{wert}} wird gestochen.",
     "zeit_rundung": {
       "summe_abrunden": "Die Summe der Serienzeiten wird vor dem Abzug auf volle Sekunden abgerundet."
@@ -176,6 +180,7 @@
         "neuner_abwaerts": "die höhere Zahl der Neuner, dann der Achter und so weiter",
         "parcours_zeit": "die niedrigere Durchgangszeit",
         "letzte_serie_rueckwaerts": "das bessere Ergebnis der letzten Zehnerserie, dann der vorletzten und so weiter",
+        "letzte_serie_rueckwaerts_serie": "das bessere Ergebnis der letzten Serie, dann der vorletzten und so weiter",
         "stechen": "ein Stechen",
         "zehntel_gesamt": "das höhere Ergebnis in Zehnteln"
       }

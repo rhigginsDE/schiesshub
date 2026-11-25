@@ -27,6 +27,7 @@ wertung:
   # Nicht abbildbar: Bei 300 Ringen entscheidet ein Stechen (9.4.3, Teil 9 S. 3). hoechstergebnis_gleicher_rang
   #   (0.12.1 Satz 1) gilt deshalb nicht und bleibt leer. Kein Endkampf: Teil 15 S. 2–4 nennt nur Gewehr und 10 m LP.
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner", "zehntel_gesamt"]
+  stechen_bei_hoechstergebnis: true # SpO 9.4.3 (Teil 9 S. 3): bei 300 Ringen entscheidet ein Stechen
   # geprüft 2026-11-25 (2. Prüfung) gegen SpO 2027 Teil 9 S. 1–9, Teil 0 S. 43, 62, 81, Teil 15 S. 2–4.
   geprueft: true
 ablaeufe:

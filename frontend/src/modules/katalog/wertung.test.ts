@@ -71,6 +71,49 @@ describe("beschreibeWertung", () => {
     ]);
   });
 
+  it("nennt Stechen beim Höchstergebnis und die Kette je Platz (Auflage)", () => {
+    const klartext = beschreibeWertung(
+      {
+        modell: "ringe",
+        rangfolge: "absteigend",
+        geprueft: true,
+        gleichstand: ["letzte_serie_rueckwaerts", "zehner"],
+        stechen_bei_hoechstergebnis: true,
+        gleichstand_bis_platz: 6,
+        gleichstand_danach: [],
+      } as WertungOffen,
+      "de",
+    );
+    expect(klartext.saetze).toContain(
+      "Erreichen mehrere das erzielbare Höchstergebnis, entscheidet zwischen ihnen ein Stechen.",
+    );
+    expect(klartext.saetze).toContain(
+      "Die Reihenfolge unten gilt für Gleichstände auf den Plätzen 1 bis 6.",
+    );
+    expect(klartext.saetze).toContain("Ab Platz 7 erhalten Gleiche denselben Platz.");
+  });
+
+  it("vergleicht bei Treffern die Serien wie geschossen, sonst Zehnerserien", () => {
+    const wertung = {
+      modell: "ringe",
+      rangfolge: "absteigend",
+      geprueft: true,
+      gleichstand: ["letzte_serie_rueckwaerts"],
+    } as WertungOffen;
+    const treffer = { varianten: [{ abschnitte: [{ ringwerte: [1, 0] }] }] };
+
+    expect(beschreibeWertung(wertung, "de", treffer).gleichstand).toEqual([
+      "das bessere Ergebnis der letzten Serie, dann der vorletzten und so weiter",
+    ]);
+    expect(
+      beschreibeWertung(
+        { ...wertung, gleichstand_serie: "zehn_schuss" } as WertungOffen,
+        "de",
+        treffer,
+      ).gleichstand,
+    ).toEqual(["das bessere Ergebnis der letzten Zehnerserie, dann der vorletzten und so weiter"]);
+  });
+
   it("spricht bei reinen Treffern von Treffergleichheit, sonst von Ringgleichheit", () => {
     const wertung: WertungOffen = { modell: "ringe", rangfolge: "absteigend", geprueft: true };
     const ablauf = (ringwerte: number[] | null) => ({

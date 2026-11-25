@@ -39,10 +39,33 @@ function gleichheitAus(
 ): Gleichheit {
   if (verband === "dsb") return "ergebnis";
   if (wertung.modell === "zeit_plus_zuschlaege") return "treffer";
+  return nurTreffer(ablauf) ? "treffer" : "ringe";
+}
+
+/** Jede Wertung zählt nur Treffer (Ringwerte höchstens 1, z. B. Flinte). */
+function nurTreffer(ablauf?: AblaufRingwerte): boolean {
   const ringwerte = (ablauf?.varianten ?? []).flatMap((variante) =>
     variante.abschnitte.flatMap((abschnitt) => abschnitt.ringwerte ?? []),
   );
-  return ringwerte.length > 0 && Math.max(...ringwerte) <= 1 ? "treffer" : "ringe";
+  return ringwerte.length > 0 && Math.max(...ringwerte) <= 1;
+}
+
+/** Klartext der Gleichstandskriterien; unbekannte mit ihrem Schlüssel. */
+function kriterienText(
+  kriterien: string[],
+  sprache: string,
+  serieWieGeschossen: boolean,
+): string[] {
+  const t = i18n.getFixedT(sprache, "katalog", "wertung.gleichstand.kriterium");
+  return kriterien.map((kriterium) => {
+    const schluessel =
+      kriterium === "letzte_serie_rueckwaerts" && serieWieGeschossen
+        ? "letzte_serie_rueckwaerts_serie"
+        : kriterium;
+    return i18n.exists(`katalog:wertung.gleichstand.kriterium.${schluessel}`, { lng: sprache })
+      ? t(schluessel)
+      : kriterium.replaceAll("_", " ");
+  });
 }
 
 function modellName(modell: string, sprache: string): string {
@@ -85,7 +108,14 @@ export function beschreibeWertung(
     zehntelwertung?: boolean | null;
     stechen_bis_platz?: number | null;
     hoechstergebnis_gleicher_rang?: boolean | null;
+    stechen_bei_hoechstergebnis?: boolean | null;
+    gleichstand_serie?: string | null;
+    gleichstand_bis_platz?: number | null;
+    gleichstand_danach?: string[] | null;
   };
+  // Woraus "letzte_serie_rueckwaerts" die Serien bildet (Standard wie in der Wertung).
+  const serieWieGeschossen =
+    (offen.gleichstand_serie ?? (nurTreffer(ablauf) ? "serie" : "zehn_schuss")) === "serie";
   if (offen.zehntelwertung === true) {
     saetze.push(t("zehntelwertung"));
   }
@@ -99,6 +129,23 @@ export function beschreibeWertung(
   if (offen.hoechstergebnis_gleicher_rang === true) {
     saetze.push(t("hoechstergebnis_gleicher_rang"));
   }
+  if (offen.stechen_bei_hoechstergebnis === true) {
+    saetze.push(t("stechen_bei_hoechstergebnis"));
+  }
+  const bisPlatz = offen.gleichstand_bis_platz;
+  if (typeof bisPlatz === "number" && wertung.gleichstand && wertung.gleichstand.length > 0) {
+    saetze.push(t("gleichstand_bis_platz", { wert: formatZahl(bisPlatz, {}, sprache) }));
+    const danach = offen.gleichstand_danach ?? [];
+    const ab = formatZahl(bisPlatz + 1, {}, sprache);
+    saetze.push(
+      danach.length > 0
+        ? t("gleichstand_danach", {
+            ab,
+            kriterien: kriterienText(danach, sprache, serieWieGeschossen).join(", dann "),
+          })
+        : t("gleichstand_danach_gleicher_platz", { ab }),
+    );
+  }
   if (
     wertung.zeit_rundung &&
     i18n.exists(`katalog:wertung.zeit_rundung.${wertung.zeit_rundung}`, { lng: sprache })
@@ -108,11 +155,7 @@ export function beschreibeWertung(
 
   const gleichstand =
     wertung.gleichstand && wertung.gleichstand.length > 0
-      ? wertung.gleichstand.map((kriterium) =>
-          i18n.exists(`katalog:wertung.gleichstand.kriterium.${kriterium}`, { lng: sprache })
-            ? t(`gleichstand.kriterium.${kriterium}`)
-            : kriterium.replaceAll("_", " "),
-        )
+      ? kriterienText(wertung.gleichstand, sprache, serieWieGeschossen)
       : null;
 
   return {

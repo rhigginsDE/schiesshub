@@ -137,6 +137,10 @@ Weitere Felder unter `wertung`:
 | `zehntelwertung` | `true`: Ringe mit einer Nachkommastelle (0 und 1,0 bis 10,9) |
 | `stechen_bis_platz` | Ringgleichheit auf den Plätzen 1 bis N wird durch Stechen entschieden |
 | `hoechstergebnis_gleicher_rang` | `true`: Wer das erzielbare Höchstergebnis erreicht, wird ohne Finale nicht unterschieden und teilt sich den Rang (DSB SpO 0.12.1). Nur bei `modell: "ringe"` |
+| `stechen_bei_hoechstergebnis` | `true`: Gleichstand beim erzielbaren Höchstergebnis entscheidet ein Stechen, vor der Gleichstandskette (DSB SpO 9.4.3). Nur bei `modell: "ringe"`, nicht zusammen mit `hoechstergebnis_gleicher_rang` |
+| `gleichstand_serie` | Woraus `letzte_serie_rueckwaerts` die verglichenen Serien bildet: `"zehn_schuss"` (Blöcke zu 10 Schuss, DSB SpO 0.12.1) oder `"serie"` (Serien wie im Ablauf, z. B. 25er bei Flinte). Ohne Angabe: `"serie"`, wenn alle Abschnitte nur Treffer zählen, sonst `"zehn_schuss"` |
+| `gleichstand_bis_platz` | Zahl N: `gleichstand` gilt nur für Gleichstände, die auf Platz 1 bis N beginnen (z. B. DSB SpO 9.4.1: 6). Nur zusammen mit `gleichstand_danach` |
+| `gleichstand_danach` | Kriterien ab Platz N+1; leere Liste = gleicher Platz. Nur zusammen mit `gleichstand_bis_platz` |
 | `abzug_je_voller_sekunde_ueber_sollzeit` | Ringabzug je voller Sekunde über `sollzeit_s` |
 | `min_teilergebnis` | Untergrenze je Teilergebnis vor dem Addieren (Mehrdistanz: 0) |
 | `zeit_rundung` | `summe_abrunden`: Summe der Serienzeiten wird vor dem Abzug auf volle Sekunden abgerundet (Speed) |

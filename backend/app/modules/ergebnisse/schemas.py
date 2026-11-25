@@ -328,7 +328,8 @@ class RankingRow(BaseModel):
     # `tie_unresolved` bleibt false; max_score_shootoff: Höchstergebnis erreicht, Stechen
     # (`stechen_bei_hoechstergebnis`, DSB-SpO 9.4.3), `needs_shootoff` true; resolved: im
     # Ergebnis gleich, durch die Gleichstandskette getrennt (`tied` und `tie_unresolved` false,
-    # `tie_criterion` das entscheidende Kriterium, `tie_note` z. B. „Ringgleichheit, entschieden nach: Anzahl der Zehner“).
+    # `tie_criterion` das entscheidende Kriterium, `tie_note` z. B. „Ringgleichheit, entschieden
+    # nach: Anzahl der Zehner“).
     tie_reason: (
         Literal["missing_data", "manual", "shootoff", "max_score", "max_score_shootoff", "resolved"]
         | None

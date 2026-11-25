@@ -28,6 +28,7 @@ wertung:
   # innenzehner gestrichen (2026-11-25): Scheibe Nr. 2 hat keinen Innenzehner (0.20, Teil 0 S. 62 und S. 64,
   #   als Bild geprüft; anders als Scheibe 1 und 3). 9.4.1 Nr. 3 läuft hier daher leer.
   gleichstand: ["letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "zehntel_gesamt"]
+  stechen_bei_hoechstergebnis: true # SpO 9.4.3 (Teil 9 S. 3): bei 300 Ringen entscheidet ein Stechen
   # geprüft 2026-11-25 (zweite Prüfung): alle Werte gegen 0.21 (Teil 0 S. 76), Tabelle Teil 9 S. 8, 9.1–9.4, 9.7.
   geprueft: true
 ablaeufe:

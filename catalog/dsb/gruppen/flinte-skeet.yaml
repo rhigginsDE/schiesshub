@@ -23,6 +23,7 @@ wertung:
   # SpO 3.9.1.1: Platz 1–6 Stechen, wenn kein Finale (Durchführung 15.4.3, Doublette als Kombination gewertet).
   # SpO 3.9.1.2: ab Platz 7 letzte Serie rückwärts, dann Trefferfolge ab letzter Scheibe rückwärts.
   gleichstand: ["stechen", "letzte_serie_rueckwaerts", "trefferfolge_rueckwaerts"]
+  gleichstand_serie: "serie" # SpO 3.9.1.2: Vergleich der Serien wie geschossen, nicht in 10er-Blöcken
   stechen_bis_platz: 6
   # geprüft 2026-11-25 (zweite Prüfung): 3.20 vollständig belegt. false nur wegen 3.22: Programm des Skeet Mix Team
   #   steht nirgends in der SpO 2027 (nur Kennzahl in der Tabelle olympische Wettbewerbe, Teil 0 S. 31).

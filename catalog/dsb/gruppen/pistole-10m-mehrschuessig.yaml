@@ -25,6 +25,7 @@ wertung:
   # übrige Plätze nach 0.12.1. Gilt für alle drei Wettbewerbe: Die Tabelle in 2.9 nennt Stech- und Probeserie für
   # 10 m Mehrschüssige LP, LP Mehrkampf und LP Standard; 2.13 und 2.14 schreiben mehrschüssige Luftpistolen vor.
   gleichstand: ["stechen", "letzte_serie_rueckwaerts", "zehner", "neuner_abwaerts", "innenzehner"]
+  gleichstand_serie: "zehn_schuss" # SpO 0.12.1 Nr. 1 (Teil 0 S. 43): Vergleich in 10-Schuss-Serien, auch bei Trefferwertung (2.16)
   stechen_bis_platz: 3
   # Höchstergebnis wird unterschieden: 0.12.1 Satz 1 nimmt die mehrschüssige Luftpistole aus (Teil 0 S. 43), und die
   # Ausnahme in 2.9 gilt nur für 25-m-Wettbewerbe.
