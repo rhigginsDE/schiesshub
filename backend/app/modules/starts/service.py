@@ -44,10 +44,15 @@ from app.modules.starts.schemas import (
     EntryCreate,
     EntryOut,
     EntryPersonOut,
+    EntryStartOut,
     EntryUpdate,
     StartBooking,
     StartOut,
+    StartRightCheckOut,
+    StartRightNoticeOut,
 )
+from app.modules.starts.start_rights import StartRightResult
+from app.modules.starts.start_rights_lookup import StartRightsLookup
 from app.modules.teilnehmer.index import PersonIndex
 from app.modules.teilnehmer.models import Club, Person
 from app.modules.teilnehmer.names import display_name
@@ -82,6 +87,9 @@ async def entry_outs(session: AsyncSession, entries: Sequence[Entry]) -> list[En
         .order_by(Start.created_at, Start.competition_id, Start.attempt)
     ):
         starts[start.entry_id].append(start)
+    notices = await start_right_notices(
+        session, [(start, entry.class_id) for entry in entries for start in starts[entry.id]]
+    )
 
     result = []
     for entry in entries:
@@ -99,10 +107,113 @@ async def entry_outs(session: AsyncSession, entries: Sequence[Entry]) -> list[En
                     display_name=display_name(person.name_enc, person.display_mode),
                     club=club,
                 ),
-                starts=[StartOut.model_validate(start) for start in own],
+                starts=[entry_start_out(start, notices[start.id]) for start in own],
                 fee_total_cents=sum(start.fee_cents for start in own),
                 created_at=entry.created_at,
                 updated_at=entry.updated_at,
+            )
+        )
+    return result
+
+
+def entry_start_out(start: Start, notices: list[StartRightNoticeOut]) -> EntryStartOut:
+    return EntryStartOut.model_validate(
+        {**StartOut.model_validate(start).model_dump(), "start_rights": notices}
+    )
+
+
+def _notice_outs(result: StartRightResult) -> list[StartRightNoticeOut]:
+    return [
+        StartRightNoticeOut(
+            code=notice.code,
+            severity=notice.severity,
+            message_de=notice.message_de,
+            source=notice.source,
+        )
+        for notice in result.notices
+    ]
+
+
+async def start_right_notices(
+    session: AsyncSession, pairs: Sequence[tuple[Start, uuid.UUID]]
+) -> dict[uuid.UUID, list[StartRightNoticeOut]]:
+    """Startrecht-Meldungen je Start (Start mit der Klasse seiner Anmeldung)."""
+    if not pairs:
+        return {}
+    competitions = {
+        item.id: item
+        for item in await session.scalars(
+            select(Competition).where(
+                Competition.id.in_({start.competition_id for start, _ in pairs})
+            )
+        )
+    }
+    classes = {
+        item.id: item
+        for item in await session.scalars(
+            select(TournamentClass).where(TournamentClass.id.in_({cid for _, cid in pairs}))
+        )
+    }
+    lookup = StartRightsLookup(session)
+    checked: dict[tuple[uuid.UUID, uuid.UUID], list[StartRightNoticeOut]] = {}
+    result: dict[uuid.UUID, list[StartRightNoticeOut]] = {}
+    for start, class_id in pairs:
+        key = (start.competition_id, class_id)
+        if key not in checked:
+            checked[key] = _notice_outs(
+                await lookup.check(competitions[start.competition_id], classes[class_id])
+            )
+        result[start.id] = checked[key]
+    return result
+
+
+async def check_start_rights(
+    session: AsyncSession,
+    tournament_id: uuid.UUID,
+    class_id: uuid.UUID | None,
+    entry_id: uuid.UUID | None,
+    competition_ids: Sequence[uuid.UUID],
+) -> list[StartRightCheckOut]:
+    """Vorab-Auskunft vor dem Buchen: Startrecht der Klasse in den Wettbewerben.
+
+    Klasse direkt (`class_id`, neue Anmeldung) oder über die Anmeldung (`entry_id`, Nachkauf).
+    Ohne `competition_ids` alle Wettbewerbe des Turniers, in der Reihenfolge des Turniers.
+    Ändert nichts und lehnt nichts ab.
+    """
+    await get_tournament(session, tournament_id)
+    if (class_id is None) == (entry_id is None):
+        raise InputError.single(
+            "class_id",
+            "Bitte entweder eine Klasse (class_id) oder eine Anmeldung (entry_id) angeben.",
+        )
+    if entry_id is not None:
+        class_id = (await get_entry(session, tournament_id, entry_id)).class_id
+    assert class_id is not None
+    klass = await _class_of_tournament(session, tournament_id, class_id)
+
+    statement = select(Competition).where(Competition.tournament_id == tournament_id)
+    if competition_ids:
+        statement = statement.where(Competition.id.in_(set(competition_ids)))
+    competitions = list(await session.scalars(statement.order_by(Competition.sort)))
+    if competition_ids and len(competitions) != len(set(competition_ids)):
+        raise InputError.single(
+            "competition_id", "Mindestens einer der Wettbewerbe gehört nicht zu diesem Turnier."
+        )
+    if competition_ids:
+        order = {cid: index for index, cid in enumerate(competition_ids)}
+        competitions.sort(key=lambda item: order[item.id])
+
+    lookup = StartRightsLookup(session)
+    result = []
+    for competition in competitions:
+        checked = await lookup.check(competition, klass)
+        result.append(
+            StartRightCheckOut(
+                competition_id=competition.id,
+                competition_name=competition.name,
+                competition_code=competition.catalog_code,
+                status=checked.status,
+                start_rights=_notice_outs(checked),
             )
         )
     return result

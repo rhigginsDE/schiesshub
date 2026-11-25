@@ -21,6 +21,7 @@ from app.modules.starts.schemas import (
     ConflictOut,
     EntryCreate,
     EntryOut,
+    EntryStartOut,
     EntryUpdate,
     HeatCreate,
     HeatOut,
@@ -34,6 +35,7 @@ from app.modules.starts.schemas import (
     SlotRequest,
     StartBooking,
     StartOut,
+    StartRightCheckOut,
     StationStartOut,
 )
 from app.modules.teilnehmer.router import IndexDep
@@ -215,7 +217,9 @@ async def delete_entry(
     description=(
         "Bucht `count` Starts im Wettbewerb. Der Betrag (`fee_first_cents` für den ersten Start "
         "der Person im Wettbewerb, sonst `fee_repeat_cents`) wird am Start festgeschrieben. Bei "
-        "Zeitplan optional gleich mit `heat_id` (und `lane`)."
+        "Zeitplan optional gleich mit `heat_id` (und `lane`). Jeder Start trägt `start_rights`: "
+        "Warnungen und Hinweise zum Startrecht laut Verbandstabelle (wie `GET …/start-rights`); "
+        "gebucht wird trotzdem."
     ),
     status_code=status.HTTP_201_CREATED,
     responses=WRITE,
@@ -227,9 +231,42 @@ async def book_starts(
     session: SessionDep,
     events: EventHubDep,
     actor: StartEditor,
-) -> list[StartOut]:
+) -> list[EntryStartOut]:
     starts = await service.book_starts(session, events, actor, tournament_id, entry_id, data)
-    return [_start(start) for start in starts]
+    entry = await service.get_entry(session, tournament_id, entry_id)
+    notices = await service.start_right_notices(
+        session, [(start, entry.class_id) for start in starts]
+    )
+    return [service.entry_start_out(start, notices[start.id]) for start in starts]
+
+
+@router.get(
+    "/start-rights",
+    summary="Startrecht vor dem Buchen prüfen",
+    description=(
+        "Vorab-Auskunft für Anmeldung und Kasse: Startrecht der Klasse (`class_id`, neue "
+        "Anmeldung) oder der Klasse einer Anmeldung (`entry_id`, Nachkauf) in den Wettbewerben "
+        "`competition_id` (mehrfach; ohne Angabe alle des Turniers). Grundlage ist die "
+        "Startrecht-Tabelle des Verbands zur Deutschen Meisterschaft (bisher nur DSB). Ändert "
+        "nichts; ein Start bleibt in jedem Fall möglich. `start_rights` ist leer bei "
+        "`startberechtigt` und `keine_angabe`."
+    ),
+    responses={
+        **NOT_FOUND,
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {"description": "Ungültige Eingabe"},
+    },
+)
+async def check_start_rights(
+    tournament_id: UUID,
+    session: SessionDep,
+    _: StartEditor,
+    class_id: UUID | None = None,
+    entry_id: UUID | None = None,
+    competition_id: Annotated[list[UUID] | None, Query()] = None,
+) -> list[StartRightCheckOut]:
+    return await service.check_start_rights(
+        session, tournament_id, class_id, entry_id, competition_id or []
+    )
 
 
 @router.delete(

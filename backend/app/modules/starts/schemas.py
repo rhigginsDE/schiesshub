@@ -78,13 +78,38 @@ class StartOut(BaseModel):
     updated_at: datetime
 
 
+class StartRightNoticeOut(BaseModel):
+    """Warnung oder Hinweis zum Startrecht laut Meisterschaftstabelle des Verbands.
+
+    Nie ein Grund zur Ablehnung: Der Start bleibt möglich. Der Text ist fertig formuliert.
+    """
+
+    # kein_startrecht, nicht_ausgeschrieben (severity warning); startet_bei,
+    # startmoeglichkeit_0711 (severity hint).
+    code: Literal[
+        "startet_bei", "startmoeglichkeit_0711", "kein_startrecht", "nicht_ausgeschrieben"
+    ]
+    severity: Literal["warning", "hint"]
+    message_de: str
+    # Fundstelle: Tabelle, Stand und Eintrag.
+    source: str
+
+
+class EntryStartOut(StartOut):
+    """Ein Start in der Ausgabe für die Anmeldung, mit Startrecht laut Verbandstabelle."""
+
+    # Leer, wenn die Klasse startberechtigt ist oder es nichts zu sagen gibt (eigener
+    # Wettbewerb, eigene Klasse, Verband ohne Startrecht-Tabelle).
+    start_rights: list[StartRightNoticeOut] = []
+
+
 class EntryOut(BaseModel):
     id: UUID
     tournament_id: UUID
     start_number: int
     class_id: UUID
     person: EntryPersonOut
-    starts: list[StartOut]
+    starts: list[EntryStartOut]
     # Summe der Beträge aller gebuchten Starts (Version 1: nur Anzeige, keine Zahlungsbuchung).
     fee_total_cents: int
     created_at: datetime
@@ -100,6 +125,26 @@ class StartBooking(StrictModel):
     # Nur bei Zeitplan: gleich einen Platz buchen. Ohne `lane` der erste freie Schützenstand.
     heat_id: Id | None = None
     lane: PositiveInt | None = None
+
+
+class StartRightCheckOut(BaseModel):
+    """Vorab-Auskunft zum Startrecht einer Klasse in einem Wettbewerb, vor dem Buchen."""
+
+    competition_id: UUID
+    competition_name: str
+    # Kennziffer aus dem Katalog; null bei eigenem Wettbewerb.
+    competition_code: str | None
+    # startberechtigt | startet_bei | startmoeglichkeit_0711 | kein_startrecht |
+    # nicht_ausgeschrieben | keine_angabe (kein Eintrag, keine Tabelle, Klasse ohne Nummer).
+    status: Literal[
+        "startberechtigt",
+        "startet_bei",
+        "startmoeglichkeit_0711",
+        "kein_startrecht",
+        "nicht_ausgeschrieben",
+        "keine_angabe",
+    ]
+    start_rights: list[StartRightNoticeOut]
 
 
 class AbortRequest(StrictModel):
